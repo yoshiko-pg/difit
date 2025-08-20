@@ -73,6 +73,7 @@ function detectLanguage(filename: string): string {
     swift: 'swift',
     kt: 'kotlin',
     scala: 'scala',
+    svelte: 'svelte',
     r: 'r',
     lua: 'lua',
     perl: 'perl',
