@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
 import { type DiffComment } from '../../types/diff';
 import { storageService } from '../services/StorageService';
@@ -65,7 +64,7 @@ export function useDiffComments(
   const addComment = useCallback(
     (params: AddCommentParams): DiffComment => {
       const newComment: DiffComment = {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         filePath: params.filePath,
         body: params.body,
         createdAt: new Date().toISOString(),
