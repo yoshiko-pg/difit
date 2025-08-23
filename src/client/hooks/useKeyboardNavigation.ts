@@ -444,10 +444,21 @@ export function useKeyboardNavigation({
     isHelpOpen,
   ]);
 
-  // Move to center of viewport
-  useHotkeys('.', () => moveToCenterOfViewport(), { ...hotkeyOptions, useKey: true }, [
-    moveToCenterOfViewport,
-  ]);
+  // Move to center of viewport - only if no modifier keys are pressed
+  useHotkeys(
+    '.',
+    (event) => {
+      // Don't execute if any modifier keys are pressed
+      if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) {
+        return;
+      }
+      // Execute for standalone '.' key and prevent other handlers
+      moveToCenterOfViewport();
+      event.preventDefault();
+    },
+    { ...hotkeyOptions, useKey: true, preventDefault: false },
+    [moveToCenterOfViewport]
+  );
 
   // Copy all comments prompt - available in both navigation and comments-list scopes
   useHotkeys(
