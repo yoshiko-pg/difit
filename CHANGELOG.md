@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.1] - 2025-08-24
+
+### Added
+
+- Support for Svelte syntax highlighting (#85)
+
+### Changed
+
+- Replace uuid package with native crypto.randomUUID for better performance (#82)
+
+### Fixed
+
+- Comment line numbers now display correctly in server output (#87)
+- '.' keyboard shortcut no longer triggers when modifier keys are pressed (#86)
+
+### Thanks
+
+- [@basyura](https://github.com/basyura) for fixing '.' shortcut with modifier keys #86
+- [@KraXen72](https://github.com/KraXen72) for adding Svelte syntax highlighting support #85
+- [@noritaka1166](https://github.com/noritaka1166) for replacing uuid package with crypto.randomUUID #82
+
 ## [2.2.0] - 2025-08-03
 
 ### Changed
@@ -535,7 +556,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/yoshiko-pg/difit/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/yoshiko-pg/difit/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/yoshiko-pg/difit/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/yoshiko-pg/difit/compare/v2.1.0...v2.1.1
