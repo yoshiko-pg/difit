@@ -217,7 +217,18 @@ function App() {
   useEffect(() => {
     // Sync comments whenever they change
     if (comments.length > 0) {
-      const data = JSON.stringify({ comments });
+      // Transform DiffComment to Comment format for server
+      const transformedComments = comments.map((c) => ({
+        id: c.id,
+        file: c.filePath,
+        line:
+          typeof c.position.line === 'number' ?
+            c.position.line
+          : [c.position.line.start, c.position.line.end],
+        body: c.body,
+        timestamp: c.createdAt,
+      }));
+      const data = JSON.stringify({ comments: transformedComments });
       fetch('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -230,8 +241,19 @@ function App() {
     // Also handle page unload
     const sendCommentsBeforeUnload = () => {
       if (comments.length > 0) {
+        // Transform DiffComment to Comment format for server
+        const transformedComments = comments.map((c) => ({
+          id: c.id,
+          file: c.filePath,
+          line:
+            typeof c.position.line === 'number' ?
+              c.position.line
+            : [c.position.line.start, c.position.line.end],
+          body: c.body,
+          timestamp: c.createdAt,
+        }));
         // Use sendBeacon for reliable delivery during page unload
-        const data = JSON.stringify({ comments });
+        const data = JSON.stringify({ comments: transformedComments });
         navigator.sendBeacon('/api/comments', data);
       }
     };

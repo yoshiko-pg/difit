@@ -6,7 +6,10 @@ export function formatCommentPrompt(file: string, line: number | number[], body:
     : Array.isArray(line) ? `L${line[0]}-L${line[1]}`
     : '';
 
-  return `${file}:${lineInfo}\n${body}`;
+  // Handle undefined or null file paths
+  const filePath = file || '<unknown file>';
+
+  return `${filePath}:${lineInfo}\n${body}`;
 }
 
 export function formatAllCommentsPrompt(comments: Comment[]): string {
