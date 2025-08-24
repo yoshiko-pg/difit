@@ -8,6 +8,7 @@ import open from 'open';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 import { type DiffMode } from '../types/watch.js';
+import { formatCommentsOutput } from '../utils/commentFormatting.js';
 import { getFileExtension } from '../utils/fileUtils.js';
 
 import { FileWatcherService } from './file-watcher.js';
@@ -172,21 +173,6 @@ export async function startServer(
       res.send('');
     }
   });
-
-  // Function to format comments for output
-  function formatCommentsOutput(comments: Comment[]): string {
-    const prompts = comments.map((comment: Comment) => {
-      return `${comment.file}:${Array.isArray(comment.line) ? `L${comment.line[0]}-L${comment.line[1]}` : `L${comment.line}`}\n${comment.body}`;
-    });
-
-    return [
-      '\n📝 Comments from review session:',
-      '='.repeat(50),
-      prompts.join('\n=====\n'),
-      '='.repeat(50),
-      `Total comments: ${comments.length}\n`,
-    ].join('\n');
-  }
 
   // Function to output comments when server shuts down
   function outputFinalComments() {

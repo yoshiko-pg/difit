@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { type DiffComment } from '../../types/diff';
+import { formatCommentPrompt, formatAllCommentsPrompt } from '../../utils/commentFormatting';
 import { storageService } from '../services/StorageService';
 import { getLanguageFromPath } from '../utils/diffUtils';
 
@@ -114,29 +115,29 @@ export function useDiffComments(
       const comment = comments.find((c) => c.id === commentId);
       if (!comment) return '';
 
-      const lineInfo =
+      const line =
         typeof comment.position.line === 'number' ?
-          `L${comment.position.line}`
-        : `L${comment.position.line.start}-L${comment.position.line.end}`;
+          comment.position.line
+        : [comment.position.line.start, comment.position.line.end];
 
-      return `${comment.filePath}:${lineInfo}\n${comment.body}`;
+      return formatCommentPrompt(comment.filePath, line, comment.body);
     },
     [comments]
   );
 
   const generateAllCommentsPrompt = useCallback((): string => {
-    if (comments.length === 0) return '';
+    const transformedComments = comments.map((comment) => ({
+      id: comment.id,
+      file: comment.filePath,
+      line:
+        typeof comment.position.line === 'number' ?
+          comment.position.line
+        : ([comment.position.line.start, comment.position.line.end] as [number, number]),
+      body: comment.body,
+      timestamp: comment.createdAt,
+    }));
 
-    return comments
-      .map((comment) => {
-        const lineInfo =
-          typeof comment.position.line === 'number' ?
-            `L${comment.position.line}`
-          : `L${comment.position.line.start}-L${comment.position.line.end}`;
-
-        return `${comment.filePath}:${lineInfo}\n${comment.body}`;
-      })
-      .join('\n=====\n');
+    return formatAllCommentsPrompt(transformedComments);
   }, [comments]);
 
   return {

@@ -9,6 +9,25 @@ import { startServer } from './server.js';
 const { fetch } = await import('undici');
 globalThis.fetch = fetch as any;
 
+// Helper function to get available port
+async function getAvailablePort(preferredPort: number): Promise<number> {
+  let port = preferredPort;
+  const maxAttempts = 10;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      await fetch(`http://localhost:${port}`);
+      // If we get here, port is in use, try next one
+      port++;
+    } catch {
+      // Port is available
+      return port;
+    }
+  }
+
+  return port;
+}
+
 // Mock GitDiffParser
 vi.mock('./git-diff.js', () => ({
   GitDiffParser: vi.fn().mockImplementation(() => ({
@@ -34,6 +53,102 @@ vi.mock('./git-diff.js', () => ({
 }));
 
 describe('Server Integration Tests', () => {
+  describe('Comments API', () => {
+    it('should accept properly formatted comments', async () => {
+      const port = await getAvailablePort(4966);
+      const result = await startServer({
+        preferredPort: port,
+        openBrowser: false,
+      });
+
+      try {
+        const comments = [
+          {
+            id: '1',
+            file: 'src/App.tsx',
+            line: 10,
+            body: 'Test comment',
+            timestamp: '2024-01-01T00:00:00Z',
+          },
+          {
+            id: '2',
+            file: 'src/utils/helper.ts',
+            line: [20, 30],
+            body: 'Another comment',
+            timestamp: '2024-01-01T00:01:00Z',
+          },
+        ];
+
+        const response = await fetch(`http://localhost:${result.port}/api/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comments }),
+        });
+
+        expect(response.status).toBe(200);
+        const apiResult = await response.json();
+        expect(apiResult).toEqual({ success: true });
+
+        // Verify the formatted output
+        const outputResponse = await fetch(`http://localhost:${result.port}/api/comments-output`);
+        const output = await outputResponse.text();
+
+        expect(output).toContain('src/App.tsx:L10');
+        expect(output).toContain('Test comment');
+        expect(output).toContain('src/utils/helper.ts:L20-L30');
+        expect(output).toContain('Another comment');
+        expect(output).not.toContain('undefined');
+      } finally {
+        if (result.server) {
+          await new Promise<void>((resolve) => {
+            result.server!.close(() => resolve());
+          });
+        }
+      }
+    });
+
+    it('should handle comments with missing file property gracefully', async () => {
+      const port = await getAvailablePort(4966);
+      const result = await startServer({
+        preferredPort: port,
+        openBrowser: false,
+      });
+
+      try {
+        const commentsWithMissingFile = [
+          {
+            id: '1',
+            // file property is missing/undefined
+            line: 10,
+            body: 'Comment without file',
+            timestamp: '2024-01-01T00:00:00Z',
+          },
+        ];
+
+        const response = await fetch(`http://localhost:${result.port}/api/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comments: commentsWithMissingFile }),
+        });
+
+        expect(response.status).toBe(200);
+
+        // Check the output handles undefined file gracefully
+        const outputResponse = await fetch(`http://localhost:${result.port}/api/comments-output`);
+        const output = await outputResponse.text();
+
+        expect(output).toContain('<unknown file>:L10');
+        expect(output).toContain('Comment without file');
+      } finally {
+        if (result.server) {
+          await new Promise<void>((resolve) => {
+            result.server!.close(() => resolve());
+          });
+        }
+      }
+    });
+  });
+
   let servers: any[] = [];
   let originalProcessExit: any;
 
