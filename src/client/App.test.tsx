@@ -22,13 +22,14 @@ vi.mock('./hooks/useDiffComments', () => ({
 }));
 
 // Mock the useViewedFiles hook
+const mockClearViewedFiles = vi.fn();
 vi.mock('./hooks/useViewedFiles', () => ({
   useViewedFiles: vi.fn(() => ({
     viewedFiles: new Set<string>(),
     toggleFileViewed: vi.fn(),
     isFileContentChanged: vi.fn(),
     getViewedFileRecord: vi.fn(),
-    clearViewedFiles: vi.fn(),
+    clearViewedFiles: mockClearViewedFiles,
   })),
 }));
 
@@ -186,6 +187,21 @@ describe('App Component - Clear Comments Functionality', () => {
       });
     });
 
+    it('should clear viewed files when clearComments flag is true in response', async () => {
+      const responseWithClearFlag: DiffResponse = {
+        ...mockDiffResponse,
+        clearComments: true,
+      };
+
+      mockFetch(responseWithClearFlag);
+
+      renderApp();
+
+      await waitFor(() => {
+        expect(mockClearViewedFiles).toHaveBeenCalled();
+      });
+    });
+
     it('should not clear comments when clearComments flag is false', async () => {
       const responseWithoutClearFlag: DiffResponse = {
         ...mockDiffResponse,
@@ -230,7 +246,7 @@ describe('App Component - Clear Comments Functionality', () => {
 
       await waitFor(() => {
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          '✅ All existing comments cleared as requested via --clean flag'
+          '✅ All existing comments and viewed files cleared as requested via --clean flag'
         );
       });
 
