@@ -574,6 +574,32 @@ describe('GitDiffParser', () => {
       expect(result?.status).toBe('added');
     });
 
+    it('does not treat added files as renamed even if summary includes from path', () => {
+      const diffLines = [
+        'diff --git a/test.js b/test.js',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ b/test.js',
+        '@@ -0,0 +1 @@',
+        '+console.log("test");',
+      ];
+
+      const summary = {
+        file: 'test.js',
+        from: 'c/test.js',
+        insertions: 1,
+        deletions: 0,
+        binary: false,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+
+      expect(result).toBeDefined();
+      expect(result?.status).toBe('added');
+      expect(result?.oldPath).toBeUndefined();
+    });
+
     it('parses file paths with octal escape sequences correctly', () => {
       const diffLines = [
         'diff --git "a/file\\303\\244.txt" "b/file\\303\\244.txt"',

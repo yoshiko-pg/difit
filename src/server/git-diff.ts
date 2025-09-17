@@ -289,7 +289,7 @@ export class GitDiffParser {
     // Common properties for all files
     const baseFile = {
       path,
-      oldPath: oldPath !== newPath ? oldPath : undefined,
+      oldPath: status === 'renamed' && oldPath !== newPath ? oldPath : undefined,
       status,
     };
 
