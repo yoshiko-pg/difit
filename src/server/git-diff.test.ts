@@ -549,6 +549,31 @@ describe('GitDiffParser', () => {
       expect(result.status).toBe('renamed');
     });
 
+    it('prefers header paths over summary paths when they differ', () => {
+      const diffLines = [
+        'diff --git a/a/test.txt b/a/test.txt',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ b/a/test.txt',
+        '@@ -0,0 +1 @@',
+        '+content',
+      ];
+
+      const summary = {
+        file: 'a/test.txt',
+        insertions: 1,
+        deletions: 0,
+        binary: false,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+
+      expect(result).toBeDefined();
+      expect(result?.path).toBe('a/test.txt');
+      expect(result?.status).toBe('added');
+    });
+
     it('parses file paths with octal escape sequences correctly', () => {
       const diffLines = [
         'diff --git "a/file\\303\\244.txt" "b/file\\303\\244.txt"',

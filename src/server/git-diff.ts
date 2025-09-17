@@ -253,15 +253,17 @@ export class GitDiffParser {
     const minusPath = this.extractPathFromLine(minusLine, '--- ');
     const renameFromPath = this.extractPathFromLine(renameFromLine, 'rename from ');
     const renameToPath = this.extractPathFromLine(renameToLine, 'rename to ');
+    const summaryNewPath = this.decodeGitPath(summary?.file);
 
-    let newPath =
-      this.decodeGitPath(summary?.file) ?? renameToPath ?? plusPath ?? headerPaths?.newPath;
     let summaryOldPath: string | undefined;
     if (summary && this.hasRenameInfo(summary)) {
       summaryOldPath = this.decodeGitPath(summary.from);
     }
 
-    let oldPath = summaryOldPath ?? renameFromPath ?? minusPath ?? headerPaths?.oldPath ?? newPath;
+    const newPath = renameToPath ?? plusPath ?? headerPaths?.newPath ?? summaryNewPath;
+
+    const oldPath =
+      renameFromPath ?? minusPath ?? headerPaths?.oldPath ?? summaryOldPath ?? newPath;
 
     if (!newPath) {
       return null;
