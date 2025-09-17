@@ -85,6 +85,9 @@ cat changes.patch | npx difit
 
 # マージベースとの比較
 git diff --merge-base main feature | npx difit
+
+# 既存ファイル全体を新規追加として確認
+git diff -- /dev/null path/to/file | npx difit
 ```
 
 ## ⚙️ CLIオプション
