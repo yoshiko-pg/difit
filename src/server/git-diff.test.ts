@@ -626,4 +626,95 @@ index abc123..def456 100644
       expect(result).toEqual({ additions: 2, deletions: 1 });
     });
   });
+
+  describe('parseFileBlock with quoted paths', () => {
+    it('parses file paths with spaces correctly', () => {
+      const diffLines = [
+        'diff --git "a/test with spaces/file name.txt" "b/test with spaces/file name.txt"',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ "b/test with spaces/file name.txt"',
+        '@@ -0,0 +1 @@',
+        '+foo',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('test with spaces/file name.txt');
+      expect(result.status).toBe('added');
+      expect(result.additions).toBe(1);
+      expect(result.deletions).toBe(0);
+    });
+
+    it('parses file paths with Jinja template brackets correctly', () => {
+      const diffLines = [
+        'diff --git "a/templates/test_000_{{ package_name }}/__.py" "b/templates/test_000_{{ package_name }}/__.py"',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ "b/templates/test_000_{{ package_name }}/__.py"',
+        '@@ -0,0 +1 @@',
+        '+test',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('templates/test_000_{{ package_name }}/__.py');
+      expect(result.status).toBe('added');
+    });
+
+    it('parses file paths with escaped characters correctly', () => {
+      const diffLines = [
+        'diff --git "a/file\\twith\\ttabs.txt" "b/file\\twith\\ttabs.txt"',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ "b/file\\twith\\ttabs.txt"',
+        '@@ -0,0 +1 @@',
+        '+content',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('file\twith\ttabs.txt');
+      expect(result.status).toBe('added');
+    });
+
+    it('parses renamed files with spaces correctly', () => {
+      const diffLines = [
+        'diff --git "a/old folder/old name.txt" "b/new folder/new name.txt"',
+        'similarity index 100%',
+        'rename from old folder/old name.txt',
+        'rename to new folder/new name.txt',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('new folder/new name.txt');
+      expect(result.oldPath).toBe('old folder/old name.txt');
+      expect(result.status).toBe('renamed');
+    });
+
+    it('still handles unquoted paths correctly', () => {
+      const diffLines = [
+        'diff --git a/src/file.js b/src/file.js',
+        'index 1234567..8901234 100644',
+        '--- a/src/file.js',
+        '+++ b/src/file.js',
+        '@@ -1,3 +1,3 @@',
+        ' line1',
+        '-old',
+        '+new',
+        ' line3',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('src/file.js');
+      expect(result.status).toBe('modified');
+      expect(result.additions).toBe(1);
+      expect(result.deletions).toBe(1);
+    });
+  });
 });

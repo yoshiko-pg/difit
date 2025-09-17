@@ -122,8 +122,26 @@ export class GitDiffParser {
 
     if (quotedMatch) {
       // Unescape C-style escape sequences in quoted paths
-      oldPath = quotedMatch[1].replace(/\\(.)/g, '$1');
-      newPath = quotedMatch[2].replace(/\\(.)/g, '$1');
+      const unescapePath = (path: string): string => {
+        return path.replace(/\\([\\tnr"])/g, (_match, char) => {
+          switch (char) {
+            case 't':
+              return '\t';
+            case 'n':
+              return '\n';
+            case 'r':
+              return '\r';
+            case '\\':
+              return '\\';
+            case '"':
+              return '"';
+            default:
+              return char as string;
+          }
+        });
+      };
+      oldPath = unescapePath(quotedMatch[1]);
+      newPath = unescapePath(quotedMatch[2]);
     } else if (unquotedMatch) {
       oldPath = unquotedMatch[1];
       newPath = unquotedMatch[2];
