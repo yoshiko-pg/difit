@@ -149,8 +149,10 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'image.jpg',
         insertions: 0,
         deletions: 0,
+        binary: true,
       };
 
       // Access private method for testing
@@ -177,8 +179,10 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'old-image.png',
         insertions: 0,
         deletions: 0,
+        binary: true,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
@@ -203,8 +207,10 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'photo.jpg',
         insertions: 0,
         deletions: 0,
+        binary: true,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
@@ -228,8 +234,11 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'new-name.gif',
+        from: 'old-name.gif',
         insertions: 0,
         deletions: 0,
+        binary: true,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
@@ -257,8 +266,10 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'script.js',
         insertions: 1,
         deletions: 0,
+        binary: false,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
@@ -290,8 +301,10 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'script.js',
         insertions: 0,
         deletions: 1,
+        binary: false,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
@@ -318,8 +331,10 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'new-file.txt',
         insertions: 2,
         deletions: 0,
+        binary: false,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
@@ -339,13 +354,233 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'deleted-file.txt',
         insertions: 0,
         deletions: 2,
+        binary: false,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
 
       expect(result.status).toBe('deleted');
+    });
+  });
+
+  describe('parseFileBlock with quoted paths', () => {
+    it('parses file paths with spaces correctly', () => {
+      const diffLines = [
+        'diff --git "a/test with spaces/file name.txt" "b/test with spaces/file name.txt"',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ "b/test with spaces/file name.txt"',
+        '@@ -0,0 +1 @@',
+        '+foo',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('test with spaces/file name.txt');
+      expect(result.status).toBe('added');
+      expect(result.additions).toBe(1);
+      expect(result.deletions).toBe(0);
+    });
+
+    it('parses summary-provided filenames with escaped spaces', () => {
+      const diffLines = [
+        'diff --git "a/templates/test file.py" "b/templates/test file.py"',
+        'index abc123..def456 100644',
+        '--- "a/templates/test file.py"',
+        '+++ "b/templates/test file.py"',
+        '@@ -1 +1 @@',
+        '-old',
+        '+new',
+      ];
+
+      const summary = {
+        file: 'templates/test\\040file.py',
+        insertions: 1,
+        deletions: 1,
+        binary: false,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+
+      expect(result?.path).toBe('templates/test file.py');
+      expect(result?.oldPath).toBeUndefined();
+    });
+
+    it('parses file paths with Jinja template brackets correctly', () => {
+      const diffLines = [
+        'diff --git "a/templates/test_000_{{ package_name }}/__.py" "b/templates/test_000_{{ package_name }}/__.py"',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ "b/templates/test_000_{{ package_name }}/__.py"',
+        '@@ -0,0 +1 @@',
+        '+test',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('templates/test_000_{{ package_name }}/__.py');
+      expect(result.status).toBe('added');
+    });
+
+    it('parses file paths with escaped characters correctly', () => {
+      const diffLines = [
+        'diff --git "a/file\\twith\\ttabs.txt" "b/file\\twith\\ttabs.txt"',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ "b/file\\twith\\ttabs.txt"',
+        '@@ -0,0 +1 @@',
+        '+content',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('file\twith\ttabs.txt');
+      expect(result.status).toBe('added');
+    });
+
+    it('parses renamed files with spaces correctly', () => {
+      const diffLines = [
+        'diff --git "a/old folder/old name.txt" "b/new folder/new name.txt"',
+        'similarity index 100%',
+        'rename from old folder/old name.txt',
+        'rename to new folder/new name.txt',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('new folder/new name.txt');
+      expect(result.oldPath).toBe('old folder/old name.txt');
+      expect(result.status).toBe('renamed');
+    });
+
+    it('still handles unquoted paths correctly', () => {
+      const diffLines = [
+        'diff --git a/src/file.js b/src/file.js',
+        'index 1234567..8901234 100644',
+        '--- a/src/file.js',
+        '+++ b/src/file.js',
+        '@@ -1,3 +1,3 @@',
+        ' line1',
+        '-old',
+        '+new',
+        ' line3',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('src/file.js');
+      expect(result.status).toBe('modified');
+      expect(result.additions).toBe(1);
+      expect(result.deletions).toBe(1);
+    });
+
+    it('handles unquoted paths with spaces when core.quotePath=false', () => {
+      const diffLines = [
+        'diff --git a/path with spaces/file.txt b/path with spaces/file.txt',
+        'index 1234567..8901234 100644',
+        '--- a/path with spaces/file.txt',
+        '+++ b/path with spaces/file.txt',
+        '@@ -1 +1 @@',
+        '-old content',
+        '+new content',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('path with spaces/file.txt');
+      expect(result.status).toBe('modified');
+      expect(result.additions).toBe(1);
+      expect(result.deletions).toBe(1);
+    });
+
+    it('decodes unquoted octal escapes in diff headers', () => {
+      const diffLines = [
+        'diff --git a/some\\040folder/file\\040name.ts b/some\\040folder/file\\040name.ts',
+        'index 3333333..4444444 100644',
+        '--- a/some\\040folder/file\\040name.ts',
+        '+++ b/some\\040folder/file\\040name.ts',
+        '@@ -1 +1 @@',
+        '-old',
+        '+new',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+
+      expect(result?.path).toBe('some folder/file name.ts');
+      expect(result?.oldPath).toBeUndefined();
+    });
+
+    it('handles unquoted paths containing "b/" in filename', () => {
+      const diffLines = [
+        'diff --git a/dir b/sub/file b/dir b/sub/file',
+        'index 1234567..8901234 100644',
+        '--- a/dir b/sub/file',
+        '+++ b/dir b/sub/file',
+        '@@ -1 +1 @@',
+        '-old',
+        '+new',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('dir b/sub/file');
+      expect(result.oldPath).toBeUndefined();
+      expect(result.status).toBe('modified');
+    });
+
+    it('handles renamed files with "b/" in the path', () => {
+      const diffLines = [
+        'diff --git a/old b/path/file b/new b/path/file',
+        'similarity index 100%',
+        'rename from old b/path/file',
+        'rename to new b/path/file',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('new b/path/file');
+      expect(result.oldPath).toBe('old b/path/file');
+      expect(result.status).toBe('renamed');
+    });
+
+    it('parses file paths with octal escape sequences correctly', () => {
+      const diffLines = [
+        'diff --git "a/file\\303\\244.txt" "b/file\\303\\244.txt"',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ "b/file\\303\\244.txt"',
+        '@@ -0,0 +1 @@',
+        '+content',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('fileä.txt');
+      expect(result.status).toBe('added');
+    });
+
+    it('parses file paths with mixed escape sequences correctly', () => {
+      const diffLines = [
+        'diff --git "a/dir\\303\\251/file\\twith\\nmixed.txt" "b/dir\\303\\251/file\\twith\\nmixed.txt"',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ "b/dir\\303\\251/file\\twith\\nmixed.txt"',
+        '@@ -0,0 +1 @@',
+        '+test',
+      ];
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('diré/file\twith\nmixed.txt');
+      expect(result.status).toBe('added');
     });
   });
 
@@ -360,8 +595,10 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'test.txt',
         insertions: 5,
         deletions: 0,
+        binary: false,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
@@ -379,8 +616,10 @@ describe('GitDiffParser', () => {
       ];
 
       const summary = {
+        file: 'test.txt',
         insertions: 0,
         deletions: 5,
+        binary: false,
       };
 
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
