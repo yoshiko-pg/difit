@@ -57,7 +57,7 @@ function App() {
   );
 
   // Viewed files management
-  const { viewedFiles, toggleFileViewed } = useViewedFiles(
+  const { viewedFiles, toggleFileViewed, clearViewedFiles } = useViewedFiles(
     diffData?.baseCommitish,
     diffData?.targetCommitish,
     diffData?.commit,
@@ -184,15 +184,18 @@ function App() {
     void fetchDiffData();
   }, [fetchDiffData]);
 
-  // Clear comments on initial load if requested via CLI flag
+  // Clear comments and viewed files on initial load if requested via CLI flag
   const hasCleanedRef = useRef(false);
   useEffect(() => {
     if (diffData?.clearComments && !hasCleanedRef.current) {
       hasCleanedRef.current = true;
       clearAllComments();
-      console.log('✅ All existing comments cleared as requested via --clean flag');
+      clearViewedFiles();
+      console.log(
+        '✅ All existing comments and viewed files cleared as requested via --clean flag'
+      );
     }
-  }, [diffData?.clearComments, clearAllComments]);
+  }, [diffData?.clearComments, clearAllComments, clearViewedFiles]);
 
   // Trigger sparkle animation when all files are viewed
   useEffect(() => {

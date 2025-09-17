@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 
-const commitish = process.argv[2] || 'HEAD';
-const compareWith = process.argv[3];
+// Parse arguments: separate positional args from flags
+const args = process.argv.slice(2);
+const flags = args.filter((arg) => arg.startsWith('--') && arg !== '--');
+const positionalArgs = args.filter((arg) => !arg.startsWith('--') && arg !== '--');
+
+const commitish = positionalArgs[0] || 'HEAD';
+const compareWith = positionalArgs[1];
 const CLI_SERVER_READY_MESSAGE = 'difit server started';
 
 // Check if we should read from stdin
@@ -27,6 +32,8 @@ if (!shouldReadStdin) {
   cliArgs.push('-');
 }
 cliArgs.push('--no-open');
+// Add any flags passed to the dev script
+cliArgs.push(...flags);
 
 const cliProcess = spawn('pnpm', cliArgs, {
   // For stdin mode, pipe stdin; otherwise inherit
