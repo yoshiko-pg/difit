@@ -4,6 +4,7 @@ import {
   type DiffResult,
   type DiffResultTextFile,
   type DiffResultBinaryFile,
+  type DiffResultNameStatusFile,
 } from 'simple-git';
 
 import { validateDiffArguments, shortHash, createCommitRangeString } from '../cli/utils.js';
@@ -106,18 +107,181 @@ export class GitDiffParser {
     return files;
   }
 
+  private decodeGitPath(rawPath: string | undefined): string | undefined {
+    if (typeof rawPath !== 'string') {
+      return undefined;
+    }
+
+    const trimmed =
+      rawPath.startsWith('"') && rawPath.endsWith('"') ? rawPath.slice(1, -1) : rawPath;
+
+    const gitPrefixes = ['a/', 'b/', 'c/', 'i/', 'w/'];
+    let withoutPrefix = trimmed;
+    for (const prefix of gitPrefixes) {
+      if (withoutPrefix.startsWith(prefix)) {
+        withoutPrefix = withoutPrefix.slice(prefix.length);
+        break;
+      }
+    }
+
+    const tabIndex = withoutPrefix.indexOf('\t');
+    if (tabIndex !== -1) {
+      withoutPrefix = withoutPrefix.slice(0, tabIndex);
+    }
+
+    if (withoutPrefix === '/dev/null') {
+      return undefined;
+    }
+
+    const bytes: number[] = [];
+    const escapeMap: Record<string, number> = {
+      t: 0x09,
+      n: 0x0a,
+      r: 0x0d,
+      b: 0x08,
+      f: 0x0c,
+      v: 0x0b,
+      a: 0x07,
+      '\\': 0x5c,
+      '"': 0x22,
+      ' ': 0x20,
+    };
+
+    for (let i = 0; i < withoutPrefix.length; i++) {
+      const char = withoutPrefix[i];
+
+      if (char === '\\' && i + 1 < withoutPrefix.length) {
+        const next = withoutPrefix[i + 1];
+
+        if (/[0-7]/.test(next)) {
+          let octal = next;
+          let read = 1;
+
+          while (read < 3 && i + 1 + read < withoutPrefix.length) {
+            const candidate = withoutPrefix[i + 1 + read];
+            if (!/[0-7]/.test(candidate)) {
+              break;
+            }
+            octal += candidate;
+            read++;
+          }
+
+          bytes.push(parseInt(octal, 8));
+          i += read; // Skip consumed digits
+          continue;
+        }
+
+        const mapped = escapeMap[next];
+        if (mapped !== undefined) {
+          bytes.push(mapped);
+        } else {
+          bytes.push(next.charCodeAt(0));
+        }
+        i++; // Skip the escaped character
+        continue;
+      }
+
+      bytes.push(char.charCodeAt(0));
+    }
+
+    return Buffer.from(bytes).toString('utf8');
+  }
+
+  private extractPathFromLine(line: string | undefined, prefix: string): string | undefined {
+    if (!line?.startsWith(prefix)) {
+      return undefined;
+    }
+
+    return this.decodeGitPath(line.slice(prefix.length));
+  }
+
+  private parseDiffHeaderPaths(
+    headerLine: string
+  ): { oldPath: string | undefined; newPath: string | undefined } | null {
+    if (!headerLine.startsWith('diff --git ')) {
+      return null;
+    }
+
+    const raw = headerLine.slice('diff --git '.length);
+    const segments: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      const char = raw[i];
+      const prevChar = i > 0 ? raw[i - 1] : null;
+
+      if (char === '"' && prevChar !== '\\') {
+        inQuotes = !inQuotes;
+        current += char;
+        continue;
+      }
+
+      if (char === ' ' && !inQuotes && prevChar !== '\\') {
+        if (current) {
+          segments.push(current);
+          current = '';
+        }
+        continue;
+      }
+
+      current += char;
+    }
+
+    if (current) {
+      segments.push(current);
+    }
+
+    if (segments.length !== 2) {
+      return null;
+    }
+
+    const [rawOldPath, rawNewPath] = segments;
+    return {
+      oldPath: this.decodeGitPath(rawOldPath),
+      newPath: this.decodeGitPath(rawNewPath),
+    };
+  }
+
+  private hasRenameInfo(
+    summary: DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile
+  ): summary is DiffResultNameStatusFile {
+    return 'from' in summary && typeof summary.from === 'string';
+  }
+
   private parseFileBlock(
     block: string,
-    summary: DiffResultTextFile | DiffResultBinaryFile | null
+    summary: DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile | null
   ): DiffFile | null {
     const lines = block.split('\n');
     const headerLine = lines[0];
+    const headerPaths = this.parseDiffHeaderPaths(headerLine);
 
-    const pathMatch = headerLine.match(/^diff --git (?:[a-z]\/)?(.+) (?:[a-z]\/)?(.+)$/);
-    if (!pathMatch) return null;
+    const minusLine = lines.find((line) => line.startsWith('--- '));
+    const plusLine = lines.find((line) => line.startsWith('+++ '));
+    const renameFromLine = lines.find((line) => line.startsWith('rename from '));
+    const renameToLine = lines.find((line) => line.startsWith('rename to '));
 
-    const oldPath = pathMatch[1];
-    const newPath = pathMatch[2];
+    const plusPath = this.extractPathFromLine(plusLine, '+++ ');
+    const minusPath = this.extractPathFromLine(minusLine, '--- ');
+    const renameFromPath = this.extractPathFromLine(renameFromLine, 'rename from ');
+    const renameToPath = this.extractPathFromLine(renameToLine, 'rename to ');
+    const summaryNewPath = this.decodeGitPath(summary?.file);
+
+    let summaryOldPath: string | undefined;
+    if (summary && this.hasRenameInfo(summary)) {
+      summaryOldPath = this.decodeGitPath(summary.from);
+    }
+
+    const newPath = renameToPath ?? plusPath ?? headerPaths?.newPath ?? summaryNewPath;
+
+    const oldPath =
+      renameFromPath ?? minusPath ?? headerPaths?.oldPath ?? summaryOldPath ?? newPath;
+
+    if (!newPath) {
+      return null;
+    }
+
     const path = newPath;
 
     let status: DiffFile['status'] = 'modified';
@@ -127,9 +291,6 @@ export class GitDiffParser {
     const deletedFileMode = lines.find((line) => line.startsWith('deleted file mode'));
 
     // Check for /dev/null which indicates added or deleted files
-    const minusLine = lines.find((line) => line.startsWith('--- '));
-    const plusLine = lines.find((line) => line.startsWith('+++ '));
-
     if (newFileMode || minusLine?.includes('/dev/null')) {
       status = 'added';
     } else if (deletedFileMode || plusLine?.includes('/dev/null')) {
@@ -141,7 +302,7 @@ export class GitDiffParser {
     // Common properties for all files
     const baseFile = {
       path,
-      oldPath: oldPath !== newPath ? oldPath : undefined,
+      oldPath: status === 'renamed' && oldPath !== newPath ? oldPath : undefined,
       status,
     };
 
