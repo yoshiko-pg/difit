@@ -124,6 +124,11 @@ export class GitDiffParser {
       }
     }
 
+    const tabIndex = withoutPrefix.indexOf('\t');
+    if (tabIndex !== -1) {
+      withoutPrefix = withoutPrefix.slice(0, tabIndex);
+    }
+
     if (withoutPrefix === '/dev/null') {
       return undefined;
     }

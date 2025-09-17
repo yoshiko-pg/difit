@@ -554,7 +554,7 @@ describe('GitDiffParser', () => {
         'diff --git c/a/test.txt w/a/test.txt',
         'index 1234567..8901234 100644',
         '--- c/a/test.txt',
-        '+++ w/a/test.txt',
+        '+++ w/a/test.txt\t',
         '@@ -1 +1 @@',
         '-old',
         '+new',
@@ -579,8 +579,8 @@ describe('GitDiffParser', () => {
       const diffLines = [
         'diff --git c/old/name.txt w/new/name.txt',
         'similarity index 100%',
-        'rename from c/old/name.txt',
-        'rename to w/new/name.txt',
+        'rename from c/old/name.txt\t',
+        'rename to w/new/name.txt\t',
       ];
 
       const summary = {
@@ -597,6 +597,31 @@ describe('GitDiffParser', () => {
       expect(result.path).toBe('new/name.txt');
       expect(result.oldPath).toBe('old/name.txt');
       expect(result.status).toBe('renamed');
+    });
+
+    it('ignores trailing metadata separators in diff path lines', () => {
+      const diffLines = [
+        'diff --git c/foo bar.txt w/foo bar.txt',
+        'index 1234567..8901234 100644',
+        '--- c/foo bar.txt\t',
+        '+++ w/foo bar.txt\t',
+        '@@ -1 +1 @@',
+        '-old',
+        '+new',
+      ];
+
+      const summary = {
+        file: 'foo bar.txt',
+        insertions: 1,
+        deletions: 1,
+        binary: false,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+
+      expect(result).toBeDefined();
+      expect(result.path).toBe('foo bar.txt');
+      expect(result.status).toBe('modified');
     });
 
     it('prefers header paths over summary paths when they differ', () => {
