@@ -84,6 +84,7 @@
     "globals": "^16.3.0",
     "happy-dom": "^18.0.1",
     "lefthook": "^1.11.14",
+    "mri": "^1.2.0",
     "playwright": "^1.54.1",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",

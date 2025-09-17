@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
+import mri from 'mri';
 
-// Parse arguments: separate positional args from flags
-const args = process.argv.slice(2);
-const flags = args.filter((arg) => arg.startsWith('--') && arg !== '--');
-const positionalArgs = args.filter((arg) => !arg.startsWith('--') && arg !== '--');
-
-const commitish = positionalArgs[0] || 'HEAD';
+const rawArgs = process.argv.slice(2);
+const parsedArgs = mri(rawArgs, { '--': true });
+const positionalArgs = parsedArgs._;
+const commitish = positionalArgs[0] ?? 'HEAD';
 const compareWith = positionalArgs[1];
 const CLI_SERVER_READY_MESSAGE = 'difit server started';
 
@@ -32,8 +31,25 @@ if (!shouldReadStdin) {
   cliArgs.push('-');
 }
 cliArgs.push('--no-open');
-// Add any flags passed to the dev script
-cliArgs.push(...flags);
+
+// Forward remaining args (preserves order and supports flag values)
+const positionalToSkip = positionalArgs.slice(0, 2);
+let skippedCount = 0;
+for (let i = 0; i < rawArgs.length; i += 1) {
+  const token = rawArgs[i];
+
+  if (token === '--') {
+    cliArgs.push(...rawArgs.slice(i));
+    break;
+  }
+
+  if (skippedCount < positionalToSkip.length && token === positionalToSkip[skippedCount]) {
+    skippedCount += 1;
+    continue;
+  }
+
+  cliArgs.push(token);
+}
 
 const cliProcess = spawn('pnpm', cliArgs, {
   // For stdin mode, pipe stdin; otherwise inherit
