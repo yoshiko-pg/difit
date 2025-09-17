@@ -85,6 +85,9 @@ cat changes.patch | npx difit
 
 # 与合并基础比较
 git diff --merge-base main feature | npx difit
+
+# 将整个现有文件视为新添加进行审查
+git diff -- /dev/null path/to/file | npx difit
 ```
 
 ## ⚙️ CLI 选项

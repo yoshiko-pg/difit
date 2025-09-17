@@ -85,6 +85,9 @@ cat changes.patch | npx difit
 
 # 머지 베이스와 비교
 git diff --merge-base main feature | npx difit
+
+# 기존 파일 전체를 신규 추가처럼 검토
+git diff -- /dev/null path/to/file | npx difit
 ```
 
 ## ⚙️ CLI 옵션

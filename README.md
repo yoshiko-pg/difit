@@ -85,6 +85,9 @@ cat changes.patch | npx difit
 
 # Compare against merge base
 git diff --merge-base main feature | npx difit
+
+# Review an entire existing file as newly added
+git diff -- /dev/null path/to/file | npx difit
 ```
 
 ## ⚙️ CLI Options
