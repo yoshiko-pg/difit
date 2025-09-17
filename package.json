@@ -1,6 +1,6 @@
 {
   "name": "difit",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "A lightweight command-line tool that spins up a local web server to display Git commit diffs in a GitHub-like Files changed view",
   "type": "module",
   "engines": {

@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.2] - 2025-09-18
+
+### Added
+
+- SECURITY.md for security vulnerability reporting guidelines
+
+### Changed
+
+- Use optional chaining for key checks in localStorage (#90)
+- Refactored GitHub Actions workflows for improved maintainability (#93)
+  - Extract common CI steps to reusable workflow
+  - Pin GitHub Actions to specific SHAs for security
+  - Performance workflow limited to src changes only
+
+### Fixed
+
+- Make --clean flag properly reset viewed files counter (#92)
+- Normalize git diff paths and handle various edge cases (#96)
+  - Robust git path decoding for binary and complex file names
+  - Fixed false rename detection for new files
+  - Properly handle alternate diff prefixes (c/, w/, etc.)
+  - Correct comment line markers with spaces in paths
+
+### Thanks
+
+- [@emcd](https://github.com/emcd) for fixing --clean flag behavior #92
+- [@noritaka1166](https://github.com/noritaka1166) for localStorage refactoring #90
+
 ## [2.2.1] - 2025-08-24
 
 ### Added
@@ -556,7 +584,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/yoshiko-pg/difit/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/yoshiko-pg/difit/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/yoshiko-pg/difit/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/yoshiko-pg/difit/compare/v2.1.1...v2.1.2
