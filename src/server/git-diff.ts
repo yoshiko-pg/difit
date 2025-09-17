@@ -113,11 +113,23 @@ export class GitDiffParser {
     const lines = block.split('\n');
     const headerLine = lines[0];
 
-    const pathMatch = headerLine.match(/^diff --git (?:[a-z]\/)?(.+) (?:[a-z]\/)?(.+)$/);
-    if (!pathMatch) return null;
+    // Handle both quoted and unquoted paths
+    const quotedMatch = headerLine.match(/^diff --git "a\/(.+)" "b\/(.+)"$/);
+    const unquotedMatch = headerLine.match(/^diff --git a\/(\S+) b\/(\S+)$/);
 
-    const oldPath = pathMatch[1];
-    const newPath = pathMatch[2];
+    let oldPath: string;
+    let newPath: string;
+
+    if (quotedMatch) {
+      // Unescape C-style escape sequences in quoted paths
+      oldPath = quotedMatch[1].replace(/\\(.)/g, '$1');
+      newPath = quotedMatch[2].replace(/\\(.)/g, '$1');
+    } else if (unquotedMatch) {
+      oldPath = unquotedMatch[1];
+      newPath = unquotedMatch[2];
+    } else {
+      return null;
+    }
     const path = newPath;
 
     let status: DiffFile['status'] = 'modified';
