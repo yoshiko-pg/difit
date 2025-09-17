@@ -99,7 +99,7 @@ git diff --merge-base main feature | npx difit
 | `--no-open`      | false        | Don't automatically open browser                                       |
 | `--mode`         | side-by-side | Display mode: `inline` or `side-by-side`                               |
 | `--tui`          | false        | Use terminal UI mode instead of WebUI                                  |
-| `--clean`        | false        | Clear all existing comments on startup                                 |
+| `--clean`        | false        | Clear all existing comments and viewed files on startup                |
 
 ## 💬 Comment System
 

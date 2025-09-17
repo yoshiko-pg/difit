@@ -99,7 +99,7 @@ git diff --merge-base main feature | npx difit
 | `--no-open`      | false        | 不自动打开浏览器                                                       |
 | `--mode`         | side-by-side | 显示模式：`inline` 或 `side-by-side`                                   |
 | `--tui`          | false        | 使用终端 UI 模式而不是 WebUI                                           |
-| `--clean`        | false        | 启动时清除所有现有评论                                                 |
+| `--clean`        | false        | 启动时清除所有现有评论和已查看的文件                                   |
 
 ## 💬 评论系统
 
