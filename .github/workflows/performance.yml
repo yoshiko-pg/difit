@@ -3,6 +3,9 @@ name: Performance Test
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - '.github/workflows/performance.yml'
 
 jobs:
   performance-test:
