@@ -252,7 +252,7 @@ export class StorageService {
 
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key || !key.startsWith(STORAGE_KEY_PREFIX)) continue;
+      if (!key?.startsWith(STORAGE_KEY_PREFIX)) continue;
 
       try {
         const data = localStorage.getItem(key);
@@ -281,7 +281,7 @@ export class StorageService {
 
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key || !key.startsWith(STORAGE_KEY_PREFIX)) continue;
+      if (!key?.startsWith(STORAGE_KEY_PREFIX)) continue;
 
       const value = localStorage.getItem(key);
       if (value) {
