@@ -114,7 +114,15 @@ export class GitDiffParser {
 
     const trimmed =
       rawPath.startsWith('"') && rawPath.endsWith('"') ? rawPath.slice(1, -1) : rawPath;
-    const withoutPrefix = trimmed.replace(/^[ab]\//, '');
+
+    const gitPrefixes = ['a/', 'b/', 'c/', 'i/', 'w/'];
+    let withoutPrefix = trimmed;
+    for (const prefix of gitPrefixes) {
+      if (withoutPrefix.startsWith(prefix)) {
+        withoutPrefix = withoutPrefix.slice(prefix.length);
+        break;
+      }
+    }
 
     if (withoutPrefix === '/dev/null') {
       return undefined;

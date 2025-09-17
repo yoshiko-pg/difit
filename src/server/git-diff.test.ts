@@ -549,6 +549,56 @@ describe('GitDiffParser', () => {
       expect(result.status).toBe('renamed');
     });
 
+    it('handles alternative git diff prefixes for working tree comparisons', () => {
+      const diffLines = [
+        'diff --git c/a/test.txt w/a/test.txt',
+        'index 1234567..8901234 100644',
+        '--- c/a/test.txt',
+        '+++ w/a/test.txt',
+        '@@ -1 +1 @@',
+        '-old',
+        '+new',
+      ];
+
+      const summary = {
+        file: 'a/test.txt',
+        insertions: 1,
+        deletions: 1,
+        binary: false,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+
+      expect(result).toBeDefined();
+      expect(result.path).toBe('a/test.txt');
+      expect(result.oldPath).toBeUndefined();
+      expect(result.status).toBe('modified');
+    });
+
+    it('handles rename metadata with alternative git prefixes', () => {
+      const diffLines = [
+        'diff --git c/old/name.txt w/new/name.txt',
+        'similarity index 100%',
+        'rename from c/old/name.txt',
+        'rename to w/new/name.txt',
+      ];
+
+      const summary = {
+        file: 'new/name.txt',
+        from: 'old/name.txt',
+        insertions: 0,
+        deletions: 0,
+        binary: false,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+
+      expect(result).toBeDefined();
+      expect(result.path).toBe('new/name.txt');
+      expect(result.oldPath).toBe('old/name.txt');
+      expect(result.status).toBe('renamed');
+    });
+
     it('prefers header paths over summary paths when they differ', () => {
       const diffLines = [
         'diff --git a/a/test.txt b/a/test.txt',
