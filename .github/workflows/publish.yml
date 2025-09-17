@@ -28,6 +28,9 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Ensure npm >= 11.5.1
+        run: npm i -g npm@^11.5.1
+
       - name: Setup pnpm
         uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
         with:
@@ -40,4 +43,4 @@ jobs:
         run: pnpm run build
 
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish . --access public --registry=https://registry.npmjs.org
