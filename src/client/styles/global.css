@@ -28,6 +28,7 @@
 /* CSS Custom Properties for dynamic theming */
 :root {
   --app-font-size: 14px;
+  --app-code-font-size: 14px;
   --app-font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
 }

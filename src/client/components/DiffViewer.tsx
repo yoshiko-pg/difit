@@ -191,7 +191,10 @@ export function DiffViewer({
                   className="border-b border-github-border"
                 >
                   <div className="bg-github-bg-tertiary px-3 py-2 border-b border-github-border">
-                    <code className="text-github-text-secondary text-xs font-mono">
+                    <code
+                      className="text-github-text-secondary font-mono"
+                      style={{ fontSize: 'var(--app-code-font-size)' }}
+                    >
                       {chunk.header}
                     </code>
                   </div>
