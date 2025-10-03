@@ -1,0 +1,35 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: ['config:recommended'],
+  dependencyDashboard: false,
+  minimumReleaseAge: 14,
+  schedule: ['on wednesday'],
+  'pre-commit': {
+    enabled: true,
+  },
+  vulnerabilityAlerts: {
+    enabled: true,
+  },
+  packageRules: [
+    {
+      depTypeList: ['dependencies'],
+      groupName: 'all-dependencies',
+      matchUpdateTypes: ['patch', 'minor'],
+      automerge: true,
+      automergeType: 'pr',
+    },
+    {
+      depTypeList: ['devDependencies'],
+      groupName: 'all-dev-dependencies',
+      matchUpdateTypes: ['patch', 'minor'],
+      automerge: true,
+      automergeType: 'pr',
+    },
+    {
+      matchUpdateTypes: ['major'],
+      automerge: false,
+      groupName: 'major-updates',
+      labels: ['major'],
+    },
+  ],
+}
