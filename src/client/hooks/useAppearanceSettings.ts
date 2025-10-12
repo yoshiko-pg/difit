@@ -34,6 +34,7 @@ export function useAppearanceSettings() {
 
     // Apply font size
     root.style.setProperty('--app-font-size', `${settings.fontSize}px`);
+    root.style.setProperty('--app-code-font-size', `${settings.fontSize}px`);
 
     // Apply font family
     root.style.setProperty('--app-font-family', settings.fontFamily);
