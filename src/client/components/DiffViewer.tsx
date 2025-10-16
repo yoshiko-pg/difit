@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { type DiffFile, type Comment, type LineNumber } from '../../types/diff';
+import { type DiffFile, type DiffViewMode, type Comment, type LineNumber } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import { isImageFile } from '../utils/imageUtils';
 
@@ -22,7 +22,7 @@ import type { AppearanceSettings } from './SettingsModal';
 interface DiffViewerProps {
   file: DiffFile;
   comments: Comment[];
-  diffMode: 'side-by-side' | 'inline';
+  diffMode: DiffViewMode;
   reviewedFiles: Set<string>;
   onToggleReviewed: (path: string) => void;
   onAddComment: (

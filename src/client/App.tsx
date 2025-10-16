@@ -1,7 +1,7 @@
 import { Columns, AlignLeft, Settings, PanelLeftClose, PanelLeft, Keyboard } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-import { type DiffResponse, type LineNumber, type Comment } from '../types/diff';
+import { type DiffResponse, type DiffViewMode, type LineNumber, type Comment } from '../types/diff';
 
 import { Checkbox } from './components/Checkbox';
 import { CommentsDropdown } from './components/CommentsDropdown';
@@ -25,7 +25,8 @@ import { findCommentPosition } from './utils/navigation/positionHelpers';
 
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
-  const [diffMode, setDiffMode] = useState<'side-by-side' | 'inline'>('side-by-side');
+  const [diffMode, setDiffMode] = useState<DiffViewMode>('side-by-side');
+  const hasUserSetDiffModeRef = useRef(false);
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +84,11 @@ function App() {
       }
     }
   };
+
+  const handleDiffModeChange = useCallback((mode: DiffViewMode) => {
+    hasUserSetDiffModeRef.current = true;
+    setDiffMode(mode);
+  }, []);
 
   // State to trigger comment creation from keyboard
   const [commentTrigger, setCommentTrigger] = useState<{
@@ -168,8 +174,8 @@ function App() {
       setDiffData(data);
 
       // Set diff mode from server response if provided
-      if (data.mode) {
-        setDiffMode(data.mode as 'side-by-side' | 'inline');
+      if (data.mode && !hasUserSetDiffModeRef.current) {
+        setDiffMode(data.mode);
       }
 
       // Lock files are now automatically marked as viewed by useViewedFiles hook
@@ -433,7 +439,7 @@ function App() {
             <div className="flex items-center gap-3">
               <div className="flex bg-github-bg-tertiary border border-github-border rounded-md p-1">
                 <button
-                  onClick={() => setDiffMode('side-by-side')}
+                  onClick={() => handleDiffModeChange('side-by-side')}
                   className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
                     diffMode === 'side-by-side' ?
                       'bg-github-bg-primary text-github-text-primary shadow-sm'
@@ -444,7 +450,7 @@ function App() {
                   Side by Side
                 </button>
                 <button
-                  onClick={() => setDiffMode('inline')}
+                  onClick={() => handleDiffModeChange('inline')}
                   className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
                     diffMode === 'inline' ?
                       'bg-github-bg-primary text-github-text-primary shadow-sm'

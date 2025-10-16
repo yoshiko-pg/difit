@@ -35,12 +35,14 @@ export interface ParsedDiff {
   chunks: DiffChunk[];
 }
 
+export type DiffViewMode = 'side-by-side' | 'inline';
+
 export interface DiffResponse {
   commit: string;
   files: DiffFile[];
   ignoreWhitespace?: boolean;
   isEmpty?: boolean;
-  mode?: string;
+  mode?: DiffViewMode;
   baseCommitish?: string;
   targetCommitish?: string;
   clearComments?: boolean;

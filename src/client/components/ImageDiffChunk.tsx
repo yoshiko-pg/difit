@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { type DiffFile } from '../../types/diff';
+import { type DiffFile, type DiffViewMode } from '../../types/diff';
 
 interface ImageInfo {
   width?: number;
@@ -10,7 +10,7 @@ interface ImageInfo {
 
 interface ImageDiffChunkProps {
   file: DiffFile;
-  mode?: 'side-by-side' | 'inline';
+  mode?: DiffViewMode;
   baseCommitish?: string;
   targetCommitish?: string;
 }

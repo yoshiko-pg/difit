@@ -1,4 +1,4 @@
-import type { DiffFile, Comment } from '../../../types/diff';
+import type { DiffFile, Comment, DiffViewMode } from '../../../types/diff';
 
 /**
  * Represents the current cursor position in the diff viewer
@@ -29,7 +29,7 @@ export interface NavigationResult {
 export interface UseKeyboardNavigationProps {
   files: DiffFile[];
   comments: Comment[];
-  viewMode?: 'side-by-side' | 'inline';
+  viewMode?: DiffViewMode;
   reviewedFiles: Set<string>;
   onToggleReviewed: (filePath: string) => void;
   onCreateComment?: () => void;
@@ -53,7 +53,7 @@ export interface UseKeyboardNavigationReturn {
 /**
  * View modes for the diff viewer
  */
-export type ViewMode = 'side-by-side' | 'inline';
+export type ViewMode = DiffViewMode;
 
 /**
  * Navigation direction
