@@ -14,7 +14,7 @@ import { getFileExtension } from '../utils/fileUtils.js';
 import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
 
-import { type Comment, type DiffResponse } from '@/types/diff.js';
+import { type Comment, type DiffResponse, type DiffViewMode } from '@/types/diff.js';
 
 interface ServerOptions {
   targetCommitish?: string;
@@ -38,7 +38,9 @@ export async function startServer(
 
   let diffDataCache: DiffResponse | null = null;
   let currentIgnoreWhitespace = options.ignoreWhitespace || false;
-  const diffMode = options.mode || 'side-by-side';
+  const normalizeDiffMode = (mode?: string): DiffViewMode =>
+    mode === 'inline' ? 'inline' : 'side-by-side';
+  const diffMode = normalizeDiffMode(options.mode);
 
   app.use(express.json());
   app.use(express.text()); // For sendBeacon text/plain requests
