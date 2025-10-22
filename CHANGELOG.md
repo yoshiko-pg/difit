@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.3] - 2025-10-22
+
+### Added
+
+- Renovate bot configuration for automated dependency updates (#98)
+
+### Changed
+
+- Persist diff view mode setting after page refresh (#106)
+
+### Thanks
+
+- [@MtDeity](https://github.com/MtDeity) for persisting diff view mode after refresh #106
+
 ## [2.2.2] - 2025-09-18
 
 ### Added
@@ -584,7 +598,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.2...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.3...HEAD
+[2.2.3]: https://github.com/yoshiko-pg/difit/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/yoshiko-pg/difit/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/yoshiko-pg/difit/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/yoshiko-pg/difit/compare/v2.1.2...v2.2.0
