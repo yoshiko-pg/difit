@@ -4,7 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
 
 import { mockFetch } from '../../vitest.setup';
-import type { DiffResponse } from '../types/diff';
+import type { DiffResponse, DiffViewMode } from '../types/diff';
+import type { ClientWatchState } from '../types/watch';
+import { DiffMode } from '../types/watch';
 
 import App from './App';
 
@@ -30,6 +32,32 @@ vi.mock('./hooks/useViewedFiles', () => ({
     isFileContentChanged: vi.fn(),
     getViewedFileRecord: vi.fn(),
     clearViewedFiles: mockClearViewedFiles,
+  })),
+}));
+
+const mockWatchState: ClientWatchState = {
+  isWatchEnabled: true,
+  diffMode: DiffMode.DEFAULT,
+  shouldReload: false,
+  isReloading: false,
+  lastChangeTime: null,
+  lastChangeType: null,
+  connectionStatus: 'connected',
+};
+
+vi.mock('./hooks/useFileWatch', () => ({
+  useFileWatch: vi.fn((onReload?: () => Promise<void>) => ({
+    shouldReload: mockWatchState.shouldReload,
+    isConnected: true,
+    error: null,
+    reload: vi.fn(async () => {
+      if (onReload) {
+        await onReload();
+      }
+      mockWatchState.shouldReload = false;
+      mockWatchState.lastChangeType = null;
+    }),
+    watchState: mockWatchState,
   })),
 }));
 
@@ -255,6 +283,41 @@ describe('App Component - Clear Comments Functionality', () => {
   });
 });
 
+describe('App Component - Diff Mode Persistence', () => {
+  it('keeps the selected view mode after triggering refresh', async () => {
+    const mockGlobalFetch = vi.mocked(global.fetch);
+    mockGlobalFetch.mockClear();
+    mockComments = [];
+    mockClearAllComments.mockReset();
+    mockConfirm.mockReturnValue(false);
+    mockWatchState.shouldReload = true;
+    mockWatchState.lastChangeType = 'file';
+    mockFetch(mockDiffResponse);
+
+    renderApp();
+
+    const inlineButton = await screen.findByRole('button', { name: 'Inline' });
+    fireEvent.click(inlineButton);
+
+    await waitFor(() => {
+      expect(inlineButton).toHaveClass('bg-github-bg-primary');
+    });
+
+    const refreshButton = await screen.findByRole('button', { name: 'Refresh' });
+    fireEvent.click(refreshButton);
+
+    await waitFor(() => {
+      expect(mockGlobalFetch).toHaveBeenCalledTimes(2);
+    });
+
+    await waitFor(() => {
+      expect(inlineButton).toHaveClass('bg-github-bg-primary');
+    });
+    mockWatchState.shouldReload = false;
+    mockWatchState.lastChangeType = null;
+  });
+});
+
 describe('Client mode handling logic', () => {
   it('validates DiffResponse interface includes mode', () => {
     // Test that DiffResponse interface supports mode property
@@ -297,9 +360,9 @@ describe('Client mode handling logic', () => {
 
   it('mode setting logic works correctly', () => {
     // Test the mode setting logic that would be used in fetchDiffData
-    const setModeFromResponse = (data: DiffResponse): 'side-by-side' | 'inline' => {
+    const setModeFromResponse = (data: DiffResponse): DiffViewMode => {
       if (data.mode) {
-        return data.mode as 'side-by-side' | 'inline';
+        return data.mode;
       }
       return 'side-by-side'; // default
     };

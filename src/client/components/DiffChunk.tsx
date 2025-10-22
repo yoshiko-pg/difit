@@ -5,6 +5,7 @@ import {
   type DiffLine,
   type Comment,
   type LineNumber,
+  type DiffViewMode,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 
@@ -27,7 +28,7 @@ interface DiffChunkProps {
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, newBody: string) => void;
-  mode?: 'side-by-side' | 'inline';
+  mode?: DiffViewMode;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   cursor?: CursorPosition | null;
   fileIndex?: number;

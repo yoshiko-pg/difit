@@ -7,6 +7,7 @@ import type {
   NavigationDirection,
   NavigationFilter,
   NavigationResult,
+  ViewMode,
 } from './types';
 
 /**
@@ -132,7 +133,7 @@ export function findNextMatchingPosition(
   direction: NavigationDirection,
   filter: NavigationFilter,
   files: DiffFile[],
-  viewMode: 'side-by-side' | 'inline'
+  viewMode: ViewMode
 ): NavigationResult {
   let current: CursorPosition | null = startPos;
   let started = false;
