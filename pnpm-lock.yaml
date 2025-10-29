@@ -49,7 +49,7 @@ importers:
         version: 19.2.0(react@19.2.0)
       react-hotkeys-hook:
         specifier: ^5.1.0
-        version: 5.1.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 5.2.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       simple-git:
         specifier: ^3.28.0
         version: 3.28.0
@@ -2592,8 +2592,8 @@ packages:
     peerDependencies:
       react: ^19.2.0
 
-  react-hotkeys-hook@5.1.0:
-    resolution: {integrity: sha512-GCNGXjBzV9buOS3REoQFmSmE4WTvBhYQ0YrAeeMZI83bhXg3dRWsLHXDutcVDdEjwJqJCxk5iewWYX5LtFUd7g==}
+  react-hotkeys-hook@5.2.1:
+    resolution: {integrity: sha512-xbKh6zJxd/vJHT4Bw4+0pBD662Fk20V+VFhLqciCg+manTVO4qlqRqiwFOYelfHN9dBvWj9vxaPkSS26ZSIJGg==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -5564,7 +5564,7 @@ snapshots:
       react: 19.2.0
       scheduler: 0.27.0
 
-  react-hotkeys-hook@5.1.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  react-hotkeys-hook@5.2.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
