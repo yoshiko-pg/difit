@@ -17,9 +17,6 @@ importers:
       commander:
         specifier: ^14.0.0
         version: 14.0.1
-      dracula-prism:
-        specifier: ^2.1.16
-        version: 2.1.16
       express:
         specifier: ^5.1.0
         version: 5.1.0
@@ -35,9 +32,6 @@ importers:
       prism-react-renderer:
         specifier: ^2.4.1
         version: 2.4.1(react@19.2.0)
-      prism-themes:
-        specifier: ^1.9.0
-        version: 1.9.0
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -1547,9 +1541,6 @@ packages:
   dom-accessibility-api@0.6.3:
     resolution: {integrity: sha512-7ZgogeTnjuHbo+ct10G9Ffp0mif17idi0IyWNVA/wcwcm7NPOD/WEHVP3n7n3MhXqxoIYm8d6MuZohYWIZ4T3w==}
 
-  dracula-prism@2.1.16:
-    resolution: {integrity: sha512-fNZU8sMYOFYq/K8WFtsVUJEHemYlQJy7E3wm+Lndp3hTWG+Hp3+sCcbQdWVvQTfw+xIJeI+mIrjfUWHb9Q/s2Q==}
-
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -2553,9 +2544,6 @@ packages:
     resolution: {integrity: sha512-ey8Ls/+Di31eqzUxC46h8MksNuGx/n0AAC8uKpwFau4RPDYLuE3EXTp8N8G2vX2N7UC/+IXeNUnlWBGGcAG+Ig==}
     peerDependencies:
       react: '>=16.0.0'
-
-  prism-themes@1.9.0:
-    resolution: {integrity: sha512-tX2AYsehKDw1EORwBps+WhBFKc2kxfoFpQAjxBndbZKr4fRmMkv47XN0BghC/K1qwodB1otbe4oF23vUTFDokw==}
 
   prismjs@1.30.0:
     resolution: {integrity: sha512-DEvV2ZF2r2/63V+tK8hQvrR2ZGn10srHbXviTlcv7Kpzw8jWiNTqbVgjO3IY8RxrrOUF8VPMQQFysYYYv0YZxw==}
@@ -4414,8 +4402,6 @@ snapshots:
 
   dom-accessibility-api@0.6.3: {}
 
-  dracula-prism@2.1.16: {}
-
   dunder-proto@1.0.1:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -5526,8 +5512,6 @@ snapshots:
       '@types/prismjs': 1.26.5
       clsx: 2.1.1
       react: 19.2.0
-
-  prism-themes@1.9.0: {}
 
   prismjs@1.30.0: {}
 
