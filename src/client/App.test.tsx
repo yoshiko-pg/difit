@@ -75,14 +75,20 @@ Object.defineProperty(window, 'confirm', {
 });
 
 // Mock EventSource
-const mockEventSource = {
-  onopen: vi.fn(),
-  onerror: vi.fn(),
-  close: vi.fn(),
-};
+class MockEventSource {
+  onopen: (() => void) | null = null;
+  onerror: ((err: any) => void) | null = null;
+  close = vi.fn();
+
+  constructor(url: string) {
+    this.url = url;
+  }
+
+  url: string;
+}
 Object.defineProperty(window, 'EventSource', {
   writable: true,
-  value: vi.fn(() => mockEventSource),
+  value: MockEventSource,
 });
 
 let mockComments: any[] = [];

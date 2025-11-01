@@ -13,8 +13,10 @@ vi.mock('simple-git', () => ({
 
 // Mock child_process
 vi.mock('child_process', async (importOriginal) => {
-  const actual = (await importOriginal()) as any;
+  const actual = await importOriginal<typeof import('child_process')>();
+
   return {
+    default: actual,
     ...actual,
     execSync: vi.fn(),
     execFileSync: vi.fn(),
