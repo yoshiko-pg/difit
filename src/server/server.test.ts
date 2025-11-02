@@ -29,10 +29,10 @@ async function getAvailablePort(preferredPort: number): Promise<number> {
 }
 
 // Mock GitDiffParser
-vi.mock('./git-diff.js', () => ({
-  GitDiffParser: vi.fn().mockImplementation(() => ({
-    validateCommit: vi.fn().mockResolvedValue(true),
-    parseDiff: vi.fn().mockResolvedValue({
+vi.mock('./git-diff.js', () => {
+  class GitDiffParserMock {
+    validateCommit = vi.fn().mockResolvedValue(true);
+    parseDiff = vi.fn().mockResolvedValue({
       targetCommit: 'abc123',
       baseCommit: 'def456',
       targetMessage: 'Test commit',
@@ -47,10 +47,12 @@ vi.mock('./git-diff.js', () => ({
       ],
       stats: { additions: 10, deletions: 5 },
       isEmpty: false,
-    }),
-    getBlobContent: vi.fn().mockResolvedValue(Buffer.from('mock image data')),
-  })),
-}));
+    });
+    getBlobContent = vi.fn().mockResolvedValue(Buffer.from('mock image data'));
+  }
+
+  return { GitDiffParser: GitDiffParserMock };
+});
 
 describe('Server Integration Tests', () => {
   describe('Comments API', () => {
