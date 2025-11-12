@@ -34,7 +34,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
         with:
-          version: 10.19.0
+          version: 10.20.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
