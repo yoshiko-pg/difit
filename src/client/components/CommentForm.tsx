@@ -33,6 +33,8 @@ export function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
     }
   };
 
+  const modifierKey = /Macintosh|Mac OS X/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl';
+
   return (
     <form
       className="m-2 mx-3 p-3 bg-github-bg-tertiary border border-yellow-600/50 rounded-md border-l-4 border-l-yellow-400"
@@ -44,7 +46,7 @@ export function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
           Add a comment
         </span>
         <span className="text-xs text-github-text-muted">
-          Cmd+Enter to submit • Escape to cancel
+          {modifierKey}+Enter to submit • Escape to cancel
         </span>
       </div>
 
