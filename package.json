@@ -45,7 +45,7 @@
     "commander": "^14.0.0",
     "express": "^5.1.0",
     "ink": "^6.0.1",
-    "lucide-react": "^0.552.0",
+    "lucide-react": "^0.553.0",
     "open": "^10.1.2",
     "prism-react-renderer": "^2.4.1",
     "prismjs": "^1.30.0",
