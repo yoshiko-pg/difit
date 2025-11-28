@@ -243,7 +243,7 @@ export function DiffChunk({
 
   return (
     <div className="bg-github-bg-primary">
-      <table className="w-full border-collapse font-mono text-xs leading-5">
+      <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {chunk.lines.map((line, index) => {
             const lineComments = getCommentsForLine(line.newLineNumber || line.oldLineNumber || 0);

@@ -281,7 +281,7 @@ export function SideBySideDiffChunk({
 
   return (
     <div className="bg-github-bg-primary border border-github-border rounded-md overflow-hidden">
-      <table className="w-full border-collapse font-mono text-xs leading-5">
+      <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
             // For side-by-side view, only show comments on the right side (new line numbers)
