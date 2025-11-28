@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.4] - 2025-11-28
+
+### Changed
+
+- Bump vitest to v4 (#112)
+- Remove unused dracula deps (#111)
+
+### Fixed
+
+- Display modifier key on platforms other than macOS (#121)
+- Increase code font size to match UI font size
+- Dependencies updates
+
+### Thanks
+
+- [@yoshi-taka](https://github.com/yoshi-taka) for bumping vitest to v4 #112 and removing unused dracula deps #111
+- [@syohex](https://github.com/syohex) for fixing modifier key display #121
+
 ## [2.2.3] - 2025-10-22
 
 ### Added
@@ -598,7 +616,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.3...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.4...HEAD
+[2.2.4]: https://github.com/yoshiko-pg/difit/compare/v2.2.3...v2.2.4
 [2.2.3]: https://github.com/yoshiko-pg/difit/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/yoshiko-pg/difit/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/yoshiko-pg/difit/compare/v2.2.0...v2.2.1
