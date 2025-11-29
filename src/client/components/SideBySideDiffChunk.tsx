@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 import {
   type DiffChunk as DiffChunkType,
@@ -8,12 +8,18 @@ import {
   type LineSelection,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
+import {
+  computeWordLevelDiff,
+  shouldComputeWordDiff,
+  type WordLevelDiffResult,
+} from '../utils/wordLevelDiff';
 
 import { CommentButton } from './CommentButton';
 import { CommentForm } from './CommentForm';
 import { EnhancedPrismSyntaxHighlighter } from './EnhancedPrismSyntaxHighlighter';
 import { InlineComment } from './InlineComment';
 import type { AppearanceSettings } from './SettingsModal';
+import { WordLevelDiffHighlighter } from './WordLevelDiffHighlighter';
 
 interface SideBySideDiffChunkProps {
   chunk: DiffChunkType;
@@ -49,6 +55,7 @@ interface SideBySideLine {
   newLineNumber?: number;
   oldLineOriginalIndex?: number;
   newLineOriginalIndex?: number;
+  wordLevelDiff?: WordLevelDiffResult;
 }
 
 export function SideBySideDiffChunk({
@@ -198,7 +205,7 @@ export function SideBySideDiffChunk({
   };
 
   // Convert unified diff to side-by-side format
-  const convertToSideBySide = (lines: DiffLine[]): SideBySideLine[] => {
+  const convertToSideBySide = useCallback((lines: DiffLine[]): SideBySideLine[] => {
     const result: SideBySideLine[] = [];
     let oldLineNum = chunk.oldStart;
     let newLineNum = chunk.newStart;
@@ -250,6 +257,14 @@ export function SideBySideDiffChunk({
           const deleteLine = deleteLines[k];
           const addLine = addLines[k];
 
+          // Compute word-level diff if both lines exist
+          let wordLevelDiff: WordLevelDiffResult | undefined;
+          if (deleteLine && addLine) {
+            if (shouldComputeWordDiff(deleteLine.content, addLine.content)) {
+              wordLevelDiff = computeWordLevelDiff(deleteLine.content, addLine.content);
+            }
+          }
+
           result.push({
             oldLine: deleteLine,
             newLine: addLine,
@@ -257,6 +272,7 @@ export function SideBySideDiffChunk({
             newLineNumber: addLine ? (addLine.newLineNumber ?? newLineNum + k) : undefined,
             oldLineOriginalIndex: deleteLine ? deleteStartIndex + k : undefined,
             newLineOriginalIndex: addLine ? addStartIndex + k : undefined,
+            wordLevelDiff,
           });
         }
 
@@ -275,9 +291,12 @@ export function SideBySideDiffChunk({
     }
 
     return result;
-  };
+  }, [chunk.oldStart, chunk.newStart]);
 
-  const sideBySideLines = convertToSideBySide(chunk.lines);
+  const sideBySideLines = useMemo(
+    () => convertToSideBySide(chunk.lines),
+    [chunk.lines, convertToSideBySide]
+  );
 
   return (
     <div className="bg-github-bg-primary border border-github-border rounded-md overflow-hidden">
@@ -454,12 +473,19 @@ export function SideBySideDiffChunk({
                   >
                     {sideLine.oldLine && (
                       <div className="flex items-center relative min-h-[20px] px-3">
-                        <EnhancedPrismSyntaxHighlighter
-                          code={sideLine.oldLine.content}
-                          className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
-                          syntaxTheme={syntaxTheme}
-                          filename={filename}
-                        />
+                        {sideLine.wordLevelDiff ? (
+                          <WordLevelDiffHighlighter
+                            segments={sideLine.wordLevelDiff.oldSegments}
+                            className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text"
+                          />
+                        ) : (
+                          <EnhancedPrismSyntaxHighlighter
+                            code={sideLine.oldLine.content}
+                            className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
+                            syntaxTheme={syntaxTheme}
+                            filename={filename}
+                          />
+                        )}
                       </div>
                     )}
                   </td>
@@ -521,12 +547,19 @@ export function SideBySideDiffChunk({
                   >
                     {sideLine.newLine && (
                       <div className="flex items-center relative min-h-[20px] px-3">
-                        <EnhancedPrismSyntaxHighlighter
-                          code={sideLine.newLine.content}
-                          className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
-                          syntaxTheme={syntaxTheme}
-                          filename={filename}
-                        />
+                        {sideLine.wordLevelDiff ? (
+                          <WordLevelDiffHighlighter
+                            segments={sideLine.wordLevelDiff.newSegments}
+                            className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text"
+                          />
+                        ) : (
+                          <EnhancedPrismSyntaxHighlighter
+                            code={sideLine.newLine.content}
+                            className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
+                            syntaxTheme={syntaxTheme}
+                            filename={filename}
+                          />
+                        )}
                       </div>
                     )}
                   </td>
