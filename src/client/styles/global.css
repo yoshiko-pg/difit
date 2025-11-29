@@ -167,3 +167,29 @@ td.keyboard-cursor::before {
 [data-theme='light'] {
   --word-highlight-color: #fffd54;
 }
+
+/* Word-level diff highlighting */
+.word-diff-added {
+  background-color: var(--word-diff-added-bg);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.word-diff-removed {
+  background-color: var(--word-diff-removed-bg);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* Dark theme word-level diff colors (GitHub-like) */
+:root,
+[data-theme='dark'] {
+  --word-diff-added-bg: rgba(63, 185, 80, 0.4);
+  --word-diff-removed-bg: rgba(248, 81, 73, 0.4);
+}
+
+/* Light theme word-level diff colors */
+[data-theme='light'] {
+  --word-diff-added-bg: rgba(63, 185, 80, 0.5);
+  --word-diff-removed-bg: rgba(248, 81, 73, 0.5);
+}
