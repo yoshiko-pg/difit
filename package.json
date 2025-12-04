@@ -46,7 +46,7 @@
     "diff": "^8.0.2",
     "express": "^5.1.0",
     "ink": "^6.0.1",
-    "lucide-react": "^0.553.0",
+    "lucide-react": "^0.554.0",
     "open": "^10.1.2",
     "prism-react-renderer": "^2.4.1",
     "prismjs": "^1.30.0",
@@ -57,7 +57,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
-    "@prettier/plugin-oxc": "^0.0.4",
+    "@prettier/plugin-oxc": "^0.0.5",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "^0.5.16",
