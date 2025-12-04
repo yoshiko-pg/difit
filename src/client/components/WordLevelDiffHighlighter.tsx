@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 
-import { DiffSegment } from '../utils/wordLevelDiff';
+import { type DiffSegment } from '../utils/wordLevelDiff';
 
 interface WordLevelDiffHighlighterProps {
   segments: DiffSegment[];
@@ -30,9 +30,5 @@ export const WordLevelDiffHighlighter = React.memo(function WordLevelDiffHighlig
     });
   }, [segments]);
 
-  return (
-    <span className={className}>
-      {renderedContent}
-    </span>
-  );
+  return <span className={className}>{renderedContent}</span>;
 });

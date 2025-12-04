@@ -14,10 +14,7 @@ export interface WordLevelDiffResult {
  * Compute word-level diff between two strings.
  * Returns segments for both old and new lines, each marked as unchanged, added, or removed.
  */
-export function computeWordLevelDiff(
-  oldContent: string,
-  newContent: string
-): WordLevelDiffResult {
+export function computeWordLevelDiff(oldContent: string, newContent: string): WordLevelDiffResult {
   const changes = diffWords(oldContent, newContent);
 
   const oldSegments: DiffSegment[] = [];
@@ -44,10 +41,7 @@ export function computeWordLevelDiff(
  * Check if two lines are similar enough to warrant word-level diff.
  * Returns true if the lines share some common content.
  */
-export function shouldComputeWordDiff(
-  oldContent: string,
-  newContent: string
-): boolean {
+export function shouldComputeWordDiff(oldContent: string, newContent: string): boolean {
   // Skip if either line is empty or too short
   if (!oldContent.trim() || !newContent.trim()) {
     return false;

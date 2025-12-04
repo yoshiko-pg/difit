@@ -205,93 +205,96 @@ export function SideBySideDiffChunk({
   };
 
   // Convert unified diff to side-by-side format
-  const convertToSideBySide = useCallback((lines: DiffLine[]): SideBySideLine[] => {
-    const result: SideBySideLine[] = [];
-    let oldLineNum = chunk.oldStart;
-    let newLineNum = chunk.newStart;
+  const convertToSideBySide = useCallback(
+    (lines: DiffLine[]): SideBySideLine[] => {
+      const result: SideBySideLine[] = [];
+      let oldLineNum = chunk.oldStart;
+      let newLineNum = chunk.newStart;
 
-    let i = 0;
-    while (i < lines.length) {
-      const line = lines[i];
-      if (!line) {
-        i++;
-        continue;
-      }
-
-      if (line.type === 'normal') {
-        result.push({
-          oldLine: line,
-          newLine: { ...line },
-          oldLineNumber: line.oldLineNumber ?? oldLineNum,
-          newLineNumber: line.newLineNumber ?? newLineNum,
-          oldLineOriginalIndex: i,
-          newLineOriginalIndex: i,
-        });
-        oldLineNum++;
-        newLineNum++;
-        i++;
-      } else if (line.type === 'delete') {
-        // Look ahead for corresponding add
-        let j = i + 1;
-        while (j < lines.length && lines[j]?.type === 'delete') {
-          j++;
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i];
+        if (!line) {
+          i++;
+          continue;
         }
 
-        const deleteLines = lines.slice(i, j);
-        const deleteStartIndex = i;
-        const addLines: DiffLine[] = [];
-        const addStartIndex = j;
-
-        // Collect corresponding add lines
-        while (j < lines.length && lines[j]?.type === 'add') {
-          const addLine = lines[j];
-          if (addLine) {
-            addLines.push(addLine);
-          }
-          j++;
-        }
-
-        // Pair delete and add lines
-        const maxLines = Math.max(deleteLines.length, addLines.length);
-        for (let k = 0; k < maxLines; k++) {
-          const deleteLine = deleteLines[k];
-          const addLine = addLines[k];
-
-          // Compute word-level diff if both lines exist
-          let wordLevelDiff: WordLevelDiffResult | undefined;
-          if (deleteLine && addLine) {
-            if (shouldComputeWordDiff(deleteLine.content, addLine.content)) {
-              wordLevelDiff = computeWordLevelDiff(deleteLine.content, addLine.content);
-            }
-          }
-
+        if (line.type === 'normal') {
           result.push({
-            oldLine: deleteLine,
-            newLine: addLine,
-            oldLineNumber: deleteLine ? (deleteLine.oldLineNumber ?? oldLineNum + k) : undefined,
-            newLineNumber: addLine ? (addLine.newLineNumber ?? newLineNum + k) : undefined,
-            oldLineOriginalIndex: deleteLine ? deleteStartIndex + k : undefined,
-            newLineOriginalIndex: addLine ? addStartIndex + k : undefined,
-            wordLevelDiff,
+            oldLine: line,
+            newLine: { ...line },
+            oldLineNumber: line.oldLineNumber ?? oldLineNum,
+            newLineNumber: line.newLineNumber ?? newLineNum,
+            oldLineOriginalIndex: i,
+            newLineOriginalIndex: i,
           });
+          oldLineNum++;
+          newLineNum++;
+          i++;
+        } else if (line.type === 'delete') {
+          // Look ahead for corresponding add
+          let j = i + 1;
+          while (j < lines.length && lines[j]?.type === 'delete') {
+            j++;
+          }
+
+          const deleteLines = lines.slice(i, j);
+          const deleteStartIndex = i;
+          const addLines: DiffLine[] = [];
+          const addStartIndex = j;
+
+          // Collect corresponding add lines
+          while (j < lines.length && lines[j]?.type === 'add') {
+            const addLine = lines[j];
+            if (addLine) {
+              addLines.push(addLine);
+            }
+            j++;
+          }
+
+          // Pair delete and add lines
+          const maxLines = Math.max(deleteLines.length, addLines.length);
+          for (let k = 0; k < maxLines; k++) {
+            const deleteLine = deleteLines[k];
+            const addLine = addLines[k];
+
+            // Compute word-level diff if both lines exist
+            let wordLevelDiff: WordLevelDiffResult | undefined;
+            if (deleteLine && addLine) {
+              if (shouldComputeWordDiff(deleteLine.content, addLine.content)) {
+                wordLevelDiff = computeWordLevelDiff(deleteLine.content, addLine.content);
+              }
+            }
+
+            result.push({
+              oldLine: deleteLine,
+              newLine: addLine,
+              oldLineNumber: deleteLine ? (deleteLine.oldLineNumber ?? oldLineNum + k) : undefined,
+              newLineNumber: addLine ? (addLine.newLineNumber ?? newLineNum + k) : undefined,
+              oldLineOriginalIndex: deleteLine ? deleteStartIndex + k : undefined,
+              newLineOriginalIndex: addLine ? addStartIndex + k : undefined,
+              wordLevelDiff,
+            });
+          }
+
+          oldLineNum += deleteLines.length;
+          newLineNum += addLines.length;
+          i = j;
+        } else if (line.type === 'add') {
+          result.push({
+            newLine: line,
+            newLineNumber: line.newLineNumber ?? newLineNum,
+            newLineOriginalIndex: i,
+          });
+          newLineNum++;
+          i++;
         }
-
-        oldLineNum += deleteLines.length;
-        newLineNum += addLines.length;
-        i = j;
-      } else if (line.type === 'add') {
-        result.push({
-          newLine: line,
-          newLineNumber: line.newLineNumber ?? newLineNum,
-          newLineOriginalIndex: i,
-        });
-        newLineNum++;
-        i++;
       }
-    }
 
-    return result;
-  }, [chunk.oldStart, chunk.newStart]);
+      return result;
+    },
+    [chunk.oldStart, chunk.newStart]
+  );
 
   const sideBySideLines = useMemo(
     () => convertToSideBySide(chunk.lines),
@@ -473,19 +476,18 @@ export function SideBySideDiffChunk({
                   >
                     {sideLine.oldLine && (
                       <div className="flex items-center relative min-h-[20px] px-3">
-                        {sideLine.wordLevelDiff ? (
+                        {sideLine.wordLevelDiff ?
                           <WordLevelDiffHighlighter
                             segments={sideLine.wordLevelDiff.oldSegments}
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text"
                           />
-                        ) : (
-                          <EnhancedPrismSyntaxHighlighter
+                        : <EnhancedPrismSyntaxHighlighter
                             code={sideLine.oldLine.content}
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
                             syntaxTheme={syntaxTheme}
                             filename={filename}
                           />
-                        )}
+                        }
                       </div>
                     )}
                   </td>
@@ -547,19 +549,18 @@ export function SideBySideDiffChunk({
                   >
                     {sideLine.newLine && (
                       <div className="flex items-center relative min-h-[20px] px-3">
-                        {sideLine.wordLevelDiff ? (
+                        {sideLine.wordLevelDiff ?
                           <WordLevelDiffHighlighter
                             segments={sideLine.wordLevelDiff.newSegments}
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text"
                           />
-                        ) : (
-                          <EnhancedPrismSyntaxHighlighter
+                        : <EnhancedPrismSyntaxHighlighter
                             code={sideLine.newLine.content}
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
                             syntaxTheme={syntaxTheme}
                             filename={filename}
                           />
-                        )}
+                        }
                       </div>
                     )}
                   </td>
