@@ -78,6 +78,7 @@ export function DiffChunk({
       if (line) {
         const lineNumber = line.newLineNumber || line.oldLineNumber;
         if (lineNumber) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: respond to external keyboard trigger
           setCommentingLine(lineNumber);
           onCommentTriggerHandled?.();
         }

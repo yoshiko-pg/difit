@@ -117,6 +117,7 @@ export function useFileWatch(onReload?: () => Promise<void>): FileWatchHook {
             console.log(
               `Attempting to reconnect to file watch service (${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`
             );
+            // eslint-disable-next-line react-hooks/immutability -- connectToWatch is defined when setTimeout callback runs
             connectToWatch();
           }, reconnectDelay);
         } else {

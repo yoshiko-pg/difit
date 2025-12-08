@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 import { storageService } from '../services/StorageService';
 
@@ -15,8 +15,10 @@ const STORAGE_LIMIT = 5 * 1024 * 1024; // 5MB
 const WARNING_THRESHOLD = 0.8; // Warn at 80% usage
 
 export function useStorageMonitor(): StorageMonitorReturn {
-  const [storageSize, setStorageSize] = useState(0);
-  const [isNearLimit, setIsNearLimit] = useState(false);
+  const [storageSize, setStorageSize] = useState(() => storageService.getStorageSize());
+  const [isNearLimit, setIsNearLimit] = useState(
+    () => storageService.getStorageSize() > STORAGE_LIMIT * WARNING_THRESHOLD
+  );
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -31,10 +33,6 @@ export function useStorageMonitor(): StorageMonitorReturn {
     setStorageSize(size);
     setIsNearLimit(size > STORAGE_LIMIT * WARNING_THRESHOLD);
   }, []);
-
-  useEffect(() => {
-    refreshStorageInfo();
-  }, [refreshStorageInfo]);
 
   const cleanupOldData = useCallback(
     (daysToKeep: number) => {

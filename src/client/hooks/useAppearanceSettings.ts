@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import type { AppearanceSettings } from '../components/SettingsModal';
 
@@ -13,50 +13,19 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
 const STORAGE_KEY = 'reviewit-appearance-settings';
 
 export function useAppearanceSettings() {
-  const [settings, setSettings] = useState<AppearanceSettings>(DEFAULT_SETTINGS);
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
+  const [settings, setSettings] = useState<AppearanceSettings>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsedSettings = JSON.parse(stored) as AppearanceSettings;
-        setSettings({ ...DEFAULT_SETTINGS, ...parsedSettings });
+        return { ...DEFAULT_SETTINGS, ...(JSON.parse(stored) as AppearanceSettings) };
       }
     } catch (error) {
       console.warn('Failed to load appearance settings from localStorage:', error);
     }
-  }, []);
+    return DEFAULT_SETTINGS;
+  });
 
-  // Apply settings to document
-  useEffect(() => {
-    const root = document.documentElement;
-
-    // Apply font size
-    root.style.setProperty('--app-font-size', `${settings.fontSize}px`);
-
-    // Apply font family
-    root.style.setProperty('--app-font-family', settings.fontFamily);
-
-    // Apply theme
-    if (settings.theme === 'auto') {
-      // Use system preference
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      applyTheme(mediaQuery.matches ? 'dark' : 'light');
-
-      const handleChange = (e: MediaQueryListEvent) => {
-        applyTheme(e.matches ? 'dark' : 'light');
-      };
-
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    } else {
-      applyTheme(settings.theme);
-      return undefined;
-    }
-  }, [settings]);
-
-  const applyTheme = (theme: 'light' | 'dark') => {
+  const applyTheme = useCallback((theme: 'light' | 'dark') => {
     const root = document.documentElement;
 
     // Set data-theme attribute for CSS selectors
@@ -137,7 +106,35 @@ export function useAppearanceSettings() {
     // Update body background color
     document.body.style.backgroundColor = `var(--color-github-bg-primary)`;
     document.body.style.color = `var(--color-github-text-primary)`;
-  };
+  }, []);
+
+  // Apply settings to document
+  useEffect(() => {
+    const root = document.documentElement;
+
+    // Apply font size
+    root.style.setProperty('--app-font-size', `${settings.fontSize}px`);
+
+    // Apply font family
+    root.style.setProperty('--app-font-family', settings.fontFamily);
+
+    // Apply theme
+    if (settings.theme === 'auto') {
+      // Use system preference
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      applyTheme(mediaQuery.matches ? 'dark' : 'light');
+
+      const handleChange = (e: MediaQueryListEvent) => {
+        applyTheme(e.matches ? 'dark' : 'light');
+      };
+
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      applyTheme(settings.theme);
+      return undefined;
+    }
+  }, [settings, applyTheme]);
 
   const updateSettings = (newSettings: AppearanceSettings) => {
     setSettings(newSettings);

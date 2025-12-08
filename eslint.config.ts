@@ -149,9 +149,6 @@ const config: Linter.Config[] = [
       'react/prop-types': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
-      // Disable new strict rules from react-hooks v5
-      'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/immutability': 'off',
     },
     settings: {
       react: {

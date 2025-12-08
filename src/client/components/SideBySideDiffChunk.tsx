@@ -90,6 +90,7 @@ export function SideBySideDiffChunk({
       if (line && line.type !== 'delete') {
         const lineNumber = line.newLineNumber;
         if (lineNumber) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: respond to external keyboard trigger
           setCommentingLine({ side: 'new', lineNumber });
           onCommentTriggerHandled?.();
         }
