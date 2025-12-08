@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 import {
   type DiffChunk as DiffChunkType,
@@ -8,6 +8,11 @@ import {
   type DiffViewMode,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
+import {
+  computeWordLevelDiff,
+  shouldComputeWordDiff,
+  type DiffSegment,
+} from '../utils/wordLevelDiff';
 
 import { CommentForm } from './CommentForm';
 import { DiffLineRow } from './DiffLineRow';
@@ -219,6 +224,66 @@ export function DiffChunk({
     return '';
   };
 
+  // Compute word-level diff for inline mode
+  // Maps line index to diff segments for that line
+  const wordLevelDiffMap = useMemo(() => {
+    const map = new Map<number, DiffSegment[]>();
+    const lines = chunk.lines;
+
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line) {
+        i++;
+        continue;
+      }
+
+      if (line.type === 'delete') {
+        // Look ahead for corresponding add lines
+        let j = i + 1;
+        while (j < lines.length && lines[j]?.type === 'delete') {
+          j++;
+        }
+
+        const deleteLines = lines.slice(i, j);
+        const deleteStartIndex = i;
+        const addLines: { line: DiffLine; index: number }[] = [];
+
+        while (j < lines.length && lines[j]?.type === 'add') {
+          const addLine = lines[j];
+          if (addLine) {
+            addLines.push({ line: addLine, index: j });
+          }
+          j++;
+        }
+
+        // Pair delete and add lines and compute word-level diff
+        const maxLines = Math.max(deleteLines.length, addLines.length);
+        for (let k = 0; k < maxLines; k++) {
+          const deleteLine = deleteLines[k];
+          const addLineInfo = addLines[k];
+
+          if (deleteLine && addLineInfo) {
+            if (shouldComputeWordDiff(deleteLine.content, addLineInfo.line.content)) {
+              const wordLevelDiff = computeWordLevelDiff(
+                deleteLine.content,
+                addLineInfo.line.content
+              );
+              map.set(deleteStartIndex + k, wordLevelDiff.oldSegments);
+              map.set(addLineInfo.index, wordLevelDiff.newSegments);
+            }
+          }
+        }
+
+        i = j;
+      } else {
+        i++;
+      }
+    }
+
+    return map;
+  }, [chunk.lines]);
+
   // Use side-by-side component for side-by-side mode
   if (mode === 'side-by-side') {
     return (
@@ -310,6 +375,7 @@ export function DiffChunk({
                   }}
                   syntaxTheme={syntaxTheme}
                   filename={filename}
+                  diffSegments={wordLevelDiffMap.get(index)}
                   onClick={() => {
                     // Determine the side based on line type for inline mode
                     const side = line.type === 'delete' ? 'left' : 'right';

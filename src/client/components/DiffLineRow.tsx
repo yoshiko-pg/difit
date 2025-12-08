@@ -1,10 +1,12 @@
 import React from 'react';
 
 import { type DiffLine } from '../../types/diff';
+import { type DiffSegment } from '../utils/wordLevelDiff';
 
 import { CommentButton } from './CommentButton';
 import { EnhancedPrismSyntaxHighlighter } from './EnhancedPrismSyntaxHighlighter';
 import type { AppearanceSettings } from './SettingsModal';
+import { WordLevelDiffHighlighter } from './WordLevelDiffHighlighter';
 
 interface DiffLineRowProps {
   line: DiffLine;
@@ -21,6 +23,7 @@ interface DiffLineRowProps {
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   onClick?: () => void;
   filename?: string;
+  diffSegments?: DiffSegment[];
 }
 
 const getLineClass = (line: DiffLine) => {
@@ -60,6 +63,7 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
     syntaxTheme,
     onClick,
     filename,
+    diffSegments,
   }) => {
     const lineNumber = line.newLineNumber || line.oldLineNumber;
     const showCommentButton = hoveredLine === lineNumber && lineNumber;
@@ -98,12 +102,18 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
             >
               {getLinePrefix(line)}
             </span>
-            <EnhancedPrismSyntaxHighlighter
-              code={line.content}
-              className="flex-1 px-3 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
-              syntaxTheme={syntaxTheme}
-              filename={filename}
-            />
+            {diffSegments ?
+              <WordLevelDiffHighlighter
+                segments={diffSegments}
+                className="flex-1 px-3 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text"
+              />
+            : <EnhancedPrismSyntaxHighlighter
+                code={line.content}
+                className="flex-1 px-3 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
+                syntaxTheme={syntaxTheme}
+                filename={filename}
+              />
+            }
           </div>
         </td>
       </tr>
