@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.5] - 2025-12-08
+
+### Added
+
+- Word-level diff highlighting showing changed words with darker background (#126)
+
+### Changed
+
+- Enable ESLint React Hooks new rules with immutability and set-state-in-effect checks (#132)
+- Update major dependencies (#130)
+
+### Thanks
+
+- [@gehnmaisoda](https://github.com/gehnmaisoda) for adding word-level diff highlighting #126
+
 ## [2.2.4] - 2025-11-28
 
 ### Changed
@@ -616,7 +631,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.4...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.5...HEAD
+[2.2.5]: https://github.com/yoshiko-pg/difit/compare/v2.2.4...v2.2.5
 [2.2.4]: https://github.com/yoshiko-pg/difit/compare/v2.2.3...v2.2.4
 [2.2.3]: https://github.com/yoshiko-pg/difit/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/yoshiko-pg/difit/compare/v2.2.1...v2.2.2
