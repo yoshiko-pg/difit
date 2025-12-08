@@ -3,20 +3,19 @@ import { useState, useEffect } from 'react';
 import { type Comment, type LineNumber } from '../../types/diff';
 
 export function useLocalComments(commitHash?: string) {
-  const [comments, setComments] = useState<Comment[]>([]);
   const storageKey = commitHash ? `difit-comments-${commitHash}` : 'difit-comments';
 
-  // Load comments from localStorage on mount
-  useEffect(() => {
+  const [comments, setComments] = useState<Comment[]>(() => {
     const savedComments = localStorage.getItem(storageKey);
     if (savedComments) {
       try {
-        setComments(JSON.parse(savedComments) as Comment[]);
+        return JSON.parse(savedComments) as Comment[];
       } catch (error) {
         console.error('Failed to parse saved comments:', error);
       }
     }
-  }, [storageKey]);
+    return [];
+  });
 
   // Save comments to localStorage whenever comments change
   useEffect(() => {

@@ -13,7 +13,17 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
 const STORAGE_KEY = 'reviewit-appearance-settings';
 
 export function useAppearanceSettings() {
-  const [settings, setSettings] = useState<AppearanceSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<AppearanceSettings>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        return { ...DEFAULT_SETTINGS, ...(JSON.parse(stored) as AppearanceSettings) };
+      }
+    } catch (error) {
+      console.warn('Failed to load appearance settings from localStorage:', error);
+    }
+    return DEFAULT_SETTINGS;
+  });
 
   const applyTheme = useCallback((theme: 'light' | 'dark') => {
     const root = document.documentElement;
@@ -96,19 +106,6 @@ export function useAppearanceSettings() {
     // Update body background color
     document.body.style.backgroundColor = `var(--color-github-bg-primary)`;
     document.body.style.color = `var(--color-github-text-primary)`;
-  }, []);
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsedSettings = JSON.parse(stored) as AppearanceSettings;
-        setSettings({ ...DEFAULT_SETTINGS, ...parsedSettings });
-      }
-    } catch (error) {
-      console.warn('Failed to load appearance settings from localStorage:', error);
-    }
   }, []);
 
   // Apply settings to document

@@ -32,7 +32,7 @@ export function useDiffComments(
 ): UseDiffCommentsReturn {
   const [comments, setComments] = useState<DiffComment[]>([]);
 
-  // Load comments from storage
+  // Load comments from storage when commitish changes
   useEffect(() => {
     if (!baseCommitish || !targetCommitish) return;
 
@@ -42,6 +42,7 @@ export function useDiffComments(
       currentCommitHash,
       branchToHash
     );
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync state from external storage on prop change
     setComments(loadedComments);
   }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash]);
 
