@@ -236,6 +236,7 @@ function App() {
           : [c.position.line.start, c.position.line.end],
         body: c.body,
         timestamp: c.createdAt,
+        side: c.position.side,
       }));
       const data = JSON.stringify({ comments: transformedComments });
       fetch('/api/comments', {
@@ -260,6 +261,7 @@ function App() {
             : [c.position.line.start, c.position.line.end],
           body: c.body,
           timestamp: c.createdAt,
+          side: c.position.side,
         }));
         // Use sendBeacon for reliable delivery during page unload
         const data = JSON.stringify({ comments: transformedComments });
@@ -628,6 +630,7 @@ function App() {
                         body: c.body,
                         timestamp: c.createdAt,
                         codeContent: c.codeSnapshot?.content,
+                        side: c.position.side,
                       }))}
                     diffMode={diffMode}
                     reviewedFiles={viewedFiles}

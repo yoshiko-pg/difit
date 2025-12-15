@@ -57,6 +57,7 @@ export interface Comment {
   body: string;
   timestamp: string;
   codeContent?: string; // The actual code content for this line
+  side?: 'old' | 'new'; // Which side the comment is on
 }
 
 export interface LineSelection {

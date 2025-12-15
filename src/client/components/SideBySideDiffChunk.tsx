@@ -140,10 +140,16 @@ export function SideBySideDiffChunk({
     [commentingLine, onAddComment]
   );
 
-  const getCommentsForLine = (lineNumber: number) => {
-    return comments.filter((c) =>
-      Array.isArray(c.line) ? c.line[1] === lineNumber : c.line === lineNumber
-    );
+  const getCommentsForLine = (lineNumber: number, side: 'old' | 'new') => {
+    return comments.filter((c) => {
+      // Check if line number matches (single line or end of range)
+      const lineMatches = Array.isArray(c.line) ? c.line[1] === lineNumber : c.line === lineNumber;
+
+      // Filter by side - if comment has no side (legacy), show on new side only
+      const sideMatches = !c.side || c.side === side;
+
+      return lineMatches && sideMatches;
+    });
   };
 
   const getCommentLayout = (sideLine: SideBySideLine): 'left' | 'right' | 'full' => {
@@ -307,13 +313,12 @@ export function SideBySideDiffChunk({
       <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
-            // For side-by-side view, only show comments on the right side (new line numbers)
-            // to avoid duplication. Comments are associated with line numbers and should
-            // only be displayed once per line number.
-            const allComments =
-              sideLine.newLineNumber ? getCommentsForLine(sideLine.newLineNumber)
-              : sideLine.oldLineNumber ? getCommentsForLine(sideLine.oldLineNumber)
-              : [];
+            // Fetch comments separately for each side to prevent duplication
+            const oldComments =
+              sideLine.oldLineNumber ? getCommentsForLine(sideLine.oldLineNumber, 'old') : [];
+            const newComments =
+              sideLine.newLineNumber ? getCommentsForLine(sideLine.newLineNumber, 'new') : [];
+            const allComments = [...oldComments, ...newComments];
 
             // Use the stored original indices
             const oldLineOriginalIndex = sideLine.oldLineOriginalIndex ?? -1;
@@ -572,7 +577,18 @@ export function SideBySideDiffChunk({
                   <tr className="bg-github-bg-secondary">
                     <td colSpan={4} className="p-0 border-t border-github-border">
                       {allComments.map((comment) => {
-                        const layout = getCommentLayout(sideLine);
+                        // Determine layout based on comment's side
+                        const commentSide = comment.side || 'new';
+                        let layout: 'left' | 'right' | 'full';
+
+                        if (commentSide === 'old' && sideLine.oldLineNumber) {
+                          layout = 'left';
+                        } else if (commentSide === 'new' && sideLine.newLineNumber) {
+                          layout = 'right';
+                        } else {
+                          layout = getCommentLayout(sideLine);
+                        }
+
                         return (
                           <div
                             key={comment.id}
