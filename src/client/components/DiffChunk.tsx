@@ -312,7 +312,34 @@ export function DiffChunk({
       <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {chunk.lines.map((line, index) => {
-            const lineComments = getCommentsForLine(line.newLineNumber || line.oldLineNumber || 0);
+            const currentLineNumber = line.newLineNumber || line.oldLineNumber || 0;
+            const formTargetLine =
+              Array.isArray(commentingLine) ? commentingLine?.[1] : commentingLine;
+            let isDeleteWithAddGroup = false;
+            let anchorLineNumber = currentLineNumber;
+            if (line.type === 'delete') {
+              let j = index + 1;
+              while (j < chunk.lines.length && chunk.lines[j]?.type === 'delete') {
+                j++;
+              }
+              if (j < chunk.lines.length && chunk.lines[j]?.type === 'add') {
+                isDeleteWithAddGroup = true;
+                const firstAddIndex = j;
+                let k = j;
+                const addNumbers: number[] = [];
+                while (k < chunk.lines.length && chunk.lines[k]?.type === 'add') {
+                  const n = chunk.lines[k]?.newLineNumber;
+                  if (typeof n === 'number') addNumbers.push(n);
+                  k++;
+                }
+                const preferred =
+                  typeof formTargetLine === 'number' && addNumbers.includes(formTargetLine) ?
+                    formTargetLine
+                  : (chunk.lines[firstAddIndex]?.newLineNumber ?? currentLineNumber);
+                anchorLineNumber = preferred as number;
+              }
+            }
+            const lineComments = getCommentsForLine(anchorLineNumber);
             // Generate ID for all lines to match the format used in useKeyboardNavigation
             const lineId = `file-${fileIndex}-chunk-${chunkIndex}-line-${index}`;
             const isCurrentLine =
@@ -363,7 +390,18 @@ export function DiffChunk({
 
                     const actualEndLine = endLine || lineNumber;
                     if (startLine === actualEndLine) {
-                      handleAddComment(lineNumber);
+                      let targetLine = lineNumber;
+                      if (line.type === 'delete') {
+                        let j = index + 1;
+                        while (j < chunk.lines.length && chunk.lines[j]?.type === 'delete') {
+                          j++;
+                        }
+                        if (j < chunk.lines.length && chunk.lines[j]?.type === 'add') {
+                          const firstAdd = chunk.lines[j]?.newLineNumber;
+                          if (typeof firstAdd === 'number') targetLine = firstAdd;
+                        }
+                      }
+                      handleAddComment(targetLine);
                     } else {
                       const min = Math.min(startLine, actualEndLine);
                       const max = Math.max(startLine, actualEndLine);
@@ -384,57 +422,55 @@ export function DiffChunk({
                   }}
                 />
 
-                {lineComments.map((comment) => {
-                  const layout = getCommentLayout(line);
-                  return (
-                    <tr key={comment.id} className="bg-github-bg-secondary">
-                      <td colSpan={3} className="p-0 border-t border-github-border">
-                        <div
-                          className={`flex ${
-                            layout === 'left' ? 'justify-start'
-                            : layout === 'right' ? 'justify-end'
-                            : 'justify-center'
-                          }`}
-                        >
-                          <div className={`${layout === 'full' ? 'w-full' : 'w-1/2'} m-2 mx-4`}>
-                            <InlineComment
-                              comment={comment}
-                              onGeneratePrompt={onGeneratePrompt}
-                              onRemoveComment={onRemoveComment}
-                              onUpdateComment={onUpdateComment}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {commentingLine &&
-                  (commentingLine === (line.newLineNumber || line.oldLineNumber) ||
-                    (Array.isArray(commentingLine) &&
-                      commentingLine[1] === (line.newLineNumber || line.oldLineNumber))) && (
-                    <tr className="bg-[var(--bg-secondary)]">
-                      <td colSpan={3} className="p-0">
-                        <div
-                          className={`flex ${
-                            getCommentLayout(line) === 'left' ? 'justify-start'
-                            : getCommentLayout(line) === 'right' ? 'justify-end'
-                            : 'justify-center'
-                          }`}
-                        >
+                {!isDeleteWithAddGroup &&
+                  lineComments.map((comment) => {
+                    const layout = getCommentLayout(line);
+                    return (
+                      <tr key={comment.id} className="bg-github-bg-secondary">
+                        <td colSpan={3} className="p-0 border-t border-github-border">
                           <div
-                            className={`${getCommentLayout(line) === 'full' ? 'w-full' : 'w-1/2'}`}
+                            className={`flex ${
+                              layout === 'left' ? 'justify-start'
+                              : layout === 'right' ? 'justify-end'
+                              : 'justify-center'
+                            }`}
                           >
-                            <CommentForm
-                              onSubmit={handleSubmitComment}
-                              onCancel={handleCancelComment}
-                            />
+                            <div className={`${layout === 'full' ? 'w-full' : 'w-1/2'} m-2 mx-4`}>
+                              <InlineComment
+                                comment={comment}
+                                onGeneratePrompt={onGeneratePrompt}
+                                onRemoveComment={onRemoveComment}
+                                onUpdateComment={onUpdateComment}
+                              />
+                            </div>
                           </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                {commentingLine && !isDeleteWithAddGroup && formTargetLine === anchorLineNumber && (
+                  <tr className="bg-[var(--bg-secondary)]">
+                    <td colSpan={3} className="p-0">
+                      <div
+                        className={`flex ${
+                          getCommentLayout(line) === 'left' ? 'justify-start'
+                          : getCommentLayout(line) === 'right' ? 'justify-end'
+                          : 'justify-center'
+                        }`}
+                      >
+                        <div
+                          className={`${getCommentLayout(line) === 'full' ? 'w-full' : 'w-1/2'}`}
+                        >
+                          <CommentForm
+                            onSubmit={handleSubmitComment}
+                            onCancel={handleCancelComment}
+                          />
                         </div>
-                      </td>
-                    </tr>
-                  )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </React.Fragment>
             );
           })}

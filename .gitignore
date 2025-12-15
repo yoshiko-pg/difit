@@ -19,6 +19,7 @@ build/
 # IDE files
 .vscode/
 .idea/
+.trae
 *.swp
 *.swo
 
