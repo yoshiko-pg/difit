@@ -5,6 +5,7 @@ export interface DiffFile {
   additions: number;
   deletions: number;
   chunks: DiffChunk[];
+  isGenerated?: boolean;
 }
 
 export interface FileDiff {

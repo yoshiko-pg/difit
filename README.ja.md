@@ -90,6 +90,29 @@ git diff --merge-base main feature | npx difit
 git diff -- /dev/null path/to/file | npx difit
 ```
 
+### 生成されたファイル
+
+difitは生成されたファイルを自動的に識別し、ビューをすっきりさせるために折りたたみます。これには以下が含まれます：
+
+- ロックファイル (`package-lock.json`, `go.mod`, `Cargo.lock`, `Gemfile.lock` など)
+- 圧縮されたファイル (`*.min.js`, `*.min.css`)
+- ソースマップ (`*.map`)
+- 生成されたコード:
+  - Orval (`*.msw.ts`, `*.zod.ts`, `*.api.ts`)
+  - Dart (`*.g.dart`, `*.freezed.dart`)
+  - C# (`*.g.cs`, `*.designer.cs`)
+  - Protobuf (`*.pb.go`, `*.pb.cc`, `*.pb.h`)
+- フレームワーク:
+  - Ruby on Rails (`db/schema.rb`)
+  - Laravel (`_ide_helper.php`)
+  - Gradle (`gradle.lockfile`)
+  - Python (`uv.lock`, `pdm.lock`)
+- 一般的な生成ファイル (`*.generated.cs`, `*.generated.ts`, `*.generated.js`)
+- コンテンツベースの検出:
+  - `@generated` マーカーを含むファイル
+  - `DO NOT EDIT` ヘッダーを含むファイル
+  - 言語固有の自動生成ヘッダー (Go, Pythonなど)
+
 ## ⚙️ CLIオプション
 
 | フラグ           | デフォルト   | 説明                                                                              |

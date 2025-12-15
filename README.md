@@ -90,6 +90,29 @@ git diff --merge-base main feature | npx difit
 git diff -- /dev/null path/to/file | npx difit
 ```
 
+### Generated Files
+
+difit automatically identifies and collapses generated files to keep your view clean. This includes:
+
+- Lock files (`package-lock.json`, `go.mod`, `Cargo.lock`, `Gemfile.lock`, etc.)
+- Minified files (`*.min.js`, `*.min.css`)
+- Source maps (`*.map`)
+- Generated code:
+  - Orval (`*.msw.ts`, `*.zod.ts`, `*.api.ts`)
+  - Dart (`*.g.dart`, `*.freezed.dart`)
+  - C# (`*.g.cs`, `*.designer.cs`)
+  - Protobuf (`*.pb.go`, `*.pb.cc`, `*.pb.h`)
+- Frameworks:
+  - Ruby on Rails (`db/schema.rb`)
+  - Laravel (`_ide_helper.php`)
+  - Gradle (`gradle.lockfile`)
+  - Python (`uv.lock`, `pdm.lock`)
+- Generic generated files (`*.generated.cs`, `*.generated.ts`, `*.generated.js`)
+- Content-based detection:
+  - Files containing `@generated` marker
+  - Files containing `DO NOT EDIT` header
+  - Language-specific generated headers (Go, Python, etc.)
+
 ## ⚙️ CLI Options
 
 | Flag             | Default      | Description                                                            |

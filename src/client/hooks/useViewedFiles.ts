@@ -4,25 +4,7 @@ import { type ViewedFileRecord, type DiffFile } from '../../types/diff';
 import { storageService } from '../services/StorageService';
 import { generateDiffHash, getDiffContentForHashing } from '../utils/diffUtils';
 
-// Helper function to check if a file is a lock file
-function isLockFile(filePath: string): boolean {
-  const lockFilePatterns = [
-    'package-lock.json',
-    'yarn.lock',
-    'pnpm-lock.yaml',
-    'Cargo.lock',
-    'Gemfile.lock',
-    'poetry.lock',
-    'composer.lock',
-    'Pipfile.lock',
-    'go.sum',
-    'pubspec.lock',
-    'flake.lock',
-  ];
-
-  const fileName = filePath.split('/').pop() || '';
-  return lockFilePatterns.includes(fileName);
-}
+// Helper function to check if a file is a lock file - REMOVED, using server-side detected isGenerated flag
 
 export interface UseViewedFilesReturn {
   viewedFiles: Set<string>; // Set of file paths
@@ -53,19 +35,19 @@ export function useViewedFiles(
       branchToHash
     );
 
-    // Auto-mark lock files as viewed if we have initial files
-    const processLockFiles = async () => {
+    // Auto-mark generated files as viewed if we have initial files and they are not already viewed
+    const processGeneratedFiles = async () => {
       if (initialFiles && initialFiles.length > 0) {
-        const lockFilesToAdd: ViewedFileRecord[] = [];
+        const generatedFilesToAdd: ViewedFileRecord[] = [];
 
         // Create a Set of already viewed file paths for quick lookup
         const viewedPaths = new Set(loadedFiles.map((f) => f.filePath));
 
-        // Find lock files that aren't already marked as viewed
+        // Find generated files that aren't already marked as viewed
         for (const file of initialFiles) {
-          if (isLockFile(file.path) && !viewedPaths.has(file.path)) {
+          if (file.isGenerated && !viewedPaths.has(file.path)) {
             try {
-              // Generate hash for the lock file
+              // Generate hash for the generated file
               const content = getDiffContentForHashing(file);
               const hash = await generateDiffHash(content);
 
@@ -75,16 +57,16 @@ export function useViewedFiles(
                 diffContentHash: hash,
               };
 
-              lockFilesToAdd.push(newRecord);
+              generatedFilesToAdd.push(newRecord);
             } catch (err) {
-              console.error('Failed to generate hash for lock file:', err);
+              console.error('Failed to generate hash for generated file:', err);
             }
           }
         }
 
-        // Add all lock files to storage at once
-        if (lockFilesToAdd.length > 0) {
-          const updatedRecords = [...loadedFiles, ...lockFilesToAdd];
+        // Add all generated files to storage at once
+        if (generatedFilesToAdd.length > 0) {
+          const updatedRecords = [...loadedFiles, ...generatedFilesToAdd];
           storageService.saveViewedFiles(
             baseCommitish,
             targetCommitish,
@@ -100,7 +82,7 @@ export function useViewedFiles(
       setViewedFileRecords(loadedFiles);
     };
 
-    void processLockFiles();
+    void processGeneratedFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash]); // initialFiles intentionally omitted to run only on mount
 
