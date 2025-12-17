@@ -4,8 +4,6 @@ import { type ViewedFileRecord, type DiffFile } from '../../types/diff';
 import { storageService } from '../services/StorageService';
 import { generateDiffHash, getDiffContentForHashing } from '../utils/diffUtils';
 
-// Helper function to check if a file is a lock file - REMOVED, using server-side detected isGenerated flag
-
 export interface UseViewedFilesReturn {
   viewedFiles: Set<string>; // Set of file paths
   toggleFileViewed: (filePath: string, diffFile: DiffFile) => Promise<void>;
