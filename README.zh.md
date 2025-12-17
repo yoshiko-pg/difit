@@ -138,6 +138,29 @@ src/components/Button.tsx:L42-L48   # 此行自动添加
 - **移动语言**：Swift, Kotlin, Dart
 - **其他**：Python, Protobuf, YAML, Solidity, Vim Script
 
+## 🔍 检测自动生成文件
+
+difit 自动识别并折叠生成的文件以保持视图整洁。这包括：
+
+- 锁定文件 (`package-lock.json`, `go.mod`, `Cargo.lock`, `Gemfile.lock` 等)
+- 压缩文件 (`*.min.js`, `*.min.css`)
+- 源映射 (`*.map`)
+- 生成的代码:
+  - Orval (`*.msw.ts`, `*.zod.ts`, `*.api.ts`)
+  - Dart (`*.g.dart`, `*.freezed.dart`)
+  - C# (`*.g.cs`, `*.designer.cs`)
+  - Protobuf (`*.pb.go`, `*.pb.cc`, `*.pb.h`)
+- 框架:
+  - Ruby on Rails (`db/schema.rb`)
+  - Laravel (`_ide_helper.php`)
+  - Gradle (`gradle.lockfile`)
+  - Python (`uv.lock`, `pdm.lock`)
+- 通用生成文件 (`*.generated.cs`, `*.generated.ts`, `*.generated.js`)
+- 基于内容的检测:
+  - 包含 `@generated` 标记的文件
+  - 包含 `DO NOT EDIT` 标头的文件
+  - 特定语言的生成标头 (Go, Python 等)
+
 ## 🛠️ 开发
 
 ```bash

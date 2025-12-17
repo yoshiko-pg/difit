@@ -10,6 +10,8 @@ import {
 import { validateDiffArguments, shortHash, createCommitRangeString } from '../cli/utils.js';
 import { type DiffFile, type DiffChunk, type DiffLine, type DiffResponse } from '../types/diff.js';
 
+import { isGeneratedFile } from './generated-file-check.js';
+
 export class GitDiffParser {
   private git: SimpleGit;
 
@@ -68,6 +70,28 @@ export class GitDiffParser {
       const diffRaw = await this.git.diff(['--color=never', ...diffArgs]);
 
       const files = this.parseUnifiedDiff(diffRaw, diffSummary.files);
+
+      // Check generated status with content for files not yet identified
+      await Promise.all(
+        files.map(async (file) => {
+          if (file.isGenerated) return;
+          if (file.status === 'deleted') return;
+
+          try {
+            // For content-based checks, we read the first 20 lines of the file
+            // We use targetCommitish to get the version of the file we are looking at
+            const buffer = await this.getBlobContent(file.path, targetCommitish);
+            const content = buffer.toString('utf8');
+            const lines = content.split('\n').slice(0, 20);
+            const result = isGeneratedFile(file.path, () => lines);
+            if (result.isGenerated) {
+              file.isGenerated = true;
+            }
+          } catch {
+            // Ignore errors (e.g. file too large, file not found in target ref)
+          }
+        })
+      );
 
       return {
         commit: resolvedCommit,
@@ -318,6 +342,7 @@ export class GitDiffParser {
         additions,
         deletions,
         chunks,
+        isGenerated: isGeneratedFile(path).isGenerated,
       };
     } else if ('binary' in summary && summary.binary) {
       // Binary file
@@ -326,6 +351,7 @@ export class GitDiffParser {
         additions: 0,
         deletions: 0,
         chunks: [], // No chunks for binary files
+        isGenerated: isGeneratedFile(path).isGenerated,
       };
     } else {
       // Text file with summary
@@ -334,11 +360,15 @@ export class GitDiffParser {
         additions: summary.insertions,
         deletions: summary.deletions,
         chunks,
+        isGenerated: isGeneratedFile(path).isGenerated,
       };
     }
   }
 
-  private countLinesFromChunks(chunks: DiffChunk[]): { additions: number; deletions: number } {
+  private countLinesFromChunks(chunks: DiffChunk[]): {
+    additions: number;
+    deletions: number;
+  } {
     let additions = 0;
     let deletions = 0;
     for (const chunk of chunks) {

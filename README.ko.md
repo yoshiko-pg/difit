@@ -138,6 +138,29 @@ src/components/Button.tsx:L42-L48   # 이 줄은 자동으로 추가됩니다
 - **모바일 언어**: Swift, Kotlin, Dart
 - **기타**: Python, Protobuf, YAML, Solidity, Vim 스크립트
 
+## 🔍 자동 생성 파일 감지
+
+difit은 생성된 파일을 자동으로 식별하고 접어서 뷰를 깔끔하게 유지합니다. 여기에는 다음이 포함됩니다:
+
+- 잠금 파일 (`package-lock.json`, `go.mod`, `Cargo.lock`, `Gemfile.lock` 등)
+- 축소된 파일 (`*.min.js`, `*.min.css`)
+- 소스 맵 (`*.map`)
+- 생성된 코드:
+  - Orval (`*.msw.ts`, `*.zod.ts`, `*.api.ts`)
+  - Dart (`*.g.dart`, `*.freezed.dart`)
+  - C# (`*.g.cs`, `*.designer.cs`)
+  - Protobuf (`*.pb.go`, `*.pb.cc`, `*.pb.h`)
+- 프레임워크:
+  - Ruby on Rails (`db/schema.rb`)
+  - Laravel (`_ide_helper.php`)
+  - Gradle (`gradle.lockfile`)
+  - Python (`uv.lock`, `pdm.lock`)
+- 일반적인 생성 파일 (`*.generated.cs`, `*.generated.ts`, `*.generated.js`)
+- 콘텐츠 기반 감지:
+  - `@generated` 마커가 포함된 파일
+  - `DO NOT EDIT` 헤더가 포함된 파일
+  - 언어별 생성 헤더 (Go, Python 등)
+
 ## 🛠️ 개발
 
 ```bash

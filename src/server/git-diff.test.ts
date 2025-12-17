@@ -167,6 +167,7 @@ describe('GitDiffParser', () => {
         additions: 0,
         deletions: 0,
         chunks: [], // Binary files should have empty chunks
+        isGenerated: false,
       });
     });
 
@@ -196,6 +197,7 @@ describe('GitDiffParser', () => {
         additions: 0,
         deletions: 0,
         chunks: [],
+        isGenerated: false,
       });
     });
 
@@ -224,6 +226,7 @@ describe('GitDiffParser', () => {
         additions: 0,
         deletions: 0,
         chunks: [],
+        isGenerated: false,
       });
     });
 
@@ -252,6 +255,7 @@ describe('GitDiffParser', () => {
         additions: 0,
         deletions: 0,
         chunks: [],
+        isGenerated: false,
       });
     });
 
@@ -283,6 +287,7 @@ describe('GitDiffParser', () => {
         additions: 1,
         deletions: 0,
         chunks: expect.any(Array), // Should have parsed chunks
+        isGenerated: false,
       });
 
       // Verify chunks were parsed
@@ -318,6 +323,7 @@ describe('GitDiffParser', () => {
         additions: 0,
         deletions: 1,
         chunks: expect.any(Array),
+        isGenerated: false,
       });
     });
 
@@ -342,6 +348,7 @@ describe('GitDiffParser', () => {
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
 
       expect(result.status).toBe('added');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('detects deleted files using /dev/null indicator', () => {
@@ -365,6 +372,7 @@ describe('GitDiffParser', () => {
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
 
       expect(result.status).toBe('deleted');
+      expect(result.isGenerated).toBe(false);
     });
   });
 
@@ -386,6 +394,7 @@ describe('GitDiffParser', () => {
       expect(result.status).toBe('added');
       expect(result.additions).toBe(1);
       expect(result.deletions).toBe(0);
+      expect(result.isGenerated).toBe(false);
     });
 
     it('parses summary-provided filenames with escaped spaces', () => {
@@ -410,6 +419,7 @@ describe('GitDiffParser', () => {
 
       expect(result?.path).toBe('templates/test file.py');
       expect(result?.oldPath).toBeUndefined();
+      expect(result?.isGenerated).toBe(false);
     });
 
     it('parses file paths with Jinja template brackets correctly', () => {
@@ -427,6 +437,7 @@ describe('GitDiffParser', () => {
       expect(result).toBeDefined();
       expect(result.path).toBe('templates/test_000_{{ package_name }}/__.py');
       expect(result.status).toBe('added');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('parses file paths with escaped characters correctly', () => {
@@ -444,6 +455,7 @@ describe('GitDiffParser', () => {
       expect(result).toBeDefined();
       expect(result.path).toBe('file\twith\ttabs.txt');
       expect(result.status).toBe('added');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('parses renamed files with spaces correctly', () => {
@@ -459,6 +471,7 @@ describe('GitDiffParser', () => {
       expect(result.path).toBe('new folder/new name.txt');
       expect(result.oldPath).toBe('old folder/old name.txt');
       expect(result.status).toBe('renamed');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('still handles unquoted paths correctly', () => {
@@ -480,6 +493,7 @@ describe('GitDiffParser', () => {
       expect(result.status).toBe('modified');
       expect(result.additions).toBe(1);
       expect(result.deletions).toBe(1);
+      expect(result.isGenerated).toBe(false);
     });
 
     it('handles unquoted paths with spaces when core.quotePath=false', () => {
@@ -499,6 +513,7 @@ describe('GitDiffParser', () => {
       expect(result.status).toBe('modified');
       expect(result.additions).toBe(1);
       expect(result.deletions).toBe(1);
+      expect(result.isGenerated).toBe(false);
     });
 
     it('decodes unquoted octal escapes in diff headers', () => {
@@ -516,6 +531,7 @@ describe('GitDiffParser', () => {
 
       expect(result?.path).toBe('some folder/file name.ts');
       expect(result?.oldPath).toBeUndefined();
+      expect(result?.isGenerated).toBe(false);
     });
 
     it('handles unquoted paths containing "b/" in filename', () => {
@@ -534,6 +550,7 @@ describe('GitDiffParser', () => {
       expect(result.path).toBe('dir b/sub/file');
       expect(result.oldPath).toBeUndefined();
       expect(result.status).toBe('modified');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('handles renamed files with "b/" in the path', () => {
@@ -549,6 +566,7 @@ describe('GitDiffParser', () => {
       expect(result.path).toBe('new b/path/file');
       expect(result.oldPath).toBe('old b/path/file');
       expect(result.status).toBe('renamed');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('handles alternative git diff prefixes for working tree comparisons', () => {
@@ -575,6 +593,7 @@ describe('GitDiffParser', () => {
       expect(result.path).toBe('a/test.txt');
       expect(result.oldPath).toBeUndefined();
       expect(result.status).toBe('modified');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('handles rename metadata with alternative git prefixes', () => {
@@ -599,6 +618,7 @@ describe('GitDiffParser', () => {
       expect(result.path).toBe('new/name.txt');
       expect(result.oldPath).toBe('old/name.txt');
       expect(result.status).toBe('renamed');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('ignores trailing metadata separators in diff path lines', () => {
@@ -624,6 +644,7 @@ describe('GitDiffParser', () => {
       expect(result).toBeDefined();
       expect(result.path).toBe('foo bar.txt');
       expect(result.status).toBe('modified');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('prefers header paths over summary paths when they differ', () => {
@@ -649,6 +670,7 @@ describe('GitDiffParser', () => {
       expect(result).toBeDefined();
       expect(result?.path).toBe('a/test.txt');
       expect(result?.status).toBe('added');
+      expect(result?.isGenerated).toBe(false);
     });
 
     it('does not treat added files as renamed even if summary includes from path', () => {
@@ -675,6 +697,7 @@ describe('GitDiffParser', () => {
       expect(result).toBeDefined();
       expect(result?.status).toBe('added');
       expect(result?.oldPath).toBeUndefined();
+      expect(result?.isGenerated).toBe(false);
     });
 
     it('parses file paths with octal escape sequences correctly', () => {
@@ -692,6 +715,7 @@ describe('GitDiffParser', () => {
       expect(result).toBeDefined();
       expect(result.path).toBe('fileä.txt');
       expect(result.status).toBe('added');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('parses file paths with mixed escape sequences correctly', () => {
@@ -709,6 +733,7 @@ describe('GitDiffParser', () => {
       expect(result).toBeDefined();
       expect(result.path).toBe('diré/file\twith\nmixed.txt');
       expect(result.status).toBe('added');
+      expect(result.isGenerated).toBe(false);
     });
   });
 
@@ -732,6 +757,7 @@ describe('GitDiffParser', () => {
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
 
       expect(result.status).toBe('added');
+      expect(result.isGenerated).toBe(false);
     });
 
     it('prioritizes deleted file mode over other indicators', () => {
@@ -753,6 +779,7 @@ describe('GitDiffParser', () => {
       const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
 
       expect(result.status).toBe('deleted');
+      expect(result.isGenerated).toBe(false);
     });
   });
 
@@ -780,6 +807,7 @@ index abc123..def456 100644
             additions: 1,
             deletions: 1,
             chunks: expect.any(Array),
+            isGenerated: false,
           },
         ],
       });
@@ -814,12 +842,14 @@ index 0000000..1234567
         status: 'modified',
         additions: 1,
         deletions: 1,
+        isGenerated: false,
       });
       expect(result.files[1]).toMatchObject({
         path: 'file2.js',
         status: 'added',
         additions: 3,
         deletions: 0,
+        isGenerated: false,
       });
     });
 
@@ -840,6 +870,7 @@ index abc123..0000000
         status: 'deleted',
         additions: 0,
         deletions: 2,
+        isGenerated: false,
       });
     });
 
@@ -857,6 +888,7 @@ rename to new-name.txt`;
         status: 'renamed',
         additions: 0,
         deletions: 0,
+        isGenerated: false,
       });
     });
 
@@ -890,6 +922,7 @@ index abc123..def456 100644
       expect(result.files[0]).toMatchObject({
         additions: 3,
         deletions: 2,
+        isGenerated: false,
       });
     });
 
@@ -915,6 +948,7 @@ index abc123..def456 100644
       expect(result.files[0]).toMatchObject({
         additions: 2,
         deletions: 1,
+        isGenerated: false,
       });
     });
 
@@ -932,6 +966,7 @@ Binary files /dev/null and b/image.png differ`;
         additions: 0,
         deletions: 0,
         chunks: [],
+        isGenerated: false,
       });
     });
 
@@ -991,6 +1026,193 @@ index abc123..def456 100644
 
       const result = (parser as any).countLinesFromChunks(chunks);
       expect(result).toEqual({ additions: 2, deletions: 1 });
+    });
+  });
+
+  describe('Generated file detection', () => {
+    const lockFiles = [
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      'Cargo.lock',
+      'Gemfile.lock',
+      'poetry.lock',
+      'composer.lock',
+      'Pipfile.lock',
+      'go.sum',
+      'go.mod',
+      'pubspec.lock',
+      'flake.lock',
+    ];
+
+    it.each(lockFiles)('detects %s as generated', (file) => {
+      const diffLines = [
+        `diff --git a/${file} b/${file}`,
+        `index abc123..def456 100644`,
+        `--- a/${file}`,
+        `+++ b/${file}`,
+        `@@ -1 +1 @@`,
+        `-old`,
+        `+new`,
+      ];
+
+      const summary = {
+        file,
+        insertions: 1,
+        deletions: 1,
+        binary: false,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+      expect(result.isGenerated).toBe(true);
+    });
+
+    it('detects generated files by content (integration)', async () => {
+      const file = 'src/query.ts';
+      const diffLines = [
+        `diff --git a/${file} b/${file}`,
+        `index abc123..def456 100644`,
+        `--- a/${file}`,
+        `+++ b/${file}`,
+        `@@ -1 +1 @@`,
+        `-old`,
+        `+new`,
+      ];
+      const summary = {
+        file,
+        insertions: 1,
+        deletions: 1,
+        binary: false,
+      };
+
+      // Mock git.diff and git.diffSummary
+      const gitDiff = (parser as any).git.diff;
+      const gitDiffSummary = (parser as any).git.diffSummary;
+      // Check if revparse is already mocked by vi.mock('simple-git') structure, if not we add it.
+      // Actually (parser as any).git is the mock object returned by simpleGit().
+      // In line 8 of git-diff.test.ts: simpleGit: vi.fn(() => ({ revparse: vi.fn(), ... }))
+      // So revparse IS a mock.
+
+      gitDiff.mockResolvedValue(diffLines.join('\n'));
+      gitDiffSummary.mockResolvedValue({
+        files: [summary],
+        insertions: 1,
+        deletions: 1,
+      });
+      (parser as any).git.revparse.mockResolvedValue('abc1234567890abcdef1234567890abcdef12');
+
+      // Mock getBlobContent to return generated content
+      // We need to spy on the prototype or the instance method?
+      // parser is instance.
+      // parser.getBlobContent is the method.
+      // But getBlobContent is on the class.
+      // modifying the instance method is easiest if it's not private (it is public-ish in TS but private in class def?)
+      // It is defined as `async getBlobContent(...)`.
+      // Since it's on the class, we can spy on it if we cast to any.
+
+      const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
+      getBlobContentSpy.mockResolvedValue(Buffer.from('// @generated\nconst x = 1;'));
+
+      const response = await parser.parseDiff('HEAD', 'HEAD~1');
+
+      expect(response.files[0].path).toBe(file);
+      expect(response.files[0].isGenerated).toBe(true);
+    });
+
+    it('detects minified files as generated', () => {
+      const minFiles = ['script.min.js', 'style.min.css', 'vendor/lib.min.js'];
+
+      for (const file of minFiles) {
+        const diffLines = [
+          `diff --git a/${file} b/${file}`,
+          `index abc123..def456 100644`,
+          `--- a/${file}`,
+          `+++ b/${file}`,
+          `@@ -1 +1 @@`,
+          `-old`,
+          `+new`,
+        ];
+
+        const summary = {
+          file,
+          insertions: 1,
+          deletions: 1,
+          binary: false,
+        };
+
+        const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+        expect(result.isGenerated).toBe(true);
+      }
+    });
+
+    it('detects source maps as generated', () => {
+      const file = 'main.js.map';
+      const diffLines = [
+        `diff --git a/${file} b/${file}`,
+        `index abc123..def456 100644`,
+        `--- a/${file}`,
+        `+++ b/${file}`,
+        `@@ -1 +1 @@`,
+        `-old`,
+        `+new`,
+      ];
+
+      const summary = {
+        file,
+        insertions: 1,
+        deletions: 1,
+        binary: false,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+      expect(result.isGenerated).toBe(true);
+    });
+
+    it('does not mark normal files as generated', () => {
+      const normalFiles = ['script.js', 'style.css', 'README.md', 'package.json'];
+
+      for (const file of normalFiles) {
+        const diffLines = [
+          `diff --git a/${file} b/${file}`,
+          `index abc123..def456 100644`,
+          `--- a/${file}`,
+          `+++ b/${file}`,
+          `@@ -1 +1 @@`,
+          `-old`,
+          `+new`,
+        ];
+
+        const summary = {
+          file,
+          insertions: 1,
+          deletions: 1,
+          binary: false,
+        };
+
+        const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+        expect(result.isGenerated).toBe(false);
+      }
+    });
+
+    it('detects binary lock files as generated', () => {
+      const file = 'yarn.lock';
+      const diffLines = [
+        `diff --git a/${file} b/${file}`,
+        `index abc123..def456 100644`,
+        `--- a/${file}`,
+        `+++ b/${file}`,
+        `Binary files a/${file} and b/${file} differ`,
+      ];
+
+      const summary = {
+        file,
+        insertions: 0,
+        deletions: 0,
+        binary: true,
+      };
+
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), summary);
+      expect(result.isGenerated).toBe(true);
     });
   });
 });
