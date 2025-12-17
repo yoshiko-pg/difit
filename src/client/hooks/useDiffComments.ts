@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { type DiffComment } from '../../types/diff';
+import { type DiffComment, type DiffSide } from '../../types/diff';
 import { formatCommentPrompt, formatAllCommentsPrompt } from '../../utils/commentFormatting';
 import { storageService } from '../services/StorageService';
 import { getLanguageFromPath } from '../utils/diffUtils';
@@ -8,7 +8,7 @@ import { getLanguageFromPath } from '../utils/diffUtils';
 export interface AddCommentParams {
   filePath: string;
   body: string;
-  side: 'old' | 'new';
+  side: DiffSide;
   line: number | { start: number; end: number };
   chunkHeader: string;
   codeSnapshot?: DiffComment['codeSnapshot'];

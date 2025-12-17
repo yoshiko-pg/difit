@@ -36,6 +36,7 @@ export interface ParsedDiff {
 }
 
 export type DiffViewMode = 'side-by-side' | 'inline';
+export type DiffSide = 'old' | 'new';
 
 export interface DiffResponse {
   commit: string;
@@ -57,11 +58,11 @@ export interface Comment {
   body: string;
   timestamp: string;
   codeContent?: string; // The actual code content for this line
-  side?: 'old' | 'new'; // Which side the comment is on
+  side?: DiffSide; // Which side the comment is on
 }
 
 export interface LineSelection {
-  side: 'old' | 'new';
+  side: DiffSide;
   lineNumber: number;
 }
 
@@ -79,7 +80,7 @@ export interface DiffComment {
 
   // Comment position
   position: {
-    side: 'old' | 'new'; // whether on deletion (-) or addition (+) side
+    side: DiffSide; // whether on deletion (-) or addition (+) side
     line: number | { start: number; end: number }; // single line or range
   };
 

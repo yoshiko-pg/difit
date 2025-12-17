@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   type DiffChunk as DiffChunkType,
   type DiffLine,
+  type DiffSide,
   type Comment,
   type LineNumber,
   type DiffViewMode,
@@ -28,7 +29,7 @@ interface DiffChunkProps {
     line: LineNumber,
     body: string,
     codeContent?: string,
-    side?: 'old' | 'new'
+    side?: DiffSide
   ) => Promise<void>;
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
@@ -122,7 +123,7 @@ export function DiffChunk({
     async (body: string) => {
       if (commentingLine !== null) {
         // Determine side based on the lines being commented
-        let side: 'old' | 'new' | undefined = undefined;
+        let side: DiffSide | undefined = undefined;
 
         if (Array.isArray(commentingLine)) {
           // For multi-line comments, check the lines in the range
@@ -167,7 +168,7 @@ export function DiffChunk({
     [commentingLine, onAddComment, chunk.lines]
   );
 
-  const getCommentsForLine = (lineNumber: number, side: 'old' | 'new') => {
+  const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
     return comments.filter((c) => {
       // Check if line number matches (single line or end of range)
       const lineMatches = Array.isArray(c.line) ? c.line[1] === lineNumber : c.line === lineNumber;
@@ -327,7 +328,7 @@ export function DiffChunk({
             // Add/normal lines: use newLineNumber and 'new' side
             const commentLineNumber =
               line.type === 'delete' ? line.oldLineNumber : line.newLineNumber;
-            const commentSide: 'old' | 'new' = line.type === 'delete' ? 'old' : 'new';
+            const commentSide: DiffSide = line.type === 'delete' ? 'old' : 'new';
             const lineComments =
               commentLineNumber ? getCommentsForLine(commentLineNumber, commentSide) : [];
 

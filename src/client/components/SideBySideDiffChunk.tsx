@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   type DiffChunk as DiffChunkType,
   type DiffLine,
+  type DiffSide,
   type Comment,
   type LineNumber,
   type LineSelection,
@@ -29,7 +30,7 @@ interface SideBySideDiffChunkProps {
     line: LineNumber,
     body: string,
     codeContent?: string,
-    side?: 'old' | 'new'
+    side?: DiffSide
   ) => Promise<void>;
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
@@ -78,7 +79,7 @@ export function SideBySideDiffChunk({
   const [endLine, setEndLine] = useState<LineSelection | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [commentingLine, setCommentingLine] = useState<{
-    side: 'old' | 'new';
+    side: DiffSide;
     lineNumber: LineNumber;
   } | null>(null);
   const [hoveredLine, setHoveredLine] = useState<LineSelection | null>(null);
@@ -116,7 +117,7 @@ export function SideBySideDiffChunk({
   }, [isDragging]);
 
   const handleAddComment = useCallback(
-    (side: 'old' | 'new', lineNumber: LineNumber) => {
+    (side: DiffSide, lineNumber: LineNumber) => {
       if (commentingLine?.side === side && commentingLine?.lineNumber === lineNumber) {
         setCommentingLine(null);
       } else {
@@ -140,7 +141,7 @@ export function SideBySideDiffChunk({
     [commentingLine, onAddComment]
   );
 
-  const getCommentsForLine = (lineNumber: number, side: 'old' | 'new') => {
+  const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
     return comments.filter((c) => {
       // Check if line number matches (single line or end of range)
       const lineMatches = Array.isArray(c.line) ? c.line[1] === lineNumber : c.line === lineNumber;
@@ -169,7 +170,7 @@ export function SideBySideDiffChunk({
     return 'full';
   };
 
-  const getSelectedLineStyle = (side: 'old' | 'new', sideLine: SideBySideLine): string => {
+  const getSelectedLineStyle = (side: DiffSide, sideLine: SideBySideLine): string => {
     const lineNumber = side === 'old' ? sideLine.oldLineNumber : sideLine.newLineNumber;
     if (!lineNumber) {
       return '';
