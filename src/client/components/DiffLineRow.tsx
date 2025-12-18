@@ -13,7 +13,7 @@ interface DiffLineRowProps {
   index: number;
   lineId?: string;
   isCurrentLine?: boolean;
-  hoveredLine: number | null;
+  hoveredLineIndex: number | null;
   selectedLineStyle: string;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -51,9 +51,10 @@ const getLinePrefix = (line: DiffLine) => {
 export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
   ({
     line,
+    index,
     lineId,
     isCurrentLine = false,
-    hoveredLine,
+    hoveredLineIndex,
     selectedLineStyle,
     onMouseEnter,
     onMouseLeave,
@@ -66,7 +67,7 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
     diffSegments,
   }) => {
     const lineNumber = line.newLineNumber || line.oldLineNumber;
-    const showCommentButton = hoveredLine === lineNumber && lineNumber;
+    const showCommentButton = hoveredLineIndex === index && lineNumber;
 
     const highlightClass = isCurrentLine ? 'keyboard-cursor' : '';
 

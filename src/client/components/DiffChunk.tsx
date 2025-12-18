@@ -369,13 +369,10 @@ export function DiffChunk({
                   index={index}
                   lineId={lineId}
                   isCurrentLine={isCurrentLine || false}
-                  hoveredLine={hoveredLine}
+                  hoveredLineIndex={hoveredLine}
                   selectedLineStyle={getSelectedLineStyle(line.newLineNumber || line.oldLineNumber)}
                   onMouseEnter={() => {
-                    const lineNumber = line.newLineNumber || line.oldLineNumber;
-                    if (lineNumber) {
-                      setHoveredLine(lineNumber);
-                    }
+                    setHoveredLine(index);
                   }}
                   onMouseLeave={() => setHoveredLine(null)}
                   onMouseMove={() => {
