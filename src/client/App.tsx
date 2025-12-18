@@ -1,7 +1,13 @@
 import { Columns, AlignLeft, Settings, PanelLeftClose, PanelLeft, Keyboard } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-import { type DiffResponse, type DiffViewMode, type LineNumber, type Comment } from '../types/diff';
+import {
+  type DiffResponse,
+  type DiffViewMode,
+  type DiffSide,
+  type LineNumber,
+  type Comment,
+} from '../types/diff';
 
 import { Checkbox } from './components/Checkbox';
 import { CommentsDropdown } from './components/CommentsDropdown';
@@ -236,6 +242,7 @@ function App() {
           : [c.position.line.start, c.position.line.end],
         body: c.body,
         timestamp: c.createdAt,
+        side: c.position.side,
       }));
       const data = JSON.stringify({ comments: transformedComments });
       fetch('/api/comments', {
@@ -260,6 +267,7 @@ function App() {
             : [c.position.line.start, c.position.line.end],
           body: c.body,
           timestamp: c.createdAt,
+          side: c.position.side,
         }));
         // Use sendBeacon for reliable delivery during page unload
         const data = JSON.stringify({ comments: transformedComments });
@@ -299,7 +307,7 @@ function App() {
     body: string,
     codeContent?: string,
     chunkHeader?: string,
-    side?: 'old' | 'new'
+    side?: DiffSide
   ): Promise<void> => {
     addComment({
       filePath: file,
@@ -628,6 +636,7 @@ function App() {
                         body: c.body,
                         timestamp: c.createdAt,
                         codeContent: c.codeSnapshot?.content,
+                        side: c.position.side,
                       }))}
                     diffMode={diffMode}
                     reviewedFiles={viewedFiles}

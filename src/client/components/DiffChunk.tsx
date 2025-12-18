@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   type DiffChunk as DiffChunkType,
   type DiffLine,
+  type DiffSide,
   type Comment,
   type LineNumber,
   type DiffViewMode,
@@ -28,7 +29,7 @@ interface DiffChunkProps {
     line: LineNumber,
     body: string,
     codeContent?: string,
-    side?: 'old' | 'new'
+    side?: DiffSide
   ) => Promise<void>;
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
@@ -122,7 +123,7 @@ export function DiffChunk({
     async (body: string) => {
       if (commentingLine !== null) {
         // Determine side based on the lines being commented
-        let side: 'old' | 'new' | undefined = undefined;
+        let side: DiffSide | undefined = undefined;
 
         if (Array.isArray(commentingLine)) {
           // For multi-line comments, check the lines in the range
@@ -167,10 +168,16 @@ export function DiffChunk({
     [commentingLine, onAddComment, chunk.lines]
   );
 
-  const getCommentsForLine = (lineNumber: number) => {
-    return comments.filter((c) =>
-      Array.isArray(c.line) ? c.line[1] === lineNumber : c.line === lineNumber
-    );
+  const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
+    return comments.filter((c) => {
+      // Check if line number matches (single line or end of range)
+      const lineMatches = Array.isArray(c.line) ? c.line[1] === lineNumber : c.line === lineNumber;
+
+      // Filter by side - if comment has no side (legacy), show on new side only
+      const sideMatches = !c.side || c.side === side;
+
+      return lineMatches && sideMatches;
+    });
   };
 
   const getCommentLayout = (line: DiffLine): 'left' | 'right' | 'full' => {
@@ -312,7 +319,44 @@ export function DiffChunk({
       <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {chunk.lines.map((line, index) => {
-            const lineComments = getCommentsForLine(line.newLineNumber || line.oldLineNumber || 0);
+            const currentLineNumber = line.newLineNumber || line.oldLineNumber || 0;
+            const formTargetLine =
+              Array.isArray(commentingLine) ? commentingLine?.[1] : commentingLine;
+
+            // Determine which line number and side to use for fetching comments
+            // Delete lines: use oldLineNumber and 'old' side
+            // Add/normal lines: use newLineNumber and 'new' side
+            const commentLineNumber =
+              line.type === 'delete' ? line.oldLineNumber : line.newLineNumber;
+            const commentSide: DiffSide = line.type === 'delete' ? 'old' : 'new';
+            const lineComments =
+              commentLineNumber ? getCommentsForLine(commentLineNumber, commentSide) : [];
+
+            // For comment form positioning: check if this is a delete+add group
+            let isDeleteWithAddGroup = false;
+            let formAnchorLine = currentLineNumber;
+            if (line.type === 'delete') {
+              let j = index + 1;
+              while (j < chunk.lines.length && chunk.lines[j]?.type === 'delete') {
+                j++;
+              }
+              if (j < chunk.lines.length && chunk.lines[j]?.type === 'add') {
+                isDeleteWithAddGroup = true;
+                const firstAddIndex = j;
+                let k = j;
+                const addNumbers: number[] = [];
+                while (k < chunk.lines.length && chunk.lines[k]?.type === 'add') {
+                  const n = chunk.lines[k]?.newLineNumber;
+                  if (typeof n === 'number') addNumbers.push(n);
+                  k++;
+                }
+                const preferred =
+                  typeof formTargetLine === 'number' && addNumbers.includes(formTargetLine) ?
+                    formTargetLine
+                  : (chunk.lines[firstAddIndex]?.newLineNumber ?? currentLineNumber);
+                formAnchorLine = preferred as number;
+              }
+            }
             // Generate ID for all lines to match the format used in useKeyboardNavigation
             const lineId = `file-${fileIndex}-chunk-${chunkIndex}-line-${index}`;
             const isCurrentLine =
@@ -363,7 +407,18 @@ export function DiffChunk({
 
                     const actualEndLine = endLine || lineNumber;
                     if (startLine === actualEndLine) {
-                      handleAddComment(lineNumber);
+                      let targetLine = lineNumber;
+                      if (line.type === 'delete') {
+                        let j = index + 1;
+                        while (j < chunk.lines.length && chunk.lines[j]?.type === 'delete') {
+                          j++;
+                        }
+                        if (j < chunk.lines.length && chunk.lines[j]?.type === 'add') {
+                          const firstAdd = chunk.lines[j]?.newLineNumber;
+                          if (typeof firstAdd === 'number') targetLine = firstAdd;
+                        }
+                      }
+                      handleAddComment(targetLine);
                     } else {
                       const min = Math.min(startLine, actualEndLine);
                       const max = Math.max(startLine, actualEndLine);
@@ -411,9 +466,9 @@ export function DiffChunk({
                 })}
 
                 {commentingLine &&
-                  (commentingLine === (line.newLineNumber || line.oldLineNumber) ||
-                    (Array.isArray(commentingLine) &&
-                      commentingLine[1] === (line.newLineNumber || line.oldLineNumber))) && (
+                  (line.type === 'delete' ?
+                    !isDeleteWithAddGroup && formTargetLine === currentLineNumber
+                  : formTargetLine === currentLineNumber || formTargetLine === formAnchorLine) && (
                     <tr className="bg-[var(--bg-secondary)]">
                       <td colSpan={3} className="p-0">
                         <div

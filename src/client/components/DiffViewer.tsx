@@ -11,7 +11,13 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { type DiffFile, type DiffViewMode, type Comment, type LineNumber } from '../../types/diff';
+import {
+  type DiffFile,
+  type DiffViewMode,
+  type DiffSide,
+  type Comment,
+  type LineNumber,
+} from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import { isImageFile } from '../utils/imageUtils';
 
@@ -31,7 +37,7 @@ interface DiffViewerProps {
     body: string,
     codeContent?: string,
     chunkHeader?: string,
-    side?: 'old' | 'new'
+    side?: DiffSide
   ) => Promise<void>;
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
@@ -91,7 +97,7 @@ export function DiffViewer({
     body: string,
     codeContent?: string,
     chunkHeader?: string,
-    side?: 'old' | 'new'
+    side?: DiffSide
   ) => {
     try {
       await onAddComment(file.path, line, body, codeContent, chunkHeader, side);
