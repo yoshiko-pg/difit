@@ -629,14 +629,12 @@ export function SideBySideDiffChunk({
                       <td colSpan={4} className="p-0">
                         <div
                           className={`flex ${
-                            getCommentLayout(sideLine) === 'left' ? 'justify-start'
-                            : getCommentLayout(sideLine) === 'right' ? 'justify-end'
+                            commentingLine.side === 'old' ? 'justify-start'
+                            : commentingLine.side === 'new' ? 'justify-end'
                             : 'justify-center'
                           }`}
                         >
-                          <div
-                            className={`${getCommentLayout(sideLine) === 'full' ? 'w-full' : 'w-1/2'}`}
-                          >
+                          <div className={`w-1/2`}>
                             <CommentForm
                               onSubmit={handleSubmitComment}
                               onCancel={handleCancelComment}

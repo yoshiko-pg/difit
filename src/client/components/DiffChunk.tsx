@@ -69,7 +69,10 @@ export function DiffChunk({
   const [startLine, setStartLine] = useState<number | null>(null);
   const [endLine, setEndLine] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [commentingLine, setCommentingLine] = useState<LineNumber | null>(null);
+  const [commentingLine, setCommentingLine] = useState<{
+    side: DiffSide;
+    lineNumber: LineNumber;
+  } | null>(null);
   const [hoveredLine, setHoveredLine] = useState<number | null>(null);
 
   // Handle comment trigger from keyboard navigation
@@ -78,9 +81,10 @@ export function DiffChunk({
       const line = chunk.lines[commentTrigger.lineIndex];
       if (line) {
         const lineNumber = line.newLineNumber || line.oldLineNumber;
+        const side: DiffSide = line.type === 'delete' ? 'old' : 'new';
         if (lineNumber) {
           // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: respond to external keyboard trigger
-          setCommentingLine(lineNumber);
+          setCommentingLine({ side, lineNumber });
           onCommentTriggerHandled?.();
         }
       }
@@ -105,11 +109,11 @@ export function DiffChunk({
   }, [isDragging]);
 
   const handleAddComment = useCallback(
-    (lineNumber: LineNumber) => {
-      if (commentingLine === lineNumber) {
+    (side: DiffSide, lineNumber: LineNumber) => {
+      if (commentingLine?.side === side && commentingLine?.lineNumber === lineNumber) {
         setCommentingLine(null);
       } else {
-        setCommentingLine(lineNumber);
+        setCommentingLine({ side, lineNumber });
       }
     },
     [commentingLine]
@@ -122,50 +126,11 @@ export function DiffChunk({
   const handleSubmitComment = useCallback(
     async (body: string) => {
       if (commentingLine !== null) {
-        // Determine side based on the lines being commented
-        let side: DiffSide | undefined = undefined;
-
-        if (Array.isArray(commentingLine)) {
-          // For multi-line comments, check the lines in the range
-          const startLine = commentingLine[0];
-          const endLine = commentingLine[1];
-          const linesInRange = chunk.lines.filter((line) => {
-            const lineNum = line.newLineNumber || line.oldLineNumber;
-            return lineNum && lineNum >= startLine && lineNum <= endLine;
-          });
-
-          // Determine side based on line types in range
-          const hasOldLines = linesInRange.some(
-            (l) => l.type === 'delete' || (l.type === 'normal' && l.oldLineNumber)
-          );
-          const hasNewLines = linesInRange.some(
-            (l) => l.type === 'add' || (l.type === 'normal' && l.newLineNumber)
-          );
-
-          if (hasOldLines && !hasNewLines) {
-            side = 'old';
-          } else if (hasNewLines) {
-            side = 'new';
-          }
-        } else {
-          // For single line comments
-          const line = chunk.lines.find(
-            (l) => l.newLineNumber === commentingLine || l.oldLineNumber === commentingLine
-          );
-          if (line) {
-            if (line.type === 'delete') {
-              side = 'old';
-            } else if (line.type === 'add' || line.type === 'normal') {
-              side = 'new';
-            }
-          }
-        }
-
-        await onAddComment(commentingLine, body, undefined, side);
+        await onAddComment(commentingLine.lineNumber, body, undefined, commentingLine.side);
         setCommentingLine(null);
       }
     },
-    [commentingLine, onAddComment, chunk.lines]
+    [commentingLine, onAddComment]
   );
 
   const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
@@ -196,7 +161,7 @@ export function DiffChunk({
     }
   };
 
-  const getSelectedLineStyle = (lineNumber: number | undefined): string => {
+  const getSelectedLineStyle = (lineNumber: number | undefined, side: DiffSide): string => {
     if (!lineNumber) {
       return '';
     }
@@ -221,9 +186,15 @@ export function DiffChunk({
     }
 
     // Show selection for existing comment
-    if (commentingLine) {
-      const start = Array.isArray(commentingLine) ? commentingLine[0] : commentingLine;
-      const end = Array.isArray(commentingLine) ? commentingLine[1] : commentingLine;
+    if (commentingLine && commentingLine.side === side) {
+      const start =
+        Array.isArray(commentingLine.lineNumber) ?
+          commentingLine.lineNumber[0]
+        : commentingLine.lineNumber;
+      const end =
+        Array.isArray(commentingLine.lineNumber) ?
+          commentingLine.lineNumber[1]
+        : commentingLine.lineNumber;
       if (lineNumber >= start && lineNumber <= end) {
         return 'after:bg-diff-selected-bg after:absolute after:inset-0 after:border-l-5 after:border-l-diff-selected-border after:pointer-events-none';
       }
@@ -320,8 +291,13 @@ export function DiffChunk({
         <tbody>
           {chunk.lines.map((line, index) => {
             const currentLineNumber = line.newLineNumber || line.oldLineNumber || 0;
-            const formTargetLine =
-              Array.isArray(commentingLine) ? commentingLine?.[1] : commentingLine;
+            const currentLineSide: DiffSide = line.type === 'delete' ? 'old' : 'new';
+            const formTargetLineNumber =
+              commentingLine ?
+                Array.isArray(commentingLine.lineNumber) ?
+                  commentingLine.lineNumber[1]
+                : commentingLine.lineNumber
+              : null;
 
             // Determine which line number and side to use for fetching comments
             // Delete lines: use oldLineNumber and 'old' side
@@ -331,32 +307,6 @@ export function DiffChunk({
             const commentSide: DiffSide = line.type === 'delete' ? 'old' : 'new';
             const lineComments =
               commentLineNumber ? getCommentsForLine(commentLineNumber, commentSide) : [];
-
-            // For comment form positioning: check if this is a delete+add group
-            let isDeleteWithAddGroup = false;
-            let formAnchorLine = currentLineNumber;
-            if (line.type === 'delete') {
-              let j = index + 1;
-              while (j < chunk.lines.length && chunk.lines[j]?.type === 'delete') {
-                j++;
-              }
-              if (j < chunk.lines.length && chunk.lines[j]?.type === 'add') {
-                isDeleteWithAddGroup = true;
-                const firstAddIndex = j;
-                let k = j;
-                const addNumbers: number[] = [];
-                while (k < chunk.lines.length && chunk.lines[k]?.type === 'add') {
-                  const n = chunk.lines[k]?.newLineNumber;
-                  if (typeof n === 'number') addNumbers.push(n);
-                  k++;
-                }
-                const preferred =
-                  typeof formTargetLine === 'number' && addNumbers.includes(formTargetLine) ?
-                    formTargetLine
-                  : (chunk.lines[firstAddIndex]?.newLineNumber ?? currentLineNumber);
-                formAnchorLine = preferred as number;
-              }
-            }
             // Generate ID for all lines to match the format used in useKeyboardNavigation
             const lineId = `file-${fileIndex}-chunk-${chunkIndex}-line-${index}`;
             const isCurrentLine =
@@ -370,7 +320,10 @@ export function DiffChunk({
                   lineId={lineId}
                   isCurrentLine={isCurrentLine || false}
                   hoveredLineIndex={hoveredLine}
-                  selectedLineStyle={getSelectedLineStyle(line.newLineNumber || line.oldLineNumber)}
+                  selectedLineStyle={getSelectedLineStyle(
+                    line.newLineNumber || line.oldLineNumber,
+                    line.type === 'delete' ? 'old' : 'new'
+                  )}
                   onMouseEnter={() => {
                     setHoveredLine(index);
                   }}
@@ -395,6 +348,7 @@ export function DiffChunk({
                   onCommentButtonMouseUp={(e) => {
                     e.stopPropagation();
                     const lineNumber = line.newLineNumber || line.oldLineNumber;
+                    const side: DiffSide = line.type === 'delete' ? 'old' : 'new';
                     if (!lineNumber || !startLine) {
                       setIsDragging(false);
                       setStartLine(null);
@@ -404,22 +358,11 @@ export function DiffChunk({
 
                     const actualEndLine = endLine || lineNumber;
                     if (startLine === actualEndLine) {
-                      let targetLine = lineNumber;
-                      if (line.type === 'delete') {
-                        let j = index + 1;
-                        while (j < chunk.lines.length && chunk.lines[j]?.type === 'delete') {
-                          j++;
-                        }
-                        if (j < chunk.lines.length && chunk.lines[j]?.type === 'add') {
-                          const firstAdd = chunk.lines[j]?.newLineNumber;
-                          if (typeof firstAdd === 'number') targetLine = firstAdd;
-                        }
-                      }
-                      handleAddComment(targetLine);
+                      handleAddComment(side, lineNumber);
                     } else {
                       const min = Math.min(startLine, actualEndLine);
                       const max = Math.max(startLine, actualEndLine);
-                      handleAddComment([min, max]);
+                      handleAddComment(side, [min, max]);
                     }
 
                     setIsDragging(false);
@@ -463,9 +406,8 @@ export function DiffChunk({
                 })}
 
                 {commentingLine &&
-                  (line.type === 'delete' ?
-                    !isDeleteWithAddGroup && formTargetLine === currentLineNumber
-                  : formTargetLine === currentLineNumber || formTargetLine === formAnchorLine) && (
+                  commentingLine.side === currentLineSide &&
+                  formTargetLineNumber === currentLineNumber && (
                     <tr className="bg-[var(--bg-secondary)]">
                       <td colSpan={3} className="p-0">
                         <div
