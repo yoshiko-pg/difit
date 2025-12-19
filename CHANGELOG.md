@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.6] - 2025-12-19
+
+### Added
+
+- Automatically collapse generated files in diff view (#136)
+
+### Fixed
+
+- Filter comments by side to prevent duplication and incorrect positioning (#137)
+- Comment form now opens on correct side (old/new) in both inline and side-by-side modes
+
+### Thanks
+
+- [@tsukasaI](https://github.com/tsukasaI) for implementing auto-collapse for generated files #136
+- [@GarrickZ2](https://github.com/GarrickZ2) for fixing comment side filtering #137
+
 ## [2.2.5] - 2025-12-08
 
 ### Added
@@ -631,7 +647,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.5...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.6...HEAD
+[2.2.6]: https://github.com/yoshiko-pg/difit/compare/v2.2.5...v2.2.6
 [2.2.5]: https://github.com/yoshiko-pg/difit/compare/v2.2.4...v2.2.5
 [2.2.4]: https://github.com/yoshiko-pg/difit/compare/v2.2.3...v2.2.4
 [2.2.3]: https://github.com/yoshiko-pg/difit/compare/v2.2.2...v2.2.3
