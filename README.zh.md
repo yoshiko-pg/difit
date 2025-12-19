@@ -12,8 +12,17 @@
 
 ## ⚡ 快速开始
 
+先试用一下
+
 ```bash
-npx difit    # 在 WebUI 中查看最新提交的差异
+npx difit  # 在 WebUI 中查看最新提交的差异
+```
+
+安装后使用
+
+```bash
+npm install -g difit
+difit  # 在 WebUI 中查看最新提交的差异
 ```
 
 ## 🚀 使用方法
@@ -21,25 +30,25 @@ npx difit    # 在 WebUI 中查看最新提交的差异
 ### 基本用法
 
 ```bash
-npx difit <target>                    # 查看单个提交差异
-npx difit <target> [compare-with]     # 比较两个提交/分支
-npx difit --pr <github-pr-url>        # 审查 GitHub 拉取请求
+difit <target>                    # 查看单个提交差异
+difit <target> [compare-with]     # 比较两个提交/分支
+difit --pr <github-pr-url>        # 审查 GitHub 拉取请求
 ```
 
 ### 单个提交审查
 
 ```bash
-npx difit          # HEAD（最新）提交
-npx difit 6f4a9b7  # 特定提交
-npx difit feature  # feature 分支上的最新提交
+difit          # HEAD（最新）提交
+difit 6f4a9b7  # 特定提交
+difit feature  # feature 分支上的最新提交
 ```
 
 ### 比较两个提交
 
 ```bash
-npx difit @ main         # 与 main 分支比较（@ 是 HEAD 的别名）
-npx difit feature main   # 比较分支
-npx difit . origin/main  # 比较工作目录与远程 main
+difit @ main         # 与 main 分支比较（@ 是 HEAD 的别名）
+difit feature main   # 比较分支
+difit . origin/main  # 比较工作目录与远程 main
 ```
 
 ### 特殊参数
@@ -47,15 +56,15 @@ npx difit . origin/main  # 比较工作目录与远程 main
 difit 支持常见差异场景的特殊关键字：
 
 ```bash
-npx difit .        # 所有未提交的更改（暂存区 + 未暂存）
-npx difit staged   # 暂存区更改
-npx difit working  # 仅未暂存的更改
+difit .        # 所有未提交的更改（暂存区 + 未暂存）
+difit staged   # 暂存区更改
+difit working  # 仅未暂存的更改
 ```
 
 ### GitHub PR
 
 ```bash
-npx difit --pr https://github.com/owner/repo/pull/123
+difit --pr https://github.com/owner/repo/pull/123
 ```
 
 difit 使用以下方式自动处理 GitHub 认证：
@@ -78,16 +87,16 @@ difit 使用以下方式自动处理 GitHub 认证：
 
 ```bash
 # 查看来自其他工具的差异
-diff -u file1.txt file2.txt | npx difit
+diff -u file1.txt file2.txt | difit
 
 # 审查保存的补丁
-cat changes.patch | npx difit
+cat changes.patch | difit
 
 # 与合并基础比较
-git diff --merge-base main feature | npx difit
+git diff --merge-base main feature | difit
 
 # 将整个现有文件视为新添加进行审查
-git diff -- /dev/null path/to/file | npx difit
+git diff -- /dev/null path/to/file | difit
 ```
 
 ## ⚙️ CLI 选项

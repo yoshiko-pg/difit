@@ -12,8 +12,17 @@
 
 ## ⚡ Quick Start
 
+Try it first
+
 ```bash
-npx difit    # View the latest commit diff in WebUI
+npx difit  # View the latest commit diff in WebUI
+```
+
+Install and use
+
+```bash
+npm install -g difit
+difit  # View the latest commit diff in WebUI
 ```
 
 ## 🚀 Usage
@@ -21,25 +30,25 @@ npx difit    # View the latest commit diff in WebUI
 ### Basic Usage
 
 ```bash
-npx difit <target>                    # View single commit diff
-npx difit <target> [compare-with]     # Compare two commits/branches
-npx difit --pr <github-pr-url>        # Review GitHub pull request
+difit <target>                    # View single commit diff
+difit <target> [compare-with]     # Compare two commits/branches
+difit --pr <github-pr-url>        # Review GitHub pull request
 ```
 
 ### Single commit review
 
 ```bash
-npx difit          # HEAD (latest) commit
-npx difit 6f4a9b7  # Specific commit
-npx difit feature  # Latest commit on feature branch
+difit          # HEAD (latest) commit
+difit 6f4a9b7  # Specific commit
+difit feature  # Latest commit on feature branch
 ```
 
 ### Compare two commits
 
 ```bash
-npx difit @ main         # Compare with main branch (@ is alias for HEAD)
-npx difit feature main   # Compare branches
-npx difit . origin/main  # Compare working directory with remote main
+difit @ main         # Compare with main branch (@ is alias for HEAD)
+difit feature main   # Compare branches
+difit . origin/main  # Compare working directory with remote main
 ```
 
 ### Special Arguments
@@ -47,15 +56,15 @@ npx difit . origin/main  # Compare working directory with remote main
 difit supports special keywords for common diff scenarios:
 
 ```bash
-npx difit .        # All uncommitted changes (staging area + unstaged)
-npx difit staged   # Staging area changes
-npx difit working  # Unstaged changes only
+difit .        # All uncommitted changes (staging area + unstaged)
+difit staged   # Staging area changes
+difit working  # Unstaged changes only
 ```
 
 ### GitHub PR
 
 ```bash
-npx difit --pr https://github.com/owner/repo/pull/123
+difit --pr https://github.com/owner/repo/pull/123
 ```
 
 difit automatically handles GitHub authentication using:
@@ -78,16 +87,16 @@ By using a pipe to pass unified diffs via stdin, you can view diffs from any too
 
 ```bash
 # View diffs from other tools
-diff -u file1.txt file2.txt | npx difit
+diff -u file1.txt file2.txt | difit
 
 # Review saved patches
-cat changes.patch | npx difit
+cat changes.patch | difit
 
 # Compare against merge base
-git diff --merge-base main feature | npx difit
+git diff --merge-base main feature | difit
 
 # Review an entire existing file as newly added
-git diff -- /dev/null path/to/file | npx difit
+git diff -- /dev/null path/to/file | difit
 ```
 
 ## ⚙️ CLI Options

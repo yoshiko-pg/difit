@@ -12,8 +12,17 @@
 
 ## ⚡ クイックスタート
 
+まず試す
+
 ```bash
-npx difit    # 最新コミットのdiffをWebUIで表示
+npx difit  # 最新コミットのdiffをWebUIで表示
+```
+
+インストールして使う
+
+```bash
+npm install -g difit
+difit  # 最新コミットのdiffをWebUIで表示
 ```
 
 ## 🚀 使い方
@@ -21,25 +30,25 @@ npx difit    # 最新コミットのdiffをWebUIで表示
 ### 基本的な使い方
 
 ```bash
-npx difit <target>                    # 単一コミットのdiffを表示
-npx difit <target> [compare-with]     # 2つのコミット/ブランチを比較
-npx difit --pr <github-pr-url>        # GitHubプルリクエストをレビュー
+difit <target>                    # 単一コミットのdiffを表示
+difit <target> [compare-with]     # 2つのコミット/ブランチを比較
+difit --pr <github-pr-url>        # GitHubプルリクエストをレビュー
 ```
 
 ### 単一コミットのレビュー
 
 ```bash
-npx difit          # HEAD（最新）のコミット
-npx difit 6f4a9b7  # 特定のコミット
-npx difit feature  # featureブランチの最新コミット
+difit          # HEAD（最新）のコミット
+difit 6f4a9b7  # 特定のコミット
+difit feature  # featureブランチの最新コミット
 ```
 
 ### 2つのコミットを比較
 
 ```bash
-npx difit @ main         # mainブランチと比較（@はHEADのエイリアス）
-npx difit feature main   # ブランチ間を比較
-npx difit . origin/main  # 作業ディレクトリとリモートmainを比較
+difit @ main         # mainブランチと比較（@はHEADのエイリアス）
+difit feature main   # ブランチ間を比較
+difit . origin/main  # 作業ディレクトリとリモートmainを比較
 ```
 
 ### 特別な引数
@@ -47,15 +56,15 @@ npx difit . origin/main  # 作業ディレクトリとリモートmainを比較
 difitは一般的なdiffシナリオ用の特別なキーワードをサポートしています：
 
 ```bash
-npx difit .        # すべての未コミット差分（ステージングエリア + 未ステージ）
-npx difit staged   # ステージングエリアの差分
-npx difit working  # 未ステージ差分のみ
+difit .        # すべての未コミット差分（ステージングエリア + 未ステージ）
+difit staged   # ステージングエリアの差分
+difit working  # 未ステージ差分のみ
 ```
 
 ### GitHub PR
 
 ```bash
-npx difit --pr https://github.com/owner/repo/pull/123
+difit --pr https://github.com/owner/repo/pull/123
 ```
 
 difitは以下の方法でGitHub認証を自動的に処理します：
@@ -78,16 +87,16 @@ Enterprise ServerのPRを表示する場合、あなたのEnterprise Serverイ�
 
 ```bash
 # 他のツールからのdiffを表示
-diff -u file1.txt file2.txt | npx difit
+diff -u file1.txt file2.txt | difit
 
 # 保存されたパッチをレビュー
-cat changes.patch | npx difit
+cat changes.patch | difit
 
 # マージベースとの比較
-git diff --merge-base main feature | npx difit
+git diff --merge-base main feature | difit
 
 # 既存ファイル全体を新規追加として確認
-git diff -- /dev/null path/to/file | npx difit
+git diff -- /dev/null path/to/file | difit
 ```
 
 ## ⚙️ CLIオプション

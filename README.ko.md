@@ -12,8 +12,17 @@
 
 ## ⚡ 빠른 시작
 
+먼저 시도해 보세요
+
 ```bash
-npx difit    # WebUI에서 최신 커밋 diff 보기
+npx difit  # WebUI에서 최신 커밋 diff 보기
+```
+
+설치하여 사용
+
+```bash
+npm install -g difit
+difit  # WebUI에서 최신 커밋 diff 보기
 ```
 
 ## 🚀 사용법
@@ -21,25 +30,25 @@ npx difit    # WebUI에서 최신 커밋 diff 보기
 ### 기본 사용법
 
 ```bash
-npx difit <target>                    # 단일 커밋 diff 보기
-npx difit <target> [compare-with]     # 두 커밋/브랜치 비교
-npx difit --pr <github-pr-url>        # GitHub 풀 리퀘스트 검토
+difit <target>                    # 단일 커밋 diff 보기
+difit <target> [compare-with]     # 두 커밋/브랜치 비교
+difit --pr <github-pr-url>        # GitHub 풀 리퀘스트 검토
 ```
 
 ### 단일 커밋 검토
 
 ```bash
-npx difit          # HEAD (최신) 커밋
-npx difit 6f4a9b7  # 특정 커밋
-npx difit feature  # feature 브랜치의 최신 커밋
+difit          # HEAD (최신) 커밋
+difit 6f4a9b7  # 특정 커밋
+difit feature  # feature 브랜치의 최신 커밋
 ```
 
 ### 두 커밋 비교
 
 ```bash
-npx difit @ main         # main 브랜치와 비교 (@는 HEAD의 별칭)
-npx difit feature main   # 브랜치 간 비교
-npx difit . origin/main  # 작업 디렉토리와 원격 main 비교
+difit @ main         # main 브랜치와 비교 (@는 HEAD의 별칭)
+difit feature main   # 브랜치 간 비교
+difit . origin/main  # 작업 디렉토리와 원격 main 비교
 ```
 
 ### 특수 인수
@@ -47,15 +56,15 @@ npx difit . origin/main  # 작업 디렉토리와 원격 main 비교
 difit은 일반적인 diff 시나리오를 위한 특수 키워드를 지원합니다:
 
 ```bash
-npx difit .        # 모든 커밋되지 않은 변경 사항 (스테이징 영역 + 미스테이징)
-npx difit staged   # 스테이징 영역 변경 사항
-npx difit working  # 미스테이징 변경 사항만
+difit .        # 모든 커밋되지 않은 변경 사항 (스테이징 영역 + 미스테이징)
+difit staged   # 스테이징 영역 변경 사항
+difit working  # 미스테이징 변경 사항만
 ```
 
 ### GitHub PR
 
 ```bash
-npx difit --pr https://github.com/owner/repo/pull/123
+difit --pr https://github.com/owner/repo/pull/123
 ```
 
 difit은 다음 방법으로 GitHub 인증을 자동으로 처리합니다:
@@ -78,16 +87,16 @@ Enterprise Server PR의 경우 귀하의 Enterprise Server 인스턴스에서 �
 
 ```bash
 # 다른 도구의 diff 보기
-diff -u file1.txt file2.txt | npx difit
+diff -u file1.txt file2.txt | difit
 
 # 저장된 패치 검토
-cat changes.patch | npx difit
+cat changes.patch | difit
 
 # 머지 베이스와 비교
-git diff --merge-base main feature | npx difit
+git diff --merge-base main feature | difit
 
 # 기존 파일 전체를 신규 추가처럼 검토
-git diff -- /dev/null path/to/file | npx difit
+git diff -- /dev/null path/to/file | difit
 ```
 
 ## ⚙️ CLI 옵션
