@@ -20,7 +20,7 @@ When processing commits:
 3. Include PR numbers when available
 4. Use commit subject and body to properly categorize changes
 
-Then inform the user in Japanese about the added content and ask for confirmation with say command.
+Write the categorized changes to the Unreleased section of CHANGELOG.md, then inform the user in Japanese and ask for confirmation with say command. (Don't just output the changes - write them to the file first so the user can review the actual file.)
 
 If confirmed OK:
 
