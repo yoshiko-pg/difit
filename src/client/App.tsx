@@ -7,6 +7,7 @@ import {
   type DiffSide,
   type LineNumber,
   type Comment,
+  type RevisionsResponse,
 } from '../types/diff';
 
 import { Checkbox } from './components/Checkbox';
@@ -18,6 +19,7 @@ import { GitHubIcon } from './components/GitHubIcon';
 import { HelpModal } from './components/HelpModal';
 import { Logo } from './components/Logo';
 import { ReloadButton } from './components/ReloadButton';
+import { RevisionSelector } from './components/RevisionSelector';
 import { SettingsModal } from './components/SettingsModal';
 import { SparkleAnimation } from './components/SparkleAnimation';
 import { WordHighlightProvider } from './contexts/WordHighlightContext';
@@ -46,6 +48,11 @@ function App() {
   const [isCommentsListOpen, setIsCommentsListOpen] = useState(false);
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
   const collapsedInitializedRef = useRef(false);
+
+  // Revision selector state
+  const [revisionOptions, setRevisionOptions] = useState<RevisionsResponse | null>(null);
+  const [baseRevision, setBaseRevision] = useState<string>('');
+  const [targetRevision, setTargetRevision] = useState<string>('');
 
   const { settings, updateSettings } = useAppearanceSettings();
 
@@ -227,29 +234,81 @@ function App() {
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const fetchDiffData = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/diff?ignoreWhitespace=${ignoreWhitespace}`);
-      if (!response.ok) throw new Error('Failed to fetch diff data');
-      const data = (await response.json()) as DiffResponse;
-      setDiffData(data);
+  const fetchDiffData = useCallback(
+    async (base?: string, target?: string) => {
+      try {
+        const params = new URLSearchParams({
+          ignoreWhitespace: String(ignoreWhitespace),
+        });
+        if (base) params.set('base', base);
+        if (target) params.set('target', target);
 
-      // Set diff mode from server response if provided
-      if (data.mode && !hasUserSetDiffModeRef.current) {
-        setDiffMode(data.mode);
+        const response = await fetch(`/api/diff?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch diff data');
+        const data = (await response.json()) as DiffResponse;
+        setDiffData(data);
+
+        // Update revision state from server response
+        if (data.baseCommitish) setBaseRevision(data.baseCommitish);
+        if (data.targetCommitish) setTargetRevision(data.targetCommitish);
+
+        // Set diff mode from server response if provided
+        if (data.mode && !hasUserSetDiffModeRef.current) {
+          setDiffMode(data.mode);
+        }
+
+        // Lock files are now automatically marked as viewed by useViewedFiles hook
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
       }
-
-      // Lock files are now automatically marked as viewed by useViewedFiles hook
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, [ignoreWhitespace]);
+    },
+    [ignoreWhitespace]
+  );
 
   useEffect(() => {
     void fetchDiffData();
   }, [fetchDiffData]);
+
+  // Fetch revision options on mount
+  useEffect(() => {
+    fetch('/api/revisions')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: RevisionsResponse | null) => setRevisionOptions(data))
+      .catch(() => setRevisionOptions(null));
+  }, []);
+
+  // Handle revision change
+  const handleRevisionChange = useCallback(
+    async (newBase: string, newTarget: string) => {
+      // Skip if no actual change
+      if (newBase === baseRevision && newTarget === targetRevision) return;
+
+      // Warn about clearing comments/viewed files
+      if (comments.length > 0 || viewedFiles.size > 0) {
+        const confirmed = window.confirm(
+          'Changing revisions will clear current comments and viewed files. Continue?'
+        );
+        if (!confirmed) return;
+        clearAllComments();
+        clearViewedFiles();
+      }
+
+      setLoading(true);
+      setError(null);
+      await fetchDiffData(newBase, newTarget);
+    },
+    [
+      baseRevision,
+      targetRevision,
+      comments.length,
+      viewedFiles.size,
+      clearAllComments,
+      clearViewedFiles,
+      fetchDiffData,
+    ]
+  );
 
   // Clear comments and viewed files on initial load if requested via CLI flag
   const hasCleanedRef = useRef(false);
@@ -578,19 +637,40 @@ function App() {
                   />
                 </div>
               </div>
-              <span>
-                Reviewing:{' '}
-                <code className="bg-github-bg-tertiary px-1.5 py-0.5 rounded text-xs text-github-text-primary">
-                  {diffData.commit.includes('...') ?
-                    <>
-                      <span className="text-github-text-secondary font-medium">
-                        {diffData.commit.split('...')[0]}...
-                      </span>
-                      <span className="font-medium">{diffData.commit.split('...')[1]}</span>
-                    </>
-                  : diffData.commit}
-                </code>
-              </span>
+              {revisionOptions ?
+                <div className="flex items-center gap-2">
+                  <RevisionSelector
+                    label="Base"
+                    value={baseRevision}
+                    onChange={(v) => void handleRevisionChange(v, targetRevision)}
+                    options={revisionOptions}
+                    disabledValue={targetRevision}
+                    isBaseSelector={true}
+                  />
+                  <span className="text-github-text-muted">...</span>
+                  <RevisionSelector
+                    label="Target"
+                    value={targetRevision}
+                    onChange={(v) => void handleRevisionChange(baseRevision, v)}
+                    options={revisionOptions}
+                    disabledValue={baseRevision}
+                    isBaseSelector={false}
+                  />
+                </div>
+              : <span>
+                  Reviewing:{' '}
+                  <code className="bg-github-bg-tertiary px-1.5 py-0.5 rounded text-xs text-github-text-primary">
+                    {diffData.commit.includes('...') ?
+                      <>
+                        <span className="text-github-text-secondary font-medium">
+                          {diffData.commit.split('...')[0]}...
+                        </span>
+                        <span className="font-medium">{diffData.commit.split('...')[1]}</span>
+                      </>
+                    : diffData.commit}
+                  </code>
+                </span>
+              }
             </div>
           </div>
         </header>

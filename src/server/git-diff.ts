@@ -525,4 +525,28 @@ export class GitDiffParser {
       );
     }
   }
+
+  async getRevisionOptions(): Promise<{
+    branches: Array<{ name: string; current: boolean }>;
+    commits: Array<{ hash: string; shortHash: string; message: string }>;
+  }> {
+    const [branchResult, logResult] = await Promise.all([
+      this.git.branchLocal(),
+      this.git.log({ maxCount: 20 }),
+    ]);
+
+    const branches = Object.entries(branchResult.branches).map(([name, data]) => ({
+      name,
+      current: data.current,
+    }));
+
+    const commits = logResult.all.map((commit) => ({
+      hash: commit.hash,
+      shortHash: commit.hash.substring(0, 7),
+      message:
+        commit.message.length > 50 ? commit.message.substring(0, 47) + '...' : commit.message,
+    }));
+
+    return { branches, commits };
+  }
 }

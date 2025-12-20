@@ -109,3 +109,26 @@ export interface DiffContextStorage {
   comments: DiffComment[];
   viewedFiles: ViewedFileRecord[];
 }
+
+// Revision selector types
+export interface RevisionOption {
+  value: string;
+  label: string;
+}
+
+export interface BranchInfo {
+  name: string;
+  current: boolean;
+}
+
+export interface CommitInfo {
+  hash: string;
+  shortHash: string;
+  message: string;
+}
+
+export interface RevisionsResponse {
+  specialOptions: RevisionOption[];
+  branches: BranchInfo[];
+  commits: CommitInfo[];
+}
