@@ -145,7 +145,7 @@ This section is unnecessary
 - **Backend Languages**: PHP, SQL, Ruby, Java, Scala
 - **Systems Languages**: C, C++, C#, Rust, Go
 - **Mobile Languages**: Swift, Kotlin, Dart
-- **Infrastructure as Code**: HCL/Terraform (`.tf`, `.tfvars`, `.hcl`)
+- **Infrastructure as Code**: Terraform (HCL)
 - **Others**: Python, Protobuf, YAML, Solidity, Vim script
 
 ## 🔍 Detecting Auto-generated Files
