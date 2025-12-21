@@ -145,6 +145,7 @@ src/components/Button.tsx:L42-L48   # 此行自动添加
 - **后端语言**：PHP, SQL, Ruby, Java, Scala
 - **系统语言**：C, C++, C#, Rust, Go
 - **移动语言**：Swift, Kotlin, Dart
+- **基础设施即代码**：HCL/Terraform (`.tf`, `.tfvars`, `.hcl`)
 - **其他**：Python, Protobuf, YAML, Solidity, Vim Script
 
 ## 🔍 检测自动生成文件

@@ -145,6 +145,7 @@ src/components/Button.tsx:L42-L48   # この行が自動的に追加されます
 - **バックエンド言語**：PHP, SQL, Ruby, Java, Scala
 - **システム言語**：C, C++, C#, Rust, Go
 - **モバイル言語**：Swift, Kotlin, Dart
+- **IaC**：HCL/Terraform (`.tf`, `.tfvars`, `.hcl`)
 - **その他**：Python, Protobuf, YAML, Solidity, Vim Script
 
 ## 🔍 自動生成ファイルの検出
