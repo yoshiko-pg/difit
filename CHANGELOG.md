@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.7] - 2025-12-21
+
+### Added
+
+- Terraform/HCL syntax highlighting support (#145)
+
+### Thanks
+
+- [@tsukasaI](https://github.com/tsukasaI) for adding Terraform/HCL syntax highlighting support #145
+
 ## [2.2.6] - 2025-12-19
 
 ### Added
@@ -647,7 +657,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.6...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.7...HEAD
+[2.2.7]: https://github.com/yoshiko-pg/difit/compare/v2.2.6...v2.2.7
 [2.2.6]: https://github.com/yoshiko-pg/difit/compare/v2.2.5...v2.2.6
 [2.2.5]: https://github.com/yoshiko-pg/difit/compare/v2.2.4...v2.2.5
 [2.2.4]: https://github.com/yoshiko-pg/difit/compare/v2.2.3...v2.2.4
