@@ -89,6 +89,9 @@ function detectLanguage(filename: string): string {
     dart: 'dart',
     cs: 'csharp',
     proto: 'protobuf',
+    tf: 'hcl',
+    tfvars: 'hcl',
+    hcl: 'hcl',
   };
 
   return extensionMap[ext || ''] || 'text';
