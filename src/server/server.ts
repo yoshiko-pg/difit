@@ -90,6 +90,19 @@ export async function startServer(
       );
     }
 
+    // Get repository identifier for storage isolation
+    let repositoryId: string | undefined;
+    try {
+      const remoteUrl = await parser.getRemoteUrl();
+      const repositoryPath = process.cwd();
+      const identifier = remoteUrl || repositoryPath;
+      // Simple hash using Node's crypto (matches client-side SHA-256)
+      const crypto = await import('crypto');
+      repositoryId = crypto.createHash('sha256').update(identifier).digest('hex');
+    } catch {
+      // If we can't get repository info, leave undefined
+    }
+
     res.json({
       ...diffDataCache,
       ignoreWhitespace,
@@ -97,6 +110,7 @@ export async function startServer(
       baseCommitish: options.baseCommitish || 'stdin',
       targetCommitish: options.targetCommitish || 'stdin',
       clearComments: options.clearComments,
+      repositoryId,
     });
   });
 
@@ -173,6 +187,33 @@ export async function startServer(
       res.send(output);
     } else {
       res.send('');
+    }
+  });
+
+  // Get repository information for storage isolation
+  app.get('/api/repository-info', async (_req, res) => {
+    try {
+      let remoteUrl: string | null = null;
+      let repositoryPath: string = process.cwd();
+
+      // Try to get git remote URL
+      try {
+        const result = await parser.getRemoteUrl();
+        if (result) {
+          remoteUrl = result;
+        }
+      } catch {
+        // Fall through to use repository path
+      }
+
+      res.json({
+        remoteUrl,
+        repositoryPath,
+        repositoryIdentifier: remoteUrl || repositoryPath,
+      });
+    } catch (err) {
+      console.error('Error getting repository info:', err);
+      res.status(500).json({ error: 'Failed to get repository information' });
     }
   });
 

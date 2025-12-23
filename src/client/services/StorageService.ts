@@ -55,7 +55,8 @@ export class StorageService {
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): string {
     let normalizedBase: string;
     let normalizedTarget: string;
@@ -73,36 +74,83 @@ export class StorageService {
     }
 
     const key = this.generateStorageKey(normalizedBase, normalizedTarget);
+    // Include repository ID in the key for isolation between projects
+    if (repositoryId) {
+      return `${STORAGE_KEY_PREFIX}/${repositoryId}/${key}`;
+    }
     return `${STORAGE_KEY_PREFIX}/${key}`;
   }
 
   /**
    * Get diff context data from localStorage
+   * Includes automatic migration from old format (without repositoryId) to new format
    */
   getDiffContextData(
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): DiffContextStorage | null {
     try {
-      const key = this.getStorageKey(
+      // Try to read from new format (with repositoryId)
+      const newKey = this.getStorageKey(
         baseCommitish,
         targetCommitish,
         currentCommitHash,
-        branchToHash
+        branchToHash,
+        repositoryId
       );
-      const data = localStorage.getItem(key);
-      if (!data) return null;
+      const newData = localStorage.getItem(newKey);
 
-      const parsed = JSON.parse(data) as DiffContextStorage;
-      // Validate version
-      if (parsed.version !== 1) {
-        console.warn(`Unknown storage version: ${parsed.version}`);
-        return null;
+      if (newData) {
+        const parsed = JSON.parse(newData) as DiffContextStorage;
+        // Validate version
+        if (parsed.version !== 1) {
+          console.warn(`Unknown storage version: ${parsed.version}`);
+          return null;
+        }
+        return parsed;
       }
 
-      return parsed;
+      // If no data in new format and repositoryId exists, try old format for migration
+      if (!newData && repositoryId) {
+        const oldKey = this.getStorageKey(
+          baseCommitish,
+          targetCommitish,
+          currentCommitHash,
+          branchToHash,
+          undefined // No repositoryId for old format
+        );
+        const oldData = localStorage.getItem(oldKey);
+
+        if (oldData) {
+          const parsed = JSON.parse(oldData) as DiffContextStorage;
+
+          // Validate version
+          if (parsed.version !== 1) {
+            console.warn(`Unknown storage version: ${parsed.version}`);
+            return null;
+          }
+
+          // Auto-migrate: save to new format
+          console.info(
+            `Migrating data from old format to new format for key: ${oldKey} -> ${newKey}`
+          );
+          this.saveDiffContextData(
+            baseCommitish,
+            targetCommitish,
+            parsed,
+            currentCommitHash,
+            branchToHash,
+            repositoryId
+          );
+
+          return parsed;
+        }
+      }
+
+      return null;
     } catch (error) {
       console.error('Error reading diff context data:', error);
       return null;
@@ -117,14 +165,16 @@ export class StorageService {
     targetCommitish: string,
     data: DiffContextStorage,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): void {
     try {
       const key = this.getStorageKey(
         baseCommitish,
         targetCommitish,
         currentCommitHash,
-        branchToHash
+        branchToHash,
+        repositoryId
       );
       // Ensure data includes original commitish values
       const dataToSave: DiffContextStorage = {
@@ -151,13 +201,15 @@ export class StorageService {
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): DiffComment[] {
     const data = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     return data?.comments || [];
   }
@@ -170,13 +222,15 @@ export class StorageService {
     targetCommitish: string,
     comments: DiffComment[],
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): void {
     const existingData = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     const data: DiffContextStorage = existingData || {
       version: 1,
@@ -189,7 +243,14 @@ export class StorageService {
     };
 
     data.comments = comments;
-    this.saveDiffContextData(baseCommitish, targetCommitish, data, currentCommitHash, branchToHash);
+    this.saveDiffContextData(
+      baseCommitish,
+      targetCommitish,
+      data,
+      currentCommitHash,
+      branchToHash,
+      repositoryId
+    );
   }
 
   /**
@@ -199,13 +260,15 @@ export class StorageService {
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): ViewedFileRecord[] {
     const data = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     return data?.viewedFiles || [];
   }
@@ -218,13 +281,15 @@ export class StorageService {
     targetCommitish: string,
     files: ViewedFileRecord[],
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): void {
     const existingData = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     const data: DiffContextStorage = existingData || {
       version: 1,
@@ -237,7 +302,14 @@ export class StorageService {
     };
 
     data.viewedFiles = files;
-    this.saveDiffContextData(baseCommitish, targetCommitish, data, currentCommitHash, branchToHash);
+    this.saveDiffContextData(
+      baseCommitish,
+      targetCommitish,
+      data,
+      currentCommitHash,
+      branchToHash,
+      repositoryId
+    );
   }
 
   /**
