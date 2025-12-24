@@ -213,7 +213,7 @@ describe('StorageService - Repository Isolation', () => {
   });
 
   describe('Data Migration from Old Format', () => {
-    it('should automatically migrate comments from old format to new format', () => {
+    it('should NOT automatically migrate commit-to-commit data (to prevent cross-repo pollution)', () => {
       const comments = [
         {
           id: 'old-comment',
@@ -226,39 +226,41 @@ describe('StorageService - Repository Isolation', () => {
         },
       ];
 
-      // Save data in old format (without repositoryId)
-      service.saveComments('base', 'target', comments, undefined, undefined, undefined);
+      // Save data in old format (without repositoryId) for commit-to-commit comparison
+      service.saveComments('abc123', 'def456', comments, undefined, undefined, undefined);
 
       // Verify old format data exists
-      const oldFormatData = service.getComments('base', 'target', undefined, undefined, undefined);
+      const oldFormatData = service.getComments(
+        'abc123',
+        'def456',
+        undefined,
+        undefined,
+        undefined
+      );
       expect(oldFormatData.length).toBe(1);
 
-      // Read with repositoryId - should trigger migration
-      const migratedData = service.getComments('base', 'target', undefined, undefined, 'repo-123');
+      // Read with repositoryId - should NOT trigger migration for commit-to-commit
+      const newRepoData = service.getComments('abc123', 'def456', undefined, undefined, 'repo-123');
 
-      // Should get the same data
-      expect(migratedData.length).toBe(1);
-      expect(migratedData[0]?.id).toBe('old-comment');
-      expect(migratedData[0]?.body).toBe('Comment in old format');
+      // Should get empty array (no migration)
+      expect(newRepoData.length).toBe(0);
 
-      // Verify new format data was saved
+      // Verify new format data was NOT created
       const newFormatData = service.getDiffContextData(
-        'base',
-        'target',
+        'abc123',
+        'def456',
         undefined,
         undefined,
         'repo-123'
       );
-      expect(newFormatData).not.toBeNull();
-      expect(newFormatData?.comments.length).toBe(1);
-      expect(newFormatData?.comments[0]?.id).toBe('old-comment');
+      expect(newFormatData).toBeNull();
 
-      // Old format should still exist (not deleted)
-      const oldFormatStillExists = service.getComments('base', 'target');
+      // Old format should still exist
+      const oldFormatStillExists = service.getComments('abc123', 'def456');
       expect(oldFormatStillExists.length).toBe(1);
     });
 
-    it('should automatically migrate viewed files from old format to new format', () => {
+    it('should automatically migrate working diff viewed files from old format', () => {
       const viewedFiles = [
         {
           filePath: 'oldfile.ts',
@@ -267,13 +269,13 @@ describe('StorageService - Repository Isolation', () => {
         },
       ];
 
-      // Save in old format
-      service.saveViewedFiles('base', 'target', viewedFiles);
+      // Save in old format for working diff
+      service.saveViewedFiles('HEAD', 'WORKING', viewedFiles);
 
-      // Read with repositoryId - should trigger migration
+      // Read with repositoryId - should trigger migration for working diff
       const migratedFiles = service.getViewedFiles(
-        'base',
-        'target',
+        'HEAD',
+        'WORKING',
         undefined,
         undefined,
         'repo-456'
@@ -285,8 +287,8 @@ describe('StorageService - Repository Isolation', () => {
 
       // Verify new format exists
       const newFormatData = service.getDiffContextData(
-        'base',
-        'target',
+        'HEAD',
+        'WORKING',
         undefined,
         undefined,
         'repo-456'
@@ -329,7 +331,7 @@ describe('StorageService - Repository Isolation', () => {
       expect(newFormat?.comments[0]?.id).toBe('working-old');
     });
 
-    it('should not migrate if new format already has data', () => {
+    it('should not migrate if new format already has data (working diff)', () => {
       const oldComments = [
         {
           id: 'old-comment',
@@ -354,14 +356,14 @@ describe('StorageService - Repository Isolation', () => {
         },
       ];
 
-      // Save old format
-      service.saveComments('base', 'target', oldComments);
+      // Save old format for working diff
+      service.saveComments('HEAD', 'WORKING', oldComments);
 
       // Save new format
-      service.saveComments('base', 'target', newComments, undefined, undefined, 'repo-999');
+      service.saveComments('HEAD', 'WORKING', newComments, undefined, undefined, 'repo-999');
 
       // Read with repositoryId - should get new format, not migrate old
-      const retrieved = service.getComments('base', 'target', undefined, undefined, 'repo-999');
+      const retrieved = service.getComments('HEAD', 'WORKING', undefined, undefined, 'repo-999');
 
       expect(retrieved.length).toBe(1);
       expect(retrieved[0]?.id).toBe('new-comment');
@@ -380,7 +382,7 @@ describe('StorageService - Repository Isolation', () => {
       expect(keys.length).toBe(0);
     });
 
-    it('should preserve all fields during migration', () => {
+    it('should preserve all fields during working diff migration', () => {
       const viewedFiles = [
         {
           filePath: 'file1.ts',
@@ -415,21 +417,21 @@ describe('StorageService - Repository Isolation', () => {
         },
       ];
 
-      // Save old format with both comments and viewed files
-      service.saveComments('base', 'target', comments);
-      service.saveViewedFiles('base', 'target', viewedFiles);
+      // Save old format for working diff with both comments and viewed files
+      service.saveComments('HEAD', 'working', comments);
+      service.saveViewedFiles('HEAD', 'working', viewedFiles);
 
-      // Migrate by reading
+      // Migrate by reading with repositoryId
       const migratedComments = service.getComments(
-        'base',
-        'target',
+        'HEAD',
+        'working',
         undefined,
         undefined,
         'repo-preserve'
       );
       const migratedFiles = service.getViewedFiles(
-        'base',
-        'target',
+        'HEAD',
+        'working',
         undefined,
         undefined,
         'repo-preserve'

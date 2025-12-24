@@ -31,8 +31,8 @@ export class StorageService {
       return 'STAGED';
     }
 
-    // Handle HEAD reference
-    if (commitish === 'HEAD' && currentCommitHash) {
+    // Handle HEAD reference (including @ symbol which is git shorthand for HEAD)
+    if ((commitish === 'HEAD' || commitish === '@') && currentCommitHash) {
       return currentCommitHash;
     }
 
@@ -44,7 +44,22 @@ export class StorageService {
       }
     }
 
-    // Return as-is (likely a commit hash)
+    // IMPORTANT: For commitish like @^, @~1, etc., we cannot normalize without commit hash
+    // These will use the literal string as key, which may cause collision across different commits
+    // Warn if this looks like a symbolic reference that couldn't be resolved
+    if (
+      commitish.startsWith('@') ||
+      commitish.includes('^') ||
+      commitish.includes('~') ||
+      commitish.includes('HEAD')
+    ) {
+      console.warn(
+        `[StorageService] Cannot normalize symbolic ref '${commitish}' - may cause key collision. ` +
+          `currentCommitHash=${currentCommitHash}`
+      );
+    }
+
+    // Return as-is (likely a commit hash or unresolved symbolic ref)
     return commitish;
   }
 
@@ -114,39 +129,68 @@ export class StorageService {
       }
 
       // If no data in new format and repositoryId exists, try old format for migration
+      // IMPORTANT: Only migrate for working/staged diffs to avoid cross-repository data pollution
+      // For commit-to-commit comparisons, the same commit pair could exist in different repositories
       if (!newData && repositoryId) {
-        const oldKey = this.getStorageKey(
-          baseCommitish,
-          targetCommitish,
-          currentCommitHash,
-          branchToHash,
-          undefined // No repositoryId for old format
-        );
-        const oldData = localStorage.getItem(oldKey);
+        // Determine if this is a working/staged diff (more likely to be same repository)
+        const isWorkingDiff =
+          targetCommitish === 'WORKING' ||
+          targetCommitish === 'STAGED' ||
+          targetCommitish === '.' ||
+          targetCommitish === 'working' ||
+          targetCommitish === 'staged';
 
-        if (oldData) {
-          const parsed = JSON.parse(oldData) as DiffContextStorage;
-
-          // Validate version
-          if (parsed.version !== 1) {
-            console.warn(`Unknown storage version: ${parsed.version}`);
-            return null;
-          }
-
-          // Auto-migrate: save to new format
-          console.info(
-            `Migrating data from old format to new format for key: ${oldKey} -> ${newKey}`
-          );
-          this.saveDiffContextData(
+        // Only auto-migrate for working/staged diffs
+        if (isWorkingDiff) {
+          const oldKey = this.getStorageKey(
             baseCommitish,
             targetCommitish,
-            parsed,
             currentCommitHash,
             branchToHash,
-            repositoryId
+            undefined // No repositoryId for old format
           );
+          const oldData = localStorage.getItem(oldKey);
 
-          return parsed;
+          if (oldData) {
+            const parsed = JSON.parse(oldData) as DiffContextStorage;
+
+            // Validate version
+            if (parsed.version !== 1) {
+              console.warn(`Unknown storage version: ${parsed.version}`);
+              return null;
+            }
+
+            // Auto-migrate: save to new format
+            console.info(
+              `Migrating data from old format to new format for key: ${oldKey} -> ${newKey}`
+            );
+            this.saveDiffContextData(
+              baseCommitish,
+              targetCommitish,
+              parsed,
+              currentCommitHash,
+              branchToHash,
+              repositoryId
+            );
+
+            return parsed;
+          }
+        } else {
+          // For commit-to-commit comparisons, warn user but don't auto-migrate
+          const oldKey = this.getStorageKey(
+            baseCommitish,
+            targetCommitish,
+            currentCommitHash,
+            branchToHash,
+            undefined
+          );
+          if (localStorage.getItem(oldKey)) {
+            console.warn(
+              `Old format data found for commit comparison: ${oldKey}\n` +
+                `This data was NOT auto-migrated to prevent cross-repository pollution.\n` +
+                `If this data belongs to the current repository, please use the migration tool.`
+            );
+          }
         }
       }
 
