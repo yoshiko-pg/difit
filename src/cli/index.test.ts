@@ -20,8 +20,9 @@ vi.mock('./utils.js', async () => {
 
 const { simpleGit } = await import('simple-git');
 const { startServer } = await import('../server/server.js');
-const { promptUser, findUntrackedFiles, markFilesIntentToAdd, resolvePrCommits } =
-  await import('./utils.js');
+const { promptUser, findUntrackedFiles, markFilesIntentToAdd, resolvePrCommits } = await import(
+  './utils.js'
+);
 
 describe('CLI index.ts', () => {
   let mockGit: any;

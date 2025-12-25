@@ -48,6 +48,7 @@ export interface DiffResponse {
   baseCommitish?: string;
   targetCommitish?: string;
   clearComments?: boolean;
+  repositoryId?: string;
 }
 
 export type LineNumber = number | [number, number];

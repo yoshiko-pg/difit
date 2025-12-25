@@ -28,7 +28,8 @@ export function useDiffComments(
   baseCommitish?: string,
   targetCommitish?: string,
   currentCommitHash?: string,
-  branchToHash?: Map<string, string>
+  branchToHash?: Map<string, string>,
+  repositoryId?: string
 ): UseDiffCommentsReturn {
   const [comments, setComments] = useState<DiffComment[]>([]);
 
@@ -40,11 +41,12 @@ export function useDiffComments(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync state from external storage on prop change
     setComments(loadedComments);
-  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash]);
+  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]);
 
   // Save comments to storage
   const saveComments = useCallback(
@@ -56,11 +58,12 @@ export function useDiffComments(
         targetCommitish,
         newComments,
         currentCommitHash,
-        branchToHash
+        branchToHash,
+        repositoryId
       );
       setComments(newComments);
     },
-    [baseCommitish, targetCommitish, currentCommitHash, branchToHash]
+    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]
   );
 
   const addComment = useCallback(

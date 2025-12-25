@@ -47,3 +47,7 @@ temp/
 
 # Performance test results
 performance-results/
+
+# OpenSpec
+openspec/
+.claude/commands/openspec/
