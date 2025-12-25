@@ -1,12 +1,58 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 import { StorageService } from './StorageService';
+
+// Mock localStorage with proper Storage interface
+class LocalStorageMock implements Storage {
+  private store: Record<string, string> = {};
+
+  get length(): number {
+    return Object.keys(this.store).length;
+  }
+
+  getItem(key: string): string | null {
+    return this.store[key] || null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.store[key] = value.toString();
+  }
+
+  removeItem(key: string): void {
+    delete this.store[key];
+  }
+
+  clear(): void {
+    this.store = {};
+  }
+
+  key(index: number): string | null {
+    const keys = Object.keys(this.store);
+    return keys[index] || null;
+  }
+
+  // Helper method to get all keys (for testing)
+  get _keys(): string[] {
+    return Object.keys(this.store);
+  }
+}
+
+const localStorageMock = new LocalStorageMock();
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  configurable: true,
+});
 
 describe('StorageService - Repository Isolation', () => {
   let service: StorageService;
 
   beforeEach(() => {
+    localStorage.clear();
     service = new StorageService();
+  });
+
+  afterEach(() => {
     localStorage.clear();
   });
 
@@ -27,7 +73,7 @@ describe('StorageService - Repository Isolation', () => {
       service.saveComments('base', 'target', comments, undefined, undefined, 'repo-123');
 
       // Check that the key includes the repository ID
-      const keys = Object.keys(localStorage);
+      const keys = (localStorage as any)._keys;
       expect(keys.length).toBe(1);
       expect(keys[0]).toContain('repo-123');
     });
@@ -61,10 +107,10 @@ describe('StorageService - Repository Isolation', () => {
       service.saveComments('base', 'target', comments2, undefined, undefined, 'repo-2');
 
       // Should have two different keys
-      const keys = Object.keys(localStorage);
+      const keys = (localStorage as any)._keys;
       expect(keys.length).toBe(2);
-      expect(keys.some((k) => k.includes('repo-1'))).toBe(true);
-      expect(keys.some((k) => k.includes('repo-2'))).toBe(true);
+      expect(keys.some((k: string) => k.includes('repo-1'))).toBe(true);
+      expect(keys.some((k: string) => k.includes('repo-2'))).toBe(true);
     });
 
     it('should isolate comments between different repositories', () => {
@@ -378,7 +424,7 @@ describe('StorageService - Repository Isolation', () => {
       expect(comments.length).toBe(0);
 
       // No migration should occur
-      const keys = Object.keys(localStorage);
+      const keys = (localStorage as any)._keys;
       expect(keys.length).toBe(0);
     });
 

@@ -510,15 +510,16 @@ function App() {
                   }}
                 >
                   <div
-                    className="absolute top-0 left-0 h-full transition-all duration-300 ease-out"
+                    className="absolute top-0 right-0 h-full transition-all duration-300 ease-out"
                     style={{
-                      width: `${(viewedFiles.size / diffData.files.length) * 100}%`,
+                      width: `${((diffData.files.length - viewedFiles.size) / diffData.files.length) * 100}%`,
                       backgroundColor: (() => {
-                        const completedPercent = (viewedFiles.size / diffData.files.length) * 100;
-                        // Progress bar grows from left as files are viewed
-                        if (completedPercent < 20) return 'var(--color-github-danger)'; // red - low completion
-                        if (completedPercent < 80) return 'var(--color-github-warning)'; // yellow - medium completion
-                        return 'var(--color-github-accent)'; // green - high completion (80-100%)
+                        const remainingPercent =
+                          ((diffData.files.length - viewedFiles.size) / diffData.files.length) *
+                          100;
+                        if (remainingPercent > 50) return 'var(--color-github-accent)'; // green
+                        if (remainingPercent > 20) return 'var(--color-github-warning)'; // yellow
+                        return 'var(--color-github-danger)'; // red
                       })(),
                     }}
                   />
