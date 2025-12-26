@@ -33,19 +33,19 @@ export function useViewedFiles(
       branchToHash
     );
 
-    // Auto-mark generated files as viewed if we have initial files and they are not already viewed
-    const processGeneratedFiles = async () => {
+    // Auto-mark generated/deleted files as viewed if we have initial files and they are not already viewed
+    const processAutoCollapsedFiles = async () => {
       if (initialFiles && initialFiles.length > 0) {
-        const generatedFilesToAdd: ViewedFileRecord[] = [];
+        const autoCollapsedFilesToAdd: ViewedFileRecord[] = [];
 
         // Create a Set of already viewed file paths for quick lookup
         const viewedPaths = new Set(loadedFiles.map((f) => f.filePath));
 
-        // Find generated files that aren't already marked as viewed
+        // Find generated files or deleted files that aren't already marked as viewed
         for (const file of initialFiles) {
-          if (file.isGenerated && !viewedPaths.has(file.path)) {
+          if ((file.isGenerated || file.status === 'deleted') && !viewedPaths.has(file.path)) {
             try {
-              // Generate hash for the generated file
+              // Generate hash for the file
               const content = getDiffContentForHashing(file);
               const hash = await generateDiffHash(content);
 
@@ -55,16 +55,16 @@ export function useViewedFiles(
                 diffContentHash: hash,
               };
 
-              generatedFilesToAdd.push(newRecord);
+              autoCollapsedFilesToAdd.push(newRecord);
             } catch (err) {
-              console.error('Failed to generate hash for generated file:', err);
+              console.error('Failed to generate hash for auto-collapsed file:', err);
             }
           }
         }
 
-        // Add all generated files to storage at once
-        if (generatedFilesToAdd.length > 0) {
-          const updatedRecords = [...loadedFiles, ...generatedFilesToAdd];
+        // Add all auto-collapsed files to storage at once
+        if (autoCollapsedFilesToAdd.length > 0) {
+          const updatedRecords = [...loadedFiles, ...autoCollapsedFilesToAdd];
           storageService.saveViewedFiles(
             baseCommitish,
             targetCommitish,
@@ -80,7 +80,7 @@ export function useViewedFiles(
       setViewedFileRecords(loadedFiles);
     };
 
-    void processGeneratedFiles();
+    void processAutoCollapsedFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash]); // initialFiles intentionally omitted to run only on mount
 

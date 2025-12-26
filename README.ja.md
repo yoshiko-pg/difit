@@ -148,28 +148,30 @@ src/components/Button.tsx:L42-L48   # この行が自動的に追加されます
 - **IaC**：Terraform (HCL)
 - **その他**：Python, Protobuf, YAML, Solidity, Vim Script
 
-## 🔍 自動生成ファイルの検出
+## 🔍 自動折りたたみファイル
 
-difitは生成されたファイルを自動的に識別し、ビューをすっきりさせるために折りたたみます。これには以下が含まれます：
+difitは特定のファイルを自動的に識別し、ビューをすっきりさせるために折りたたみます：
 
-- ロックファイル (`package-lock.json`, `go.mod`, `Cargo.lock`, `Gemfile.lock` など)
-- 圧縮されたファイル (`*.min.js`, `*.min.css`)
-- ソースマップ (`*.map`)
-- 生成されたコード:
-  - Orval (`*.msw.ts`, `*.zod.ts`, `*.api.ts`)
-  - Dart (`*.g.dart`, `*.freezed.dart`)
-  - C# (`*.g.cs`, `*.designer.cs`)
-  - Protobuf (`*.pb.go`, `*.pb.cc`, `*.pb.h`)
-- フレームワーク:
-  - Ruby on Rails (`db/schema.rb`)
-  - Laravel (`_ide_helper.php`)
-  - Gradle (`gradle.lockfile`)
-  - Python (`uv.lock`, `pdm.lock`)
-- 一般的な生成ファイル (`*.generated.cs`, `*.generated.ts`, `*.generated.js`)
-- コンテンツベースの検出:
-  - `@generated` マーカーを含むファイル
-  - `DO NOT EDIT` ヘッダーを含むファイル
-  - 言語固有の自動生成ヘッダー (Go, Pythonなど)
+- **削除されたファイル**: 削除されたファイルは詳細なレビューが不要なため、自動的に折りたたまれます
+- **自動生成ファイル**: 自動生成されたコードはデフォルトで折りたたまれます。これには以下が含まれます：
+  - ロックファイル (`package-lock.json`, `go.mod`, `Cargo.lock`, `Gemfile.lock` など)
+  - 圧縮されたファイル (`*.min.js`, `*.min.css`)
+  - ソースマップ (`*.map`)
+  - 生成されたコード:
+    - Orval (`*.msw.ts`, `*.zod.ts`, `*.api.ts`)
+    - Dart (`*.g.dart`, `*.freezed.dart`)
+    - C# (`*.g.cs`, `*.designer.cs`)
+    - Protobuf (`*.pb.go`, `*.pb.cc`, `*.pb.h`)
+  - フレームワーク:
+    - Ruby on Rails (`db/schema.rb`)
+    - Laravel (`_ide_helper.php`)
+    - Gradle (`gradle.lockfile`)
+    - Python (`uv.lock`, `pdm.lock`)
+  - 一般的な生成ファイル (`*.generated.cs`, `*.generated.ts`, `*.generated.js`)
+  - コンテンツベースの検出:
+    - `@generated` マーカーを含むファイル
+    - `DO NOT EDIT` ヘッダーを含むファイル
+    - 言語固有の自動生成ヘッダー (Go, Pythonなど)
 
 ## 🛠️ 開発
 
