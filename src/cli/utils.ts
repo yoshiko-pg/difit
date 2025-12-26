@@ -4,6 +4,15 @@ import { createInterface } from 'readline/promises';
 import { Octokit } from '@octokit/rest';
 import type { SimpleGit } from 'simple-git';
 
+export function getGitRoot(): string {
+  try {
+    const result = execSync('git rev-parse --show-toplevel', { encoding: 'utf8', stdio: 'pipe' });
+    return result.trim();
+  } catch {
+    throw new Error('Not a git repository (or any of the parent directories)');
+  }
+}
+
 export function validateCommitish(commitish: string): boolean {
   if (!commitish || typeof commitish !== 'string') {
     return false;

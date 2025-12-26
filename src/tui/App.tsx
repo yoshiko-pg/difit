@@ -13,9 +13,10 @@ interface AppProps {
   targetCommitish: string;
   baseCommitish: string;
   mode?: string;
+  repoPath?: string;
 }
 
-const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode }) => {
+const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode, repoPath }) => {
   const [files, setFiles] = useState<FileDiff[]>([]);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode }) => {
     setLoading(true);
     setError(null);
     try {
-      const fileDiffs = await loadGitDiff(targetCommitish, baseCommitish);
+      const fileDiffs = await loadGitDiff(targetCommitish, baseCommitish, repoPath);
       setFiles(fileDiffs);
       setLoading(false);
     } catch (err) {
