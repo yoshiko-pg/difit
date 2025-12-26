@@ -14,6 +14,7 @@ import {
   promptUser,
   validateDiffArguments,
   resolvePrCommits,
+  getGitRoot,
 } from './utils.js';
 
 type SpecialArg = 'working' | 'staged' | '.';
@@ -105,6 +106,15 @@ program
         return;
       }
 
+      // Detect git root
+      let repoPath: string | undefined;
+      try {
+        repoPath = getGitRoot();
+      } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+        process.exit(1);
+      }
+
       // Determine target and base commitish
       let targetCommitish = commitish;
       let baseCommitish: string;
@@ -146,7 +156,7 @@ program
       }
 
       if (commitish === 'working' || commitish === '.') {
-        const git = simpleGit();
+        const git = simpleGit(repoPath);
         await handleUntrackedFiles(git);
       }
 
@@ -162,7 +172,14 @@ program
         const { render } = await import('ink');
         const { default: TuiApp } = await import('../tui/App.js');
 
-        render(React.createElement(TuiApp, { targetCommitish, baseCommitish, mode: options.mode }));
+        render(
+          React.createElement(TuiApp, {
+            targetCommitish,
+            baseCommitish,
+            mode: options.mode,
+            repoPath,
+          })
+        );
         return;
       }
 
@@ -186,6 +203,7 @@ program
         mode: options.mode,
         clearComments: options.clean,
         diffMode,
+        repoPath,
       });
 
       console.log(`\n🚀 difit server started on ${url}`);

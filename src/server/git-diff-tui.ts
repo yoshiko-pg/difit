@@ -5,7 +5,8 @@ import type { FileDiff } from '../types/diff.js';
 
 export async function loadGitDiff(
   targetCommitish: string,
-  baseCommitish: string
+  baseCommitish: string,
+  repoPath?: string
 ): Promise<FileDiff[]> {
   // Validate arguments
   const validation = validateDiffArguments(targetCommitish, baseCommitish);
@@ -13,7 +14,7 @@ export async function loadGitDiff(
     throw new Error(validation.error);
   }
 
-  const git = simpleGit();
+  const git = simpleGit(repoPath);
   let diff: string;
 
   // Handle target special chars (base is always a regular commit)

@@ -27,13 +27,14 @@ interface ServerOptions {
   ignoreWhitespace?: boolean;
   clearComments?: boolean;
   diffMode?: DiffMode;
+  repoPath?: string;
 }
 
 export async function startServer(
   options: ServerOptions
 ): Promise<{ port: number; url: string; isEmpty?: boolean; server?: Server }> {
   const app = express();
-  const parser = new GitDiffParser();
+  const parser = new GitDiffParser(options.repoPath);
   const fileWatcher = new FileWatcherService();
 
   let diffDataCache: DiffResponse | null = null;
@@ -280,7 +281,12 @@ export async function startServer(
   // Start file watcher
   if (options.diffMode) {
     try {
-      await fileWatcher.start(options.diffMode, process.cwd(), 300, invalidateCache);
+      await fileWatcher.start(
+        options.diffMode,
+        options.repoPath || process.cwd(),
+        300,
+        invalidateCache
+      );
     } catch (error) {
       console.warn('⚠️  File watcher failed to start:', error);
       console.warn('   Continuing without file watching...');
