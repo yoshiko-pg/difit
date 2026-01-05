@@ -10,7 +10,7 @@ import {
   Search,
   MessageSquare,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 
 import { type DiffFile, type Comment } from '../../types/diff';
 
@@ -130,29 +130,148 @@ export function FileList({
     () => new Set(getAllDirectoryPaths(fileTree))
   );
   const [filterText, setFilterText] = useState('');
+  const isInitialLoad = useRef(true);
+
+  const fileToParentDirMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const traverse = (node: TreeNode) => {
+      if (node.isDirectory && node.children) {
+        for (const child of node.children) {
+          if (child.isDirectory) {
+            traverse(child);
+          } else if (child.file) {
+            map.set(child.file.path, node.path);
+          }
+        }
+      }
+    };
+    traverse(fileTree);
+    return map;
+  }, [fileTree]);
+
+  const pathToNodeMap = useMemo(() => {
+    const map = new Map<string, TreeNode>();
+    const traverse = (node: TreeNode) => {
+      if (node.path) {
+        map.set(node.path, node);
+      }
+      if (node.isDirectory && node.children) {
+        node.children.forEach(traverse);
+      }
+    };
+    traverse(fileTree);
+    return map;
+  }, [fileTree]);
+
+  useEffect(() => {
+    // Only perform initial auto-collapse when we have files AND reviewed files data
+    // This ensures we don't mark initial load as complete before reviewedFiles is populated
+    if (isInitialLoad.current && files.length > 0 && reviewedFiles.size > 0) {
+      const dirsToCollapse = new Set<string>();
+      const getDescendantFilePaths = (n: TreeNode): string[] => {
+        if (!n.isDirectory) return n.file ? [n.file.path] : [];
+        if (!n.children) return [];
+        return n.children.flatMap(getDescendantFilePaths);
+      };
+
+      for (const [path, node] of pathToNodeMap.entries()) {
+        if (node.isDirectory && node.children && path !== '') {
+          const allFilePathsInDir = getDescendantFilePaths(node);
+          if (allFilePathsInDir.length > 0) {
+            const allReviewed = allFilePathsInDir.every((p) => reviewedFiles.has(p));
+            if (allReviewed) {
+              dirsToCollapse.add(path);
+            }
+          }
+        }
+      }
+
+      if (dirsToCollapse.size > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- One-time initialization on initial load to auto-collapse reviewed directories
+        setExpandedDirs((prev) => {
+          const newSet = new Set(prev);
+          for (const path of dirsToCollapse) {
+            newSet.delete(path);
+          }
+          return newSet;
+        });
+      }
+      isInitialLoad.current = false;
+    }
+  }, [files, reviewedFiles, pathToNodeMap]);
+
+  const handleToggleReviewed = (path: string) => {
+    onToggleReviewed(path);
+    const isNowReviewed = !reviewedFiles.has(path);
+    if (!isNowReviewed) {
+      return;
+    }
+    const dirPath = fileToParentDirMap.get(path);
+    if (dirPath === undefined || dirPath === '') {
+      return;
+    }
+
+    const dirNode = pathToNodeMap.get(dirPath);
+
+    if (!dirNode || !dirNode.children) return;
+
+    const getDescendantFilePaths = (n: TreeNode): string[] => {
+      if (!n.isDirectory) return n.file ? [n.file.path] : [];
+
+      if (!n.children) return [];
+
+      return n.children.flatMap(getDescendantFilePaths);
+    };
+
+    const allFilePathsInDir = getDescendantFilePaths(dirNode);
+
+    if (allFilePathsInDir.length === 0) return;
+
+    const updatedReviewedFiles = new Set(reviewedFiles);
+
+    updatedReviewedFiles.add(path);
+
+    const allReviewed = allFilePathsInDir.every((p) => updatedReviewedFiles.has(p));
+
+    if (allReviewed) {
+      setExpandedDirs((prev) => {
+        const newSet = new Set(prev);
+
+        newSet.delete(dirPath);
+
+        return newSet;
+      });
+    }
+  };
 
   const getCommentCount = (filePath: string) => {
     return comments.filter((c) => c.file === filePath).length;
   };
 
   // Filter the file tree based on search text
+
   const filterTreeNode = (node: TreeNode): TreeNode | null => {
     if (!filterText.trim()) return node;
 
     if (node.isDirectory && node.children) {
       const filteredChildren = node.children
+
         .map((child) => filterTreeNode(child))
+
         .filter((child) => child !== null);
 
       if (filteredChildren.length > 0) {
         return { ...node, children: filteredChildren };
       }
+
       return null;
     } else if (node.file) {
       // Check if file name matches filter
+
       if (node.file.path.toLowerCase().includes(filterText.toLowerCase())) {
         return node;
       }
+
       return null;
     }
 
@@ -161,6 +280,7 @@ export function FileList({
 
   const filteredFileTree = filterTreeNode(fileTree) || {
     ...fileTree,
+
     children: [],
   };
 
@@ -168,10 +288,13 @@ export function FileList({
     switch (status) {
       case 'added':
         return <FilePlus size={16} className="text-github-accent" />;
+
       case 'deleted':
         return <FileX size={16} className="text-github-danger" />;
+
       case 'renamed':
         return <FilePen size={16} className="text-github-warning" />;
+
       default:
         return <FileDiff size={16} className="text-github-text-secondary" />;
     }
@@ -180,6 +303,7 @@ export function FileList({
   const toggleDirectory = (path: string) => {
     setExpandedDirs((prev) => {
       const newSet = new Set(prev);
+
       if (newSet.has(path)) {
         newSet.delete(path);
       } else {
@@ -204,9 +328,11 @@ export function FileList({
               {isExpanded ?
                 <ChevronDown size={16} />
               : <ChevronRight size={16} />}
+
               {isExpanded ?
                 <FolderOpen size={16} className="text-github-text-secondary" />
               : <Folder size={16} className="text-github-text-secondary" />}
+
               <span
                 className="text-sm text-github-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
                 title={node.name}
@@ -215,15 +341,20 @@ export function FileList({
               </span>
             </div>
           )}
+
           {(isExpanded || !node.name) &&
             node.children.map((child) => renderTreeNode(child, depth + 1))}
         </div>
       );
     } else if (node.file) {
       const file = node.file;
+
       const commentCount = getCommentCount(file.path);
+
       const isReviewed = reviewedFiles.has(file.path);
+
       const fileIndex = files.findIndex((f) => f.path === file.path);
+
       const isSelected = selectedFileIndex !== null && selectedFileIndex === fileIndex;
 
       return (
@@ -238,7 +369,7 @@ export function FileList({
           <Checkbox
             checked={isReviewed}
             onChange={() => {
-              onToggleReviewed(file.path);
+              handleToggleReviewed(file.path);
             }}
             title={isReviewed ? 'Mark as not reviewed' : 'Mark as reviewed'}
             className="z-10"
