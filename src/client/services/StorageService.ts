@@ -98,7 +98,6 @@ export class StorageService {
 
   /**
    * Get diff context data from localStorage
-   * Includes automatic migration from old format (without repositoryId) to new format
    */
   getDiffContextData(
     baseCommitish: string,
@@ -108,93 +107,25 @@ export class StorageService {
     repositoryId?: string
   ): DiffContextStorage | null {
     try {
-      // Try to read from new format (with repositoryId)
-      const newKey = this.getStorageKey(
+      const key = this.getStorageKey(
         baseCommitish,
         targetCommitish,
         currentCommitHash,
         branchToHash,
         repositoryId
       );
-      const newData = localStorage.getItem(newKey);
+      const data = localStorage.getItem(key);
 
-      if (newData) {
-        const parsed = JSON.parse(newData) as DiffContextStorage;
-        // Validate version
-        if (parsed.version !== 1) {
-          console.warn(`Unknown storage version: ${parsed.version}`);
-          return null;
-        }
-        return parsed;
+      if (!data) return null;
+
+      const parsed = JSON.parse(data) as DiffContextStorage;
+      // Validate version
+      if (parsed.version !== 1) {
+        console.warn(`Unknown storage version: ${parsed.version}`);
+        return null;
       }
 
-      // If no data in new format and repositoryId exists, try old format for migration
-      // IMPORTANT: Only migrate for working/staged diffs to avoid cross-repository data pollution
-      // For commit-to-commit comparisons, the same commit pair could exist in different repositories
-      if (!newData && repositoryId) {
-        // Determine if this is a working/staged diff (more likely to be same repository)
-        const isWorkingDiff =
-          targetCommitish === 'WORKING' ||
-          targetCommitish === 'STAGED' ||
-          targetCommitish === '.' ||
-          targetCommitish === 'working' ||
-          targetCommitish === 'staged';
-
-        // Only auto-migrate for working/staged diffs
-        if (isWorkingDiff) {
-          const oldKey = this.getStorageKey(
-            baseCommitish,
-            targetCommitish,
-            currentCommitHash,
-            branchToHash,
-            undefined // No repositoryId for old format
-          );
-          const oldData = localStorage.getItem(oldKey);
-
-          if (oldData) {
-            const parsed = JSON.parse(oldData) as DiffContextStorage;
-
-            // Validate version
-            if (parsed.version !== 1) {
-              console.warn(`Unknown storage version: ${parsed.version}`);
-              return null;
-            }
-
-            // Auto-migrate: save to new format
-            console.info(
-              `Migrating data from old format to new format for key: ${oldKey} -> ${newKey}`
-            );
-            this.saveDiffContextData(
-              baseCommitish,
-              targetCommitish,
-              parsed,
-              currentCommitHash,
-              branchToHash,
-              repositoryId
-            );
-
-            return parsed;
-          }
-        } else {
-          // For commit-to-commit comparisons, warn user but don't auto-migrate
-          const oldKey = this.getStorageKey(
-            baseCommitish,
-            targetCommitish,
-            currentCommitHash,
-            branchToHash,
-            undefined
-          );
-          if (localStorage.getItem(oldKey)) {
-            console.warn(
-              `Old format data found for commit comparison: ${oldKey}\n` +
-                `This data was NOT auto-migrated to prevent cross-repository pollution.\n` +
-                `If this data belongs to the current repository, please use the migration tool.`
-            );
-          }
-        }
-      }
-
-      return null;
+      return parsed;
     } catch (error) {
       console.error('Error reading diff context data:', error);
       return null;
