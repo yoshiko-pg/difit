@@ -520,21 +520,4 @@ export class GitDiffParser {
       );
     }
   }
-
-  async getRemoteUrl(): Promise<string | null> {
-    try {
-      const remotes = await this.git.getRemotes(true);
-      // Try origin first, then fall back to first remote
-      const origin = remotes.find((r) => r.name === 'origin');
-      if (origin?.refs?.fetch) {
-        return origin.refs.fetch;
-      }
-      if (remotes.length > 0 && remotes[0]?.refs?.fetch) {
-        return remotes[0].refs.fetch;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
 }
