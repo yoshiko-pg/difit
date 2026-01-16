@@ -70,8 +70,8 @@ export function RevisionSelector({
             {options.commits.map((commit) => (
               <option
                 key={commit.hash}
-                value={commit.hash}
-                disabled={commit.hash === disabledValue || commit.shortHash === disabledValue}
+                value={commit.shortHash}
+                disabled={commit.shortHash === disabledValue}
               >
                 {commit.shortHash} - {commit.message}
               </option>
