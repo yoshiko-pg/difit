@@ -60,7 +60,8 @@ function App() {
     diffData?.baseCommitish,
     diffData?.targetCommitish,
     diffData?.commit, // Using commit as currentCommitHash
-    undefined // branchToHash map - could be populated from server data
+    undefined, // branchToHash map - could be populated from server data
+    diffData?.repositoryId // Repository identifier for storage isolation
   );
 
   // Viewed files management
@@ -69,7 +70,8 @@ function App() {
     diffData?.targetCommitish,
     diffData?.commit,
     undefined,
-    diffData?.files
+    diffData?.files,
+    diffData?.repositoryId // Repository identifier for storage isolation
   );
 
   const toggleFileReviewed = async (filePath: string) => {

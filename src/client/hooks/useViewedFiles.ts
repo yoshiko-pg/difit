@@ -17,7 +17,8 @@ export function useViewedFiles(
   targetCommitish?: string,
   currentCommitHash?: string,
   branchToHash?: Map<string, string>,
-  initialFiles?: DiffFile[]
+  initialFiles?: DiffFile[],
+  repositoryId?: string
 ): UseViewedFilesReturn {
   const [viewedFileRecords, setViewedFileRecords] = useState<ViewedFileRecord[]>([]);
   const [fileHashes, setFileHashes] = useState<Map<string, string>>(new Map());
@@ -30,7 +31,8 @@ export function useViewedFiles(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
 
     // Auto-mark generated/deleted files as viewed if we have initial files and they are not already viewed
@@ -70,7 +72,8 @@ export function useViewedFiles(
             targetCommitish,
             updatedRecords,
             currentCommitHash,
-            branchToHash
+            branchToHash,
+            repositoryId
           );
           setViewedFileRecords(updatedRecords);
           return;
@@ -82,7 +85,7 @@ export function useViewedFiles(
 
     void processAutoCollapsedFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash]); // initialFiles intentionally omitted to run only on mount
+  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]); // initialFiles intentionally omitted to run only on mount
 
   // Save viewed files to storage
   const saveViewedFiles = useCallback(
@@ -94,11 +97,12 @@ export function useViewedFiles(
         targetCommitish,
         newRecords,
         currentCommitHash,
-        branchToHash
+        branchToHash,
+        repositoryId
       );
       setViewedFileRecords(newRecords);
     },
-    [baseCommitish, targetCommitish, currentCommitHash, branchToHash]
+    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]
   );
 
   // Convert records to Set of file paths for easy checking

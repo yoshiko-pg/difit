@@ -31,8 +31,8 @@ export class StorageService {
       return 'STAGED';
     }
 
-    // Handle HEAD reference
-    if (commitish === 'HEAD' && currentCommitHash) {
+    // Handle HEAD reference (including @ symbol which is git shorthand for HEAD)
+    if ((commitish === 'HEAD' || commitish === '@') && currentCommitHash) {
       return currentCommitHash;
     }
 
@@ -44,7 +44,22 @@ export class StorageService {
       }
     }
 
-    // Return as-is (likely a commit hash)
+    // IMPORTANT: For commitish like @^, @~1, etc., we cannot normalize without commit hash
+    // These will use the literal string as key, which may cause collision across different commits
+    // Warn if this looks like a symbolic reference that couldn't be resolved
+    if (
+      commitish.startsWith('@') ||
+      commitish.includes('^') ||
+      commitish.includes('~') ||
+      commitish.includes('HEAD')
+    ) {
+      console.warn(
+        `[StorageService] Cannot normalize symbolic ref '${commitish}' - may cause key collision. ` +
+          `currentCommitHash=${currentCommitHash}`
+      );
+    }
+
+    // Return as-is (likely a commit hash or unresolved symbolic ref)
     return commitish;
   }
 
@@ -55,7 +70,8 @@ export class StorageService {
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): string {
     let normalizedBase: string;
     let normalizedTarget: string;
@@ -73,6 +89,10 @@ export class StorageService {
     }
 
     const key = this.generateStorageKey(normalizedBase, normalizedTarget);
+    // Include repository ID in the key for isolation between projects
+    if (repositoryId) {
+      return `${STORAGE_KEY_PREFIX}/${repositoryId}/${key}`;
+    }
     return `${STORAGE_KEY_PREFIX}/${key}`;
   }
 
@@ -83,16 +103,19 @@ export class StorageService {
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): DiffContextStorage | null {
     try {
       const key = this.getStorageKey(
         baseCommitish,
         targetCommitish,
         currentCommitHash,
-        branchToHash
+        branchToHash,
+        repositoryId
       );
       const data = localStorage.getItem(key);
+
       if (!data) return null;
 
       const parsed = JSON.parse(data) as DiffContextStorage;
@@ -117,14 +140,16 @@ export class StorageService {
     targetCommitish: string,
     data: DiffContextStorage,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): void {
     try {
       const key = this.getStorageKey(
         baseCommitish,
         targetCommitish,
         currentCommitHash,
-        branchToHash
+        branchToHash,
+        repositoryId
       );
       // Ensure data includes original commitish values
       const dataToSave: DiffContextStorage = {
@@ -151,13 +176,15 @@ export class StorageService {
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): DiffComment[] {
     const data = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     return data?.comments || [];
   }
@@ -170,13 +197,15 @@ export class StorageService {
     targetCommitish: string,
     comments: DiffComment[],
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): void {
     const existingData = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     const data: DiffContextStorage = existingData || {
       version: 1,
@@ -189,7 +218,14 @@ export class StorageService {
     };
 
     data.comments = comments;
-    this.saveDiffContextData(baseCommitish, targetCommitish, data, currentCommitHash, branchToHash);
+    this.saveDiffContextData(
+      baseCommitish,
+      targetCommitish,
+      data,
+      currentCommitHash,
+      branchToHash,
+      repositoryId
+    );
   }
 
   /**
@@ -199,13 +235,15 @@ export class StorageService {
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): ViewedFileRecord[] {
     const data = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     return data?.viewedFiles || [];
   }
@@ -218,13 +256,15 @@ export class StorageService {
     targetCommitish: string,
     files: ViewedFileRecord[],
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
+    repositoryId?: string
   ): void {
     const existingData = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
-      branchToHash
+      branchToHash,
+      repositoryId
     );
     const data: DiffContextStorage = existingData || {
       version: 1,
@@ -237,7 +277,14 @@ export class StorageService {
     };
 
     data.viewedFiles = files;
-    this.saveDiffContextData(baseCommitish, targetCommitish, data, currentCommitHash, branchToHash);
+    this.saveDiffContextData(
+      baseCommitish,
+      targetCommitish,
+      data,
+      currentCommitHash,
+      branchToHash,
+      repositoryId
+    );
   }
 
   /**

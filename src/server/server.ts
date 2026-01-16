@@ -90,6 +90,17 @@ export async function startServer(
       );
     }
 
+    // Get repository identifier for storage isolation
+    // Uses repository path for simplicity and worktree support
+    let repositoryId: string | undefined;
+    try {
+      const repositoryPath = process.cwd();
+      const crypto = await import('crypto');
+      repositoryId = crypto.createHash('sha256').update(repositoryPath).digest('hex');
+    } catch {
+      // If we can't get repository path, leave undefined
+    }
+
     res.json({
       ...diffDataCache,
       ignoreWhitespace,
@@ -97,6 +108,7 @@ export async function startServer(
       baseCommitish: options.baseCommitish || 'stdin',
       targetCommitish: options.targetCommitish || 'stdin',
       clearComments: options.clearComments,
+      repositoryId,
     });
   });
 
