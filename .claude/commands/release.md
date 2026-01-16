@@ -31,5 +31,3 @@ If confirmed OK:
 - create current version git tag
 - git push origin main --tags
 - create release on github with CHANGELOG.md target version section text (to origin)
-
-Then ask the user to run npm publish with say command. (Do not execute npm publish yourself)
