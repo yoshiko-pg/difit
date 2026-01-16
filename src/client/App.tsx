@@ -45,6 +45,7 @@ function App() {
   const [hasTriggeredSparkles, setHasTriggeredSparkles] = useState(false);
   const [isCommentsListOpen, setIsCommentsListOpen] = useState(false);
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
+  const collapsedInitializedRef = useRef(false);
 
   const { settings, updateSettings } = useAppearanceSettings();
 
@@ -74,6 +75,19 @@ function App() {
     diffData?.files,
     diffData?.repositoryId // Repository identifier for storage isolation
   );
+
+  // Reset initialization flag when diff context changes
+  useEffect(() => {
+    collapsedInitializedRef.current = false;
+  }, [diffData?.repositoryId, diffData?.commit]);
+
+  // Initialize collapsed files from viewed files (only once per diff)
+  useEffect(() => {
+    if (!collapsedInitializedRef.current) {
+      setCollapsedFiles(new Set(viewedFiles));
+      collapsedInitializedRef.current = true;
+    }
+  }, [viewedFiles]);
 
   const toggleFileReviewed = async (filePath: string) => {
     if (diffData) {
