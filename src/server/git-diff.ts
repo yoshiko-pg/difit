@@ -589,8 +589,7 @@ export class GitDiffParser {
     const commits = logResult.all.map((commit) => ({
       hash: commit.hash,
       shortHash: commit.hash.substring(0, 7),
-      message:
-        commit.message.length > 50 ? commit.message.substring(0, 47) + '...' : commit.message,
+      message: commit.message,
     }));
 
     // Resolve HEAD and HEAD^ to actual commit hashes if they're being used
