@@ -294,29 +294,11 @@ function App() {
       // Skip if no actual change
       if (newBase === baseRevision && newTarget === targetRevision) return;
 
-      // Warn about clearing comments/viewed files
-      if (comments.length > 0 || viewedFiles.size > 0) {
-        const confirmed = window.confirm(
-          'Changing revisions will clear current comments and viewed files. Continue?'
-        );
-        if (!confirmed) return;
-        clearAllComments();
-        clearViewedFiles();
-      }
-
       setLoading(true);
       setError(null);
       await fetchDiffData(newBase, newTarget);
     },
-    [
-      baseRevision,
-      targetRevision,
-      comments.length,
-      viewedFiles.size,
-      clearAllComments,
-      clearViewedFiles,
-      fetchDiffData,
-    ]
+    [baseRevision, targetRevision, fetchDiffData]
   );
 
   // Clear comments and viewed files on initial load if requested via CLI flag
