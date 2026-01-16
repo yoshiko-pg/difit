@@ -206,10 +206,10 @@ export function RevisionSelector({
                       }`}
                     >
                       <div className="flex items-start gap-2">
-                        <code className="text-github-text-primary font-mono whitespace-nowrap">
+                        <code className="text-xs text-github-text-primary font-mono whitespace-nowrap">
                           {commit.shortHash}
                         </code>
-                        <span className="text-github-text-secondary flex-1 break-words">
+                        <span className="text-xs text-github-text-secondary flex-1 break-words">
                           {commit.message}
                         </span>
                       </div>
