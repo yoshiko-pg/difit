@@ -63,8 +63,6 @@ export function RevisionSelector({
     role,
   ]);
 
-  const filteredSpecialOptions = options.specialOptions;
-
   // Check if the current value is 'working' or 'staged' special case
   const isWorkingStagedMode =
     (value === 'working' && disabledValues.includes('staged')) ||
@@ -127,11 +125,11 @@ export function RevisionSelector({
     let index = 0;
 
     // Check special options
-    const specialIndex = filteredSpecialOptions.findIndex((opt) => opt.value === value);
+    const specialIndex = options.specialOptions.findIndex((opt) => opt.value === value);
     if (specialIndex !== -1) {
       return specialIndex;
     }
-    index += filteredSpecialOptions.length;
+    index += options.specialOptions.length;
 
     // Check commits (only if not in working/staged mode)
     if (!isWorkingStagedMode) {
@@ -187,12 +185,12 @@ export function RevisionSelector({
               {...getFloatingProps()}
             >
               {/* Special Options */}
-              {filteredSpecialOptions.length > 0 && (
+              {options.specialOptions.length > 0 && (
                 <div className="border-b border-github-border">
                   <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
                     Special
                   </div>
-                  {filteredSpecialOptions.map((opt) => (
+                  {options.specialOptions.map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => handleSelect(opt.value)}
