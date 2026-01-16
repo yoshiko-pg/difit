@@ -663,6 +663,14 @@ function App() {
                     onChange={(v) => void handleRevisionChange(baseRevision, v)}
                     options={revisionOptions}
                     disabledValue={baseRevision}
+                    disabledValues={(() => {
+                      // Disable base and all commits before (older than) base
+                      const baseIndex = revisionOptions.commits.findIndex(
+                        (c) => c.shortHash === baseRevision || c.hash === baseRevision
+                      );
+                      if (baseIndex === -1) return [];
+                      return revisionOptions.commits.slice(baseIndex).map((c) => c.shortHash);
+                    })()}
                     isBaseSelector={false}
                   />
                 </div>

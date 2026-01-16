@@ -26,6 +26,7 @@ interface RevisionSelectorProps {
   onChange: (value: string) => void;
   options: RevisionsResponse;
   disabledValue?: string;
+  disabledValues?: string[];
   isBaseSelector?: boolean;
 }
 
@@ -35,6 +36,7 @@ export function RevisionSelector({
   onChange,
   options,
   disabledValue,
+  disabledValues = [],
   isBaseSelector = false,
 }: RevisionSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -98,6 +100,11 @@ export function RevisionSelector({
   const handleSelect = (newValue: string) => {
     onChange(newValue);
     setIsOpen(false);
+  };
+
+  // Check if a value is disabled
+  const isDisabled = (val: string) => {
+    return val === disabledValue || disabledValues.includes(val);
   };
 
   // Calculate initial focus index for the current value
@@ -196,11 +203,11 @@ export function RevisionSelector({
                     <button
                       key={commit.hash}
                       onClick={() => handleSelect(commit.shortHash)}
-                      disabled={commit.shortHash === disabledValue}
+                      disabled={isDisabled(commit.shortHash)}
                       className={`w-full text-left px-3 py-2 text-xs hover:bg-github-bg-tertiary focus:outline-none focus:bg-github-bg-tertiary transition-colors ${
                         commit.shortHash === value ? 'bg-github-bg-tertiary' : ''
                       } ${
-                        commit.shortHash === disabledValue ?
+                        isDisabled(commit.shortHash) ?
                           'opacity-50 cursor-not-allowed'
                         : 'cursor-pointer'
                       }`}
