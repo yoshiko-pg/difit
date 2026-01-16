@@ -28,7 +28,6 @@ interface RevisionSelectorProps {
   onChange: (value: string) => void;
   options: RevisionsResponse;
   disabledValues?: string[];
-  isBaseSelector?: boolean;
 }
 
 export function RevisionSelector({
@@ -38,7 +37,6 @@ export function RevisionSelector({
   onChange,
   options,
   disabledValues = [],
-  isBaseSelector = false,
 }: RevisionSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -65,23 +63,7 @@ export function RevisionSelector({
     role,
   ]);
 
-  // Filter special options based on working/staged constraints
-  const getFilteredSpecialOptions = () => {
-    return options.specialOptions.filter((opt) => {
-      if (isBaseSelector && disabledValues.includes('working')) {
-        return opt.value === 'staged';
-      }
-      if (!isBaseSelector && disabledValues.includes('staged')) {
-        return opt.value === 'working';
-      }
-      if (isBaseSelector && opt.value === 'working') {
-        return false;
-      }
-      return true;
-    });
-  };
-
-  const filteredSpecialOptions = getFilteredSpecialOptions();
+  const filteredSpecialOptions = options.specialOptions;
 
   // Check if the current value is 'working' or 'staged' special case
   const isWorkingStagedMode =

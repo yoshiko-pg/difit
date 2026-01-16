@@ -331,6 +331,9 @@ function App() {
     if (targetRevision && !disabledValues.includes(targetRevision)) {
       disabledValues.push(targetRevision);
     }
+    if (!disabledValues.includes('working')) {
+      disabledValues.push('working');
+    }
     return disabledValues;
   };
 
@@ -684,7 +687,6 @@ function App() {
                     onChange={(v) => void handleRevisionChange(v, targetRevision)}
                     options={revisionOptions}
                     disabledValues={getBaseDisabledValues()}
-                    isBaseSelector={true}
                   />
                   <span className="text-github-text-muted">...</span>
                   <RevisionSelector
@@ -694,7 +696,6 @@ function App() {
                     onChange={(v) => void handleRevisionChange(baseRevision, v)}
                     options={revisionOptions}
                     disabledValues={getTargetDisabledValues()}
-                    isBaseSelector={false}
                   />
                 </div>
               : <span>
