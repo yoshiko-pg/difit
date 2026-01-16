@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-01-16
+
+### Added
+
+- Collapse/expand all button to Files Changed sidebar
+- Independent file collapse state with Alt+Click support (#164)
+  - Decouple collapse state from viewed state
+  - Alt+Click to collapse/expand all files
+  - Smooth scroll when marking file as viewed
+
 ## [3.0.0] - 2026-01-16
 
 ### Added
@@ -674,7 +684,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/yoshiko-pg/difit/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/yoshiko-pg/difit/compare/v2.2.7...v3.0.0
 [2.2.7]: https://github.com/yoshiko-pg/difit/compare/v2.2.6...v2.2.7
 [2.2.6]: https://github.com/yoshiko-pg/difit/compare/v2.2.5...v2.2.6
