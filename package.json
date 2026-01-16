@@ -40,6 +40,7 @@
     "perf:compare": "node scripts/compare-performance.js"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.16",
     "@octokit/rest": "^22.0.0",
     "@parcel/watcher": "^2.5.1",
     "commander": "^14.0.0",

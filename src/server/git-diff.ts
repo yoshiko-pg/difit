@@ -525,4 +525,93 @@ export class GitDiffParser {
       );
     }
   }
+
+  async resolveCommitish(commitish: string): Promise<string> {
+    const hash = await this.git.revparse([commitish]);
+    return hash.substring(0, 7);
+  }
+
+  async getDefaultBranch(): Promise<string | null> {
+    try {
+      // Try to get the default branch from origin/HEAD
+      const result = await this.git.raw(['symbolic-ref', 'refs/remotes/origin/HEAD']);
+      // Result will be like "refs/remotes/origin/main\n"
+      const match = result.trim().match(/refs\/remotes\/origin\/(.+)/);
+      if (match) {
+        return match[1];
+      }
+    } catch {
+      // If origin/HEAD is not set, fall back to common default branches
+      const commonDefaults = ['main', 'master'];
+      const branchResult = await this.git.branchLocal();
+      const branchNames = Object.keys(branchResult.branches);
+
+      for (const defaultName of commonDefaults) {
+        if (branchNames.includes(defaultName)) {
+          return defaultName;
+        }
+      }
+    }
+    return null;
+  }
+
+  async getRevisionOptions(
+    currentBase?: string,
+    currentTarget?: string
+  ): Promise<{
+    branches: Array<{ name: string; current: boolean }>;
+    commits: Array<{ hash: string; shortHash: string; message: string }>;
+    resolvedBase?: string;
+    resolvedTarget?: string;
+  }> {
+    const [branchResult, logResult, defaultBranch] = await Promise.all([
+      this.git.branchLocal(),
+      this.git.log({ maxCount: 20 }),
+      this.getDefaultBranch(),
+    ]);
+
+    const branches = Object.entries(branchResult.branches).map(([name, data]) => ({
+      name,
+      current: data.current,
+    }));
+
+    // Sort branches: default branch first, then current branch, then alphabetically
+    branches.sort((a, b) => {
+      if (defaultBranch) {
+        if (a.name === defaultBranch) return -1;
+        if (b.name === defaultBranch) return 1;
+      }
+      if (a.current && !b.current) return -1;
+      if (!a.current && b.current) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    const commits = logResult.all.map((commit) => ({
+      hash: commit.hash,
+      shortHash: commit.hash.substring(0, 7),
+      message: commit.message,
+    }));
+
+    // Resolve HEAD and HEAD^ to actual commit hashes if they're being used
+    let resolvedBase: string | undefined;
+    let resolvedTarget: string | undefined;
+
+    if (currentBase && !['working', 'staged', '.'].includes(currentBase)) {
+      try {
+        resolvedBase = await this.resolveCommitish(currentBase);
+      } catch {
+        // If resolution fails, leave undefined
+      }
+    }
+
+    if (currentTarget && !['working', 'staged', '.'].includes(currentTarget)) {
+      try {
+        resolvedTarget = await this.resolveCommitish(currentTarget);
+      } catch {
+        // If resolution fails, leave undefined
+      }
+    }
+
+    return { branches, commits, resolvedBase, resolvedTarget };
+  }
 }

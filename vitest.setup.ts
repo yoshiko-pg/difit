@@ -22,11 +22,26 @@ Object.defineProperty(window, 'getComputedStyle', {
 });
 
 // Global test utilities
-export const mockFetch = (response: any) => {
-  (global.fetch as any).mockResolvedValue({
-    ok: true,
-    json: async () => response,
-    blob: async () => ({ size: 1024 }),
+export const mockFetch = (response: any, revisionsResponse?: any) => {
+  (global.fetch as any).mockImplementation((url: string) => {
+    // Handle /api/revisions endpoint
+    if (url.includes('/api/revisions')) {
+      return Promise.resolve({
+        ok: revisionsResponse !== null,
+        json: async () =>
+          revisionsResponse ?? {
+            specialOptions: [],
+            branches: [],
+            commits: [],
+          },
+      });
+    }
+    // Default: /api/diff and others
+    return Promise.resolve({
+      ok: true,
+      json: async () => response,
+      blob: async () => ({ size: 1024 }),
+    });
   });
 };
 
