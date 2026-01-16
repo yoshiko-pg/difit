@@ -110,9 +110,9 @@ program
       let repoPath: string | undefined;
       try {
         repoPath = getGitRoot();
-      } catch (error) {
-        console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
-        process.exit(1);
+      } catch {
+        // If not in a git repository, fall back to process.cwd()
+        repoPath = undefined;
       }
 
       // Determine target and base commitish
