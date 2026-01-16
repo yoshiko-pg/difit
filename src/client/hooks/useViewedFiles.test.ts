@@ -314,6 +314,7 @@ describe('useViewedFiles', () => {
         'feature-branch',
         [],
         undefined,
+        undefined,
         undefined
       );
     });
