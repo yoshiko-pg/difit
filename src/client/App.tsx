@@ -134,6 +134,18 @@ function App() {
     });
   };
 
+  const toggleAllFilesCollapsed = (shouldCollapse: boolean) => {
+    if (!diffData) return;
+
+    if (shouldCollapse) {
+      // Collapse all files
+      setCollapsedFiles(new Set(diffData.files.map((f) => f.path)));
+    } else {
+      // Expand all files
+      setCollapsedFiles(new Set());
+    }
+  };
+
   const handleDiffModeChange = useCallback((mode: DiffViewMode) => {
     hasUserSetDiffModeRef.current = true;
     setDiffMode(mode);
@@ -682,6 +694,7 @@ function App() {
                     onToggleReviewed={toggleFileReviewed}
                     collapsedFiles={collapsedFiles}
                     onToggleCollapsed={toggleFileCollapsed}
+                    onToggleAllCollapsed={toggleAllFilesCollapsed}
                     onAddComment={handleAddComment}
                     onGeneratePrompt={(comment) => generatePrompt(comment.id)}
                     onRemoveComment={removeComment}

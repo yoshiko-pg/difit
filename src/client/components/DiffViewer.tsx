@@ -33,6 +33,7 @@ interface DiffViewerProps {
   onToggleReviewed: (path: string) => void;
   collapsedFiles: Set<string>;
   onToggleCollapsed: (path: string) => void;
+  onToggleAllCollapsed: (shouldCollapse: boolean) => void;
   onAddComment: (
     file: string,
     line: LineNumber,
@@ -67,6 +68,7 @@ export function DiffViewer({
   onToggleReviewed,
   collapsedFiles,
   onToggleCollapsed,
+  onToggleAllCollapsed,
   onAddComment,
   onGeneratePrompt,
   onRemoveComment,
@@ -115,9 +117,20 @@ export function DiffViewer({
       <div className="bg-github-bg-secondary border-t-2 border-t-github-accent border-b border-github-border px-5 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
-            onClick={() => onToggleCollapsed(file.path)}
+            onClick={(e) => {
+              if (e.altKey) {
+                // When Alt+clicking, collapse all if this file is expanded, expand all if collapsed
+                onToggleAllCollapsed(!isCollapsed);
+              } else {
+                onToggleCollapsed(file.path);
+              }
+            }}
             className="text-github-text-muted hover:text-github-text-primary transition-colors cursor-pointer"
-            title={isCollapsed ? 'Expand file' : 'Collapse file'}
+            title={
+              isCollapsed ?
+                'Expand file (Alt+Click to expand all)'
+              : 'Collapse file (Alt+Click to collapse all)'
+            }
           >
             {isCollapsed ?
               <ChevronRight size={16} />

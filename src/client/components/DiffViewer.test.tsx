@@ -37,6 +37,7 @@ describe('DiffViewer', () => {
   const mockOnUpdateComment = vi.fn();
   const mockOnToggleReviewed = vi.fn();
   const mockOnToggleCollapsed = vi.fn();
+  const mockOnToggleAllCollapsed = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -76,6 +77,7 @@ describe('DiffViewer', () => {
     onUpdateComment: mockOnUpdateComment,
     onToggleReviewed: mockOnToggleReviewed,
     onToggleCollapsed: mockOnToggleCollapsed,
+    onToggleAllCollapsed: mockOnToggleAllCollapsed,
   };
 
   describe('File type handling', () => {
