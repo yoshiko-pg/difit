@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-01-16
+
+### Added
+
+- Revision selector for dynamic base/target selection (#165)
+
+### Changed
+
+- Update Claude release command workflow
+
 ## [3.0.1] - 2026-01-16
 
 ### Added
@@ -684,7 +694,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.2...HEAD
+[3.0.2]: https://github.com/yoshiko-pg/difit/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/yoshiko-pg/difit/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/yoshiko-pg/difit/compare/v2.2.7...v3.0.0
 [2.2.7]: https://github.com/yoshiko-pg/difit/compare/v2.2.6...v2.2.7
