@@ -114,7 +114,7 @@ function App() {
           setTimeout(() => {
             const element = document.getElementById(getFileElementId(filePath));
             if (element) {
-              element.scrollIntoView({ behavior: 'instant', block: 'start' });
+              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
           }, 100);
         }
