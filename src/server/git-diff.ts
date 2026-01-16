@@ -531,6 +531,30 @@ export class GitDiffParser {
     return hash.substring(0, 7);
   }
 
+  async getDefaultBranch(): Promise<string | null> {
+    try {
+      // Try to get the default branch from origin/HEAD
+      const result = await this.git.raw(['symbolic-ref', 'refs/remotes/origin/HEAD']);
+      // Result will be like "refs/remotes/origin/main\n"
+      const match = result.trim().match(/refs\/remotes\/origin\/(.+)/);
+      if (match) {
+        return match[1];
+      }
+    } catch {
+      // If origin/HEAD is not set, fall back to common default branches
+      const commonDefaults = ['main', 'master'];
+      const branchResult = await this.git.branchLocal();
+      const branchNames = Object.keys(branchResult.branches);
+
+      for (const defaultName of commonDefaults) {
+        if (branchNames.includes(defaultName)) {
+          return defaultName;
+        }
+      }
+    }
+    return null;
+  }
+
   async getRevisionOptions(
     currentBase?: string,
     currentTarget?: string
@@ -540,15 +564,27 @@ export class GitDiffParser {
     resolvedBase?: string;
     resolvedTarget?: string;
   }> {
-    const [branchResult, logResult] = await Promise.all([
+    const [branchResult, logResult, defaultBranch] = await Promise.all([
       this.git.branchLocal(),
       this.git.log({ maxCount: 20 }),
+      this.getDefaultBranch(),
     ]);
 
     const branches = Object.entries(branchResult.branches).map(([name, data]) => ({
       name,
       current: data.current,
     }));
+
+    // Sort branches: default branch first, then current branch, then alphabetically
+    branches.sort((a, b) => {
+      if (defaultBranch) {
+        if (a.name === defaultBranch) return -1;
+        if (b.name === defaultBranch) return 1;
+      }
+      if (a.current && !b.current) return -1;
+      if (!a.current && b.current) return 1;
+      return a.name.localeCompare(b.name);
+    });
 
     const commits = logResult.all.map((commit) => ({
       hash: commit.hash,
