@@ -653,7 +653,7 @@ function App() {
                     value={baseRevision}
                     onChange={(v) => void handleRevisionChange(v, targetRevision)}
                     options={revisionOptions}
-                    disabledValue={targetRevision}
+                    disabledValues={[targetRevision]}
                     isBaseSelector={true}
                   />
                   <span className="text-github-text-muted">...</span>
@@ -662,13 +662,12 @@ function App() {
                     value={targetRevision}
                     onChange={(v) => void handleRevisionChange(baseRevision, v)}
                     options={revisionOptions}
-                    disabledValue={baseRevision}
                     disabledValues={(() => {
                       // Disable base and all commits before (older than) base
                       const baseIndex = revisionOptions.commits.findIndex(
                         (c) => c.shortHash === baseRevision || c.hash === baseRevision
                       );
-                      if (baseIndex === -1) return [];
+                      if (baseIndex === -1) return [baseRevision];
                       return revisionOptions.commits.slice(baseIndex).map((c) => c.shortHash);
                     })()}
                     isBaseSelector={false}
