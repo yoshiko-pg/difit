@@ -49,6 +49,12 @@ vi.mock('./git-diff.js', () => {
       isEmpty: false,
     });
     getBlobContent = vi.fn().mockResolvedValue(Buffer.from('mock image data'));
+    getRevisionOptions = vi.fn().mockResolvedValue({
+      branches: [{ name: 'main', current: true }],
+      commits: [{ hash: 'abc1234', shortHash: 'abc1234', message: 'Test commit' }],
+      resolvedBase: 'abc1234',
+      resolvedTarget: 'def5678',
+    });
   }
 
   return { GitDiffParser: GitDiffParserMock };
@@ -465,6 +471,28 @@ describe('Server Integration Tests', () => {
 
       // The mode should be included in the response
       expect(data).toHaveProperty('mode', 'inline');
+    });
+  });
+
+  describe('Revision options API', () => {
+    it('returns available revisions', async () => {
+      const result = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+      });
+      servers.push(result.server);
+
+      const response = await fetch(`http://localhost:${result.port}/api/revisions`);
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data.specialOptions).toHaveLength(3);
+      expect(data.branches).toEqual([{ name: 'main', current: true }]);
+      expect(data.commits).toEqual([
+        { hash: 'abc1234', shortHash: 'abc1234', message: 'Test commit' },
+      ]);
+      expect(data.resolvedBase).toBe('abc1234');
+      expect(data.resolvedTarget).toBe('def5678');
     });
   });
 
