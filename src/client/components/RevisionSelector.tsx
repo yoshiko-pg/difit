@@ -98,7 +98,7 @@ export function RevisionSelector({
   const getItemClasses = (highlighted: boolean, disabled: boolean) => {
     const highlightClasses =
       highlighted ?
-        'bg-diff-selected-bg border-l-4 border-l-diff-selected-border font-semibold'
+        'bg-diff-selected-bg border-l-4 border-l-diff-selected-border font-semibold pl-2'
       : '';
     const hoverClasses =
       highlighted ?
