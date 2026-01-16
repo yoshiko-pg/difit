@@ -24,6 +24,7 @@ import { type RevisionsResponse } from '../../types/diff';
 interface RevisionSelectorProps {
   label: string;
   value: string;
+  resolvedValue?: string;
   onChange: (value: string) => void;
   options: RevisionsResponse;
   disabledValues?: string[];
@@ -33,6 +34,7 @@ interface RevisionSelectorProps {
 export function RevisionSelector({
   label,
   value,
+  resolvedValue,
   onChange,
   options,
   disabledValues = [],
@@ -113,6 +115,31 @@ export function RevisionSelector({
     return disabledValues.includes(val);
   };
 
+  const getItemClasses = (highlighted: boolean, disabled: boolean) => {
+    const highlightClasses =
+      highlighted ?
+        'bg-diff-selected-bg border-l-4 border-l-diff-selected-border font-semibold'
+      : '';
+    const hoverClasses =
+      highlighted ?
+        'hover:bg-diff-selected-bg focus:bg-diff-selected-bg'
+      : 'hover:bg-github-bg-tertiary focus:bg-github-bg-tertiary';
+    const cursorClasses = disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
+
+    return [
+      'w-full text-left px-3 py-2 text-xs focus:outline-none transition-colors',
+      hoverClasses,
+      highlightClasses,
+      cursorClasses,
+    ].join(' ');
+  };
+
+  const isCommitHighlighted = (shortHash: string, hash: string) => {
+    if (shortHash === value || hash === value) return true;
+    if (!resolvedValue) return false;
+    return shortHash === resolvedValue || hash === resolvedValue;
+  };
+
   // Calculate initial focus index for the current value
   const getInitialFocusIndex = (): number => {
     let index = 0;
@@ -188,11 +215,7 @@ export function RevisionSelector({
                       key={opt.value}
                       onClick={() => handleSelect(opt.value)}
                       disabled={isDisabled(opt.value)}
-                      className={`w-full text-left px-3 py-2 text-xs hover:bg-github-bg-tertiary focus:outline-none focus:bg-github-bg-tertiary transition-colors ${
-                        opt.value === value ? 'bg-github-bg-tertiary' : ''
-                      } ${
-                        isDisabled(opt.value) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
+                      className={getItemClasses(opt.value === value, isDisabled(opt.value))}
                     >
                       {opt.label}
                     </button>
@@ -211,13 +234,10 @@ export function RevisionSelector({
                       key={commit.hash}
                       onClick={() => handleSelect(commit.shortHash)}
                       disabled={isDisabled(commit.shortHash)}
-                      className={`w-full text-left px-3 py-2 text-xs hover:bg-github-bg-tertiary focus:outline-none focus:bg-github-bg-tertiary transition-colors ${
-                        commit.shortHash === value ? 'bg-github-bg-tertiary' : ''
-                      } ${
-                        isDisabled(commit.shortHash) ?
-                          'opacity-50 cursor-not-allowed'
-                        : 'cursor-pointer'
-                      }`}
+                      className={getItemClasses(
+                        isCommitHighlighted(commit.shortHash, commit.hash),
+                        isDisabled(commit.shortHash)
+                      )}
                     >
                       <div className="flex items-start gap-2">
                         <code className="text-xs text-github-text-primary font-mono whitespace-nowrap">
@@ -243,11 +263,7 @@ export function RevisionSelector({
                       key={branch.name}
                       onClick={() => handleSelect(branch.name)}
                       disabled={isDisabled(branch.name)}
-                      className={`w-full text-left px-3 py-2 text-xs hover:bg-github-bg-tertiary focus:outline-none focus:bg-github-bg-tertiary transition-colors ${
-                        branch.name === value ? 'bg-github-bg-tertiary' : ''
-                      } ${
-                        isDisabled(branch.name) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
+                      className={getItemClasses(branch.name === value, isDisabled(branch.name))}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-github-text-primary">{branch.name}</span>

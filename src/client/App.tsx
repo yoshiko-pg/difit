@@ -680,6 +680,7 @@ function App() {
                   <RevisionSelector
                     label="Base"
                     value={baseRevision}
+                    resolvedValue={resolvedBaseRevision}
                     onChange={(v) => void handleRevisionChange(v, targetRevision)}
                     options={revisionOptions}
                     disabledValues={getBaseDisabledValues()}
@@ -689,6 +690,7 @@ function App() {
                   <RevisionSelector
                     label="Target"
                     value={targetRevision}
+                    resolvedValue={resolvedTargetRevision}
                     onChange={(v) => void handleRevisionChange(baseRevision, v)}
                     options={revisionOptions}
                     disabledValues={getTargetDisabledValues()}
