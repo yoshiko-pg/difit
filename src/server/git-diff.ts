@@ -14,8 +14,10 @@ import { isGeneratedFile } from './generated-file-check.js';
 
 export class GitDiffParser {
   private git: SimpleGit;
+  private repoPath: string;
 
   constructor(repoPath = process.cwd()) {
+    this.repoPath = repoPath;
     this.git = simpleGit(repoPath);
   }
 
@@ -475,7 +477,10 @@ export class GitDiffParser {
       // For working directory, read directly from filesystem
       if (ref === 'working' || ref === '.') {
         const fs = await import('fs');
-        return fs.readFileSync(filepath);
+        const path = await import('path');
+        const absolutePath =
+          path.isAbsolute(filepath) ? filepath : path.resolve(this.repoPath, filepath);
+        return fs.readFileSync(absolutePath);
       }
 
       // For git refs, we need to use child_process to execute git cat-file

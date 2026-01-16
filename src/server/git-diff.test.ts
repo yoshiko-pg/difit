@@ -59,7 +59,7 @@ describe('GitDiffParser', () => {
 
       const result = await parser.getBlobContent('test.txt', 'working');
 
-      expect(mockReadFileSync).toHaveBeenCalledWith('test.txt');
+      expect(mockReadFileSync).toHaveBeenCalledWith('/test/repo/test.txt');
       expect(result).toBe(mockBuffer);
     });
 
@@ -69,7 +69,7 @@ describe('GitDiffParser', () => {
 
       const result = await parser.getBlobContent('test.txt', '.');
 
-      expect(mockReadFileSync).toHaveBeenCalledWith('test.txt');
+      expect(mockReadFileSync).toHaveBeenCalledWith('/test/repo/test.txt');
       expect(result).toBe(mockBuffer);
     });
 
