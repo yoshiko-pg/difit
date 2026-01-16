@@ -44,6 +44,8 @@ function App() {
   const [showSparkles, setShowSparkles] = useState(false);
   const [hasTriggeredSparkles, setHasTriggeredSparkles] = useState(false);
   const [isCommentsListOpen, setIsCommentsListOpen] = useState(false);
+  const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
+  const collapsedInitializedRef = useRef(false);
 
   const { settings, updateSettings } = useAppearanceSettings();
 
@@ -74,22 +76,73 @@ function App() {
     diffData?.repositoryId // Repository identifier for storage isolation
   );
 
+  // Reset initialization flag when diff context changes
+  useEffect(() => {
+    collapsedInitializedRef.current = false;
+  }, [diffData?.repositoryId, diffData?.commit]);
+
+  // Initialize collapsed files from viewed files (only once per diff)
+  useEffect(() => {
+    if (!collapsedInitializedRef.current) {
+      setCollapsedFiles(new Set(viewedFiles));
+      collapsedInitializedRef.current = true;
+    }
+  }, [viewedFiles]);
+
   const toggleFileReviewed = async (filePath: string) => {
     if (diffData) {
       const file = diffData.files.find((f) => f.path === filePath);
       if (file) {
+        const wasViewed = viewedFiles.has(filePath);
         await toggleFileViewed(filePath, file);
 
+        // Update collapsed state based on viewed state
+        setCollapsedFiles((prev) => {
+          const newSet = new Set(prev);
+          if (!wasViewed) {
+            // Marking as viewed -> collapse the file
+            newSet.add(filePath);
+          } else {
+            // Marking as not viewed -> expand the file
+            newSet.delete(filePath);
+          }
+          return newSet;
+        });
+
         // When marking as reviewed (closing file), scroll to the file header
-        if (!viewedFiles.has(filePath)) {
+        if (!wasViewed) {
           setTimeout(() => {
             const element = document.getElementById(getFileElementId(filePath));
             if (element) {
-              element.scrollIntoView({ behavior: 'instant', block: 'start' });
+              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
           }, 100);
         }
       }
+    }
+  };
+
+  const toggleFileCollapsed = (filePath: string) => {
+    setCollapsedFiles((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(filePath)) {
+        newSet.delete(filePath);
+      } else {
+        newSet.add(filePath);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleAllFilesCollapsed = (shouldCollapse: boolean) => {
+    if (!diffData) return;
+
+    if (shouldCollapse) {
+      // Collapse all files
+      setCollapsedFiles(new Set(diffData.files.map((f) => f.path)));
+    } else {
+      // Expand all files
+      setCollapsedFiles(new Set());
     }
   };
 
@@ -639,6 +692,9 @@ function App() {
                     diffMode={diffMode}
                     reviewedFiles={viewedFiles}
                     onToggleReviewed={toggleFileReviewed}
+                    collapsedFiles={collapsedFiles}
+                    onToggleCollapsed={toggleFileCollapsed}
+                    onToggleAllCollapsed={toggleAllFilesCollapsed}
                     onAddComment={handleAddComment}
                     onGeneratePrompt={(comment) => generatePrompt(comment.id)}
                     onRemoveComment={removeComment}

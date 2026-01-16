@@ -36,6 +36,8 @@ describe('DiffViewer', () => {
   const mockOnRemoveComment = vi.fn();
   const mockOnUpdateComment = vi.fn();
   const mockOnToggleReviewed = vi.fn();
+  const mockOnToggleCollapsed = vi.fn();
+  const mockOnToggleAllCollapsed = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -67,12 +69,15 @@ describe('DiffViewer', () => {
     file: createMockFile(),
     comments: [] as Comment[],
     reviewedFiles: new Set<string>(),
+    collapsedFiles: new Set<string>(),
     diffMode: 'side-by-side' as const,
     onAddComment: mockOnAddComment,
     onGeneratePrompt: mockOnGeneratePrompt,
     onRemoveComment: mockOnRemoveComment,
     onUpdateComment: mockOnUpdateComment,
     onToggleReviewed: mockOnToggleReviewed,
+    onToggleCollapsed: mockOnToggleCollapsed,
+    onToggleAllCollapsed: mockOnToggleAllCollapsed,
   };
 
   describe('File type handling', () => {
@@ -165,20 +170,20 @@ describe('DiffViewer', () => {
   });
 
   describe('Collapse functionality', () => {
-    it('shows content when file is not reviewed', () => {
+    it('shows content when file is not collapsed', () => {
       const file = createMockFile();
-      const reviewedFiles = new Set<string>();
+      const collapsedFiles = new Set<string>();
 
-      render(<DiffViewer {...defaultProps} file={file} reviewedFiles={reviewedFiles} />);
+      render(<DiffViewer {...defaultProps} file={file} collapsedFiles={collapsedFiles} />);
 
       expect(screen.getByTestId('diff-chunk')).toBeInTheDocument();
     });
 
-    it('hides content when file is reviewed (collapsed)', () => {
-      const file = createMockFile({ path: 'reviewed.js' });
-      const reviewedFiles = new Set(['reviewed.js']);
+    it('hides content when file is collapsed', () => {
+      const file = createMockFile({ path: 'collapsed.js' });
+      const collapsedFiles = new Set(['collapsed.js']);
 
-      render(<DiffViewer {...defaultProps} file={file} reviewedFiles={reviewedFiles} />);
+      render(<DiffViewer {...defaultProps} file={file} collapsedFiles={collapsedFiles} />);
 
       expect(screen.queryByTestId('diff-chunk')).not.toBeInTheDocument();
       expect(screen.queryByTestId('image-diff-chunk')).not.toBeInTheDocument();
