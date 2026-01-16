@@ -31,6 +31,8 @@ interface DiffViewerProps {
   diffMode: DiffViewMode;
   reviewedFiles: Set<string>;
   onToggleReviewed: (path: string) => void;
+  collapsedFiles: Set<string>;
+  onToggleCollapsed: (path: string) => void;
   onAddComment: (
     file: string,
     line: LineNumber,
@@ -63,6 +65,8 @@ export function DiffViewer({
   diffMode,
   reviewedFiles,
   onToggleReviewed,
+  collapsedFiles,
+  onToggleCollapsed,
   onAddComment,
   onGeneratePrompt,
   onRemoveComment,
@@ -76,7 +80,7 @@ export function DiffViewer({
   commentTrigger,
   onCommentTriggerHandled,
 }: DiffViewerProps) {
-  const isCollapsed = reviewedFiles.has(file.path);
+  const isCollapsed = collapsedFiles.has(file.path);
   const [isCopied, setIsCopied] = useState(false);
 
   const getFileIcon = (status: DiffFile['status']) => {
@@ -111,7 +115,7 @@ export function DiffViewer({
       <div className="bg-github-bg-secondary border-t-2 border-t-github-accent border-b border-github-border px-5 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
-            onClick={() => onToggleReviewed(file.path)}
+            onClick={() => onToggleCollapsed(file.path)}
             className="text-github-text-muted hover:text-github-text-primary transition-colors cursor-pointer"
             title={isCollapsed ? 'Expand file' : 'Collapse file'}
           >

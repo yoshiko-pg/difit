@@ -44,6 +44,7 @@ function App() {
   const [showSparkles, setShowSparkles] = useState(false);
   const [hasTriggeredSparkles, setHasTriggeredSparkles] = useState(false);
   const [isCommentsListOpen, setIsCommentsListOpen] = useState(false);
+  const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
   const { settings, updateSettings } = useAppearanceSettings();
 
@@ -78,10 +79,24 @@ function App() {
     if (diffData) {
       const file = diffData.files.find((f) => f.path === filePath);
       if (file) {
+        const wasViewed = viewedFiles.has(filePath);
         await toggleFileViewed(filePath, file);
 
+        // Update collapsed state based on viewed state
+        setCollapsedFiles((prev) => {
+          const newSet = new Set(prev);
+          if (!wasViewed) {
+            // Marking as viewed -> collapse the file
+            newSet.add(filePath);
+          } else {
+            // Marking as not viewed -> expand the file
+            newSet.delete(filePath);
+          }
+          return newSet;
+        });
+
         // When marking as reviewed (closing file), scroll to the file header
-        if (!viewedFiles.has(filePath)) {
+        if (!wasViewed) {
           setTimeout(() => {
             const element = document.getElementById(getFileElementId(filePath));
             if (element) {
@@ -91,6 +106,18 @@ function App() {
         }
       }
     }
+  };
+
+  const toggleFileCollapsed = (filePath: string) => {
+    setCollapsedFiles((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(filePath)) {
+        newSet.delete(filePath);
+      } else {
+        newSet.add(filePath);
+      }
+      return newSet;
+    });
   };
 
   const handleDiffModeChange = useCallback((mode: DiffViewMode) => {
@@ -639,6 +666,8 @@ function App() {
                     diffMode={diffMode}
                     reviewedFiles={viewedFiles}
                     onToggleReviewed={toggleFileReviewed}
+                    collapsedFiles={collapsedFiles}
+                    onToggleCollapsed={toggleFileCollapsed}
                     onAddComment={handleAddComment}
                     onGeneratePrompt={(comment) => generatePrompt(comment.id)}
                     onRemoveComment={removeComment}
