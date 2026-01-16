@@ -301,6 +301,27 @@ function App() {
     [baseRevision, targetRevision, fetchDiffData]
   );
 
+  const getCommitIndex = (commitish: string) => {
+    if (!revisionOptions) return -1;
+    return revisionOptions.commits.findIndex(
+      (commit) => commit.shortHash === commitish || commit.hash === commitish
+    );
+  };
+
+  const getBaseDisabledValues = () => {
+    if (!revisionOptions) return [];
+    const targetIndex = getCommitIndex(targetRevision);
+    if (targetIndex === -1) return [targetRevision];
+    return revisionOptions.commits.slice(0, targetIndex + 1).map((commit) => commit.shortHash);
+  };
+
+  const getTargetDisabledValues = () => {
+    if (!revisionOptions) return [];
+    const baseIndex = getCommitIndex(baseRevision);
+    if (baseIndex === -1) return [baseRevision];
+    return revisionOptions.commits.slice(baseIndex).map((commit) => commit.shortHash);
+  };
+
   // Clear comments and viewed files on initial load if requested via CLI flag
   const hasCleanedRef = useRef(false);
   useEffect(() => {
@@ -635,7 +656,7 @@ function App() {
                     value={baseRevision}
                     onChange={(v) => void handleRevisionChange(v, targetRevision)}
                     options={revisionOptions}
-                    disabledValues={[targetRevision]}
+                    disabledValues={getBaseDisabledValues()}
                     isBaseSelector={true}
                   />
                   <span className="text-github-text-muted">...</span>
@@ -644,14 +665,7 @@ function App() {
                     value={targetRevision}
                     onChange={(v) => void handleRevisionChange(baseRevision, v)}
                     options={revisionOptions}
-                    disabledValues={(() => {
-                      // Disable base and all commits before (older than) base
-                      const baseIndex = revisionOptions.commits.findIndex(
-                        (c) => c.shortHash === baseRevision || c.hash === baseRevision
-                      );
-                      if (baseIndex === -1) return [baseRevision];
-                      return revisionOptions.commits.slice(baseIndex).map((c) => c.shortHash);
-                    })()}
+                    disabledValues={getTargetDisabledValues()}
                     isBaseSelector={false}
                   />
                 </div>
