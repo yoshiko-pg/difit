@@ -116,12 +116,40 @@ export async function startServer(
       // If we can't get repository path, leave undefined
     }
 
+    // Resolve symbolic refs like HEAD/HEAD^ to actual hashes for the UI
+    let resolvedBase = currentBaseCommitish || 'stdin';
+    let resolvedTarget = currentTargetCommitish || 'stdin';
+
+    if (
+      !options.stdinDiff &&
+      currentBaseCommitish &&
+      !['working', 'staged', '.'].includes(currentBaseCommitish)
+    ) {
+      try {
+        resolvedBase = await parser.resolveCommitish(currentBaseCommitish);
+      } catch {
+        // If resolution fails, keep original value
+      }
+    }
+
+    if (
+      !options.stdinDiff &&
+      currentTargetCommitish &&
+      !['working', 'staged', '.'].includes(currentTargetCommitish)
+    ) {
+      try {
+        resolvedTarget = await parser.resolveCommitish(currentTargetCommitish);
+      } catch {
+        // If resolution fails, keep original value
+      }
+    }
+
     res.json({
       ...diffDataCache,
       ignoreWhitespace,
       mode: diffMode,
-      baseCommitish: currentBaseCommitish || 'stdin',
-      targetCommitish: currentTargetCommitish || 'stdin',
+      baseCommitish: resolvedBase,
+      targetCommitish: resolvedTarget,
       clearComments: options.clearComments,
       repositoryId,
     });

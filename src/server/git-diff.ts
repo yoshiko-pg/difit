@@ -526,6 +526,11 @@ export class GitDiffParser {
     }
   }
 
+  async resolveCommitish(commitish: string): Promise<string> {
+    const hash = await this.git.revparse([commitish]);
+    return hash.substring(0, 7);
+  }
+
   async getRevisionOptions(
     currentBase?: string,
     currentTarget?: string
@@ -558,8 +563,7 @@ export class GitDiffParser {
 
     if (currentBase && !['working', 'staged', '.'].includes(currentBase)) {
       try {
-        const baseHash = await this.git.revparse([currentBase]);
-        resolvedBase = baseHash.substring(0, 7);
+        resolvedBase = await this.resolveCommitish(currentBase);
       } catch {
         // If resolution fails, leave undefined
       }
@@ -567,8 +571,7 @@ export class GitDiffParser {
 
     if (currentTarget && !['working', 'staged', '.'].includes(currentTarget)) {
       try {
-        const targetHash = await this.git.revparse([currentTarget]);
-        resolvedTarget = targetHash.substring(0, 7);
+        resolvedTarget = await this.resolveCommitish(currentTarget);
       } catch {
         // If resolution fails, leave undefined
       }
