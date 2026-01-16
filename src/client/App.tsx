@@ -53,6 +53,9 @@ function App() {
   const [revisionOptions, setRevisionOptions] = useState<RevisionsResponse | null>(null);
   const [baseRevision, setBaseRevision] = useState<string>('');
   const [targetRevision, setTargetRevision] = useState<string>('');
+  const [resolvedBaseRevision, setResolvedBaseRevision] = useState<string>('');
+  const [resolvedTargetRevision, setResolvedTargetRevision] = useState<string>('');
+  const hasUserSelectedRevisionRef = useRef(false);
 
   const { settings, updateSettings } = useAppearanceSettings();
 
@@ -248,9 +251,16 @@ function App() {
         const data = (await response.json()) as DiffResponse;
         setDiffData(data);
 
-        // Update revision state from server response
-        if (data.baseCommitish) setBaseRevision(data.baseCommitish);
-        if (data.targetCommitish) setTargetRevision(data.targetCommitish);
+        // Update resolved revision state from server response
+        if (data.baseCommitish) setResolvedBaseRevision(data.baseCommitish);
+        if (data.targetCommitish) setResolvedTargetRevision(data.targetCommitish);
+
+        if (!hasUserSelectedRevisionRef.current) {
+          const requestedBase = data.requestedBaseCommitish ?? data.baseCommitish;
+          const requestedTarget = data.requestedTargetCommitish ?? data.targetCommitish;
+          if (requestedBase) setBaseRevision(requestedBase);
+          if (requestedTarget) setTargetRevision(requestedTarget);
+        }
 
         // Set diff mode from server response if provided
         if (data.mode && !hasUserSetDiffModeRef.current) {
@@ -277,16 +287,15 @@ function App() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data: RevisionsResponse | null) => {
         setRevisionOptions(data);
-        // If resolved revisions are provided, use them as initial values
-        if (data?.resolvedBase && !baseRevision) {
-          setBaseRevision(data.resolvedBase);
+        if (data?.resolvedBase) {
+          setResolvedBaseRevision((prev) => prev || data.resolvedBase || '');
         }
-        if (data?.resolvedTarget && !targetRevision) {
-          setTargetRevision(data.resolvedTarget);
+        if (data?.resolvedTarget) {
+          setResolvedTargetRevision((prev) => prev || data.resolvedTarget || '');
         }
       })
       .catch(() => setRevisionOptions(null));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle revision change
   const handleRevisionChange = useCallback(
@@ -294,6 +303,9 @@ function App() {
       // Skip if no actual change
       if (newBase === baseRevision && newTarget === targetRevision) return;
 
+      hasUserSelectedRevisionRef.current = true;
+      setBaseRevision(newBase);
+      setTargetRevision(newTarget);
       setLoading(true);
       setError(null);
       await fetchDiffData(newBase, newTarget);
@@ -310,16 +322,30 @@ function App() {
 
   const getBaseDisabledValues = () => {
     if (!revisionOptions) return [];
-    const targetIndex = getCommitIndex(targetRevision);
-    if (targetIndex === -1) return [targetRevision];
-    return revisionOptions.commits.slice(0, targetIndex + 1).map((commit) => commit.shortHash);
+    const targetCommitish = resolvedTargetRevision || targetRevision;
+    const targetIndex = getCommitIndex(targetCommitish);
+    if (targetIndex === -1) return targetRevision ? [targetRevision] : [];
+    const disabledValues = revisionOptions.commits
+      .slice(0, targetIndex + 1)
+      .map((commit) => commit.shortHash);
+    if (targetRevision && !disabledValues.includes(targetRevision)) {
+      disabledValues.push(targetRevision);
+    }
+    return disabledValues;
   };
 
   const getTargetDisabledValues = () => {
     if (!revisionOptions) return [];
-    const baseIndex = getCommitIndex(baseRevision);
-    if (baseIndex === -1) return [baseRevision];
-    return revisionOptions.commits.slice(baseIndex).map((commit) => commit.shortHash);
+    const baseCommitish = resolvedBaseRevision || baseRevision;
+    const baseIndex = getCommitIndex(baseCommitish);
+    if (baseIndex === -1) return baseRevision ? [baseRevision] : [];
+    const disabledValues = revisionOptions.commits
+      .slice(baseIndex)
+      .map((commit) => commit.shortHash);
+    if (baseRevision && !disabledValues.includes(baseRevision)) {
+      disabledValues.push(baseRevision);
+    }
+    return disabledValues;
   };
 
   // Clear comments and viewed files on initial load if requested via CLI flag

@@ -47,6 +47,8 @@ export interface DiffResponse {
   mode?: DiffViewMode;
   baseCommitish?: string;
   targetCommitish?: string;
+  requestedBaseCommitish?: string;
+  requestedTargetCommitish?: string;
   clearComments?: boolean;
   repositoryId?: string;
 }
