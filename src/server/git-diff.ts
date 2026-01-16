@@ -526,9 +526,14 @@ export class GitDiffParser {
     }
   }
 
-  async getRevisionOptions(): Promise<{
+  async getRevisionOptions(
+    currentBase?: string,
+    currentTarget?: string
+  ): Promise<{
     branches: Array<{ name: string; current: boolean }>;
     commits: Array<{ hash: string; shortHash: string; message: string }>;
+    resolvedBase?: string;
+    resolvedTarget?: string;
   }> {
     const [branchResult, logResult] = await Promise.all([
       this.git.branchLocal(),
@@ -547,6 +552,28 @@ export class GitDiffParser {
         commit.message.length > 50 ? commit.message.substring(0, 47) + '...' : commit.message,
     }));
 
-    return { branches, commits };
+    // Resolve HEAD and HEAD^ to actual commit hashes if they're being used
+    let resolvedBase: string | undefined;
+    let resolvedTarget: string | undefined;
+
+    if (currentBase && !['working', 'staged', '.'].includes(currentBase)) {
+      try {
+        const baseHash = await this.git.revparse([currentBase]);
+        resolvedBase = baseHash.substring(0, 7);
+      } catch {
+        // If resolution fails, leave undefined
+      }
+    }
+
+    if (currentTarget && !['working', 'staged', '.'].includes(currentTarget)) {
+      try {
+        const targetHash = await this.git.revparse([currentTarget]);
+        resolvedTarget = targetHash.substring(0, 7);
+      } catch {
+        // If resolution fails, leave undefined
+      }
+    }
+
+    return { branches, commits, resolvedBase, resolvedTarget };
   }
 }

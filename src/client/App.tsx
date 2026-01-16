@@ -275,9 +275,18 @@ function App() {
   useEffect(() => {
     fetch('/api/revisions')
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: RevisionsResponse | null) => setRevisionOptions(data))
+      .then((data: RevisionsResponse | null) => {
+        setRevisionOptions(data);
+        // If resolved revisions are provided, use them as initial values
+        if (data?.resolvedBase && !baseRevision) {
+          setBaseRevision(data.resolvedBase);
+        }
+        if (data?.resolvedTarget && !targetRevision) {
+          setTargetRevision(data.resolvedTarget);
+        }
+      })
       .catch(() => setRevisionOptions(null));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle revision change
   const handleRevisionChange = useCallback(

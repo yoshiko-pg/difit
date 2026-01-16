@@ -131,4 +131,6 @@ export interface RevisionsResponse {
   specialOptions: RevisionOption[];
   branches: BranchInfo[];
   commits: CommitInfo[];
+  resolvedBase?: string;
+  resolvedTarget?: string;
 }
