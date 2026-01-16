@@ -9,6 +9,8 @@ import {
   FilePen,
   Search,
   MessageSquare,
+  ChevronsDownUp,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -189,6 +191,18 @@ export function FileList({
     });
   };
 
+  const allPaths = getAllDirectoryPaths(fileTree);
+  const isAllExpanded = expandedDirs.size === allPaths.length && allPaths.length > 0;
+
+  const toggleAllDirectories = () => {
+    // If all directories are expanded, collapse all. Otherwise, expand all.
+    if (isAllExpanded) {
+      setExpandedDirs(new Set());
+    } else {
+      setExpandedDirs(new Set(allPaths));
+    }
+  };
+
   const renderTreeNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
     if (node.isDirectory && node.children) {
       const isExpanded = expandedDirs.has(node.path);
@@ -268,9 +282,20 @@ export function FileList({
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b border-github-border bg-github-bg-tertiary">
-        <h3 className="text-sm font-semibold text-github-text-primary m-0 mb-3">
-          Files changed ({files.length})
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-github-text-primary m-0">
+            Files changed ({files.length})
+          </h3>
+          <button
+            onClick={toggleAllDirectories}
+            className="p-1 hover:bg-github-bg-primary rounded transition-colors"
+            title={isAllExpanded ? 'Collapse all' : 'Expand all'}
+          >
+            {isAllExpanded ?
+              <ChevronsUpDown size={16} className="text-github-text-secondary" />
+            : <ChevronsDownUp size={16} className="text-github-text-secondary" />}
+          </button>
+        </div>
         <div className="relative">
           <Search
             size={16}
