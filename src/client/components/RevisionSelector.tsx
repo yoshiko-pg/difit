@@ -7,6 +7,7 @@ import {
   flip,
   shift,
   useHover,
+  useClick,
   useFocus,
   useDismiss,
   useRole,
@@ -49,11 +50,18 @@ export function RevisionSelector({
   const hover = useHover(context, {
     handleClose: safePolygon(),
   });
+  const click = useClick(context);
   const focus = useFocus(context);
   const dismiss = useDismiss(context);
   const role = useRole(context);
 
-  const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, dismiss, role]);
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    hover,
+    click,
+    focus,
+    dismiss,
+    role,
+  ]);
 
   // Filter special options based on working/staged constraints
   const getFilteredSpecialOptions = () => {
@@ -136,9 +144,12 @@ export function RevisionSelector({
 
   return (
     <>
-      <div
+      <button
         ref={refs.setReference}
+        type="button"
         className="flex items-center gap-1.5 cursor-pointer group"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         {...getReferenceProps()}
       >
         <span className="text-xs text-github-text-secondary">{label}:</span>
@@ -151,7 +162,7 @@ export function RevisionSelector({
             className="text-github-text-secondary group-hover:text-github-text-primary transition-colors"
           />
         </div>
-      </div>
+      </button>
 
       {isOpen && (
         <FloatingPortal>
