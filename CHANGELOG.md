@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-01-16
+
+### Added
+
+- Auto-collapse deleted files in diff view (#146)
+- Support for launching difit from repository subfolders (#153)
+
+### Fixed
+
+- Working diff isolation bugs with comments and view status (#149)
+
+### Thanks
+
+- [@tsukasaI](https://github.com/tsukasaI) for auto-collapse deleted files feature #146
+- [@GarrickZ2](https://github.com/GarrickZ2) for fixing working diff isolation bugs #149
+- [@jonashaag](https://github.com/jonashaag) for adding support for launching from repo subfolders #153
+
 ## [2.2.7] - 2025-12-21
 
 ### Added
@@ -657,7 +674,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v2.2.7...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/yoshiko-pg/difit/compare/v2.2.7...v3.0.0
 [2.2.7]: https://github.com/yoshiko-pg/difit/compare/v2.2.6...v2.2.7
 [2.2.6]: https://github.com/yoshiko-pg/difit/compare/v2.2.5...v2.2.6
 [2.2.5]: https://github.com/yoshiko-pg/difit/compare/v2.2.4...v2.2.5
