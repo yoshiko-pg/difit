@@ -144,12 +144,17 @@ export async function startServer(
       }
     }
 
+    const requestedBaseCommitish = currentBaseCommitish || 'stdin';
+    const requestedTargetCommitish = currentTargetCommitish || 'stdin';
+
     res.json({
       ...diffDataCache,
       ignoreWhitespace,
       mode: diffMode,
       baseCommitish: resolvedBase,
       targetCommitish: resolvedTarget,
+      requestedBaseCommitish,
+      requestedTargetCommitish,
       clearComments: options.clearComments,
       repositoryId,
     });

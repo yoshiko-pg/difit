@@ -7,6 +7,7 @@ import {
   flip,
   shift,
   useHover,
+  useClick,
   useFocus,
   useDismiss,
   useRole,
@@ -23,19 +24,19 @@ import { type RevisionsResponse } from '../../types/diff';
 interface RevisionSelectorProps {
   label: string;
   value: string;
+  resolvedValue?: string;
   onChange: (value: string) => void;
   options: RevisionsResponse;
   disabledValues?: string[];
-  isBaseSelector?: boolean;
 }
 
 export function RevisionSelector({
   label,
   value,
+  resolvedValue,
   onChange,
   options,
   disabledValues = [],
-  isBaseSelector = false,
 }: RevisionSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -49,29 +50,18 @@ export function RevisionSelector({
   const hover = useHover(context, {
     handleClose: safePolygon(),
   });
+  const click = useClick(context);
   const focus = useFocus(context);
   const dismiss = useDismiss(context);
   const role = useRole(context);
 
-  const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, dismiss, role]);
-
-  // Filter special options based on working/staged constraints
-  const getFilteredSpecialOptions = () => {
-    return options.specialOptions.filter((opt) => {
-      if (isBaseSelector && disabledValues.includes('working')) {
-        return opt.value === 'staged';
-      }
-      if (!isBaseSelector && disabledValues.includes('staged')) {
-        return opt.value === 'working';
-      }
-      if (isBaseSelector && opt.value === 'working') {
-        return false;
-      }
-      return true;
-    });
-  };
-
-  const filteredSpecialOptions = getFilteredSpecialOptions();
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    hover,
+    click,
+    focus,
+    dismiss,
+    role,
+  ]);
 
   // Check if the current value is 'working' or 'staged' special case
   const isWorkingStagedMode =
@@ -105,16 +95,41 @@ export function RevisionSelector({
     return disabledValues.includes(val);
   };
 
+  const getItemClasses = (highlighted: boolean, disabled: boolean) => {
+    const highlightClasses =
+      highlighted ?
+        'bg-diff-selected-bg border-l-4 border-l-diff-selected-border font-semibold pl-2'
+      : '';
+    const hoverClasses =
+      highlighted ?
+        'hover:bg-diff-selected-bg focus:bg-diff-selected-bg'
+      : 'hover:bg-github-bg-tertiary focus:bg-github-bg-tertiary';
+    const cursorClasses = disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
+
+    return [
+      'w-full text-left px-3 py-2 text-xs focus:outline-none transition-colors',
+      hoverClasses,
+      highlightClasses,
+      cursorClasses,
+    ].join(' ');
+  };
+
+  const isCommitHighlighted = (shortHash: string, hash: string) => {
+    if (shortHash === value || hash === value) return true;
+    if (!resolvedValue) return false;
+    return shortHash === resolvedValue || hash === resolvedValue;
+  };
+
   // Calculate initial focus index for the current value
   const getInitialFocusIndex = (): number => {
     let index = 0;
 
     // Check special options
-    const specialIndex = filteredSpecialOptions.findIndex((opt) => opt.value === value);
+    const specialIndex = options.specialOptions.findIndex((opt) => opt.value === value);
     if (specialIndex !== -1) {
       return specialIndex;
     }
-    index += filteredSpecialOptions.length;
+    index += options.specialOptions.length;
 
     // Check commits (only if not in working/staged mode)
     if (!isWorkingStagedMode) {
@@ -136,9 +151,12 @@ export function RevisionSelector({
 
   return (
     <>
-      <div
+      <button
         ref={refs.setReference}
+        type="button"
         className="flex items-center gap-1.5 cursor-pointer group"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         {...getReferenceProps()}
       >
         <span className="text-xs text-github-text-secondary">{label}:</span>
@@ -151,7 +169,7 @@ export function RevisionSelector({
             className="text-github-text-secondary group-hover:text-github-text-primary transition-colors"
           />
         </div>
-      </div>
+      </button>
 
       {isOpen && (
         <FloatingPortal>
@@ -167,21 +185,17 @@ export function RevisionSelector({
               {...getFloatingProps()}
             >
               {/* Special Options */}
-              {filteredSpecialOptions.length > 0 && (
+              {options.specialOptions.length > 0 && (
                 <div className="border-b border-github-border">
                   <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
                     Special
                   </div>
-                  {filteredSpecialOptions.map((opt) => (
+                  {options.specialOptions.map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => handleSelect(opt.value)}
                       disabled={isDisabled(opt.value)}
-                      className={`w-full text-left px-3 py-2 text-xs hover:bg-github-bg-tertiary focus:outline-none focus:bg-github-bg-tertiary transition-colors ${
-                        opt.value === value ? 'bg-github-bg-tertiary' : ''
-                      } ${
-                        isDisabled(opt.value) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
+                      className={getItemClasses(opt.value === value, isDisabled(opt.value))}
                     >
                       {opt.label}
                     </button>
@@ -200,13 +214,10 @@ export function RevisionSelector({
                       key={commit.hash}
                       onClick={() => handleSelect(commit.shortHash)}
                       disabled={isDisabled(commit.shortHash)}
-                      className={`w-full text-left px-3 py-2 text-xs hover:bg-github-bg-tertiary focus:outline-none focus:bg-github-bg-tertiary transition-colors ${
-                        commit.shortHash === value ? 'bg-github-bg-tertiary' : ''
-                      } ${
-                        isDisabled(commit.shortHash) ?
-                          'opacity-50 cursor-not-allowed'
-                        : 'cursor-pointer'
-                      }`}
+                      className={getItemClasses(
+                        isCommitHighlighted(commit.shortHash, commit.hash),
+                        isDisabled(commit.shortHash)
+                      )}
                     >
                       <div className="flex items-start gap-2">
                         <code className="text-xs text-github-text-primary font-mono whitespace-nowrap">
@@ -232,11 +243,7 @@ export function RevisionSelector({
                       key={branch.name}
                       onClick={() => handleSelect(branch.name)}
                       disabled={isDisabled(branch.name)}
-                      className={`w-full text-left px-3 py-2 text-xs hover:bg-github-bg-tertiary focus:outline-none focus:bg-github-bg-tertiary transition-colors ${
-                        branch.name === value ? 'bg-github-bg-tertiary' : ''
-                      } ${
-                        isDisabled(branch.name) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
+                      className={getItemClasses(branch.name === value, isDisabled(branch.name))}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-github-text-primary">{branch.name}</span>
