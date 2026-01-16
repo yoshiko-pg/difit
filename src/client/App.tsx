@@ -538,10 +538,6 @@ function App() {
                   : diffData.commit}
                 </code>
               </span>
-              <span>
-                {diffData.files.length} file
-                {diffData.files.length !== 1 ? 's' : ''} changed
-              </span>
             </div>
           </div>
         </header>
