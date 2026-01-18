@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 import { subscribe } from '@parcel/watcher';
 import { type Response } from 'express';
@@ -89,7 +89,12 @@ export class FileWatcherService {
 
   private async setupWatchers(modeConfig: ModeWatchConfig, basePath: string): Promise<void> {
     for (const watchPath of modeConfig.watchPaths) {
-      const fullPath = join(basePath, watchPath);
+      let fullPath = join(basePath, watchPath);
+
+      // Resolve git worktree path for .git directory
+      if (watchPath === '.git') {
+        fullPath = await this.resolveGitDir(basePath);
+      }
 
       try {
         const subscription = (await subscribe(
@@ -138,6 +143,21 @@ export class FileWatcherService {
         console.warn(`⚠️  Could not watch ${fullPath}:`, error);
         // Continue with other watchers even if one fails
       }
+    }
+  }
+
+  /**
+   * Resolve the actual git directory path, handling git worktrees.
+   * Uses git rev-parse --git-dir which correctly handles both normal repos and worktrees.
+   */
+  private async resolveGitDir(basePath: string): Promise<string> {
+    try {
+      const git = simpleGit(basePath);
+      const gitDir = await git.revparse(['--git-dir']);
+      return resolve(basePath, gitDir.trim());
+    } catch {
+      // Fallback to default .git path
+      return join(basePath, '.git');
     }
   }
 
