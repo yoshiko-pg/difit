@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.3] - 2026-01-19
+
+### Fixed
+
+- Support git worktree in file watcher (#167)
+
+### Thanks
+
+- [@t14i](https://github.com/t14i) for supporting git worktree in file watcher #167
+
 ## [3.0.2] - 2026-01-16
 
 ### Added
@@ -694,7 +704,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.2...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.3...HEAD
+[3.0.3]: https://github.com/yoshiko-pg/difit/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/yoshiko-pg/difit/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/yoshiko-pg/difit/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/yoshiko-pg/difit/compare/v2.2.7...v3.0.0
