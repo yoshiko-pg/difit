@@ -15,6 +15,7 @@ vi.mock('@parcel/watcher', () => ({
 vi.mock('simple-git', () => ({
   simpleGit: vi.fn(() => ({
     checkIgnore: vi.fn(),
+    revparse: vi.fn().mockResolvedValue('.git'),
   })),
 }));
 
@@ -270,6 +271,7 @@ describe('FileWatcherService', () => {
       for (const { mode, expectedType } of modes) {
         const mockGit = {
           checkIgnore: vi.fn().mockRejectedValue(new Error('No ignored files')),
+          revparse: vi.fn().mockResolvedValue('.git'),
         };
         vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
@@ -296,6 +298,76 @@ describe('FileWatcherService', () => {
         await fileWatcher.stop();
         vi.clearAllMocks();
       }
+    });
+  });
+
+  describe('git worktree support', () => {
+    it('should use resolved git directory for normal repository', async () => {
+      const mockGit = {
+        checkIgnore: vi.fn(),
+        revparse: vi.fn().mockResolvedValue('.git'),
+      };
+      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
+
+      await fileWatcher.start(DiffMode.DEFAULT, '/test/path', 300);
+
+      expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
+      expect(subscribe).toHaveBeenCalledWith('/test/path/.git', expect.any(Function), {
+        ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
+      });
+    });
+
+    it('should resolve worktree git directory path', async () => {
+      const mockGit = {
+        checkIgnore: vi.fn(),
+        revparse: vi.fn().mockResolvedValue('/main/repo/.git/worktrees/feature'),
+      };
+      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
+
+      await fileWatcher.start(DiffMode.DEFAULT, '/worktree/path', 300);
+
+      expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
+      expect(subscribe).toHaveBeenCalledWith(
+        '/main/repo/.git/worktrees/feature',
+        expect.any(Function),
+        {
+          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
+        }
+      );
+    });
+
+    it('should resolve relative git directory path', async () => {
+      const mockGit = {
+        checkIgnore: vi.fn(),
+        revparse: vi.fn().mockResolvedValue('../.git/worktrees/feature'),
+      };
+      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
+
+      await fileWatcher.start(DiffMode.DEFAULT, '/repos/worktree', 300);
+
+      expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
+      // path.resolve('/repos/worktree', '../.git/worktrees/feature') = '/repos/.git/worktrees/feature'
+      expect(subscribe).toHaveBeenCalledWith(
+        '/repos/.git/worktrees/feature',
+        expect.any(Function),
+        {
+          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
+        }
+      );
+    });
+
+    it('should fallback to default .git path on error', async () => {
+      const mockGit = {
+        checkIgnore: vi.fn(),
+        revparse: vi.fn().mockRejectedValue(new Error('Not a git repository')),
+      };
+      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
+
+      await fileWatcher.start(DiffMode.DEFAULT, '/test/path', 300);
+
+      expect(subscribe).toHaveBeenCalledWith('/test/path/.git', expect.any(Function), {
+        ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
+      });
     });
   });
 });
