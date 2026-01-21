@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-01-21
+
+### Changed
+
+- Update dependency globals to v17 (#170)
+- Update all dev dependencies (#169)
+- Swap expand/collapse icon in sidebar
+
+### Added
+
+- Add --include-untracked flag for non-interactive mode (#168)
+
+### Thanks
+
+- [@koh-sh](https://github.com/koh-sh) for adding --include-untracked flag for non-interactive mode #168
+
 ## [3.0.3] - 2026-01-19
 
 ### Fixed
@@ -704,7 +720,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.3...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.4...HEAD
+[3.0.4]: https://github.com/yoshiko-pg/difit/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/yoshiko-pg/difit/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/yoshiko-pg/difit/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/yoshiko-pg/difit/compare/v3.0.0...v3.0.1
