@@ -158,6 +158,15 @@ td.keyboard-cursor::before {
   border-radius: 2px;
 }
 
+/* Browser native UI color scheme (scrollbars, form elements, etc.) */
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+}
+
 /* Dark theme word highlight */
 [data-theme='dark'] {
   --word-highlight-color: rgba(255, 253, 84, 0.3);
