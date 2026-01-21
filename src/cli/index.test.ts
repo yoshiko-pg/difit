@@ -322,6 +322,91 @@ describe('CLI index.ts', () => {
 
       expect(mockFindUntrackedFiles).not.toHaveBeenCalled();
     });
+
+    it('automatically includes untracked files with --include-untracked flag', async () => {
+      const untrackedFiles = ['new-file.ts', 'another-file.ts'];
+      mockFindUntrackedFiles.mockResolvedValue(untrackedFiles);
+      mockMarkFilesIntentToAdd.mockResolvedValue(undefined);
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--tui', 'tui')
+        .option('--pr <url>', 'pr')
+        .option('--include-untracked', 'include untracked')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          if (commitish === 'working' || commitish === '.') {
+            const git = simpleGit();
+            const files = await findUntrackedFiles(git);
+            if (files.length > 0 && options.includeUntracked) {
+              await markFilesIntentToAdd(git, files);
+            }
+          }
+
+          await startServer({
+            targetCommitish: commitish,
+            baseCommitish: 'staged',
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+          });
+        });
+
+      await program.parseAsync(['.', '--include-untracked'], { from: 'user' });
+
+      expect(mockFindUntrackedFiles).toHaveBeenCalledWith(mockGit);
+      expect(mockMarkFilesIntentToAdd).toHaveBeenCalledWith(mockGit, untrackedFiles);
+    });
+
+    it('does not auto-include untracked files without --include-untracked flag', async () => {
+      const untrackedFiles = ['new-file.ts'];
+      mockFindUntrackedFiles.mockResolvedValue(untrackedFiles);
+      mockMarkFilesIntentToAdd.mockResolvedValue(undefined);
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--tui', 'tui')
+        .option('--pr <url>', 'pr')
+        .option('--include-untracked', 'include untracked')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          if (commitish === 'working' || commitish === '.') {
+            const git = simpleGit();
+            const files = await findUntrackedFiles(git);
+            // Without --include-untracked, markFilesIntentToAdd should not be called automatically
+            if (files.length > 0 && options.includeUntracked) {
+              await markFilesIntentToAdd(git, files);
+            }
+          }
+
+          await startServer({
+            targetCommitish: commitish,
+            baseCommitish: 'staged',
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+          });
+        });
+
+      await program.parseAsync(['.'], { from: 'user' });
+
+      expect(mockFindUntrackedFiles).toHaveBeenCalledWith(mockGit);
+      expect(mockMarkFilesIntentToAdd).not.toHaveBeenCalled();
+    });
   });
 
   describe('GitHub PR integration', () => {

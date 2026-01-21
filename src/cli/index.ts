@@ -53,6 +53,7 @@ interface CliOptions {
   tui?: boolean;
   pr?: string;
   clean?: boolean;
+  includeUntracked?: boolean;
 }
 
 const program = new Command();
@@ -77,6 +78,7 @@ program
   .option('--tui', 'use terminal UI instead of web interface')
   .option('--pr <url>', 'GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)')
   .option('--clean', 'start with a clean slate by clearing all existing comments')
+  .option('--include-untracked', 'automatically include untracked files in diff')
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
       // Check if we should read from stdin
@@ -157,7 +159,7 @@ program
 
       if (commitish === 'working' || commitish === '.') {
         const git = simpleGit(repoPath);
-        await handleUntrackedFiles(git);
+        await handleUntrackedFiles(git, options.includeUntracked);
       }
 
       if (options.tui) {
@@ -259,14 +261,15 @@ async function readStdin(): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-async function handleUntrackedFiles(git: SimpleGit): Promise<void> {
+async function handleUntrackedFiles(git: SimpleGit, addAutomatically?: boolean): Promise<void> {
   const files = await findUntrackedFiles(git);
   if (files.length === 0) {
     return;
   }
 
-  const userConsent = await promptUserToIncludeUntracked(files);
-  if (userConsent) {
+  const shouldAdd = addAutomatically || (await promptUserToIncludeUntracked(files));
+
+  if (shouldAdd) {
     await markFilesIntentToAdd(git, files);
     console.log('✅ Files added with --intent-to-add');
     const filesAsArgs = files.join(' ');
