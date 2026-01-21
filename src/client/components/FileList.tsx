@@ -292,8 +292,8 @@ export function FileList({
             title={isAllExpanded ? 'Collapse all' : 'Expand all'}
           >
             {isAllExpanded ?
-              <ChevronsUpDown size={16} className="text-github-text-secondary" />
-            : <ChevronsDownUp size={16} className="text-github-text-secondary" />}
+              <ChevronsDownUp size={16} className="text-github-text-secondary" />
+            : <ChevronsUpDown size={16} className="text-github-text-secondary" />}
           </button>
         </div>
         <div className="relative">
