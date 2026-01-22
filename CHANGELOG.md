@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.5] - 2026-01-22
+
+### Added
+
+- Apply color-scheme CSS property for native browser UI dark mode (#172)
+
+### Changed
+
+- Update dependency happy-dom to v20.1.0 (#173)
+- Update dependency vite to v7.3.1 (#171)
+
+### Thanks
+
+- [@y-hiraoka](https://github.com/y-hiraoka) for applying color-scheme CSS property for native browser UI dark mode #172
+
 ## [3.0.4] - 2026-01-21
 
 ### Changed
@@ -720,7 +735,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.4...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.5...HEAD
+[3.0.5]: https://github.com/yoshiko-pg/difit/compare/v3.0.4...v3.0.5
 [3.0.4]: https://github.com/yoshiko-pg/difit/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/yoshiko-pg/difit/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/yoshiko-pg/difit/compare/v3.0.1...v3.0.2
