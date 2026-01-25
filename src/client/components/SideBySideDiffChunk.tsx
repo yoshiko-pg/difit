@@ -7,6 +7,7 @@ import {
   type Comment,
   type LineNumber,
   type LineSelection,
+  type ExpandedLine,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import {
@@ -47,6 +48,7 @@ interface SideBySideDiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
+  isConnectedToPrevious?: boolean;
 }
 
 interface SideBySideLine {
@@ -74,6 +76,7 @@ export function SideBySideDiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
+  isConnectedToPrevious = false,
 }: SideBySideDiffChunkProps) {
   const [startLine, setStartLine] = useState<LineSelection | null>(null);
   const [endLine, setEndLine] = useState<LineSelection | null>(null);
@@ -310,7 +313,9 @@ export function SideBySideDiffChunk({
   );
 
   return (
-    <div className="bg-github-bg-primary border border-github-border rounded-md overflow-hidden">
+    <div
+      className={`bg-github-bg-primary overflow-hidden ${isConnectedToPrevious ? '' : 'border border-github-border rounded-md'}`}
+    >
       <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
@@ -476,7 +481,8 @@ export function SideBySideDiffChunk({
                   </td>
                   <td
                     className={`w-1/2 p-0 align-top border-r border-github-border relative ${
-                      sideLine.oldLine?.type === 'delete' ? 'bg-diff-deletion-bg'
+                      (sideLine.oldLine as ExpandedLine)?.isExpanded ? 'bg-github-bg-tertiary/50'
+                      : sideLine.oldLine?.type === 'delete' ? 'bg-diff-deletion-bg'
                       : sideLine.oldLine?.type === 'normal' ? 'bg-transparent'
                       : 'bg-github-bg-secondary'
                     } ${getSelectedLineStyle('old', sideLine)} ${highlightOldCell ? cellHighlightClass : ''}`}
@@ -549,7 +555,8 @@ export function SideBySideDiffChunk({
                   </td>
                   <td
                     className={`w-1/2 p-0 align-top relative ${
-                      sideLine.newLine?.type === 'add' ? 'bg-diff-addition-bg'
+                      (sideLine.newLine as ExpandedLine)?.isExpanded ? 'bg-github-bg-tertiary/50'
+                      : sideLine.newLine?.type === 'add' ? 'bg-diff-addition-bg'
                       : sideLine.newLine?.type === 'normal' ? 'bg-transparent'
                       : 'bg-github-bg-secondary'
                     } ${getSelectedLineStyle('new', sideLine)} ${highlightNewCell ? cellHighlightClass : ''}`}

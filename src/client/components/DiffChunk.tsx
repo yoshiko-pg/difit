@@ -47,6 +47,7 @@ interface DiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
+  isConnectedToPrevious?: boolean;
 }
 
 export function DiffChunk({
@@ -65,6 +66,7 @@ export function DiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
+  isConnectedToPrevious = false,
 }: DiffChunkProps) {
   const [startLine, setStartLine] = useState<number | null>(null);
   const [endLine, setEndLine] = useState<number | null>(null);
@@ -281,6 +283,7 @@ export function DiffChunk({
         filename={filename}
         commentTrigger={commentTrigger}
         onCommentTriggerHandled={onCommentTriggerHandled}
+        isConnectedToPrevious={isConnectedToPrevious}
       />
     );
   }
