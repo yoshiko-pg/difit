@@ -1,4 +1,5 @@
 import { ChevronUp, ChevronDown, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { memo } from 'react';
 
 const DEFAULT_EXPAND_COUNT = 20;
 
@@ -13,7 +14,8 @@ interface ExpandButtonProps {
   alignRight?: boolean;
 }
 
-export function ExpandButton({
+// Memoized to avoid unnecessary re-renders (#8)
+export const ExpandButton = memo(function ExpandButton({
   direction,
   hiddenLines,
   onExpandUp,
@@ -37,27 +39,32 @@ export function ExpandButton({
     dir: 'up' | 'down' | 'all',
     onClick: (() => void) | undefined,
     label: string
-  ) => (
-    <button
-      onClick={onClick}
-      disabled={isLoading || !onClick}
-      className={buttonBaseClass}
-      title={
-        dir === 'all' ?
-          `Show all ${hiddenLines} hidden lines`
-        : `Show ${Math.min(hiddenLines, DEFAULT_EXPAND_COUNT)} hidden lines ${dir === 'up' ? 'above' : 'below'}`
-      }
-    >
-      {isLoading ?
-        <Loader2 size={14} className="animate-spin" />
-      : dir === 'up' ?
-        <ChevronUp size={14} />
-      : dir === 'down' ?
-        <ChevronDown size={14} />
-      : <ChevronsUpDown size={14} />}
-      <span>{label}</span>
-    </button>
-  );
+  ) => {
+    const ariaLabel =
+      dir === 'all' ?
+        `Expand all ${hiddenLines} hidden lines`
+      : `Expand ${Math.min(hiddenLines, DEFAULT_EXPAND_COUNT)} hidden lines ${dir === 'up' ? 'above' : 'below'}`;
+
+    return (
+      <button
+        onClick={onClick}
+        disabled={isLoading || !onClick}
+        className={buttonBaseClass}
+        title={ariaLabel}
+        aria-label={ariaLabel}
+        aria-busy={isLoading}
+      >
+        {isLoading ?
+          <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+        : dir === 'up' ?
+          <ChevronUp size={14} aria-hidden="true" />
+        : dir === 'down' ?
+          <ChevronDown size={14} aria-hidden="true" />
+        : <ChevronsUpDown size={14} aria-hidden="true" />}
+        <span>{label}</span>
+      </button>
+    );
+  };
 
   const renderButtons = () => {
     if (showOnlyExpandAll) {
@@ -104,4 +111,4 @@ export function ExpandButton({
       <div className="flex items-center gap-3">{renderButtons()}</div>
     </div>
   );
-}
+});
