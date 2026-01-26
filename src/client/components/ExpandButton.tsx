@@ -57,9 +57,9 @@ export const ExpandButton = memo(function ExpandButton({
         {isLoading ?
           <Loader2 size={14} className="animate-spin" aria-hidden="true" />
         : dir === 'up' ?
-          <ChevronUp size={14} aria-hidden="true" />
-        : dir === 'down' ?
           <ChevronDown size={14} aria-hidden="true" />
+        : dir === 'down' ?
+          <ChevronUp size={14} aria-hidden="true" />
         : <ChevronsUpDown size={14} aria-hidden="true" />}
         <span>{label}</span>
       </button>
