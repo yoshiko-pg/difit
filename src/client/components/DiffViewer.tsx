@@ -9,7 +9,7 @@ import {
   Check,
   Square,
 } from 'lucide-react';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 import {
   type DiffFile,
@@ -98,8 +98,14 @@ export function DiffViewer({
     isLoading: isExpandLoading,
     expandLines,
     expandAllBetweenChunks,
+    prefetchFileContent,
     getMergedChunks,
   } = useExpandedLines({ baseCommitish, targetCommitish });
+
+  // Pre-fetch file content to know total lines for bottom expand button
+  useEffect(() => {
+    void prefetchFileContent(file);
+  }, [file, prefetchFileContent]);
 
   // Memoize merged chunks to avoid recalculation on every render (#1)
   const mergedChunks = useMemo(() => getMergedChunks(file), [file, getMergedChunks]);
@@ -179,7 +185,7 @@ export function DiffViewer({
             expandLines(file, lastOriginalIndex, 'down', mergedChunk.hiddenLinesAfter)
           }
           isLoading={isExpandLoading}
-          header={mergedChunk.header}
+          alignRight
         />
       );
     }

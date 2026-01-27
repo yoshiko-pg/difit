@@ -35,6 +35,7 @@ interface UseExpandedLinesResult {
     chunkIndex: number,
     hiddenLines: number
   ) => Promise<void>;
+  prefetchFileContent: (file: DiffFile) => Promise<void>;
   getMergedChunks: (file: DiffFile) => MergedChunk[];
   getHiddenLinesBefore: (file: DiffFile, chunk: DiffChunk, chunkIndex: number) => number;
   getHiddenLinesAfter: (file: DiffFile, chunk: DiffChunk, chunkIndex: number) => number;
@@ -273,6 +274,28 @@ export function useExpandedLines({
     [ensureFileContent]
   );
 
+  // Pre-fetch file content to know total line count (for bottom expand button)
+  const prefetchFileContent = useCallback(
+    async (file: DiffFile) => {
+      const fileState = await ensureFileContent(file);
+      setExpandedState((prev) => {
+        const existing = prev[file.path];
+        // Skip if we already have total lines info
+        if (existing?.oldTotalLines !== undefined || existing?.newTotalLines !== undefined) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [file.path]: {
+            ...fileState,
+            expandedRanges: existing?.expandedRanges || fileState.expandedRanges || [],
+          },
+        };
+      });
+    },
+    [ensureFileContent]
+  );
+
   const getExpandedCount = useCallback(
     (filePath: string, chunkIndex: number, direction: 'up' | 'down'): number => {
       const fileState = expandedState[filePath];
@@ -506,6 +529,7 @@ export function useExpandedLines({
     isLoading,
     expandLines,
     expandAllBetweenChunks,
+    prefetchFileContent,
     getMergedChunks,
     getHiddenLinesBefore,
     getHiddenLinesAfter,
