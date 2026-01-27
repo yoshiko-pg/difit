@@ -1,6 +1,8 @@
 import { ChevronUp, ChevronDown, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { memo } from 'react';
 
+import { useDragToExpand } from '../hooks/useDragToExpand';
+
 const DEFAULT_EXPAND_COUNT = 20;
 
 interface ExpandButtonProps {
@@ -12,6 +14,7 @@ interface ExpandButtonProps {
   isLoading?: boolean;
   header?: string;
   alignRight?: boolean;
+  onDragExpand?: (direction: 'up' | 'down', lineCount: number) => void;
 }
 
 // Memoized to avoid unnecessary re-renders (#8)
@@ -24,10 +27,20 @@ export const ExpandButton = memo(function ExpandButton({
   isLoading = false,
   header,
   alignRight = false,
+  onDragExpand,
 }: ExpandButtonProps) {
+  const { handleMouseDown } = useDragToExpand({
+    direction,
+    hiddenLines,
+    isLoading: isLoading ?? false,
+    onDragExpand,
+  });
+
   if (hiddenLines <= 0) {
     return null;
   }
+
+  const dragCursorClass = onDragExpand ? ' cursor-ns-resize' : '';
 
   const buttonBaseClass =
     'flex items-center gap-1 px-2 py-1 text-xs text-github-text-muted hover:text-github-text-primary hover:bg-github-bg-tertiary rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
@@ -87,7 +100,10 @@ export const ExpandButton = memo(function ExpandButton({
   // With header: show header on the left, buttons on the right
   if (header) {
     return (
-      <div className="flex items-center justify-between bg-github-bg-tertiary border-y border-github-border">
+      <div
+        className={`flex items-center justify-between bg-github-bg-tertiary border-y border-github-border${dragCursorClass}`}
+        onMouseDown={handleMouseDown}
+      >
         <code className="text-github-text-secondary text-xs font-mono px-3 py-2 truncate">
           {header}
         </code>
@@ -99,7 +115,10 @@ export const ExpandButton = memo(function ExpandButton({
   // Align right: buttons on the right side
   if (alignRight) {
     return (
-      <div className="flex items-center justify-end bg-github-bg-tertiary border-y border-github-border">
+      <div
+        className={`flex items-center justify-end bg-github-bg-tertiary border-y border-github-border${dragCursorClass}`}
+        onMouseDown={handleMouseDown}
+      >
         <div className="flex items-center gap-2 px-3 py-1">{renderButtons()}</div>
       </div>
     );
@@ -107,7 +126,10 @@ export const ExpandButton = memo(function ExpandButton({
 
   // Default: centered buttons
   return (
-    <div className="flex items-center justify-center py-1 px-4 bg-github-bg-secondary border-y border-github-border">
+    <div
+      className={`flex items-center justify-center py-1 px-4 bg-github-bg-secondary border-y border-github-border${dragCursorClass}`}
+      onMouseDown={handleMouseDown}
+    >
       <div className="flex items-center gap-3">{renderButtons()}</div>
     </div>
   );

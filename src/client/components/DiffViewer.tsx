@@ -155,6 +155,9 @@ export function DiffViewer({
           }
           isLoading={isExpandLoading}
           header={mergedChunk.header}
+          onDragExpand={(_dir, lineCount) => {
+            void expandLines(file, firstOriginalIndex, 'up', lineCount);
+          }}
         />
       );
     }
@@ -171,6 +174,13 @@ export function DiffViewer({
           }
           isLoading={isExpandLoading}
           header={mergedChunk.header}
+          onDragExpand={(dir, lineCount) => {
+            if (dir === 'up') {
+              void expandLines(file, firstOriginalIndex, 'up', lineCount);
+            } else {
+              void expandLines(file, firstOriginalIndex - 1, 'down', lineCount);
+            }
+          }}
         />
       );
     }
@@ -186,6 +196,9 @@ export function DiffViewer({
           }
           isLoading={isExpandLoading}
           alignRight
+          onDragExpand={(_dir, lineCount) => {
+            void expandLines(file, lastOriginalIndex, 'down', lineCount);
+          }}
         />
       );
     }
