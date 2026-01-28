@@ -47,6 +47,7 @@ interface SideBySideDiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
+  isConnectedToPrevious?: boolean;
 }
 
 interface SideBySideLine {
@@ -58,6 +59,28 @@ interface SideBySideLine {
   newLineOriginalIndex?: number;
   wordLevelDiff?: WordLevelDiffResult;
 }
+
+// Type guard to check if a line is an expanded line (#6)
+const isExpandedLine = (line: DiffLine | undefined): boolean => {
+  return line !== undefined && 'isExpanded' in line && line.isExpanded === true;
+};
+
+// Utility function to get side-by-side line class (#10)
+const getSideBySideLineClass = (line: DiffLine | undefined, isExpanded: boolean): string => {
+  if (isExpanded) {
+    return 'bg-github-bg-tertiary/50';
+  }
+  if (line?.type === 'delete') {
+    return 'bg-diff-deletion-bg';
+  }
+  if (line?.type === 'add') {
+    return 'bg-diff-addition-bg';
+  }
+  if (line?.type === 'normal') {
+    return 'bg-transparent';
+  }
+  return 'bg-github-bg-secondary';
+};
 
 export function SideBySideDiffChunk({
   chunk,
@@ -74,6 +97,7 @@ export function SideBySideDiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
+  isConnectedToPrevious = false,
 }: SideBySideDiffChunkProps) {
   const [startLine, setStartLine] = useState<LineSelection | null>(null);
   const [endLine, setEndLine] = useState<LineSelection | null>(null);
@@ -310,7 +334,9 @@ export function SideBySideDiffChunk({
   );
 
   return (
-    <div className="bg-github-bg-primary border border-github-border rounded-md overflow-hidden">
+    <div
+      className={`bg-github-bg-primary overflow-hidden ${isConnectedToPrevious ? '' : 'border border-github-border rounded-md'}`}
+    >
       <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
@@ -475,11 +501,7 @@ export function SideBySideDiffChunk({
                       )}
                   </td>
                   <td
-                    className={`w-1/2 p-0 align-top border-r border-github-border relative ${
-                      sideLine.oldLine?.type === 'delete' ? 'bg-diff-deletion-bg'
-                      : sideLine.oldLine?.type === 'normal' ? 'bg-transparent'
-                      : 'bg-github-bg-secondary'
-                    } ${getSelectedLineStyle('old', sideLine)} ${highlightOldCell ? cellHighlightClass : ''}`}
+                    className={`w-1/2 p-0 align-top border-r border-github-border relative ${getSideBySideLineClass(sideLine.oldLine, isExpandedLine(sideLine.oldLine))} ${getSelectedLineStyle('old', sideLine)} ${highlightOldCell ? cellHighlightClass : ''}`}
                   >
                     {sideLine.oldLine && (
                       <div className="flex items-center relative min-h-[20px] px-3">
@@ -548,11 +570,7 @@ export function SideBySideDiffChunk({
                       )}
                   </td>
                   <td
-                    className={`w-1/2 p-0 align-top relative ${
-                      sideLine.newLine?.type === 'add' ? 'bg-diff-addition-bg'
-                      : sideLine.newLine?.type === 'normal' ? 'bg-transparent'
-                      : 'bg-github-bg-secondary'
-                    } ${getSelectedLineStyle('new', sideLine)} ${highlightNewCell ? cellHighlightClass : ''}`}
+                    className={`w-1/2 p-0 align-top relative ${getSideBySideLineClass(sideLine.newLine, isExpandedLine(sideLine.newLine))} ${getSelectedLineStyle('new', sideLine)} ${highlightNewCell ? cellHighlightClass : ''}`}
                   >
                     {sideLine.newLine && (
                       <div className="flex items-center relative min-h-[20px] px-3">

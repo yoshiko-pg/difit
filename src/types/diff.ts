@@ -136,3 +136,26 @@ export interface RevisionsResponse {
   resolvedBase?: string;
   resolvedTarget?: string;
 }
+
+// Expanded lines types for showing more context in diffs
+export interface ExpandedLinesState {
+  [filePath: string]: FileExpandedState;
+}
+
+export interface FileExpandedState {
+  oldContent?: string[];
+  newContent?: string[];
+  expandedRanges: ExpandedRange[];
+  oldTotalLines?: number;
+  newTotalLines?: number;
+}
+
+export interface ExpandedRange {
+  chunkIndex: number;
+  direction: 'up' | 'down';
+  count: number;
+}
+
+export interface ExpandedLine extends DiffLine {
+  isExpanded?: boolean;
+}
