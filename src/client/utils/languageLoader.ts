@@ -30,6 +30,7 @@ export function loadPrismLanguage(lang: string): Promise<void> {
       csharp: () => import('prismjs/components/prism-csharp.js'),
       protobuf: () => import('prismjs/components/prism-protobuf.js'),
       hcl: () => import('prismjs/components/prism-hcl.js'),
+      perl: () => import('prismjs/components/prism-perl.js'),
     };
 
     const importFn = languageImports[lang];
