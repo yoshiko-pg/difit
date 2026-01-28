@@ -143,7 +143,7 @@ src/components/Button.tsx:L42-L48   # 此行自动添加
 - **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`
 - **Web 技术**：HTML, CSS, JSON, XML, Markdown
 - **Shell 脚本**：`.sh`, `.bash`, `.zsh`, `.fish`
-- **后端语言**：PHP, SQL, Ruby, Java, Scala
+- **后端语言**：PHP, SQL, Ruby, Java, Scala, Perl
 - **系统语言**：C, C++, C#, Rust, Go
 - **移动语言**：Swift, Kotlin, Dart
 - **基础设施即代码**：Terraform (HCL)

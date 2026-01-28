@@ -143,7 +143,7 @@ src/components/Button.tsx:L42-L48   # この行が自動的に追加されます
 - **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`
 - **Web技術**：HTML, CSS, JSON, XML, Markdown
 - **シェルスクリプト**：`.sh`, `.bash`, `.zsh`, `.fish`
-- **バックエンド言語**：PHP, SQL, Ruby, Java, Scala
+- **バックエンド言語**：PHP, SQL, Ruby, Java, Scala, Perl
 - **システム言語**：C, C++, C#, Rust, Go
 - **モバイル言語**：Swift, Kotlin, Dart
 - **IaC**：Terraform (HCL)

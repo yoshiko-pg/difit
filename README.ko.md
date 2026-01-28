@@ -143,7 +143,7 @@ src/components/Button.tsx:L42-L48   # 이 줄은 자동으로 추가됩니다
 - **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`
 - **웹 기술**: HTML, CSS, JSON, XML, Markdown
 - **셸 스크립트**: `.sh`, `.bash`, `.zsh`, `.fish`
-- **백엔드 언어**: PHP, SQL, Ruby, Java, Scala
+- **백엔드 언어**: PHP, SQL, Ruby, Java, Scala, Perl
 - **시스템 언어**: C, C++, C#, Rust, Go
 - **모바일 언어**: Swift, Kotlin, Dart
 - **인프라 코드**: Terraform (HCL)

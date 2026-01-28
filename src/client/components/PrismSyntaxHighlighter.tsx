@@ -77,6 +77,8 @@ function detectLanguage(filename: string): string {
     r: 'r',
     lua: 'lua',
     perl: 'perl',
+    pl: 'perl',
+    pm: 'perl',
     dockerfile: 'docker',
     makefile: 'makefile',
     gitignore: 'git',

@@ -143,7 +143,7 @@ This section is unnecessary
 - **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`
 - **Web Technologies**: HTML, CSS, JSON, XML, Markdown
 - **Shell Scripts**: `.sh`, `.bash`, `.zsh`, `.fish`
-- **Backend Languages**: PHP, SQL, Ruby, Java, Scala
+- **Backend Languages**: PHP, SQL, Ruby, Java, Scala, Perl
 - **Systems Languages**: C, C++, C#, Rust, Go
 - **Mobile Languages**: Swift, Kotlin, Dart
 - **Infrastructure as Code**: Terraform (HCL)
