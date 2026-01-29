@@ -1,4 +1,4 @@
-import { ChevronRight, FolderOpen } from 'lucide-react';
+import { ChevronDown, FolderOpen } from 'lucide-react';
 
 import { type DirInfo } from '../hooks/useStickyDirectories';
 
@@ -11,17 +11,22 @@ export function StickyDirectoryHeader({ dirs, onNavigate }: StickyDirectoryHeade
   if (dirs.length === 0) return null;
 
   return (
-    <div className="sticky top-0 z-20 bg-github-bg-secondary/95 backdrop-blur-sm border-b border-github-border">
-      {dirs.map((dir, idx) => (
+    <div className="sticky top-0 z-20 bg-github-bg-secondary">
+      {dirs.map((dir) => (
         <div
           key={dir.path}
-          className="flex items-center gap-2 px-4 py-1.5 hover:bg-github-bg-tertiary cursor-pointer text-sm"
-          style={{ paddingLeft: `${idx * 16 + 16}px` }}
+          className="flex items-center gap-2 px-4 py-2 hover:bg-github-bg-tertiary cursor-pointer"
+          style={{ paddingLeft: `${dir.depth * 16 + 16}px` }}
           onClick={() => onNavigate(dir.path)}
         >
-          <ChevronRight size={14} className="text-github-text-muted flex-shrink-0" />
-          <FolderOpen size={14} className="text-github-text-secondary flex-shrink-0" />
-          <span className="text-github-text-primary font-medium truncate">{dir.name}</span>
+          <ChevronDown size={16} />
+          <FolderOpen size={16} className="text-github-text-secondary" />
+          <span
+            className="text-sm text-github-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+            title={dir.name}
+          >
+            {dir.name}
+          </span>
         </div>
       ))}
     </div>
