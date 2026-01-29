@@ -25,7 +25,7 @@ import { SparkleAnimation } from './components/SparkleAnimation';
 import { WordHighlightProvider } from './contexts/WordHighlightContext';
 import { useAppearanceSettings } from './hooks/useAppearanceSettings';
 import { useDiffComments } from './hooks/useDiffComments';
-import { useExpandedLines } from './hooks/useExpandedLines';
+import { useExpandedLines, type MergedChunk } from './hooks/useExpandedLines';
 import { useFileWatch } from './hooks/useFileWatch';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { useViewedFiles } from './hooks/useViewedFiles';
@@ -169,29 +169,57 @@ function App() {
     expandAllBetweenChunks,
     prefetchFileContent,
     getMergedChunks,
+    lastUpdatedFilePath,
+    lastUpdatedAt,
   } = useExpandedLines({
     baseCommitish: diffData?.baseCommitish,
     targetCommitish: diffData?.targetCommitish,
   });
 
-  // Compute merged chunks for all files, used by both navigation and rendering
-  const allMergedChunks = useMemo(() => {
-    if (!diffData) return new Map<number, ReturnType<typeof getMergedChunks>>();
-    const map = new Map<number, ReturnType<typeof getMergedChunks>>();
-    diffData.files.forEach((file, index) => {
-      map.set(index, getMergedChunks(file));
+  const getMergedChunksRef = useRef(getMergedChunks);
+  useEffect(() => {
+    getMergedChunksRef.current = getMergedChunks;
+  }, [getMergedChunks]);
+
+  const [mergedChunksByFile, setMergedChunksByFile] = useState<Map<string, MergedChunk[]>>(
+    new Map()
+  );
+
+  // Compute merged chunks for all files on initial diff load
+  useEffect(() => {
+    if (!diffData) {
+      setMergedChunksByFile(new Map());
+      return;
+    }
+
+    const map = new Map<string, MergedChunk[]>();
+    diffData.files.forEach((file) => {
+      map.set(file.path, getMergedChunksRef.current(file));
     });
-    return map;
-  }, [diffData, getMergedChunks]);
+    setMergedChunksByFile(map);
+  }, [diffData]);
+
+  // Recompute merged chunks only for the file that changed
+  useEffect(() => {
+    if (!diffData || !lastUpdatedFilePath) return;
+    const file = diffData.files.find((candidate) => candidate.path === lastUpdatedFilePath);
+    if (!file) return;
+
+    setMergedChunksByFile((prev) => {
+      const next = new Map(prev);
+      next.set(file.path, getMergedChunksRef.current(file));
+      return next;
+    });
+  }, [diffData, lastUpdatedFilePath, lastUpdatedAt]);
 
   // Create files with merged chunks for keyboard navigation
   const navigableFiles = useMemo(() => {
     if (!diffData) return [];
-    return diffData.files.map((file, index) => ({
+    return diffData.files.map((file) => ({
       ...file,
-      chunks: allMergedChunks.get(index) || file.chunks,
+      chunks: mergedChunksByFile.get(file.path) || file.chunks,
     }));
-  }, [diffData, allMergedChunks]);
+  }, [diffData, mergedChunksByFile]);
 
   // State to trigger comment creation from keyboard
   const [commentTrigger, setCommentTrigger] = useState<{
@@ -867,7 +895,7 @@ function App() {
                     }}
                     commentTrigger={commentTrigger?.fileIndex === fileIndex ? commentTrigger : null}
                     onCommentTriggerHandled={() => setCommentTrigger(null)}
-                    mergedChunks={allMergedChunks.get(fileIndex) || []}
+                    mergedChunks={mergedChunksByFile.get(file.path) || []}
                     expandLines={expandLines}
                     expandAllBetweenChunks={expandAllBetweenChunks}
                     prefetchFileContent={prefetchFileContent}
