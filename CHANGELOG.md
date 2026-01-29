@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.7] - 2026-01-29
+
+### Added
+
+- Add sticky directory headers in file tree (#185)
+
+### Thanks
+
+- [@harunonsystem](https://github.com/harunonsystem) for adding sticky directory headers in file tree #185
+
 ## [3.0.6] - 2026-01-28
 
 ### Added
@@ -749,7 +759,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.6...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.7...HEAD
+[3.0.7]: https://github.com/yoshiko-pg/difit/compare/v3.0.6...v3.0.7
 [3.0.6]: https://github.com/yoshiko-pg/difit/compare/v3.0.5...v3.0.6
 [3.0.5]: https://github.com/yoshiko-pg/difit/compare/v3.0.4...v3.0.5
 [3.0.4]: https://github.com/yoshiko-pg/difit/compare/v3.0.3...v3.0.4
