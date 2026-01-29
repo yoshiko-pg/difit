@@ -12,13 +12,11 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
 } from 'lucide-react';
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 
 import { type DiffFile, type Comment } from '../../types/diff';
-import { useStickyDirectories } from '../hooks/useStickyDirectories';
 
 import { Checkbox } from './Checkbox';
-import { StickyDirectoryHeader } from './StickyDirectoryHeader';
 
 interface FileListProps {
   files: DiffFile[];
@@ -118,8 +116,9 @@ export function FileList({
   selectedFileIndex,
 }: FileListProps) {
   const fileTree = buildFileTree(files);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const dirElementsRef = useRef<Map<string, HTMLElement>>(new Map());
+  const stickyContainerStyle = {
+    '--dir-row-height': 'calc(var(--spacing, 0.25rem) * 9)',
+  } as CSSProperties;
 
   // Initialize with all directories expanded
   const getAllDirectoryPaths = (node: TreeNode): string[] => {
@@ -174,20 +173,6 @@ export function FileList({
     );
   }, [fileTree, filterText]);
 
-  // Use sticky directories hook
-  const { stickyDirs, registerDir } = useStickyDirectories({
-    containerRef: scrollContainerRef,
-    enabled: !filterText.trim(),
-  });
-
-  // Navigate to directory
-  const handleNavigate = useCallback((path: string) => {
-    const el = dirElementsRef.current.get(path);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, []);
-
   const getFileIcon = (status: DiffFile['status']) => {
     switch (status) {
       case 'added':
@@ -230,29 +215,15 @@ export function FileList({
       const isExpanded = expandedDirs.has(node.path);
 
       return (
-        <div
-          key={node.path}
-          ref={(el) => {
-            if (!node.path) return;
-
-            if (el) {
-              dirElementsRef.current.set(node.path, el);
-              if (isExpanded) {
-                registerDir(node.path, el, depth, node.name);
-              } else {
-                registerDir(node.path, null, depth, node.name);
-              }
-              return;
-            }
-
-            dirElementsRef.current.delete(node.path);
-            registerDir(node.path, null, depth, node.name);
-          }}
-        >
+        <div key={node.path}>
           {node.name && (
             <div
-              className="flex items-center gap-2 px-4 py-2 hover:bg-github-bg-tertiary cursor-pointer"
-              style={{ paddingLeft: `${depth * 16 + 16}px` }}
+              className="sticky flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer"
+              style={{
+                paddingLeft: `${depth * 16 + 16}px`,
+                top: `calc(${depth} * var(--dir-row-height))`,
+                zIndex: 1000 - depth,
+              }}
               onClick={() => toggleDirectory(node.path)}
             >
               {isExpanded ?
@@ -351,8 +322,7 @@ export function FileList({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto relative" ref={scrollContainerRef}>
-        <StickyDirectoryHeader dirs={stickyDirs} onNavigate={handleNavigate} />
+      <div className="flex-1 overflow-y-auto relative z-0" style={stickyContainerStyle}>
         {filteredFileTree.children?.map((child) => renderTreeNode(child))}
       </div>
     </div>
