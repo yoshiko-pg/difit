@@ -233,14 +233,20 @@ export function FileList({
         <div
           key={node.path}
           ref={(el) => {
-            if (el && node.path) {
+            if (!node.path) return;
+
+            if (el) {
               dirElementsRef.current.set(node.path, el);
               if (isExpanded) {
                 registerDir(node.path, el, depth, node.name);
               } else {
                 registerDir(node.path, null, depth, node.name);
               }
+              return;
             }
+
+            dirElementsRef.current.delete(node.path);
+            registerDir(node.path, null, depth, node.name);
           }}
         >
           {node.name && (

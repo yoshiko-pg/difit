@@ -46,7 +46,15 @@ export function useStickyDirectories({
     (onStoreChange: () => void) => {
       onStoreChangeRef.current = onStoreChange;
       const container = containerRef.current;
-      if (!container || !enabled) return () => {};
+      if (!container || !enabled) {
+        if (stickyDirsRef.current.length > 0) {
+          stickyDirsRef.current = [];
+          onStoreChange();
+        }
+        return () => {
+          onStoreChangeRef.current = null;
+        };
+      }
 
       const handleScroll = () => {
         const containerRect = container.getBoundingClientRect();
