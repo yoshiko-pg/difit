@@ -12,11 +12,13 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 
 import { type DiffFile, type Comment } from '../../types/diff';
+import { useStickyDirectories } from '../hooks/useStickyDirectories';
 
 import { Checkbox } from './Checkbox';
+import { StickyDirectoryHeader } from './StickyDirectoryHeader';
 
 interface FileListProps {
   files: DiffFile[];
@@ -116,6 +118,8 @@ export function FileList({
   selectedFileIndex,
 }: FileListProps) {
   const fileTree = buildFileTree(files);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const dirElementsRef = useRef<Map<string, HTMLElement>>(new Map());
 
   // Initialize with all directories expanded
   const getAllDirectoryPaths = (node: TreeNode): string[] => {
@@ -138,33 +142,51 @@ export function FileList({
   };
 
   // Filter the file tree based on search text
-  const filterTreeNode = (node: TreeNode): TreeNode | null => {
-    if (!filterText.trim()) return node;
+  const filteredFileTree = useMemo(() => {
+    const filterTreeNode = (node: TreeNode): TreeNode | null => {
+      if (!filterText.trim()) return node;
 
-    if (node.isDirectory && node.children) {
-      const filteredChildren = node.children
-        .map((child) => filterTreeNode(child))
-        .filter((child) => child !== null);
+      if (node.isDirectory && node.children) {
+        const filteredChildren = node.children
+          .map((child) => filterTreeNode(child))
+          .filter((child) => child !== null);
 
-      if (filteredChildren.length > 0) {
-        return { ...node, children: filteredChildren };
+        if (filteredChildren.length > 0) {
+          return { ...node, children: filteredChildren };
+        }
+        return null;
+      } else if (node.file) {
+        // Check if file name matches filter
+        if (node.file.path.toLowerCase().includes(filterText.toLowerCase())) {
+          return node;
+        }
+        return null;
       }
+
       return null;
-    } else if (node.file) {
-      // Check if file name matches filter
-      if (node.file.path.toLowerCase().includes(filterText.toLowerCase())) {
-        return node;
+    };
+
+    return (
+      filterTreeNode(fileTree) || {
+        ...fileTree,
+        children: [],
       }
-      return null;
+    );
+  }, [fileTree, filterText]);
+
+  // Use sticky directories hook
+  const { stickyDirs, registerDir } = useStickyDirectories({
+    containerRef: scrollContainerRef,
+    enabled: !filterText.trim(),
+  });
+
+  // Navigate to directory
+  const handleNavigate = useCallback((path: string) => {
+    const el = dirElementsRef.current.get(path);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
-    return null;
-  };
-
-  const filteredFileTree = filterTreeNode(fileTree) || {
-    ...fileTree,
-    children: [],
-  };
+  }, []);
 
   const getFileIcon = (status: DiffFile['status']) => {
     switch (status) {
@@ -208,7 +230,19 @@ export function FileList({
       const isExpanded = expandedDirs.has(node.path);
 
       return (
-        <div key={node.path}>
+        <div
+          key={node.path}
+          ref={(el) => {
+            if (el && node.path) {
+              dirElementsRef.current.set(node.path, el);
+              if (isExpanded) {
+                registerDir(node.path, el, depth, node.name);
+              } else {
+                registerDir(node.path, null, depth, node.name);
+              }
+            }
+          }}
+        >
           {node.name && (
             <div
               className="flex items-center gap-2 px-4 py-2 hover:bg-github-bg-tertiary cursor-pointer"
@@ -230,7 +264,7 @@ export function FileList({
             </div>
           )}
           {(isExpanded || !node.name) &&
-            node.children.map((child) => renderTreeNode(child, depth + 1))}
+            node.children.map((child) => renderTreeNode(child, node.name ? depth + 1 : depth))}
         </div>
       );
     } else if (node.file) {
@@ -311,7 +345,8 @@ export function FileList({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto relative" ref={scrollContainerRef}>
+        <StickyDirectoryHeader dirs={stickyDirs} onNavigate={handleNavigate} />
         {filteredFileTree.children?.map((child) => renderTreeNode(child))}
       </div>
     </div>
