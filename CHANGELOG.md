@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.8] - 2026-01-29
+
+### Changed
+
+- Performance improvement for sticky directory headers in file tree
+
 ## [3.0.7] - 2026-01-29
 
 ### Added
@@ -759,7 +765,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.7...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.8...HEAD
+[3.0.8]: https://github.com/yoshiko-pg/difit/compare/v3.0.7...v3.0.8
 [3.0.7]: https://github.com/yoshiko-pg/difit/compare/v3.0.6...v3.0.7
 [3.0.6]: https://github.com/yoshiko-pg/difit/compare/v3.0.5...v3.0.6
 [3.0.5]: https://github.com/yoshiko-pg/difit/compare/v3.0.4...v3.0.5
