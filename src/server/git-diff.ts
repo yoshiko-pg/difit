@@ -526,6 +526,19 @@ export class GitDiffParser {
     }
   }
 
+  async getLineCount(filepath: string, ref: string): Promise<number> {
+    const buffer = await this.getBlobContent(filepath, ref);
+    let count = 0;
+    for (let i = 0; i < buffer.length; i++) {
+      if (buffer[i] === 0x0a) count++; // newline byte
+    }
+    // If file doesn't end with newline, the last line still counts
+    if (buffer.length > 0 && buffer[buffer.length - 1] !== 0x0a) {
+      count++;
+    }
+    return count;
+  }
+
   async resolveCommitish(commitish: string): Promise<string> {
     const hash = await this.git.revparse([commitish]);
     return hash.substring(0, 7);

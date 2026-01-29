@@ -9,7 +9,7 @@ import {
   Check,
   Square,
 } from 'lucide-react';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import {
   type DiffFile,
@@ -19,7 +19,7 @@ import {
   type LineNumber,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
-import { useExpandedLines, type MergedChunk } from '../hooks/useExpandedLines';
+import { type MergedChunk } from '../hooks/useExpandedLines';
 import { isImageFile } from '../utils/imageUtils';
 
 import { DiffChunk } from './DiffChunk';
@@ -52,6 +52,20 @@ interface DiffViewerProps {
   targetCommitish?: string;
   cursor?: CursorPosition | null;
   fileIndex?: number;
+  mergedChunks: MergedChunk[];
+  expandLines: (
+    file: DiffFile,
+    chunkIndex: number,
+    direction: 'up' | 'down',
+    count?: number
+  ) => Promise<void>;
+  expandAllBetweenChunks: (
+    file: DiffFile,
+    chunkIndex: number,
+    hiddenLines: number
+  ) => Promise<void>;
+  prefetchFileContent: (file: DiffFile) => Promise<void>;
+  isExpandLoading: boolean;
   onLineClick?: (
     fileIndex: number,
     chunkIndex: number,
@@ -90,25 +104,42 @@ export function DiffViewer({
   onLineClick,
   commentTrigger,
   onCommentTriggerHandled,
+  mergedChunks,
+  expandLines,
+  expandAllBetweenChunks,
+  prefetchFileContent,
+  isExpandLoading,
 }: DiffViewerProps) {
   const isCollapsed = collapsedFiles.has(file.path);
   const [isCopied, setIsCopied] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
-  const {
-    isLoading: isExpandLoading,
-    expandLines,
-    expandAllBetweenChunks,
-    prefetchFileContent,
-    getMergedChunks,
-  } = useExpandedLines({ baseCommitish, targetCommitish });
+  // File needs expand if it's a modified/renamed text file (not image, not added/deleted)
+  const needsExpand =
+    file.status !== 'added' && file.status !== 'deleted' && !isImageFile(file.path);
 
-  // Pre-fetch file content to know total lines for bottom expand button
+  // Observe visibility for lazy prefetch
   useEffect(() => {
-    void prefetchFileContent(file);
-  }, [file, prefetchFileContent]);
+    if (!needsExpand) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) setIsVisible(true);
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [needsExpand]);
 
-  // Memoize merged chunks to avoid recalculation on every render (#1)
-  const mergedChunks = useMemo(() => getMergedChunks(file), [file, getMergedChunks]);
+  // Pre-fetch line counts (lightweight) only for visible, non-collapsed files that need expand
+  useEffect(() => {
+    if (isVisible && !isCollapsed && needsExpand) {
+      void prefetchFileContent(file);
+    }
+  }, [isVisible, isCollapsed, needsExpand, file, prefetchFileContent]);
 
   const getFileIcon = (status: DiffFile['status']) => {
     switch (status) {
@@ -194,7 +225,7 @@ export function DiffViewer({
   };
 
   return (
-    <div className="bg-github-bg-primary">
+    <div ref={containerRef} className="bg-github-bg-primary">
       <div className="bg-github-bg-secondary border-t-2 border-t-github-accent border-b border-github-border px-5 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
@@ -346,10 +377,7 @@ export function DiffViewer({
                       fileIndex={fileIndex}
                       onLineClick={onLineClick}
                       commentTrigger={
-                        (
-                          commentTrigger &&
-                          mergedChunk.originalIndices.includes(commentTrigger.chunkIndex)
-                        ) ?
+                        commentTrigger && commentTrigger.chunkIndex === mergedIndex ?
                           commentTrigger
                         : null
                       }

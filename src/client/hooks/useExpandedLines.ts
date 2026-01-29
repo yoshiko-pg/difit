@@ -61,6 +61,25 @@ async function fetchFileContent(
   return { lines, totalLines: lines.length };
 }
 
+async function fetchLineCount(
+  filePath: string,
+  oldRef?: string,
+  newRef?: string,
+  oldPath?: string
+): Promise<{ oldLineCount?: number; newLineCount?: number }> {
+  const encodedPath = encodeURIComponent(filePath);
+  const params = new URLSearchParams();
+  if (oldRef) params.set('oldRef', oldRef);
+  if (newRef) params.set('newRef', newRef);
+  if (oldPath && oldPath !== filePath) params.set('oldPath', oldPath);
+
+  const response = await fetch(`/api/line-count/${encodedPath}?${params}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch line count: ${response.statusText}`);
+  }
+  return response.json() as Promise<{ oldLineCount?: number; newLineCount?: number }>;
+}
+
 export function useExpandedLines({
   baseCommitish,
   targetCommitish,
@@ -274,26 +293,48 @@ export function useExpandedLines({
     [ensureFileContent]
   );
 
-  // Pre-fetch file content to know total line count (for bottom expand button)
+  // Pre-fetch only line counts (lightweight) to show bottom expand button
   const prefetchFileContent = useCallback(
     async (file: DiffFile) => {
-      const fileState = await ensureFileContent(file);
-      setExpandedState((prev) => {
-        const existing = prev[file.path];
-        // Skip if we already have total lines info
-        if (existing?.oldTotalLines !== undefined || existing?.newTotalLines !== undefined) {
-          return prev;
-        }
-        return {
-          ...prev,
-          [file.path]: {
-            ...fileState,
-            expandedRanges: existing?.expandedRanges || fileState.expandedRanges || [],
-          },
-        };
-      });
+      // Skip if we already have total lines info
+      const existing = expandedStateRef.current[file.path];
+      if (existing?.oldTotalLines !== undefined || existing?.newTotalLines !== undefined) {
+        return;
+      }
+
+      const oldRef = file.status !== 'added' ? baseCommitish : undefined;
+      const newRef = file.status !== 'deleted' ? targetCommitish : undefined;
+
+      if (!oldRef && !newRef) return;
+
+      try {
+        const { oldLineCount, newLineCount } = await fetchLineCount(
+          file.path,
+          oldRef,
+          newRef,
+          file.oldPath
+        );
+
+        setExpandedState((prev) => {
+          const current = prev[file.path];
+          if (current?.oldTotalLines !== undefined || current?.newTotalLines !== undefined) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [file.path]: {
+              ...current,
+              expandedRanges: current?.expandedRanges || [],
+              oldTotalLines: oldLineCount,
+              newTotalLines: newLineCount,
+            },
+          };
+        });
+      } catch (error) {
+        console.error('Failed to prefetch line count:', error);
+      }
     },
-    [ensureFileContent]
+    [baseCommitish, targetCommitish]
   );
 
   const getExpandedCount = useCallback(
@@ -311,6 +352,11 @@ export function useExpandedLines({
 
   const getHiddenLinesBefore = useCallback(
     (file: DiffFile, chunk: DiffChunk, chunkIndex: number): number => {
+      // Fully added/deleted files show all lines in the diff - no hidden lines
+      if (file.status === 'added' || file.status === 'deleted') {
+        return 0;
+      }
+
       const prevChunk = file.chunks[chunkIndex - 1];
       let hiddenLines: number;
 
@@ -347,6 +393,11 @@ export function useExpandedLines({
    */
   const getHiddenLinesAfter = useCallback(
     (file: DiffFile, chunk: DiffChunk, chunkIndex: number): number => {
+      // Fully added/deleted files show all lines in the diff - no hidden lines
+      if (file.status === 'added' || file.status === 'deleted') {
+        return 0;
+      }
+
       const fileState = expandedState[file.path];
       const totalLines = fileState?.oldTotalLines || fileState?.newTotalLines;
 
