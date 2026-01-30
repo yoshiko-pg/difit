@@ -67,7 +67,7 @@ const isExpandedLine = (line: DiffLine | undefined): boolean => {
 // Utility function to get side-by-side line class (#10)
 const getSideBySideLineClass = (line: DiffLine | undefined, isExpanded: boolean): string => {
   if (isExpanded) {
-    return 'bg-github-bg-tertiary/50';
+    return 'bg-github-bg-tertiary/80';
   }
   if (line?.type === 'delete') {
     return 'bg-diff-deletion-bg';

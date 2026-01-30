@@ -29,7 +29,7 @@ interface DiffLineRowProps {
 const getLineClass = (line: DiffLine | ExpandedLine) => {
   // Expanded lines have a subtle different background
   if ('isExpanded' in line && line.isExpanded) {
-    return 'bg-github-bg-tertiary/50';
+    return 'bg-github-bg-tertiary/80';
   }
   switch (line.type) {
     case 'add':
