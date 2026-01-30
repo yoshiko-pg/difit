@@ -174,6 +174,158 @@ export const DiffViewer = memo(function DiffViewer({
     [mergedChunks, handleAddComment]
   );
 
+  useEffect(() => {
+    if (isCollapsed || isExpandLoading || !needsExpand || comments.length === 0) {
+      return;
+    }
+
+    if (file.chunks.length === 0 || mergedChunks.length === 0) {
+      return;
+    }
+
+    const commentRangesBySide: Record<DiffSide, Array<{ start: number; end: number }>> = {
+      old: [],
+      new: [],
+    };
+
+    comments.forEach((comment) => {
+      const side = comment.side ?? 'new';
+      const [start, end] =
+        Array.isArray(comment.line) ?
+          [comment.line[0], comment.line[1]]
+        : [comment.line, comment.line];
+      if (start <= 0 || end <= 0) return;
+      commentRangesBySide[side].push({
+        start: Math.min(start, end),
+        end: Math.max(start, end),
+      });
+    });
+
+    const buildRanges = (side: DiffSide) =>
+      file.chunks
+        .map((chunk, index) => {
+          const start = side === 'old' ? chunk.oldStart : chunk.newStart;
+          const lines = side === 'old' ? chunk.oldLines : chunk.newLines;
+          if (!start || lines <= 0) return null;
+          return { start, end: start + lines - 1, index };
+        })
+        .filter((range): range is { start: number; end: number; index: number } => !!range);
+
+    const buildGaps = (ranges: Array<{ start: number; end: number; index: number }>) => {
+      const gaps: Array<{
+        type: 'before' | 'between' | 'after';
+        start: number;
+        end: number;
+        nextChunkIndex?: number;
+        prevChunkIndex?: number;
+      }> = [];
+
+      const firstRange = ranges[0];
+      if (!firstRange) return gaps;
+
+      if (firstRange.start > 1) {
+        gaps.push({
+          type: 'before',
+          start: 1,
+          end: firstRange.start - 1,
+          nextChunkIndex: firstRange.index,
+        });
+      }
+
+      for (let i = 1; i < ranges.length; i += 1) {
+        const prev = ranges[i - 1];
+        const current = ranges[i];
+        if (!prev || !current) continue;
+        if (current.start > prev.end + 1) {
+          gaps.push({
+            type: 'between',
+            start: prev.end + 1,
+            end: current.start - 1,
+            prevChunkIndex: prev.index,
+            nextChunkIndex: current.index,
+          });
+        }
+      }
+
+      const last = ranges[ranges.length - 1];
+      if (!last) return gaps;
+      gaps.push({
+        type: 'after',
+        start: last.end + 1,
+        end: Number.POSITIVE_INFINITY,
+        prevChunkIndex: last.index,
+      });
+
+      return gaps;
+    };
+
+    const mergedByFirstIndex = new Map<number, MergedChunk>();
+    mergedChunks.forEach((chunk) => {
+      const firstIndex = chunk.originalIndices[0];
+      if (firstIndex !== undefined) {
+        mergedByFirstIndex.set(firstIndex, chunk);
+      }
+    });
+
+    const lastMerged = mergedChunks[mergedChunks.length - 1];
+    const lastChunkIndex =
+      lastMerged?.originalIndices[lastMerged.originalIndices.length - 1] ?? null;
+
+    const queued = new Set<string>();
+    const queueExpand = (key: string, action: () => void) => {
+      if (queued.has(key)) return;
+      queued.add(key);
+      action();
+    };
+
+    (['old', 'new'] as const).forEach((side) => {
+      const ranges = buildRanges(side);
+      const gaps = buildGaps(ranges);
+      const commentRanges = commentRangesBySide[side];
+      if (commentRanges.length === 0) return;
+
+      gaps.forEach((gap) => {
+        const hasComment = commentRanges.some(
+          (range) => range.start <= gap.end && range.end >= gap.start
+        );
+        if (!hasComment) return;
+
+        if (gap.type === 'after' && lastMerged && lastChunkIndex !== null) {
+          if (lastMerged.hiddenLinesAfter > 0) {
+            queueExpand(`after-${lastChunkIndex}`, () => {
+              void expandLines(file, lastChunkIndex, 'down', lastMerged.hiddenLinesAfter);
+            });
+          }
+          return;
+        }
+
+        const nextChunkIndex = gap.nextChunkIndex;
+        if (nextChunkIndex === undefined) return;
+        const mergedChunk = mergedByFirstIndex.get(nextChunkIndex);
+        if (!mergedChunk || mergedChunk.hiddenLinesBefore <= 0) return;
+
+        if (gap.type === 'before') {
+          queueExpand(`before-${nextChunkIndex}`, () => {
+            void expandLines(file, nextChunkIndex, 'up', mergedChunk.hiddenLinesBefore);
+          });
+        } else if (gap.type === 'between') {
+          queueExpand(`between-${nextChunkIndex}`, () => {
+            void expandAllBetweenChunks(file, nextChunkIndex, mergedChunk.hiddenLinesBefore);
+          });
+        }
+      });
+    });
+  }, [
+    comments,
+    expandAllBetweenChunks,
+    expandLines,
+    file,
+    isCollapsed,
+    isExpandLoading,
+    mergedChunks,
+    needsExpand,
+  ]);
+
   // Helper to render expand button (#4 - consolidated logic)
   const renderExpandButton = (
     position: 'top' | 'middle' | 'bottom',
