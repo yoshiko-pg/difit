@@ -9,7 +9,7 @@ import {
   Check,
   Square,
 } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 
 import {
   type DiffFile,
@@ -76,7 +76,7 @@ interface DiffViewerProps {
   onCommentTriggerHandled?: () => void;
 }
 
-export function DiffViewer({
+export const DiffViewer = memo(function DiffViewer({
   file,
   comments,
   diffMode,
@@ -378,4 +378,4 @@ export function DiffViewer({
       )}
     </div>
   );
-}
+});

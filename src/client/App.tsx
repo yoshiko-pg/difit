@@ -32,6 +32,9 @@ import { useViewedFiles } from './hooks/useViewedFiles';
 import { getFileElementId } from './utils/domUtils';
 import { findCommentPosition } from './utils/navigation/positionHelpers';
 
+const EMPTY_COMMENTS: Comment[] = [];
+const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
+
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
   const [diffMode, setDiffMode] = useState<DiffViewMode>('side-by-side');
@@ -77,6 +80,36 @@ function App() {
     diffData?.repositoryId // Repository identifier for storage isolation
   );
 
+  const normalizedComments = useMemo<Comment[]>(
+    () =>
+      comments.map((comment) => ({
+        id: comment.id,
+        file: comment.filePath,
+        line:
+          typeof comment.position.line === 'number' ?
+            comment.position.line
+          : ([comment.position.line.start, comment.position.line.end] as [number, number]),
+        body: comment.body,
+        timestamp: comment.createdAt,
+        codeContent: comment.codeSnapshot?.content,
+        side: comment.position.side,
+      })),
+    [comments]
+  );
+
+  const commentsByFile = useMemo(() => {
+    const map = new Map<string, Comment[]>();
+    normalizedComments.forEach((normalized) => {
+      const entry = map.get(normalized.file);
+      if (entry) {
+        entry.push(normalized);
+      } else {
+        map.set(normalized.file, [normalized]);
+      }
+    });
+    return map;
+  }, [normalizedComments]);
+
   // Viewed files management
   const { viewedFiles, toggleFileViewed, clearViewedFiles } = useViewedFiles(
     diffData?.baseCommitish,
@@ -100,40 +133,43 @@ function App() {
     }
   }, [viewedFiles]);
 
-  const toggleFileReviewed = async (filePath: string) => {
-    if (diffData) {
+  const toggleFileReviewed = useCallback(
+    async (filePath: string) => {
+      if (!diffData) return;
+
       const file = diffData.files.find((f) => f.path === filePath);
-      if (file) {
-        const wasViewed = viewedFiles.has(filePath);
-        await toggleFileViewed(filePath, file);
+      if (!file) return;
 
-        // Update collapsed state based on viewed state
-        setCollapsedFiles((prev) => {
-          const newSet = new Set(prev);
-          if (!wasViewed) {
-            // Marking as viewed -> collapse the file
-            newSet.add(filePath);
-          } else {
-            // Marking as not viewed -> expand the file
-            newSet.delete(filePath);
-          }
-          return newSet;
-        });
+      const wasViewed = viewedFiles.has(filePath);
+      await toggleFileViewed(filePath, file);
 
-        // When marking as reviewed (closing file), scroll to the file header
+      // Update collapsed state based on viewed state
+      setCollapsedFiles((prev) => {
+        const newSet = new Set(prev);
         if (!wasViewed) {
-          setTimeout(() => {
-            const element = document.getElementById(getFileElementId(filePath));
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 100);
+          // Marking as viewed -> collapse the file
+          newSet.add(filePath);
+        } else {
+          // Marking as not viewed -> expand the file
+          newSet.delete(filePath);
         }
-      }
-    }
-  };
+        return newSet;
+      });
 
-  const toggleFileCollapsed = (filePath: string) => {
+      // When marking as reviewed (closing file), scroll to the file header
+      if (!wasViewed) {
+        setTimeout(() => {
+          const element = document.getElementById(getFileElementId(filePath));
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    },
+    [diffData, toggleFileViewed, viewedFiles]
+  );
+
+  const toggleFileCollapsed = useCallback((filePath: string) => {
     setCollapsedFiles((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(filePath)) {
@@ -143,19 +179,22 @@ function App() {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const toggleAllFilesCollapsed = (shouldCollapse: boolean) => {
-    if (!diffData) return;
+  const toggleAllFilesCollapsed = useCallback(
+    (shouldCollapse: boolean) => {
+      if (!diffData) return;
 
-    if (shouldCollapse) {
-      // Collapse all files
-      setCollapsedFiles(new Set(diffData.files.map((f) => f.path)));
-    } else {
-      // Expand all files
-      setCollapsedFiles(new Set());
-    }
-  };
+      if (shouldCollapse) {
+        // Collapse all files
+        setCollapsedFiles(new Set(diffData.files.map((f) => f.path)));
+      } else {
+        // Expand all files
+        setCollapsedFiles(new Set());
+      }
+    },
+    [diffData]
+  );
 
   const handleDiffModeChange = useCallback((mode: DiffViewMode) => {
     hasUserSetDiffModeRef.current = true;
@@ -235,17 +274,7 @@ function App() {
 
   const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition } = useKeyboardNavigation({
     files: navigableFiles,
-    comments: comments.map((c) => ({
-      id: c.id,
-      file: c.filePath,
-      line:
-        typeof c.position.line === 'number' ?
-          c.position.line
-        : [c.position.line.start, c.position.line.end],
-      body: c.body,
-      timestamp: c.createdAt,
-      codeContent: c.codeSnapshot?.content,
-    })),
+    comments: normalizedComments,
     viewMode: diffMode,
     reviewedFiles: viewedFiles,
     onToggleReviewed: toggleFileReviewed,
@@ -275,6 +304,27 @@ function App() {
       reload();
     },
   });
+
+  const handleLineClick = useCallback(
+    (fileIndex: number, chunkIndex: number, lineIndex: number, side: 'left' | 'right') => {
+      setCursorPosition({
+        fileIndex,
+        chunkIndex,
+        lineIndex,
+        side,
+      });
+    },
+    [setCursorPosition]
+  );
+
+  const handleCommentTriggerHandled = useCallback(() => {
+    setCommentTrigger(null);
+  }, [setCommentTrigger]);
+
+  const handleGeneratePrompt = useCallback(
+    (comment: Comment) => generatePrompt(comment.id),
+    [generatePrompt]
+  );
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -516,30 +566,33 @@ function App() {
     };
   }, []);
 
-  const handleAddComment = (
-    file: string,
-    line: LineNumber,
-    body: string,
-    codeContent?: string,
-    chunkHeader?: string,
-    side?: DiffSide
-  ): Promise<void> => {
-    addComment({
-      filePath: file,
-      body,
-      side: side || 'new',
-      line: typeof line === 'number' ? line : { start: line[0], end: line[1] },
-      chunkHeader: chunkHeader || '',
-      codeSnapshot:
-        codeContent ?
-          {
-            content: codeContent,
-            language: undefined,
-          }
-        : undefined,
-    });
-    return Promise.resolve();
-  };
+  const handleAddComment = useCallback(
+    (
+      file: string,
+      line: LineNumber,
+      body: string,
+      codeContent?: string,
+      chunkHeader?: string,
+      side?: DiffSide
+    ): Promise<void> => {
+      addComment({
+        filePath: file,
+        body,
+        side: side || 'new',
+        line: typeof line === 'number' ? line : { start: line[0], end: line[1] },
+        chunkHeader: chunkHeader || '',
+        codeSnapshot:
+          codeContent ?
+            {
+              content: codeContent,
+              language: undefined,
+            }
+          : undefined,
+      });
+      return Promise.resolve();
+    },
+    [addComment]
+  );
 
   const handleCopyAllComments = async () => {
     try {
@@ -852,24 +905,13 @@ function App() {
 
           <main className="flex-1 overflow-y-auto">
             {diffData.files.map((file, fileIndex) => {
+              const fileComments = commentsByFile.get(file.path) ?? EMPTY_COMMENTS;
+              const mergedChunks = mergedChunksByFile.get(file.path) ?? EMPTY_MERGED_CHUNKS;
               return (
                 <div key={file.path} id={getFileElementId(file.path)} className="mb-6">
                   <DiffViewer
                     file={file}
-                    comments={comments
-                      .filter((c) => c.filePath === file.path)
-                      .map((c) => ({
-                        id: c.id,
-                        file: c.filePath,
-                        line:
-                          typeof c.position.line === 'number' ?
-                            c.position.line
-                          : [c.position.line.start, c.position.line.end],
-                        body: c.body,
-                        timestamp: c.createdAt,
-                        codeContent: c.codeSnapshot?.content,
-                        side: c.position.side,
-                      }))}
+                    comments={fileComments}
                     diffMode={diffMode}
                     reviewedFiles={viewedFiles}
                     onToggleReviewed={toggleFileReviewed}
@@ -877,7 +919,7 @@ function App() {
                     onToggleCollapsed={toggleFileCollapsed}
                     onToggleAllCollapsed={toggleAllFilesCollapsed}
                     onAddComment={handleAddComment}
-                    onGeneratePrompt={(comment) => generatePrompt(comment.id)}
+                    onGeneratePrompt={handleGeneratePrompt}
                     onRemoveComment={removeComment}
                     onUpdateComment={updateComment}
                     syntaxTheme={settings.syntaxTheme}
@@ -885,17 +927,10 @@ function App() {
                     targetCommitish={diffData.targetCommitish}
                     cursor={cursor?.fileIndex === fileIndex ? cursor : null}
                     fileIndex={fileIndex}
-                    onLineClick={(fileIdx, chunkIdx, lineIdx, side) => {
-                      setCursorPosition({
-                        fileIndex: fileIdx,
-                        chunkIndex: chunkIdx,
-                        lineIndex: lineIdx,
-                        side,
-                      });
-                    }}
+                    onLineClick={handleLineClick}
                     commentTrigger={commentTrigger?.fileIndex === fileIndex ? commentTrigger : null}
-                    onCommentTriggerHandled={() => setCommentTrigger(null)}
-                    mergedChunks={mergedChunksByFile.get(file.path) || []}
+                    onCommentTriggerHandled={handleCommentTriggerHandled}
+                    mergedChunks={mergedChunks}
                     expandLines={expandLines}
                     expandAllBetweenChunks={expandAllBetweenChunks}
                     prefetchFileContent={prefetchFileContent}
