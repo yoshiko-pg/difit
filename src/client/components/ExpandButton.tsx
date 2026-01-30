@@ -29,7 +29,7 @@ export const ExpandButton = memo(function ExpandButton({
   const showOnlyExpandAll = hiddenLines <= DEFAULT_EXPAND_COUNT;
   const gridClass = 'grid-cols-[var(--line-number-width)_1fr]';
   const iconButtonClass =
-    'flex flex-1 w-full items-center justify-center rounded-sm text-github-text-muted hover:text-github-text-primary hover:bg-github-bg-tertiary transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+    'flex flex-1 w-full items-center justify-center bg-github-bg-secondary text-white hover:bg-github-bg-tertiary hover:text-github-text-primary dark:bg-slate-600 dark:hover:bg-slate-500 dark:hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const actions: {
     key: string;
@@ -66,9 +66,9 @@ export const ExpandButton = memo(function ExpandButton({
 
   return (
     <div
-      className={`grid w-full border-l border-r border-github-border bg-github-bg-secondary ${gridClass}`}
+      className={`grid w-full border-l border-r border-github-border bg-github-bg-tertiary ${gridClass}`}
     >
-      <div className="flex flex-col items-stretch justify-center gap-0.5 bg-github-bg-secondary border-r border-github-border">
+      <div className="flex flex-col items-stretch justify-center gap-0.5 bg-github-bg-secondary border-r border-github-border dark:bg-slate-600">
         {isLoading ?
           <Loader2 size={14} className="animate-spin text-github-text-muted" aria-hidden="true" />
         : actions.map((action) => (
