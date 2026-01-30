@@ -12,7 +12,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
 } from 'lucide-react';
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 
 import { type DiffFile, type Comment } from '../../types/diff';
 
@@ -116,6 +116,8 @@ export function FileList({
   selectedFileIndex,
 }: FileListProps) {
   const fileTree = buildFileTree(files);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const dirContainerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const stickyContainerStyle = {
     '--dir-row-height': 'calc(var(--spacing, 0.25rem) * 9)',
   } as CSSProperties;
@@ -210,21 +212,73 @@ export function FileList({
     }
   };
 
+  const handleDirectoryClick = (event: MouseEvent<HTMLDivElement>, path: string) => {
+    const container = scrollContainerRef.current;
+    const row = event.currentTarget;
+
+    if (!container) {
+      toggleDirectory(path);
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    const topOffset = Number.parseFloat(getComputedStyle(row).top || '0');
+    const relativeTop = rowRect.top - containerRect.top;
+    const isSticky = relativeTop <= topOffset + 1;
+
+    if (isSticky) {
+      const wrapper = dirContainerRefs.current.get(path);
+      const firstChild = wrapper?.querySelector<HTMLElement>(
+        '[data-tree-row="true"]:not([data-dir-header="true"])'
+      );
+      const rowHeight = row.getBoundingClientRect().height || 0;
+      const target = firstChild ?? row;
+      const depthValue = Number.parseInt(target.dataset.depth || row.dataset.depth || '0', 10);
+      const stackedOffset = rowHeight * depthValue;
+      const targetScrollTop = Math.max(0, target.offsetTop - stackedOffset);
+
+      if (Math.abs(container.scrollTop - targetScrollTop) <= 1) {
+        toggleDirectory(path);
+        return;
+      }
+
+      container.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+      return;
+    }
+
+    toggleDirectory(path);
+  };
+
   const renderTreeNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
     if (node.isDirectory && node.children) {
       const isExpanded = expandedDirs.has(node.path);
 
       return (
-        <div key={node.path}>
+        <div
+          key={node.path}
+          data-dir-container={node.path || undefined}
+          ref={(el) => {
+            if (!node.path) return;
+            if (el) {
+              dirContainerRefs.current.set(node.path, el);
+            } else {
+              dirContainerRefs.current.delete(node.path);
+            }
+          }}
+        >
           {node.name && (
             <div
               className="sticky flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer"
+              data-dir-header="true"
+              data-tree-row="true"
+              data-depth={depth}
               style={{
                 paddingLeft: `${depth * 16 + 16}px`,
                 top: `calc(${depth} * var(--dir-row-height))`,
                 zIndex: 1000 - depth,
               }}
-              onClick={() => toggleDirectory(node.path)}
+              onClick={(event) => handleDirectoryClick(event, node.path)}
             >
               {isExpanded ?
                 <ChevronDown size={16} />
@@ -257,6 +311,9 @@ export function FileList({
           className={`flex items-center gap-2 px-4 py-2 hover:bg-github-bg-tertiary cursor-pointer transition-colors ${
             isReviewed ? 'opacity-70' : ''
           } ${isSelected ? 'bg-github-bg-tertiary' : ''}`}
+          data-file-row="true"
+          data-tree-row="true"
+          data-depth={depth}
           style={{ paddingLeft: `${depth * 16 + 16}px` }}
           onClick={() => onScrollToFile(file.path)}
         >
@@ -322,7 +379,11 @@ export function FileList({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto relative z-0" style={stickyContainerStyle}>
+      <div
+        className="flex-1 overflow-y-auto relative z-0"
+        style={stickyContainerStyle}
+        ref={scrollContainerRef}
+      >
         {filteredFileTree.children?.map((child) => renderTreeNode(child))}
       </div>
     </div>
