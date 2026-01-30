@@ -87,7 +87,7 @@ export const ExpandButton = memo(function ExpandButton({
   // With header: show header on the left, buttons on the right
   if (header) {
     return (
-      <div className="flex items-center justify-between bg-github-bg-tertiary border-y border-github-border">
+      <div className="flex items-center justify-between bg-github-bg-tertiary">
         <code className="text-github-text-secondary text-xs font-mono px-3 py-2 truncate">
           {header}
         </code>
@@ -99,7 +99,7 @@ export const ExpandButton = memo(function ExpandButton({
   // Align right: buttons on the right side
   if (alignRight) {
     return (
-      <div className="flex items-center justify-end bg-github-bg-tertiary border-y border-github-border">
+      <div className="flex items-center justify-end bg-github-bg-tertiary">
         <div className="flex items-center gap-2 px-3 py-1">{renderButtons()}</div>
       </div>
     );
@@ -107,7 +107,7 @@ export const ExpandButton = memo(function ExpandButton({
 
   // Default: centered buttons
   return (
-    <div className="flex items-center justify-center py-1 px-4 bg-github-bg-secondary border-y border-github-border">
+    <div className="flex items-center justify-center py-1 px-4 bg-github-bg-secondary">
       <div className="flex items-center gap-3">{renderButtons()}</div>
     </div>
   );

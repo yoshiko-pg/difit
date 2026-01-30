@@ -324,8 +324,7 @@ export function DiffViewer({
               const firstOriginalIndex = mergedChunk.originalIndices[0] ?? 0;
               const lastOriginalIndex =
                 mergedChunk.originalIndices[mergedChunk.originalIndices.length - 1] ?? 0;
-              // Show bottom border only if there's a gap after this merged chunk
-              const showBottomBorder = isLastMerged || mergedChunk.hiddenLinesAfter > 0;
+
               return (
                 <React.Fragment key={mergedIndex}>
                   {/* First merged chunk: show header only when not starting from line 1 (#9) */}
@@ -354,10 +353,7 @@ export function DiffViewer({
                       lastOriginalIndex
                     )}
 
-                  <div
-                    id={`chunk-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}-${mergedIndex}`}
-                    className={showBottomBorder ? 'border-b border-github-border' : ''}
-                  >
+                  <div id={`chunk-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}-${mergedIndex}`}>
                     <DiffChunk
                       chunk={mergedChunk}
                       chunkIndex={mergedIndex}
