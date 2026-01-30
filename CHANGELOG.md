@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.9] - 2026-01-30
+
+### Fixed
+
+- Restore scroll-to-top on sticky folder click
+
 ## [3.0.8] - 2026-01-29
 
 ### Changed
@@ -765,7 +771,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.8...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.9...HEAD
+[3.0.9]: https://github.com/yoshiko-pg/difit/compare/v3.0.8...v3.0.9
 [3.0.8]: https://github.com/yoshiko-pg/difit/compare/v3.0.7...v3.0.8
 [3.0.7]: https://github.com/yoshiko-pg/difit/compare/v3.0.6...v3.0.7
 [3.0.6]: https://github.com/yoshiko-pg/difit/compare/v3.0.5...v3.0.6
