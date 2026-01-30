@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 
 import {
   type DiffChunk as DiffChunkType,
@@ -49,7 +49,7 @@ interface DiffChunkProps {
   filename?: string;
 }
 
-export function DiffChunk({
+export const DiffChunk = memo(function DiffChunk({
   chunk,
   chunkIndex,
   comments,
@@ -436,4 +436,4 @@ export function DiffChunk({
       </table>
     </div>
   );
-}
+});

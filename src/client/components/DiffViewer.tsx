@@ -9,7 +9,7 @@ import {
   Check,
   Square,
 } from 'lucide-react';
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 
 import {
   type DiffFile,
@@ -147,19 +147,32 @@ export const DiffViewer = memo(function DiffViewer({
     }
   };
 
-  const handleAddComment = async (
-    line: LineNumber,
-    body: string,
-    codeContent?: string,
-    chunkHeader?: string,
-    side?: DiffSide
-  ) => {
-    try {
-      await onAddComment(file.path, line, body, codeContent, chunkHeader, side);
-    } catch (error) {
-      console.error('Failed to add comment:', error);
-    }
-  };
+  const handleAddComment = useCallback(
+    async (
+      line: LineNumber,
+      body: string,
+      codeContent?: string,
+      chunkHeader?: string,
+      side?: DiffSide
+    ) => {
+      try {
+        await onAddComment(file.path, line, body, codeContent, chunkHeader, side);
+      } catch (error) {
+        console.error('Failed to add comment:', error);
+      }
+    },
+    [file.path, onAddComment]
+  );
+
+  const mergedChunkItems = useMemo(
+    () =>
+      mergedChunks.map((mergedChunk) => ({
+        mergedChunk,
+        onAddComment: (line: LineNumber, body: string, codeContent?: string, side?: DiffSide) =>
+          handleAddComment(line, body, codeContent, mergedChunk.header, side),
+      })),
+    [mergedChunks, handleAddComment]
+  );
 
   // Helper to render expand button (#4 - consolidated logic)
   const renderExpandButton = (
@@ -314,9 +327,9 @@ export const DiffViewer = memo(function DiffViewer({
               baseCommitish={baseCommitish}
               targetCommitish={targetCommitish}
             />
-          : mergedChunks.map((mergedChunk, mergedIndex) => {
+          : mergedChunkItems.map(({ mergedChunk, onAddComment }, mergedIndex) => {
               const isFirstMerged = mergedIndex === 0;
-              const isLastMerged = mergedIndex === mergedChunks.length - 1;
+              const isLastMerged = mergedIndex === mergedChunkItems.length - 1;
               const firstOriginalIndex = mergedChunk.originalIndices[0] ?? 0;
               const lastOriginalIndex =
                 mergedChunk.originalIndices[mergedChunk.originalIndices.length - 1] ?? 0;
@@ -341,15 +354,13 @@ export const DiffViewer = memo(function DiffViewer({
                       chunk={mergedChunk}
                       chunkIndex={mergedIndex}
                       comments={comments}
-                      onAddComment={(line, body, codeContent, side) =>
-                        handleAddComment(line, body, codeContent, mergedChunk.header, side)
-                      }
+                      onAddComment={onAddComment}
                       onGeneratePrompt={onGeneratePrompt}
                       onRemoveComment={onRemoveComment}
                       onUpdateComment={onUpdateComment}
                       mode={diffMode}
                       syntaxTheme={syntaxTheme}
-                      cursor={cursor}
+                      cursor={cursor && cursor.chunkIndex === mergedIndex ? cursor : null}
                       fileIndex={fileIndex}
                       onLineClick={onLineClick}
                       commentTrigger={
