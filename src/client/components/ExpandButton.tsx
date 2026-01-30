@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { ArrowDownFromLine, ArrowUpFromLine, Loader2, UnfoldVertical } from 'lucide-react';
 import { memo, type ReactElement } from 'react';
 
 const DEFAULT_EXPAND_COUNT = 20;
@@ -29,7 +29,7 @@ export const ExpandButton = memo(function ExpandButton({
   const showOnlyExpandAll = hiddenLines <= DEFAULT_EXPAND_COUNT;
   const gridClass = 'grid-cols-[var(--line-number-width)_1fr]';
   const iconButtonClass =
-    'flex flex-1 w-full items-center justify-center bg-github-bg-secondary text-white hover:bg-github-bg-tertiary hover:text-github-text-primary dark:bg-slate-600 dark:hover:bg-slate-500 dark:hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
+    'flex flex-1 w-full items-center justify-center py-1 bg-github-bg-secondary text-white hover:bg-github-bg-tertiary hover:text-github-text-primary dark:bg-slate-600 dark:hover:bg-slate-500 dark:hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const actions: {
     key: string;
@@ -43,7 +43,7 @@ export const ExpandButton = memo(function ExpandButton({
       key: 'all',
       onClick: onExpandAll,
       ariaLabel: `Expand all ${hiddenLines} hidden lines`,
-      icon: <ChevronsUpDown size={14} aria-hidden="true" />,
+      icon: <UnfoldVertical size={16} aria-hidden="true" />,
     });
   } else {
     if (direction === 'up' || direction === 'both') {
@@ -51,7 +51,7 @@ export const ExpandButton = memo(function ExpandButton({
         key: 'up',
         onClick: onExpandUp,
         ariaLabel: `Expand ${DEFAULT_EXPAND_COUNT} hidden lines above`,
-        icon: <ChevronUp size={14} aria-hidden="true" />,
+        icon: <ArrowUpFromLine size={12} aria-hidden="true" className="translate-y-0.5" />,
       });
     }
     if (direction === 'down' || direction === 'both') {
@@ -59,14 +59,14 @@ export const ExpandButton = memo(function ExpandButton({
         key: 'down',
         onClick: onExpandDown,
         ariaLabel: `Expand ${DEFAULT_EXPAND_COUNT} hidden lines below`,
-        icon: <ChevronDown size={14} aria-hidden="true" />,
+        icon: <ArrowDownFromLine size={12} aria-hidden="true" className="-translate-y-0.5" />,
       });
     }
   }
 
   return (
     <div
-      className={`grid w-full border-l border-r border-github-border bg-github-bg-tertiary ${gridClass}`}
+      className={`grid w-full border-l border-r border-github-border bg-github-bg-tertiary text-sm ${gridClass}`}
     >
       <div className="flex flex-col items-stretch justify-center gap-0.5 bg-github-bg-secondary border-r border-github-border dark:bg-slate-600">
         {isLoading ?
@@ -86,7 +86,7 @@ export const ExpandButton = memo(function ExpandButton({
           ))
         }
       </div>
-      <div className="flex items-center justify-start px-3 py-1 text-xs font-mono text-github-text-muted select-none">
+      <div className="flex items-center justify-start px-3 py-1.5 font-mono text-github-text-muted select-none">
         {lineLabel}
       </div>
     </div>

@@ -88,7 +88,7 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
           {line.oldLineNumber || ''}
         </td>
         <td className="w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible">
-          <span className="pr-5">{line.newLineNumber || ''}</span>
+          <span>{line.newLineNumber || ''}</span>
           {showCommentButton && (
             <CommentButton
               onMouseDown={onCommentButtonMouseDown}

@@ -286,7 +286,7 @@ export const DiffChunk = memo(function DiffChunk({
   }
 
   return (
-    <div className="bg-github-bg-primary">
+    <div className="bg-github-bg-primary border border-github-border">
       <table className="w-full table-fixed border-collapse font-mono text-sm leading-5">
         <tbody>
           {chunk.lines.map((line, index) => {

@@ -184,9 +184,9 @@ export const DiffViewer = memo(function DiffViewer({
     if (position === 'top' && mergedChunk.hiddenLinesBefore > 0) {
       return (
         <ExpandButton
-          direction="up"
+          direction="down"
           hiddenLines={mergedChunk.hiddenLinesBefore}
-          onExpandUp={() => expandLines(file, firstOriginalIndex, 'up')}
+          onExpandDown={() => expandLines(file, firstOriginalIndex, 'up')}
           onExpandAll={() =>
             expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
           }
@@ -213,9 +213,9 @@ export const DiffViewer = memo(function DiffViewer({
     if (position === 'bottom' && mergedChunk.hiddenLinesAfter > 0) {
       return (
         <ExpandButton
-          direction="down"
+          direction="up"
           hiddenLines={mergedChunk.hiddenLinesAfter}
-          onExpandDown={() => expandLines(file, lastOriginalIndex, 'down')}
+          onExpandUp={() => expandLines(file, lastOriginalIndex, 'down')}
           onExpandAll={() =>
             expandLines(file, lastOriginalIndex, 'down', mergedChunk.hiddenLinesAfter)
           }
@@ -227,7 +227,7 @@ export const DiffViewer = memo(function DiffViewer({
     return null;
   };
 
-  const lineNumberWidth = diffMode === 'side-by-side' ? '60px' : '50px';
+  const lineNumberWidth = '4em';
 
   return (
     <div

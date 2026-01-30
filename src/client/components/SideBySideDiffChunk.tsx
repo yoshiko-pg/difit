@@ -453,7 +453,7 @@ export function SideBySideDiffChunk({
                     id={oldLineNavId}
                     className={`w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightOldCell ? cellHighlightClass : ''}`}
                   >
-                    <span className="pr-5">{sideLine.oldLineNumber || ''}</span>
+                    <span>{sideLine.oldLineNumber || ''}</span>
                     {hoveredLine?.side === 'old' &&
                       hoveredLine?.lineNumber === sideLine.oldLineNumber && (
                         <CommentButton
@@ -522,7 +522,7 @@ export function SideBySideDiffChunk({
                     id={newLineNavId}
                     className={`w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightNewCell ? cellHighlightClass : ''}`}
                   >
-                    <span className="pr-5">{sideLine.newLineNumber || ''}</span>
+                    <span>{sideLine.newLineNumber || ''}</span>
                     {hoveredLine?.side === 'new' &&
                       hoveredLine?.lineNumber === sideLine.newLineNumber && (
                         <CommentButton
