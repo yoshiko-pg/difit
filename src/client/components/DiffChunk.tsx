@@ -47,6 +47,7 @@ interface DiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
+  isConnectedToPrevious?: boolean;
 }
 
 export function DiffChunk({
@@ -65,6 +66,7 @@ export function DiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
+  isConnectedToPrevious = false,
 }: DiffChunkProps) {
   const [startLine, setStartLine] = useState<number | null>(null);
   const [endLine, setEndLine] = useState<number | null>(null);
@@ -281,12 +283,16 @@ export function DiffChunk({
         filename={filename}
         commentTrigger={commentTrigger}
         onCommentTriggerHandled={onCommentTriggerHandled}
+        isConnectedToPrevious={isConnectedToPrevious}
       />
     );
   }
 
+  // Use isConnectedToPrevious for conditional styling (#11)
   return (
-    <div className="bg-github-bg-primary">
+    <div
+      className={`bg-github-bg-primary ${isConnectedToPrevious ? '' : 'border-t border-github-border first:border-t-0'}`}
+    >
       <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {chunk.lines.map((line, index) => {

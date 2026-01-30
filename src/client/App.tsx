@@ -1,5 +1,5 @@
 import { Columns, AlignLeft, Settings, PanelLeftClose, PanelLeft, Keyboard } from 'lucide-react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import {
   type DiffResponse,
@@ -25,6 +25,7 @@ import { SparkleAnimation } from './components/SparkleAnimation';
 import { WordHighlightProvider } from './contexts/WordHighlightContext';
 import { useAppearanceSettings } from './hooks/useAppearanceSettings';
 import { useDiffComments } from './hooks/useDiffComments';
+import { useExpandedLines } from './hooks/useExpandedLines';
 import { useFileWatch } from './hooks/useFileWatch';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { useViewedFiles } from './hooks/useViewedFiles';
@@ -161,6 +162,37 @@ function App() {
     setDiffMode(mode);
   }, []);
 
+  // Lift expand state to App level so navigation and rendering share the same merged chunks
+  const {
+    isLoading: isExpandLoading,
+    expandLines,
+    expandAllBetweenChunks,
+    prefetchFileContent,
+    getMergedChunks,
+  } = useExpandedLines({
+    baseCommitish: diffData?.baseCommitish,
+    targetCommitish: diffData?.targetCommitish,
+  });
+
+  // Compute merged chunks for all files, used by both navigation and rendering
+  const allMergedChunks = useMemo(() => {
+    if (!diffData) return new Map<number, ReturnType<typeof getMergedChunks>>();
+    const map = new Map<number, ReturnType<typeof getMergedChunks>>();
+    diffData.files.forEach((file, index) => {
+      map.set(index, getMergedChunks(file));
+    });
+    return map;
+  }, [diffData, getMergedChunks]);
+
+  // Create files with merged chunks for keyboard navigation
+  const navigableFiles = useMemo(() => {
+    if (!diffData) return [];
+    return diffData.files.map((file, index) => ({
+      ...file,
+      chunks: allMergedChunks.get(index) || file.chunks,
+    }));
+  }, [diffData, allMergedChunks]);
+
   // State to trigger comment creation from keyboard
   const [commentTrigger, setCommentTrigger] = useState<{
     fileIndex: number;
@@ -174,7 +206,7 @@ function App() {
   });
 
   const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition } = useKeyboardNavigation({
-    files: diffData?.files || [],
+    files: navigableFiles,
     comments: comments.map((c) => ({
       id: c.id,
       file: c.filePath,
@@ -835,6 +867,11 @@ function App() {
                     }}
                     commentTrigger={commentTrigger?.fileIndex === fileIndex ? commentTrigger : null}
                     onCommentTriggerHandled={() => setCommentTrigger(null)}
+                    mergedChunks={allMergedChunks.get(fileIndex) || []}
+                    expandLines={expandLines}
+                    expandAllBetweenChunks={expandAllBetweenChunks}
+                    prefetchFileContent={prefetchFileContent}
+                    isExpandLoading={isExpandLoading}
                   />
                 </div>
               );

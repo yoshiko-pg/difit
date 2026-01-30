@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { type DiffLine } from '../../types/diff';
+import { type DiffLine, type ExpandedLine } from '../../types/diff';
 import { type DiffSegment } from '../utils/wordLevelDiff';
 
 import { CommentButton } from './CommentButton';
@@ -9,7 +9,7 @@ import type { AppearanceSettings } from './SettingsModal';
 import { WordLevelDiffHighlighter } from './WordLevelDiffHighlighter';
 
 interface DiffLineRowProps {
-  line: DiffLine;
+  line: DiffLine | ExpandedLine;
   index: number;
   lineId?: string;
   isCurrentLine?: boolean;
@@ -26,7 +26,11 @@ interface DiffLineRowProps {
   diffSegments?: DiffSegment[];
 }
 
-const getLineClass = (line: DiffLine) => {
+const getLineClass = (line: DiffLine | ExpandedLine) => {
+  // Expanded lines have a subtle different background
+  if ('isExpanded' in line && line.isExpanded) {
+    return 'bg-github-bg-tertiary/50';
+  }
   switch (line.type) {
     case 'add':
       return 'bg-diff-addition-bg';

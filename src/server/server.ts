@@ -192,6 +192,42 @@ export async function startServer(
     }
   });
 
+  app.get(/^\/api\/line-count\/(.*)$/, async (req, res) => {
+    try {
+      if (options.stdinDiff) {
+        res.status(404).json({ error: 'Line count not available for stdin diff' });
+        return;
+      }
+
+      const filepath = req.params[0];
+      const oldRef = req.query.oldRef as string | undefined;
+      const newRef = req.query.newRef as string | undefined;
+      const oldPath = (req.query.oldPath as string | undefined) || filepath;
+
+      const result: { oldLineCount?: number; newLineCount?: number } = {};
+
+      if (oldRef) {
+        try {
+          result.oldLineCount = await parser.getLineCount(oldPath, oldRef);
+        } catch {
+          result.oldLineCount = 0;
+        }
+      }
+      if (newRef) {
+        try {
+          result.newLineCount = await parser.getLineCount(filepath, newRef);
+        } catch {
+          result.newLineCount = 0;
+        }
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching line count:', error);
+      res.status(500).json({ error: 'Failed to get line count' });
+    }
+  });
+
   app.get(/^\/api\/blob\/(.*)$/, async (req, res) => {
     try {
       // If using stdin diff, blob content is not available

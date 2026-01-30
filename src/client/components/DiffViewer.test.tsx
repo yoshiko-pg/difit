@@ -65,8 +65,9 @@ describe('DiffViewer', () => {
     ...overrides,
   });
 
+  const mockFile = createMockFile();
   const defaultProps = {
-    file: createMockFile(),
+    file: mockFile,
     comments: [] as Comment[],
     reviewedFiles: new Set<string>(),
     collapsedFiles: new Set<string>(),
@@ -78,6 +79,16 @@ describe('DiffViewer', () => {
     onToggleReviewed: mockOnToggleReviewed,
     onToggleCollapsed: mockOnToggleCollapsed,
     onToggleAllCollapsed: mockOnToggleAllCollapsed,
+    mergedChunks: mockFile.chunks.map((chunk, i) => ({
+      ...chunk,
+      originalIndices: [i],
+      hiddenLinesBefore: 0,
+      hiddenLinesAfter: 0,
+    })),
+    expandLines: vi.fn().mockResolvedValue(undefined),
+    expandAllBetweenChunks: vi.fn().mockResolvedValue(undefined),
+    prefetchFileContent: vi.fn().mockResolvedValue(undefined),
+    isExpandLoading: false,
   };
 
   describe('File type handling', () => {
@@ -216,7 +227,7 @@ describe('DiffViewer', () => {
         chunks: [],
       });
 
-      render(<DiffViewer {...defaultProps} file={emptyFile} />);
+      render(<DiffViewer {...defaultProps} file={emptyFile} mergedChunks={[]} />);
 
       // Should not crash and should not render any diff chunks
       expect(screen.queryByTestId('diff-chunk')).not.toBeInTheDocument();
@@ -228,7 +239,7 @@ describe('DiffViewer', () => {
         chunks: [],
       });
 
-      render(<DiffViewer {...defaultProps} file={binaryFile} />);
+      render(<DiffViewer {...defaultProps} file={binaryFile} mergedChunks={[]} />);
 
       // Should render as regular diff (not image) since it's not an image file
       expect(screen.queryByTestId('image-diff-chunk')).not.toBeInTheDocument();

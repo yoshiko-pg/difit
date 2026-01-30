@@ -9,7 +9,7 @@ import {
   Check,
   Square,
 } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import {
   type DiffFile,
@@ -19,9 +19,11 @@ import {
   type LineNumber,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
+import { type MergedChunk } from '../hooks/useExpandedLines';
 import { isImageFile } from '../utils/imageUtils';
 
 import { DiffChunk } from './DiffChunk';
+import { ExpandButton } from './ExpandButton';
 import { ImageDiffChunk } from './ImageDiffChunk';
 import type { AppearanceSettings } from './SettingsModal';
 
@@ -50,6 +52,20 @@ interface DiffViewerProps {
   targetCommitish?: string;
   cursor?: CursorPosition | null;
   fileIndex?: number;
+  mergedChunks: MergedChunk[];
+  expandLines: (
+    file: DiffFile,
+    chunkIndex: number,
+    direction: 'up' | 'down',
+    count?: number
+  ) => Promise<void>;
+  expandAllBetweenChunks: (
+    file: DiffFile,
+    chunkIndex: number,
+    hiddenLines: number
+  ) => Promise<void>;
+  prefetchFileContent: (file: DiffFile) => Promise<void>;
+  isExpandLoading: boolean;
   onLineClick?: (
     fileIndex: number,
     chunkIndex: number,
@@ -59,6 +75,13 @@ interface DiffViewerProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
 }
+
+// Helper function: should show header at start when not starting from line 1
+const shouldShowHeaderAtStart = (
+  isFirst: boolean,
+  hiddenBefore: number,
+  oldStart: number
+): boolean => isFirst && hiddenBefore <= 0 && oldStart > 1;
 
 export function DiffViewer({
   file,
@@ -81,9 +104,42 @@ export function DiffViewer({
   onLineClick,
   commentTrigger,
   onCommentTriggerHandled,
+  mergedChunks,
+  expandLines,
+  expandAllBetweenChunks,
+  prefetchFileContent,
+  isExpandLoading,
 }: DiffViewerProps) {
   const isCollapsed = collapsedFiles.has(file.path);
   const [isCopied, setIsCopied] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // File needs expand if it's a modified/renamed text file (not image, not added/deleted)
+  const needsExpand =
+    file.status !== 'added' && file.status !== 'deleted' && !isImageFile(file.path);
+
+  // Observe visibility for lazy prefetch
+  useEffect(() => {
+    if (!needsExpand) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) setIsVisible(true);
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [needsExpand]);
+
+  // Pre-fetch line counts (lightweight) only for visible, non-collapsed files that need expand
+  useEffect(() => {
+    if (isVisible && !isCollapsed && needsExpand) {
+      void prefetchFileContent(file);
+    }
+  }, [isVisible, isCollapsed, needsExpand, file, prefetchFileContent]);
 
   const getFileIcon = (status: DiffFile['status']) => {
     switch (status) {
@@ -112,8 +168,64 @@ export function DiffViewer({
     }
   };
 
+  // Helper to render expand button (#4 - consolidated logic)
+  const renderExpandButton = (
+    position: 'top' | 'middle' | 'bottom',
+    mergedChunk: MergedChunk,
+    firstOriginalIndex: number,
+    lastOriginalIndex: number
+  ) => {
+    if (position === 'top' && mergedChunk.hiddenLinesBefore > 0) {
+      return (
+        <ExpandButton
+          direction="up"
+          hiddenLines={mergedChunk.hiddenLinesBefore}
+          onExpandUp={() => expandLines(file, firstOriginalIndex, 'up')}
+          onExpandAll={() =>
+            expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
+          }
+          isLoading={isExpandLoading}
+          header={mergedChunk.header}
+        />
+      );
+    }
+
+    if (position === 'middle' && mergedChunk.hiddenLinesBefore > 0) {
+      return (
+        <ExpandButton
+          direction="both"
+          hiddenLines={mergedChunk.hiddenLinesBefore}
+          onExpandUp={() => expandLines(file, firstOriginalIndex - 1, 'down')}
+          onExpandDown={() => expandLines(file, firstOriginalIndex, 'up')}
+          onExpandAll={() =>
+            expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
+          }
+          isLoading={isExpandLoading}
+          header={mergedChunk.header}
+        />
+      );
+    }
+
+    if (position === 'bottom' && mergedChunk.hiddenLinesAfter > 0) {
+      return (
+        <ExpandButton
+          direction="down"
+          hiddenLines={mergedChunk.hiddenLinesAfter}
+          onExpandDown={() => expandLines(file, lastOriginalIndex, 'down')}
+          onExpandAll={() =>
+            expandLines(file, lastOriginalIndex, 'down', mergedChunk.hiddenLinesAfter)
+          }
+          isLoading={isExpandLoading}
+          alignRight
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
-    <div className="bg-github-bg-primary">
+    <div ref={containerRef} className="bg-github-bg-primary">
       <div className="bg-github-bg-secondary border-t-2 border-t-github-accent border-b border-github-border px-5 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
@@ -206,38 +318,84 @@ export function DiffViewer({
               baseCommitish={baseCommitish}
               targetCommitish={targetCommitish}
             />
-          : file.chunks.map((chunk, index) => {
+          : mergedChunks.map((mergedChunk, mergedIndex) => {
+              const isFirstMerged = mergedIndex === 0;
+              const isLastMerged = mergedIndex === mergedChunks.length - 1;
+              const firstOriginalIndex = mergedChunk.originalIndices[0] ?? 0;
+              const lastOriginalIndex =
+                mergedChunk.originalIndices[mergedChunk.originalIndices.length - 1] ?? 0;
+              // Show bottom border only if there's a gap after this merged chunk
+              const showBottomBorder = isLastMerged || mergedChunk.hiddenLinesAfter > 0;
+              // Calculate if connected to previous chunk (#3 - fix hardcoded false)
+              const isConnectedToPrevious = !isFirstMerged && mergedChunk.hiddenLinesBefore === 0;
+
               return (
-                <div
-                  key={index}
-                  id={`chunk-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}-${index}`}
-                  className="border-b border-github-border"
-                >
-                  <div className="bg-github-bg-tertiary px-3 py-2 border-b border-github-border">
-                    <code className="text-github-text-secondary text-xs font-mono">
-                      {chunk.header}
-                    </code>
+                <React.Fragment key={mergedIndex}>
+                  {/* First merged chunk: show header only when not starting from line 1 (#9) */}
+                  {shouldShowHeaderAtStart(
+                    isFirstMerged,
+                    mergedChunk.hiddenLinesBefore,
+                    mergedChunk.oldStart
+                  ) && (
+                    <div className="bg-github-bg-tertiary px-3 py-2 border-b border-github-border">
+                      <code className="text-github-text-secondary text-xs font-mono">
+                        {mergedChunk.header}
+                      </code>
+                    </div>
+                  )}
+
+                  {/* Expand button with header before first merged chunk (file start) */}
+                  {isFirstMerged &&
+                    renderExpandButton('top', mergedChunk, firstOriginalIndex, lastOriginalIndex)}
+
+                  {/* Expand button with header between merged chunks */}
+                  {!isFirstMerged &&
+                    renderExpandButton(
+                      'middle',
+                      mergedChunk,
+                      firstOriginalIndex,
+                      lastOriginalIndex
+                    )}
+
+                  <div
+                    id={`chunk-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}-${mergedIndex}`}
+                    className={showBottomBorder ? 'border-b border-github-border' : ''}
+                  >
+                    <DiffChunk
+                      chunk={mergedChunk}
+                      chunkIndex={mergedIndex}
+                      comments={comments}
+                      onAddComment={(line, body, codeContent, side) =>
+                        handleAddComment(line, body, codeContent, mergedChunk.header, side)
+                      }
+                      onGeneratePrompt={onGeneratePrompt}
+                      onRemoveComment={onRemoveComment}
+                      onUpdateComment={onUpdateComment}
+                      mode={diffMode}
+                      syntaxTheme={syntaxTheme}
+                      cursor={cursor}
+                      fileIndex={fileIndex}
+                      onLineClick={onLineClick}
+                      commentTrigger={
+                        commentTrigger && commentTrigger.chunkIndex === mergedIndex ?
+                          commentTrigger
+                        : null
+                      }
+                      onCommentTriggerHandled={onCommentTriggerHandled}
+                      filename={file.path}
+                      isConnectedToPrevious={isConnectedToPrevious}
+                    />
                   </div>
-                  <DiffChunk
-                    chunk={chunk}
-                    chunkIndex={index}
-                    comments={comments}
-                    onAddComment={(line, body, codeContent, side) =>
-                      handleAddComment(line, body, codeContent, chunk.header, side)
-                    }
-                    onGeneratePrompt={onGeneratePrompt}
-                    onRemoveComment={onRemoveComment}
-                    onUpdateComment={onUpdateComment}
-                    mode={diffMode}
-                    syntaxTheme={syntaxTheme}
-                    cursor={cursor}
-                    fileIndex={fileIndex}
-                    onLineClick={onLineClick}
-                    commentTrigger={commentTrigger?.chunkIndex === index ? commentTrigger : null}
-                    onCommentTriggerHandled={onCommentTriggerHandled}
-                    filename={file.path}
-                  />
-                </div>
+
+                  {/* Expand button after last merged chunk */}
+                  {isLastMerged &&
+                    renderExpandButton(
+                      'bottom',
+                      mergedChunk,
+                      firstOriginalIndex,
+                      lastOriginalIndex
+                    )}
+                </React.Fragment>
               );
             })
           }
