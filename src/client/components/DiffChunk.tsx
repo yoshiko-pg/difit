@@ -287,7 +287,7 @@ export function DiffChunk({
 
   return (
     <div className="bg-github-bg-primary">
-      <table className="w-full border-collapse font-mono text-sm leading-5">
+      <table className="w-full table-fixed border-collapse font-mono text-sm leading-5">
         <tbody>
           {chunk.lines.map((line, index) => {
             const currentLineNumber = line.newLineNumber || line.oldLineNumber || 0;

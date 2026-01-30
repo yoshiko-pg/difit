@@ -333,7 +333,7 @@ export function SideBySideDiffChunk({
 
   return (
     <div className="bg-github-bg-primary border border-github-border overflow-hidden">
-      <table className="w-full border-collapse font-mono text-sm leading-5">
+      <table className="w-full table-fixed border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
             // Fetch comments separately for each side to prevent duplication
@@ -451,7 +451,7 @@ export function SideBySideDiffChunk({
                   {/* Old side */}
                   <td
                     id={oldLineNavId}
-                    className={`w-[60px] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightOldCell ? cellHighlightClass : ''}`}
+                    className={`w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightOldCell ? cellHighlightClass : ''}`}
                   >
                     <span className="pr-5">{sideLine.oldLineNumber || ''}</span>
                     {hoveredLine?.side === 'old' &&
@@ -520,7 +520,7 @@ export function SideBySideDiffChunk({
                   {/* New side */}
                   <td
                     id={newLineNavId}
-                    className={`w-[60px] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightNewCell ? cellHighlightClass : ''}`}
+                    className={`w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightNewCell ? cellHighlightClass : ''}`}
                   >
                     <span className="pr-5">{sideLine.newLineNumber || ''}</span>
                     {hoveredLine?.side === 'new' &&

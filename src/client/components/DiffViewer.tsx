@@ -76,13 +76,6 @@ interface DiffViewerProps {
   onCommentTriggerHandled?: () => void;
 }
 
-// Helper function: should show header at start when not starting from line 1
-const shouldShowHeaderAtStart = (
-  isFirst: boolean,
-  hiddenBefore: number,
-  oldStart: number
-): boolean => isFirst && hiddenBefore <= 0 && oldStart > 1;
-
 export function DiffViewer({
   file,
   comments,
@@ -185,7 +178,6 @@ export function DiffViewer({
             expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
           }
           isLoading={isExpandLoading}
-          header={mergedChunk.header}
         />
       );
     }
@@ -201,7 +193,6 @@ export function DiffViewer({
             expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
           }
           isLoading={isExpandLoading}
-          header={mergedChunk.header}
         />
       );
     }
@@ -216,7 +207,6 @@ export function DiffViewer({
             expandLines(file, lastOriginalIndex, 'down', mergedChunk.hiddenLinesAfter)
           }
           isLoading={isExpandLoading}
-          alignRight
         />
       );
     }
@@ -224,8 +214,14 @@ export function DiffViewer({
     return null;
   };
 
+  const lineNumberWidth = diffMode === 'side-by-side' ? '60px' : '50px';
+
   return (
-    <div ref={containerRef} className="bg-github-bg-primary">
+    <div
+      ref={containerRef}
+      className="bg-github-bg-primary"
+      style={{ '--line-number-width': lineNumberWidth } as React.CSSProperties}
+    >
       <div className="bg-github-bg-secondary border-t-2 border-t-github-accent border-b border-github-border px-5 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
@@ -327,24 +323,11 @@ export function DiffViewer({
 
               return (
                 <React.Fragment key={mergedIndex}>
-                  {/* First merged chunk: show header only when not starting from line 1 (#9) */}
-                  {shouldShowHeaderAtStart(
-                    isFirstMerged,
-                    mergedChunk.hiddenLinesBefore,
-                    mergedChunk.oldStart
-                  ) && (
-                    <div className="bg-github-bg-tertiary px-3 py-2 border-b border-github-border">
-                      <code className="text-github-text-secondary text-xs font-mono">
-                        {mergedChunk.header}
-                      </code>
-                    </div>
-                  )}
-
-                  {/* Expand button with header before first merged chunk (file start) */}
+                  {/* Expand button before first merged chunk (file start) */}
                   {isFirstMerged &&
                     renderExpandButton('top', mergedChunk, firstOriginalIndex, lastOriginalIndex)}
 
-                  {/* Expand button with header between merged chunks */}
+                  {/* Expand button between merged chunks */}
                   {!isFirstMerged &&
                     renderExpandButton(
                       'middle',
