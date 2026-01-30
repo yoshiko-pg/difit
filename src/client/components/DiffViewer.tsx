@@ -326,9 +326,6 @@ export function DiffViewer({
                 mergedChunk.originalIndices[mergedChunk.originalIndices.length - 1] ?? 0;
               // Show bottom border only if there's a gap after this merged chunk
               const showBottomBorder = isLastMerged || mergedChunk.hiddenLinesAfter > 0;
-              // Calculate if connected to previous chunk (#3 - fix hardcoded false)
-              const isConnectedToPrevious = !isFirstMerged && mergedChunk.hiddenLinesBefore === 0;
-
               return (
                 <React.Fragment key={mergedIndex}>
                   {/* First merged chunk: show header only when not starting from line 1 (#9) */}
@@ -383,7 +380,6 @@ export function DiffViewer({
                       }
                       onCommentTriggerHandled={onCommentTriggerHandled}
                       filename={file.path}
-                      isConnectedToPrevious={isConnectedToPrevious}
                     />
                   </div>
 

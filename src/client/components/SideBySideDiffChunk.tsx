@@ -47,7 +47,6 @@ interface SideBySideDiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
-  isConnectedToPrevious?: boolean;
 }
 
 interface SideBySideLine {
@@ -97,7 +96,6 @@ export function SideBySideDiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
-  isConnectedToPrevious = false,
 }: SideBySideDiffChunkProps) {
   const [startLine, setStartLine] = useState<LineSelection | null>(null);
   const [endLine, setEndLine] = useState<LineSelection | null>(null);
@@ -334,9 +332,7 @@ export function SideBySideDiffChunk({
   );
 
   return (
-    <div
-      className={`bg-github-bg-primary overflow-hidden ${isConnectedToPrevious ? '' : 'border border-github-border rounded-md'}`}
-    >
+    <div className="bg-github-bg-primary border border-github-border rounded-md overflow-hidden">
       <table className="w-full border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
