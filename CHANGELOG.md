@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-01-31
+
+### Added
+
+- Export hidden lines in diff view (#176)
+
+### Fixed
+
+- Performance improvement for diff viewer rerenders
+
+### Thanks
+
+- [@GarrickZ2](https://github.com/GarrickZ2) for supporting hidden line expansion in diffs #176
+
 ## [3.0.9] - 2026-01-30
 
 ### Fixed
@@ -771,7 +785,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.0.9...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/yoshiko-pg/difit/compare/v3.0.9...v3.1.0
 [3.0.9]: https://github.com/yoshiko-pg/difit/compare/v3.0.8...v3.0.9
 [3.0.8]: https://github.com/yoshiko-pg/difit/compare/v3.0.7...v3.0.8
 [3.0.7]: https://github.com/yoshiko-pg/difit/compare/v3.0.6...v3.0.7
