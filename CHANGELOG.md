@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-01-31
+
+### Added
+
+- Add markdown diff viewer (#187)
+
 ### Changed
 
 - Update Prettier trailing comma setting to `all`
@@ -11,7 +17,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Remove chunk header from comments
+- Remove unnecessary chunk header props from comments
 
 ## [3.1.0] - 2026-01-31
 
@@ -794,7 +800,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/yoshiko-pg/difit/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/yoshiko-pg/difit/compare/v3.0.9...v3.1.0
 [3.0.9]: https://github.com/yoshiko-pg/difit/compare/v3.0.8...v3.0.9
 [3.0.8]: https://github.com/yoshiko-pg/difit/compare/v3.0.7...v3.0.8
