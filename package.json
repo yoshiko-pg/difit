@@ -54,6 +54,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hotkeys-hook": "^5.1.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "simple-git": "^3.28.0"
   },
   "devDependencies": {
