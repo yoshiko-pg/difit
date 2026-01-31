@@ -332,7 +332,7 @@ export function SideBySideDiffChunk({
   );
 
   return (
-    <div className="bg-github-bg-primary border border-github-border overflow-hidden">
+    <div className="bg-github-bg-primary overflow-hidden">
       <table className="w-full table-fixed border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
