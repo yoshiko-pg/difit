@@ -76,6 +76,105 @@ interface DiffViewerProps {
   onCommentTriggerHandled?: () => void;
 }
 
+type LineRange = { start: number; end: number };
+type ChunkRange = LineRange & { index: number };
+type Gap = {
+  type: 'before' | 'between' | 'after';
+  start: number;
+  end: number;
+  nextChunkIndex?: number;
+  prevChunkIndex?: number;
+};
+
+const normalizeCommentRanges = (comments: Comment[]): Record<DiffSide, LineRange[]> => {
+  const ranges: Record<DiffSide, LineRange[]> = { old: [], new: [] };
+
+  comments.forEach((comment) => {
+    const side = comment.side ?? 'new';
+    const [start, end] =
+      Array.isArray(comment.line) ?
+        [comment.line[0], comment.line[1]]
+      : [comment.line, comment.line];
+
+    if (start <= 0 || end <= 0) return;
+
+    ranges[side].push({
+      start: Math.min(start, end),
+      end: Math.max(start, end),
+    });
+  });
+
+  return ranges;
+};
+
+const buildChunkRanges = (file: DiffFile, side: DiffSide): ChunkRange[] =>
+  file.chunks
+    .map((chunk, index) => {
+      const start = side === 'old' ? chunk.oldStart : chunk.newStart;
+      const lines = side === 'old' ? chunk.oldLines : chunk.newLines;
+      if (!start || lines <= 0) return null;
+      return { start, end: start + lines - 1, index };
+    })
+    .filter((range): range is ChunkRange => !!range);
+
+const buildGaps = (ranges: ChunkRange[]): Gap[] => {
+  const gaps: Gap[] = [];
+  const firstRange = ranges[0];
+  if (!firstRange) return gaps;
+
+  if (firstRange.start > 1) {
+    gaps.push({
+      type: 'before',
+      start: 1,
+      end: firstRange.start - 1,
+      nextChunkIndex: firstRange.index,
+    });
+  }
+
+  for (let i = 1; i < ranges.length; i += 1) {
+    const prev = ranges[i - 1];
+    const current = ranges[i];
+    if (!prev || !current) continue;
+    if (current.start > prev.end + 1) {
+      gaps.push({
+        type: 'between',
+        start: prev.end + 1,
+        end: current.start - 1,
+        prevChunkIndex: prev.index,
+        nextChunkIndex: current.index,
+      });
+    }
+  }
+
+  const last = ranges[ranges.length - 1];
+  if (!last) return gaps;
+  gaps.push({
+    type: 'after',
+    start: last.end + 1,
+    end: Number.POSITIVE_INFINITY,
+    prevChunkIndex: last.index,
+  });
+
+  return gaps;
+};
+
+const buildMergedChunkIndex = (mergedChunks: MergedChunk[]) => {
+  const mergedByFirstIndex = new Map<number, MergedChunk>();
+  mergedChunks.forEach((chunk) => {
+    const firstIndex = chunk.originalIndices[0];
+    if (firstIndex !== undefined) {
+      mergedByFirstIndex.set(firstIndex, chunk);
+    }
+  });
+  return mergedByFirstIndex;
+};
+
+const getLastChunkIndex = (mergedChunks: MergedChunk[]): number | null => {
+  const lastMerged = mergedChunks[mergedChunks.length - 1];
+  const lastIndex = lastMerged?.originalIndices[lastMerged.originalIndices.length - 1];
+  return lastIndex ?? null;
+};
+
 export const DiffViewer = memo(function DiffViewer({
   file,
   comments,
@@ -183,93 +282,10 @@ export const DiffViewer = memo(function DiffViewer({
       return;
     }
 
-    const commentRangesBySide: Record<DiffSide, Array<{ start: number; end: number }>> = {
-      old: [],
-      new: [],
-    };
-
-    comments.forEach((comment) => {
-      const side = comment.side ?? 'new';
-      const [start, end] =
-        Array.isArray(comment.line) ?
-          [comment.line[0], comment.line[1]]
-        : [comment.line, comment.line];
-      if (start <= 0 || end <= 0) return;
-      commentRangesBySide[side].push({
-        start: Math.min(start, end),
-        end: Math.max(start, end),
-      });
-    });
-
-    const buildRanges = (side: DiffSide) =>
-      file.chunks
-        .map((chunk, index) => {
-          const start = side === 'old' ? chunk.oldStart : chunk.newStart;
-          const lines = side === 'old' ? chunk.oldLines : chunk.newLines;
-          if (!start || lines <= 0) return null;
-          return { start, end: start + lines - 1, index };
-        })
-        .filter((range): range is { start: number; end: number; index: number } => !!range);
-
-    const buildGaps = (ranges: Array<{ start: number; end: number; index: number }>) => {
-      const gaps: Array<{
-        type: 'before' | 'between' | 'after';
-        start: number;
-        end: number;
-        nextChunkIndex?: number;
-        prevChunkIndex?: number;
-      }> = [];
-
-      const firstRange = ranges[0];
-      if (!firstRange) return gaps;
-
-      if (firstRange.start > 1) {
-        gaps.push({
-          type: 'before',
-          start: 1,
-          end: firstRange.start - 1,
-          nextChunkIndex: firstRange.index,
-        });
-      }
-
-      for (let i = 1; i < ranges.length; i += 1) {
-        const prev = ranges[i - 1];
-        const current = ranges[i];
-        if (!prev || !current) continue;
-        if (current.start > prev.end + 1) {
-          gaps.push({
-            type: 'between',
-            start: prev.end + 1,
-            end: current.start - 1,
-            prevChunkIndex: prev.index,
-            nextChunkIndex: current.index,
-          });
-        }
-      }
-
-      const last = ranges[ranges.length - 1];
-      if (!last) return gaps;
-      gaps.push({
-        type: 'after',
-        start: last.end + 1,
-        end: Number.POSITIVE_INFINITY,
-        prevChunkIndex: last.index,
-      });
-
-      return gaps;
-    };
-
-    const mergedByFirstIndex = new Map<number, MergedChunk>();
-    mergedChunks.forEach((chunk) => {
-      const firstIndex = chunk.originalIndices[0];
-      if (firstIndex !== undefined) {
-        mergedByFirstIndex.set(firstIndex, chunk);
-      }
-    });
-
+    const commentRangesBySide = normalizeCommentRanges(comments);
+    const mergedByFirstIndex = buildMergedChunkIndex(mergedChunks);
+    const lastChunkIndex = getLastChunkIndex(mergedChunks);
     const lastMerged = mergedChunks[mergedChunks.length - 1];
-    const lastChunkIndex =
-      lastMerged?.originalIndices[lastMerged.originalIndices.length - 1] ?? null;
 
     const queued = new Set<string>();
     const queueExpand = (key: string, action: () => void) => {
@@ -279,10 +295,11 @@ export const DiffViewer = memo(function DiffViewer({
     };
 
     (['old', 'new'] as const).forEach((side) => {
-      const ranges = buildRanges(side);
-      const gaps = buildGaps(ranges);
       const commentRanges = commentRangesBySide[side];
       if (commentRanges.length === 0) return;
+
+      const ranges = buildChunkRanges(file, side);
+      const gaps = buildGaps(ranges);
 
       gaps.forEach((gap) => {
         const hasComment = commentRanges.some(
