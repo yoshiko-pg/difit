@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Update Prettier trailing comma setting to `all`
+- make diff viewers pluggable
 
 ### Fixed
 
