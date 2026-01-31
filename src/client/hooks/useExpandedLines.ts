@@ -24,6 +24,8 @@ export interface MergedChunk extends DiffChunk {
 interface UseExpandedLinesResult {
   expandedState: ExpandedLinesState;
   isLoading: boolean;
+  lastUpdatedFilePath: string | null;
+  lastUpdatedAt: number;
   expandLines: (
     file: DiffFile,
     chunkIndex: number,
@@ -86,6 +88,8 @@ export function useExpandedLines({
 }: UseExpandedLinesOptions): UseExpandedLinesResult {
   const [expandedState, setExpandedState] = useState<ExpandedLinesState>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdatedFilePath, setLastUpdatedFilePath] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(0);
   // Track pending fetch promises to allow waiting for in-flight requests (#2)
   const pendingFetchesRef = useRef<Map<string, Promise<FileExpandedState>>>(new Map());
   // Use ref to access current state without causing dependency loop (#2)
@@ -155,6 +159,11 @@ export function useExpandedLines({
     [baseCommitish, targetCommitish]
   );
 
+  const markFileUpdated = useCallback((filePath: string) => {
+    setLastUpdatedFilePath(filePath);
+    setLastUpdatedAt((prev) => prev + 1);
+  }, []);
+
   const expandLines = useCallback(
     async (
       file: DiffFile,
@@ -204,11 +213,12 @@ export function useExpandedLines({
             },
           };
         });
+        markFileUpdated(file.path);
       } finally {
         setIsLoading(false);
       }
     },
-    [ensureFileContent]
+    [ensureFileContent, markFileUpdated]
   );
 
   const expandAllBetweenChunks = useCallback(
@@ -286,11 +296,12 @@ export function useExpandedLines({
             },
           };
         });
+        markFileUpdated(file.path);
       } finally {
         setIsLoading(false);
       }
     },
-    [ensureFileContent]
+    [ensureFileContent, markFileUpdated]
   );
 
   // Pre-fetch only line counts (lightweight) to show bottom expand button
@@ -330,11 +341,12 @@ export function useExpandedLines({
             },
           };
         });
+        markFileUpdated(file.path);
       } catch (error) {
         console.error('Failed to prefetch line count:', error);
       }
     },
-    [baseCommitish, targetCommitish]
+    [baseCommitish, targetCommitish, markFileUpdated]
   );
 
   const getExpandedCount = useCallback(
@@ -578,6 +590,8 @@ export function useExpandedLines({
   return {
     expandedState,
     isLoading,
+    lastUpdatedFilePath,
+    lastUpdatedAt,
     expandLines,
     expandAllBetweenChunks,
     prefetchFileContent,

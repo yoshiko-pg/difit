@@ -29,7 +29,7 @@ interface DiffLineRowProps {
 const getLineClass = (line: DiffLine | ExpandedLine) => {
   // Expanded lines have a subtle different background
   if ('isExpanded' in line && line.isExpanded) {
-    return 'bg-github-bg-tertiary/50';
+    return 'bg-github-bg-tertiary/80';
   }
   switch (line.type) {
     case 'add':
@@ -84,11 +84,11 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
         onMouseMove={onMouseMove}
         onClick={onClick}
       >
-        <td className="w-[50px] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative">
+        <td className="w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative">
           {line.oldLineNumber || ''}
         </td>
-        <td className="w-[50px] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible">
-          <span className="pr-5">{line.newLineNumber || ''}</span>
+        <td className="w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible">
+          <span>{line.newLineNumber || ''}</span>
           {showCommentButton && (
             <CommentButton
               onMouseDown={onCommentButtonMouseDown}

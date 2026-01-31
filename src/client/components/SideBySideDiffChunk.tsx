@@ -47,7 +47,6 @@ interface SideBySideDiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
-  isConnectedToPrevious?: boolean;
 }
 
 interface SideBySideLine {
@@ -68,7 +67,7 @@ const isExpandedLine = (line: DiffLine | undefined): boolean => {
 // Utility function to get side-by-side line class (#10)
 const getSideBySideLineClass = (line: DiffLine | undefined, isExpanded: boolean): string => {
   if (isExpanded) {
-    return 'bg-github-bg-tertiary/50';
+    return 'bg-github-bg-tertiary/80';
   }
   if (line?.type === 'delete') {
     return 'bg-diff-deletion-bg';
@@ -97,7 +96,6 @@ export function SideBySideDiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
-  isConnectedToPrevious = false,
 }: SideBySideDiffChunkProps) {
   const [startLine, setStartLine] = useState<LineSelection | null>(null);
   const [endLine, setEndLine] = useState<LineSelection | null>(null);
@@ -334,10 +332,8 @@ export function SideBySideDiffChunk({
   );
 
   return (
-    <div
-      className={`bg-github-bg-primary overflow-hidden ${isConnectedToPrevious ? '' : 'border border-github-border rounded-md'}`}
-    >
-      <table className="w-full border-collapse font-mono text-sm leading-5">
+    <div className="bg-github-bg-primary overflow-hidden">
+      <table className="w-full table-fixed border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
             // Fetch comments separately for each side to prevent duplication
@@ -455,9 +451,9 @@ export function SideBySideDiffChunk({
                   {/* Old side */}
                   <td
                     id={oldLineNavId}
-                    className={`w-[60px] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightOldCell ? cellHighlightClass : ''}`}
+                    className={`w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightOldCell ? cellHighlightClass : ''}`}
                   >
-                    <span className="pr-5">{sideLine.oldLineNumber || ''}</span>
+                    <span>{sideLine.oldLineNumber || ''}</span>
                     {hoveredLine?.side === 'old' &&
                       hoveredLine?.lineNumber === sideLine.oldLineNumber && (
                         <CommentButton
@@ -524,9 +520,9 @@ export function SideBySideDiffChunk({
                   {/* New side */}
                   <td
                     id={newLineNavId}
-                    className={`w-[60px] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightNewCell ? cellHighlightClass : ''}`}
+                    className={`w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible ${highlightNewCell ? cellHighlightClass : ''}`}
                   >
-                    <span className="pr-5">{sideLine.newLineNumber || ''}</span>
+                    <span>{sideLine.newLineNumber || ''}</span>
                     {hoveredLine?.side === 'new' &&
                       hoveredLine?.lineNumber === sideLine.newLineNumber && (
                         <CommentButton

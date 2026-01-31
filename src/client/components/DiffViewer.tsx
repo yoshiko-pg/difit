@@ -9,7 +9,7 @@ import {
   Check,
   Square,
 } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 
 import {
   type DiffFile,
@@ -76,14 +76,106 @@ interface DiffViewerProps {
   onCommentTriggerHandled?: () => void;
 }
 
-// Helper function: should show header at start when not starting from line 1
-const shouldShowHeaderAtStart = (
-  isFirst: boolean,
-  hiddenBefore: number,
-  oldStart: number
-): boolean => isFirst && hiddenBefore <= 0 && oldStart > 1;
+type LineRange = { start: number; end: number };
+type ChunkRange = LineRange & { index: number };
+type Gap = {
+  type: 'before' | 'between' | 'after';
+  start: number;
+  end: number;
+  nextChunkIndex?: number;
+  prevChunkIndex?: number;
+};
 
-export function DiffViewer({
+const normalizeCommentRanges = (comments: Comment[]): Record<DiffSide, LineRange[]> => {
+  const ranges: Record<DiffSide, LineRange[]> = { old: [], new: [] };
+
+  comments.forEach((comment) => {
+    const side = comment.side ?? 'new';
+    const [start, end] =
+      Array.isArray(comment.line) ?
+        [comment.line[0], comment.line[1]]
+      : [comment.line, comment.line];
+
+    if (start <= 0 || end <= 0) return;
+
+    ranges[side].push({
+      start: Math.min(start, end),
+      end: Math.max(start, end),
+    });
+  });
+
+  return ranges;
+};
+
+const buildChunkRanges = (file: DiffFile, side: DiffSide): ChunkRange[] =>
+  file.chunks
+    .map((chunk, index) => {
+      const start = side === 'old' ? chunk.oldStart : chunk.newStart;
+      const lines = side === 'old' ? chunk.oldLines : chunk.newLines;
+      if (!start || lines <= 0) return null;
+      return { start, end: start + lines - 1, index };
+    })
+    .filter((range): range is ChunkRange => !!range);
+
+const buildGaps = (ranges: ChunkRange[]): Gap[] => {
+  const gaps: Gap[] = [];
+  const firstRange = ranges[0];
+  if (!firstRange) return gaps;
+
+  if (firstRange.start > 1) {
+    gaps.push({
+      type: 'before',
+      start: 1,
+      end: firstRange.start - 1,
+      nextChunkIndex: firstRange.index,
+    });
+  }
+
+  for (let i = 1; i < ranges.length; i += 1) {
+    const prev = ranges[i - 1];
+    const current = ranges[i];
+    if (!prev || !current) continue;
+    if (current.start > prev.end + 1) {
+      gaps.push({
+        type: 'between',
+        start: prev.end + 1,
+        end: current.start - 1,
+        prevChunkIndex: prev.index,
+        nextChunkIndex: current.index,
+      });
+    }
+  }
+
+  const last = ranges[ranges.length - 1];
+  if (!last) return gaps;
+  gaps.push({
+    type: 'after',
+    start: last.end + 1,
+    end: Number.POSITIVE_INFINITY,
+    prevChunkIndex: last.index,
+  });
+
+  return gaps;
+};
+
+const buildMergedChunkIndex = (mergedChunks: MergedChunk[]) => {
+  const mergedByFirstIndex = new Map<number, MergedChunk>();
+  mergedChunks.forEach((chunk) => {
+    const firstIndex = chunk.originalIndices[0];
+    if (firstIndex !== undefined) {
+      mergedByFirstIndex.set(firstIndex, chunk);
+    }
+  });
+  return mergedByFirstIndex;
+};
+
+const getLastChunkIndex = (mergedChunks: MergedChunk[]): number | null => {
+  const lastMerged = mergedChunks[mergedChunks.length - 1];
+  const lastIndex = lastMerged?.originalIndices[lastMerged.originalIndices.length - 1];
+  return lastIndex ?? null;
+};
+
+export const DiffViewer = memo(function DiffViewer({
   file,
   comments,
   diffMode,
@@ -154,19 +246,102 @@ export function DiffViewer({
     }
   };
 
-  const handleAddComment = async (
-    line: LineNumber,
-    body: string,
-    codeContent?: string,
-    chunkHeader?: string,
-    side?: DiffSide
-  ) => {
-    try {
-      await onAddComment(file.path, line, body, codeContent, chunkHeader, side);
-    } catch (error) {
-      console.error('Failed to add comment:', error);
+  const handleAddComment = useCallback(
+    async (
+      line: LineNumber,
+      body: string,
+      codeContent?: string,
+      chunkHeader?: string,
+      side?: DiffSide
+    ) => {
+      try {
+        await onAddComment(file.path, line, body, codeContent, chunkHeader, side);
+      } catch (error) {
+        console.error('Failed to add comment:', error);
+      }
+    },
+    [file.path, onAddComment]
+  );
+
+  const mergedChunkItems = useMemo(
+    () =>
+      mergedChunks.map((mergedChunk) => ({
+        mergedChunk,
+        onAddComment: (line: LineNumber, body: string, codeContent?: string, side?: DiffSide) =>
+          handleAddComment(line, body, codeContent, mergedChunk.header, side),
+      })),
+    [mergedChunks, handleAddComment]
+  );
+
+  useEffect(() => {
+    if (isCollapsed || isExpandLoading || !needsExpand || comments.length === 0) {
+      return;
     }
-  };
+
+    if (file.chunks.length === 0 || mergedChunks.length === 0) {
+      return;
+    }
+
+    const commentRangesBySide = normalizeCommentRanges(comments);
+    const mergedByFirstIndex = buildMergedChunkIndex(mergedChunks);
+    const lastChunkIndex = getLastChunkIndex(mergedChunks);
+    const lastMerged = mergedChunks[mergedChunks.length - 1];
+
+    const queued = new Set<string>();
+    const queueExpand = (key: string, action: () => void) => {
+      if (queued.has(key)) return;
+      queued.add(key);
+      action();
+    };
+
+    (['old', 'new'] as const).forEach((side) => {
+      const commentRanges = commentRangesBySide[side];
+      if (commentRanges.length === 0) return;
+
+      const ranges = buildChunkRanges(file, side);
+      const gaps = buildGaps(ranges);
+
+      gaps.forEach((gap) => {
+        const hasComment = commentRanges.some(
+          (range) => range.start <= gap.end && range.end >= gap.start
+        );
+        if (!hasComment) return;
+
+        if (gap.type === 'after' && lastMerged && lastChunkIndex !== null) {
+          if (lastMerged.hiddenLinesAfter > 0) {
+            queueExpand(`after-${lastChunkIndex}`, () => {
+              void expandLines(file, lastChunkIndex, 'down', lastMerged.hiddenLinesAfter);
+            });
+          }
+          return;
+        }
+
+        const nextChunkIndex = gap.nextChunkIndex;
+        if (nextChunkIndex === undefined) return;
+        const mergedChunk = mergedByFirstIndex.get(nextChunkIndex);
+        if (!mergedChunk || mergedChunk.hiddenLinesBefore <= 0) return;
+
+        if (gap.type === 'before') {
+          queueExpand(`before-${nextChunkIndex}`, () => {
+            void expandLines(file, nextChunkIndex, 'up', mergedChunk.hiddenLinesBefore);
+          });
+        } else if (gap.type === 'between') {
+          queueExpand(`between-${nextChunkIndex}`, () => {
+            void expandAllBetweenChunks(file, nextChunkIndex, mergedChunk.hiddenLinesBefore);
+          });
+        }
+      });
+    });
+  }, [
+    comments,
+    expandAllBetweenChunks,
+    expandLines,
+    file,
+    isCollapsed,
+    isExpandLoading,
+    mergedChunks,
+    needsExpand,
+  ]);
 
   // Helper to render expand button (#4 - consolidated logic)
   const renderExpandButton = (
@@ -178,14 +353,13 @@ export function DiffViewer({
     if (position === 'top' && mergedChunk.hiddenLinesBefore > 0) {
       return (
         <ExpandButton
-          direction="up"
+          direction="down"
           hiddenLines={mergedChunk.hiddenLinesBefore}
-          onExpandUp={() => expandLines(file, firstOriginalIndex, 'up')}
+          onExpandDown={() => expandLines(file, firstOriginalIndex, 'up')}
           onExpandAll={() =>
             expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
           }
           isLoading={isExpandLoading}
-          header={mergedChunk.header}
         />
       );
     }
@@ -201,7 +375,6 @@ export function DiffViewer({
             expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
           }
           isLoading={isExpandLoading}
-          header={mergedChunk.header}
         />
       );
     }
@@ -209,14 +382,13 @@ export function DiffViewer({
     if (position === 'bottom' && mergedChunk.hiddenLinesAfter > 0) {
       return (
         <ExpandButton
-          direction="down"
+          direction="up"
           hiddenLines={mergedChunk.hiddenLinesAfter}
-          onExpandDown={() => expandLines(file, lastOriginalIndex, 'down')}
+          onExpandUp={() => expandLines(file, lastOriginalIndex, 'down')}
           onExpandAll={() =>
             expandLines(file, lastOriginalIndex, 'down', mergedChunk.hiddenLinesAfter)
           }
           isLoading={isExpandLoading}
-          alignRight
         />
       );
     }
@@ -224,8 +396,14 @@ export function DiffViewer({
     return null;
   };
 
+  const lineNumberWidth = '4em';
+
   return (
-    <div ref={containerRef} className="bg-github-bg-primary">
+    <div
+      ref={containerRef}
+      className="bg-github-bg-primary"
+      style={{ '--line-number-width': lineNumberWidth } as React.CSSProperties}
+    >
       <div className="bg-github-bg-secondary border-t-2 border-t-github-accent border-b border-github-border px-5 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button
@@ -318,37 +496,20 @@ export function DiffViewer({
               baseCommitish={baseCommitish}
               targetCommitish={targetCommitish}
             />
-          : mergedChunks.map((mergedChunk, mergedIndex) => {
+          : mergedChunkItems.map(({ mergedChunk, onAddComment }, mergedIndex) => {
               const isFirstMerged = mergedIndex === 0;
-              const isLastMerged = mergedIndex === mergedChunks.length - 1;
+              const isLastMerged = mergedIndex === mergedChunkItems.length - 1;
               const firstOriginalIndex = mergedChunk.originalIndices[0] ?? 0;
               const lastOriginalIndex =
                 mergedChunk.originalIndices[mergedChunk.originalIndices.length - 1] ?? 0;
-              // Show bottom border only if there's a gap after this merged chunk
-              const showBottomBorder = isLastMerged || mergedChunk.hiddenLinesAfter > 0;
-              // Calculate if connected to previous chunk (#3 - fix hardcoded false)
-              const isConnectedToPrevious = !isFirstMerged && mergedChunk.hiddenLinesBefore === 0;
 
               return (
                 <React.Fragment key={mergedIndex}>
-                  {/* First merged chunk: show header only when not starting from line 1 (#9) */}
-                  {shouldShowHeaderAtStart(
-                    isFirstMerged,
-                    mergedChunk.hiddenLinesBefore,
-                    mergedChunk.oldStart
-                  ) && (
-                    <div className="bg-github-bg-tertiary px-3 py-2 border-b border-github-border">
-                      <code className="text-github-text-secondary text-xs font-mono">
-                        {mergedChunk.header}
-                      </code>
-                    </div>
-                  )}
-
-                  {/* Expand button with header before first merged chunk (file start) */}
+                  {/* Expand button before first merged chunk (file start) */}
                   {isFirstMerged &&
                     renderExpandButton('top', mergedChunk, firstOriginalIndex, lastOriginalIndex)}
 
-                  {/* Expand button with header between merged chunks */}
+                  {/* Expand button between merged chunks */}
                   {!isFirstMerged &&
                     renderExpandButton(
                       'middle',
@@ -357,23 +518,18 @@ export function DiffViewer({
                       lastOriginalIndex
                     )}
 
-                  <div
-                    id={`chunk-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}-${mergedIndex}`}
-                    className={showBottomBorder ? 'border-b border-github-border' : ''}
-                  >
+                  <div id={`chunk-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}-${mergedIndex}`}>
                     <DiffChunk
                       chunk={mergedChunk}
                       chunkIndex={mergedIndex}
                       comments={comments}
-                      onAddComment={(line, body, codeContent, side) =>
-                        handleAddComment(line, body, codeContent, mergedChunk.header, side)
-                      }
+                      onAddComment={onAddComment}
                       onGeneratePrompt={onGeneratePrompt}
                       onRemoveComment={onRemoveComment}
                       onUpdateComment={onUpdateComment}
                       mode={diffMode}
                       syntaxTheme={syntaxTheme}
-                      cursor={cursor}
+                      cursor={cursor && cursor.chunkIndex === mergedIndex ? cursor : null}
                       fileIndex={fileIndex}
                       onLineClick={onLineClick}
                       commentTrigger={
@@ -383,7 +539,6 @@ export function DiffViewer({
                       }
                       onCommentTriggerHandled={onCommentTriggerHandled}
                       filename={file.path}
-                      isConnectedToPrevious={isConnectedToPrevious}
                     />
                   </div>
 
@@ -403,4 +558,4 @@ export function DiffViewer({
       )}
     </div>
   );
-}
+});
