@@ -5,9 +5,9 @@ import type { DiffFile, Comment } from '../../types/diff';
 
 import { DiffViewer } from './DiffViewer';
 
-// Mock the ImageDiffChunk component
-vi.mock('./ImageDiffChunk', () => ({
-  ImageDiffChunk: vi.fn(({ file }) => (
+// Mock the ImageDiffViewer component
+vi.mock('../viewers/ImageDiffViewer', () => ({
+  ImageDiffViewer: vi.fn(({ file }) => (
     <div data-testid="image-diff-chunk">Image diff for {file.path}</div>
   )),
 }));
@@ -92,7 +92,7 @@ describe('DiffViewer', () => {
   };
 
   describe('File type handling', () => {
-    it('renders ImageDiffChunk for image files', () => {
+    it('renders ImageDiffViewer for image files', () => {
       const imageFile = createMockFile({
         path: 'image.jpg',
       });
@@ -125,7 +125,7 @@ describe('DiffViewer', () => {
   });
 
   describe('Props passing', () => {
-    it('passes baseCommitish and targetCommitish to ImageDiffChunk', () => {
+    it('passes baseCommitish and targetCommitish to ImageDiffViewer', () => {
       const imageFile = createMockFile({
         path: 'image.png',
       });
@@ -139,19 +139,19 @@ describe('DiffViewer', () => {
         />,
       );
 
-      // Check that ImageDiffChunk is rendered for image files
+      // Check that ImageDiffViewer is rendered for image files
       expect(screen.getByTestId('image-diff-chunk')).toBeInTheDocument();
       expect(screen.getByText('Image diff for image.png')).toBeInTheDocument();
     });
 
-    it('passes diffMode to ImageDiffChunk', () => {
+    it('passes diffMode to ImageDiffViewer', () => {
       const imageFile = createMockFile({
         path: 'image.gif',
       });
 
       render(<DiffViewer {...defaultProps} file={imageFile} diffMode="inline" />);
 
-      // Check that ImageDiffChunk is rendered
+      // Check that ImageDiffViewer is rendered
       expect(screen.getByTestId('image-diff-chunk')).toBeInTheDocument();
       expect(screen.getByText('Image diff for image.gif')).toBeInTheDocument();
     });

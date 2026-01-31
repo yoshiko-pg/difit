@@ -3,9 +3,26 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import type { DiffFile } from '../../types/diff';
 
-import { ImageDiffChunk } from './ImageDiffChunk';
+import { ImageDiffViewer } from './ImageDiffViewer';
+import type { DiffViewerBodyProps } from './types';
 
-describe('ImageDiffChunk', () => {
+describe('ImageDiffViewer', () => {
+  const baseProps: Omit<DiffViewerBodyProps, 'file'> = {
+    comments: [],
+    diffMode: 'inline',
+    mergedChunks: [],
+    isExpandLoading: false,
+    expandHiddenLines: vi.fn().mockResolvedValue(undefined),
+    expandAllBetweenChunks: vi.fn().mockResolvedValue(undefined),
+    onAddComment: vi.fn().mockResolvedValue(undefined),
+    onGeneratePrompt: vi.fn(),
+    onRemoveComment: vi.fn(),
+    onUpdateComment: vi.fn(),
+  };
+
+  const renderViewer = (file: DiffFile, overrides: Partial<DiffViewerBodyProps> = {}) =>
+    render(<ImageDiffViewer {...baseProps} file={file} {...overrides} />);
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock fetch to return a blob with size
@@ -25,7 +42,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={deletedFile} />);
+      renderViewer(deletedFile);
 
       expect(screen.getByText('Deleted Image')).toBeInTheDocument();
       expect(screen.getByText('Previous version:')).toBeInTheDocument();
@@ -41,7 +58,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={addedFile} />);
+      renderViewer(addedFile);
 
       expect(screen.getByText('Added Image')).toBeInTheDocument();
       expect(screen.getByText('New file:')).toBeInTheDocument();
@@ -58,7 +75,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={modifiedFile} mode="side-by-side" />);
+      renderViewer(modifiedFile, { diffMode: 'side-by-side' });
 
       expect(screen.getByText('Modified Image')).toBeInTheDocument();
       expect(screen.getByText('Previous version:')).toBeInTheDocument();
@@ -78,7 +95,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={modifiedFile} mode="inline" />);
+      renderViewer(modifiedFile, { diffMode: 'inline' });
 
       expect(screen.getByText('Modified Image')).toBeInTheDocument();
       expect(screen.getByText('Previous version:')).toBeInTheDocument();
@@ -98,7 +115,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={renamedFile} />);
+      renderViewer(renamedFile);
 
       expect(screen.getByText('Modified Image')).toBeInTheDocument();
 
@@ -119,7 +136,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={file} baseCommitish="main" targetCommitish="feature" />);
+      renderViewer(file, { baseCommitish: 'main', targetCommitish: 'feature' });
 
       const images = screen.getAllByRole('img');
       expect(images[0]).toHaveAttribute('src', '/api/blob/old-test.jpg?ref=main');
@@ -136,7 +153,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={file} />);
+      renderViewer(file);
 
       const images = screen.getAllByRole('img');
       expect(images[0]).toHaveAttribute('src', '/api/blob/old-test.jpg?ref=HEAD~1');
@@ -154,7 +171,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={file} />);
+      renderViewer(file);
 
       const image = screen.getByRole('img');
 
@@ -177,7 +194,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={file} />);
+      renderViewer(file);
 
       const image = screen.getByRole('img');
 
@@ -198,7 +215,7 @@ describe('ImageDiffChunk', () => {
         chunks: [],
       };
 
-      render(<ImageDiffChunk file={file} />);
+      renderViewer(file);
 
       const image = screen.getByRole('img');
 
@@ -229,7 +246,7 @@ describe('ImageDiffChunk', () => {
       // Mock fetch to reject
       (global.fetch as any).mockRejectedValue(new Error('Failed to fetch'));
 
-      render(<ImageDiffChunk file={file} />);
+      renderViewer(file);
 
       const image = screen.getByRole('img');
 
@@ -274,7 +291,7 @@ describe('ImageDiffChunk', () => {
         blob: () => Promise.resolve({ size: 1024 }),
       });
 
-      render(<ImageDiffChunk file={file} />);
+      renderViewer(file);
 
       const image = screen.getByRole('img');
       Object.defineProperty(image, 'naturalWidth', { value: 100, configurable: true });
@@ -301,9 +318,7 @@ describe('ImageDiffChunk', () => {
       };
 
       // Mock file to have an unsupported status by changing the component logic
-      const { container } = render(
-        <ImageDiffChunk file={{ ...unsupportedFile, status: 'unknown' as any }} />,
-      );
+      const { container } = renderViewer({ ...unsupportedFile, status: 'unknown' as any }, {});
 
       // Should render nothing
       expect(container.firstChild).toBeNull();

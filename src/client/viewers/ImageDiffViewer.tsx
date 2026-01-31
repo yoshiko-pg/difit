@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { type DiffFile, type DiffViewMode } from '../../types/diff';
+import type { DiffViewerBodyProps } from './types';
 
 interface ImageInfo {
   width?: number;
@@ -8,19 +8,13 @@ interface ImageInfo {
   size?: number;
 }
 
-interface ImageDiffChunkProps {
-  file: DiffFile;
-  mode?: DiffViewMode;
-  baseCommitish?: string;
-  targetCommitish?: string;
-}
-
-export function ImageDiffChunk({
+export function ImageDiffViewer({
   file,
-  mode = 'inline',
+  diffMode,
   baseCommitish,
   targetCommitish,
-}: ImageDiffChunkProps) {
+}: DiffViewerBodyProps) {
+  const mode = diffMode ?? 'inline';
   const isDeleted = file.status === 'deleted';
   const isAdded = file.status === 'added';
   const isModified = file.status === 'modified' || file.status === 'renamed';

@@ -9,7 +9,7 @@ import {
   Check,
   Square,
 } from 'lucide-react';
-import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 
 import {
   type DiffFile,
@@ -20,11 +20,9 @@ import {
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import { type MergedChunk } from '../hooks/useExpandedLines';
-import { isImageFile } from '../utils/imageUtils';
+import { getViewerForFile } from '../viewers/registry';
+import type { DiffViewerBodyProps } from '../viewers/types';
 
-import { DiffChunk } from './DiffChunk';
-import { ExpandButton } from './ExpandButton';
-import { ImageDiffChunk } from './ImageDiffChunk';
 import type { AppearanceSettings } from './SettingsModal';
 
 interface DiffViewerProps {
@@ -206,13 +204,12 @@ export const DiffViewer = memo(function DiffViewer({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  // File needs expand if it's a modified/renamed text file (not image, not added/deleted)
-  const needsExpand =
-    file.status !== 'added' && file.status !== 'deleted' && !isImageFile(file.path);
+  const viewer = getViewerForFile(file);
+  const canExpandHiddenLines = viewer.canExpandHiddenLines?.(file) ?? false;
 
   // Observe visibility for lazy prefetch
   useEffect(() => {
-    if (!needsExpand) return;
+    if (!canExpandHiddenLines) return;
     const el = containerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -223,14 +220,14 @@ export const DiffViewer = memo(function DiffViewer({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [needsExpand]);
+  }, [canExpandHiddenLines]);
 
-  // Pre-fetch line counts (lightweight) only for visible, non-collapsed files that need expand
+  // Pre-fetch line counts (lightweight) only for visible, non-collapsed files that can expand
   useEffect(() => {
-    if (isVisible && !isCollapsed && needsExpand) {
+    if (isVisible && !isCollapsed && canExpandHiddenLines) {
       void prefetchFileContent(file);
     }
-  }, [isVisible, isCollapsed, needsExpand, file, prefetchFileContent]);
+  }, [isVisible, isCollapsed, canExpandHiddenLines, file, prefetchFileContent]);
 
   const getFileIcon = (status: DiffFile['status']) => {
     switch (status) {
@@ -256,18 +253,8 @@ export const DiffViewer = memo(function DiffViewer({
     [file.path, onAddComment],
   );
 
-  const mergedChunkItems = useMemo(
-    () =>
-      mergedChunks.map((mergedChunk) => ({
-        mergedChunk,
-        onAddComment: (line: LineNumber, body: string, codeContent?: string, side?: DiffSide) =>
-          handleAddComment(line, body, codeContent, side),
-      })),
-    [mergedChunks, handleAddComment],
-  );
-
   useEffect(() => {
-    if (isCollapsed || isExpandLoading || !needsExpand || comments.length === 0) {
+    if (isCollapsed || isExpandLoading || !canExpandHiddenLines || comments.length === 0) {
       return;
     }
 
@@ -333,63 +320,32 @@ export const DiffViewer = memo(function DiffViewer({
     isCollapsed,
     isExpandLoading,
     mergedChunks,
-    needsExpand,
+    canExpandHiddenLines,
   ]);
 
-  // Helper to render expand button (#4 - consolidated logic)
-  const renderExpandButton = (
-    position: 'top' | 'middle' | 'bottom',
-    mergedChunk: MergedChunk,
-    firstOriginalIndex: number,
-    lastOriginalIndex: number,
-  ) => {
-    if (position === 'top' && mergedChunk.hiddenLinesBefore > 0) {
-      return (
-        <ExpandButton
-          direction="down"
-          hiddenLines={mergedChunk.hiddenLinesBefore}
-          onExpandDown={() => expandLines(file, firstOriginalIndex, 'up')}
-          onExpandAll={() =>
-            expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
-          }
-          isLoading={isExpandLoading}
-        />
-      );
-    }
-
-    if (position === 'middle' && mergedChunk.hiddenLinesBefore > 0) {
-      return (
-        <ExpandButton
-          direction="both"
-          hiddenLines={mergedChunk.hiddenLinesBefore}
-          onExpandUp={() => expandLines(file, firstOriginalIndex - 1, 'down')}
-          onExpandDown={() => expandLines(file, firstOriginalIndex, 'up')}
-          onExpandAll={() =>
-            expandAllBetweenChunks(file, firstOriginalIndex, mergedChunk.hiddenLinesBefore)
-          }
-          isLoading={isExpandLoading}
-        />
-      );
-    }
-
-    if (position === 'bottom' && mergedChunk.hiddenLinesAfter > 0) {
-      return (
-        <ExpandButton
-          direction="up"
-          hiddenLines={mergedChunk.hiddenLinesAfter}
-          onExpandUp={() => expandLines(file, lastOriginalIndex, 'down')}
-          onExpandAll={() =>
-            expandLines(file, lastOriginalIndex, 'down', mergedChunk.hiddenLinesAfter)
-          }
-          isLoading={isExpandLoading}
-        />
-      );
-    }
-
-    return null;
-  };
-
   const lineNumberWidth = '4em';
+  const ViewerComponent = viewer.Component;
+  const viewerProps: DiffViewerBodyProps = {
+    file,
+    comments,
+    diffMode,
+    syntaxTheme,
+    baseCommitish,
+    targetCommitish,
+    cursor,
+    fileIndex,
+    mergedChunks,
+    isExpandLoading,
+    expandHiddenLines: expandLines,
+    expandAllBetweenChunks,
+    onAddComment: handleAddComment,
+    onGeneratePrompt,
+    onRemoveComment,
+    onUpdateComment,
+    onLineClick,
+    commentTrigger,
+    onCommentTriggerHandled,
+  };
 
   return (
     <div
@@ -482,71 +438,7 @@ export const DiffViewer = memo(function DiffViewer({
 
       {!isCollapsed && (
         <div className="overflow-y-auto">
-          {isImageFile(file.path) ?
-            <ImageDiffChunk
-              file={file}
-              mode={diffMode}
-              baseCommitish={baseCommitish}
-              targetCommitish={targetCommitish}
-            />
-          : mergedChunkItems.map(({ mergedChunk, onAddComment }, mergedIndex) => {
-              const isFirstMerged = mergedIndex === 0;
-              const isLastMerged = mergedIndex === mergedChunkItems.length - 1;
-              const firstOriginalIndex = mergedChunk.originalIndices[0] ?? 0;
-              const lastOriginalIndex =
-                mergedChunk.originalIndices[mergedChunk.originalIndices.length - 1] ?? 0;
-
-              return (
-                <React.Fragment key={mergedIndex}>
-                  {/* Expand button before first merged chunk (file start) */}
-                  {isFirstMerged &&
-                    renderExpandButton('top', mergedChunk, firstOriginalIndex, lastOriginalIndex)}
-
-                  {/* Expand button between merged chunks */}
-                  {!isFirstMerged &&
-                    renderExpandButton(
-                      'middle',
-                      mergedChunk,
-                      firstOriginalIndex,
-                      lastOriginalIndex,
-                    )}
-
-                  <div id={`chunk-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}-${mergedIndex}`}>
-                    <DiffChunk
-                      chunk={mergedChunk}
-                      chunkIndex={mergedIndex}
-                      comments={comments}
-                      onAddComment={onAddComment}
-                      onGeneratePrompt={onGeneratePrompt}
-                      onRemoveComment={onRemoveComment}
-                      onUpdateComment={onUpdateComment}
-                      mode={diffMode}
-                      syntaxTheme={syntaxTheme}
-                      cursor={cursor && cursor.chunkIndex === mergedIndex ? cursor : null}
-                      fileIndex={fileIndex}
-                      onLineClick={onLineClick}
-                      commentTrigger={
-                        commentTrigger && commentTrigger.chunkIndex === mergedIndex ?
-                          commentTrigger
-                        : null
-                      }
-                      onCommentTriggerHandled={onCommentTriggerHandled}
-                      filename={file.path}
-                    />
-                  </div>
-
-                  {/* Expand button after last merged chunk */}
-                  {isLastMerged &&
-                    renderExpandButton(
-                      'bottom',
-                      mergedChunk,
-                      firstOriginalIndex,
-                      lastOriginalIndex,
-                    )}
-                </React.Fragment>
-              );
-            })
-          }
+          <ViewerComponent {...viewerProps} />
         </div>
       )}
     </div>
