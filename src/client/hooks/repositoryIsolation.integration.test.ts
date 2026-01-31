@@ -55,7 +55,6 @@ describe('Repository Isolation Integration Tests', () => {
           body: 'Comment in repo 1',
           side: 'new',
           line: 10,
-          chunkHeader: '@@ test @@',
         });
       });
 
@@ -73,7 +72,6 @@ describe('Repository Isolation Integration Tests', () => {
           body: 'Comment in repo 2',
           side: 'new',
           line: 10,
-          chunkHeader: '@@ test @@',
         });
       });
 
@@ -103,7 +101,6 @@ describe('Repository Isolation Integration Tests', () => {
           body: 'Working diff comment in repo 1',
           side: 'new',
           line: 5,
-          chunkHeader: '@@ working @@',
         });
       });
 

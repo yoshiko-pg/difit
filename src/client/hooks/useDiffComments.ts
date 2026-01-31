@@ -10,7 +10,6 @@ export interface AddCommentParams {
   body: string;
   side: DiffSide;
   line: number | { start: number; end: number };
-  chunkHeader: string;
   codeSnapshot?: DiffComment['codeSnapshot'];
 }
 
@@ -74,7 +73,6 @@ export function useDiffComments(
         body: params.body,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        chunkHeader: params.chunkHeader,
         position: {
           side: params.side,
           line: params.line,

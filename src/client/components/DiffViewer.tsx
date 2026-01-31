@@ -41,7 +41,6 @@ interface DiffViewerProps {
     line: LineNumber,
     body: string,
     codeContent?: string,
-    chunkHeader?: string,
     side?: DiffSide
   ) => Promise<void>;
   onGeneratePrompt: (comment: Comment) => string;
@@ -247,15 +246,9 @@ export const DiffViewer = memo(function DiffViewer({
   };
 
   const handleAddComment = useCallback(
-    async (
-      line: LineNumber,
-      body: string,
-      codeContent?: string,
-      chunkHeader?: string,
-      side?: DiffSide
-    ) => {
+    async (line: LineNumber, body: string, codeContent?: string, side?: DiffSide) => {
       try {
-        await onAddComment(file.path, line, body, codeContent, chunkHeader, side);
+        await onAddComment(file.path, line, body, codeContent, side);
       } catch (error) {
         console.error('Failed to add comment:', error);
       }
@@ -268,7 +261,7 @@ export const DiffViewer = memo(function DiffViewer({
       mergedChunks.map((mergedChunk) => ({
         mergedChunk,
         onAddComment: (line: LineNumber, body: string, codeContent?: string, side?: DiffSide) =>
-          handleAddComment(line, body, codeContent, mergedChunk.header, side),
+          handleAddComment(line, body, codeContent, side),
       })),
     [mergedChunks, handleAddComment]
   );

@@ -37,7 +37,6 @@ describe('useDiffComments', () => {
           body: 'コメント内容',
           side: 'new',
           line: 42,
-          chunkHeader: '@@ -40,5 +40,5 @@',
         });
       });
 
@@ -57,7 +56,6 @@ describe('useDiffComments', () => {
           body: '複数行',
           side: 'new',
           line: { start: 36, end: 39 },
-          chunkHeader: '@@ -35,10 +35,10 @@',
         });
       });
 
@@ -93,7 +91,6 @@ describe('useDiffComments', () => {
           body: '複数行',
           side: 'new',
           line: { start: 36, end: 39 },
-          chunkHeader: '@@ -35,10 +35,10 @@',
         });
       });
 
@@ -103,7 +100,6 @@ describe('useDiffComments', () => {
           body: 'コメント内容',
           side: 'new',
           line: 42,
-          chunkHeader: '@@ -40,5 +40,5 @@',
         });
       });
 
@@ -132,7 +128,6 @@ src/client/components/CommentForm.tsx:L42
           body: 'App comment',
           side: 'new',
           line: 10,
-          chunkHeader: '@@ -10,5 +10,5 @@',
         });
       });
 
@@ -142,7 +137,6 @@ src/client/components/CommentForm.tsx:L42
           body: 'Server comment',
           side: 'new',
           line: { start: 20, end: 25 },
-          chunkHeader: '@@ -18,10 +18,10 @@',
         });
       });
 
@@ -173,7 +167,6 @@ Server comment`;
           body: 'Test comment',
           side: 'new',
           line: 15,
-          chunkHeader: '@@ -10,10 +10,10 @@',
           codeSnapshot: {
             content: 'const x = 42;',
             language: 'typescript',
@@ -202,7 +195,6 @@ Server comment`;
           body: 'To be removed',
           side: 'new',
           line: 1,
-          chunkHeader: '@@ -1,1 +1,1 @@',
         });
         commentId = comment.id;
       });
@@ -226,7 +218,6 @@ Server comment`;
           body: 'Original comment',
           side: 'new',
           line: 1,
-          chunkHeader: '@@ -1,1 +1,1 @@',
         });
         commentId = comment.id;
       });
@@ -251,7 +242,6 @@ Server comment`;
           body: 'Comment 1',
           side: 'new',
           line: 1,
-          chunkHeader: '@@ -1,1 +1,1 @@',
         });
       });
 
@@ -261,7 +251,6 @@ Server comment`;
           body: 'Comment 2',
           side: 'new',
           line: 2,
-          chunkHeader: '@@ -2,1 +2,1 @@',
         });
       });
 

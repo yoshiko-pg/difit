@@ -572,7 +572,6 @@ function App() {
       line: LineNumber,
       body: string,
       codeContent?: string,
-      chunkHeader?: string,
       side?: DiffSide
     ): Promise<void> => {
       addComment({
@@ -580,7 +579,6 @@ function App() {
         body,
         side: side || 'new',
         line: typeof line === 'number' ? line : { start: line[0], end: line[1] },
-        chunkHeader: chunkHeader || '',
         codeSnapshot:
           codeContent ?
             {

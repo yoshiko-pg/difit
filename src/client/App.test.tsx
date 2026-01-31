@@ -149,7 +149,6 @@ describe('App Component - Clear Comments Functionality', () => {
           body: 'Test comment',
           createdAt: '2024-01-01T00:00:00.000Z',
           updatedAt: '2024-01-01T00:00:00.000Z',
-          chunkHeader: '@@ -1,2 +1,2 @@',
         },
       ];
 
@@ -175,7 +174,6 @@ describe('App Component - Clear Comments Functionality', () => {
           body: 'Comment 1',
           createdAt: '2024-01-01',
           updatedAt: '2024-01-01',
-          chunkHeader: '@@ -1,2 +1,2 @@',
         },
         {
           id: '2',
@@ -184,7 +182,6 @@ describe('App Component - Clear Comments Functionality', () => {
           body: 'Comment 2',
           createdAt: '2024-01-01',
           updatedAt: '2024-01-01',
-          chunkHeader: '@@ -1,2 +1,2 @@',
         },
       ];
 

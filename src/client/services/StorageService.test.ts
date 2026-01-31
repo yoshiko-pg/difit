@@ -65,7 +65,6 @@ describe('StorageService - Repository Isolation', () => {
           body: 'Test comment',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
-          chunkHeader: '@@ test @@',
           position: { side: 'new' as const, line: 10 },
         },
       ];
@@ -86,7 +85,6 @@ describe('StorageService - Repository Isolation', () => {
           body: 'Comment in repo 1',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
-          chunkHeader: '@@ test @@',
           position: { side: 'new' as const, line: 10 },
         },
       ];
@@ -98,7 +96,6 @@ describe('StorageService - Repository Isolation', () => {
           body: 'Comment in repo 2',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
-          chunkHeader: '@@ test @@',
           position: { side: 'new' as const, line: 10 },
         },
       ];
@@ -121,7 +118,6 @@ describe('StorageService - Repository Isolation', () => {
           body: 'Comment in repo 1',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
-          chunkHeader: '@@ test @@',
           position: { side: 'new' as const, line: 10 },
         },
       ];
@@ -133,7 +129,6 @@ describe('StorageService - Repository Isolation', () => {
           body: 'Comment in repo 2',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
-          chunkHeader: '@@ test @@',
           position: { side: 'new' as const, line: 10 },
         },
       ];
@@ -217,7 +212,6 @@ describe('StorageService - Repository Isolation', () => {
           body: 'Test comment',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
-          chunkHeader: '@@ test @@',
           position: { side: 'new' as const, line: 10 },
         },
       ];
@@ -239,7 +233,6 @@ describe('StorageService - Repository Isolation', () => {
           body: 'Working diff comment',
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
-          chunkHeader: '@@ test @@',
           position: { side: 'new' as const, line: 10 },
         },
       ];

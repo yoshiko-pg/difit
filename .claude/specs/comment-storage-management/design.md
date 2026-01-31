@@ -36,9 +36,6 @@ interface DiffComment {
   createdAt: string;  // ISO 8601 format
   updatedAt: string;  // ISO 8601 format
   
-  // Chunk information
-  chunkHeader: string;  // e.g., "@@ -10,7 +10,8 @@ function example()"
-  
   // Comment position information
   position: {
     side: 'old' | 'new';  // Deletion side (-) or addition side (+)
@@ -103,7 +100,6 @@ interface AddCommentParams {
   body: string;
   side: 'old' | 'new';
   line: number | { start: number; end: number };
-  chunkHeader: string;
   codeSnapshot?: DiffComment['codeSnapshot'];
 }
 

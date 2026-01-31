@@ -79,9 +79,6 @@ export interface DiffComment {
   createdAt: string; // ISO 8601 format
   updatedAt: string; // ISO 8601 format
 
-  // Chunk information
-  chunkHeader: string; // e.g., "@@ -10,7 +10,8 @@ function example()"
-
   // Comment position
   position: {
     side: DiffSide; // whether on deletion (-) or addition (+) side
