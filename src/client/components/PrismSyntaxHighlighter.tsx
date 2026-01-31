@@ -123,13 +123,16 @@ export const PrismSyntaxHighlighter = React.memo(function PrismSyntaxHighlighter
         onMouseOut={onMouseOut}
       >
         {tokens.map((line, i) => (
-          <span key={i} {...getLineProps({ line })}>
-            {line.map((token, key) =>
-              renderToken ?
-                renderToken(token, key, getTokenProps)
-              : <span key={key} {...getTokenProps({ token })} />,
-            )}
-          </span>
+          <React.Fragment key={i}>
+            <span {...getLineProps({ line })}>
+              {line.map((token, key) =>
+                renderToken ?
+                  renderToken(token, key, getTokenProps)
+                : <span key={key} {...getTokenProps({ token })} />,
+              )}
+            </span>
+            {i < tokens.length - 1 && '\n'}
+          </React.Fragment>
         ))}
       </span>
     ),
