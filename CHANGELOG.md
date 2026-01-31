@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Update Prettier trailing comma setting to `all`
+
+### Fixed
+
+- Remove chunk header from comments
+
 ## [3.1.0] - 2026-01-31
 
 ### Added
