@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import type { DiffLine } from '../../types/diff';
+import { EnhancedPrismSyntaxHighlighter } from '../components/EnhancedPrismSyntaxHighlighter';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
@@ -38,11 +39,17 @@ type NotebookCellContent = {
   executionCount?: string | null;
 };
 
+type NotebookDocument = {
+  cells: NotebookCellContent[];
+  language?: string;
+};
+
 type PreviewState = {
   status: 'idle' | 'loading' | 'ready' | 'error';
   cells: NotebookCellPreview[];
   message?: string;
   source?: 'blob' | 'diff';
+  language?: string;
 };
 
 type SectionTone = 'before' | 'after' | 'neutral';
@@ -162,7 +169,7 @@ const parseInlineSource = (line: string): string[] | null => {
   return null;
 };
 
-const buildNotebookCellsFromDiff = (chunks: MergedChunk[]): NotebookCellPreview[] => {
+const buildNotebookCellsFromDiff = (chunks: MergedChunk[]): NotebookPreviewData => {
   const contentBased = buildNotebookCellsFromContent(chunks);
   if (contentBased) {
     return contentBased;
@@ -258,25 +265,34 @@ const buildNotebookCellsFromDiff = (chunks: MergedChunk[]): NotebookCellPreview[
 
   finalizeCell();
 
-  return cells;
+  return { cells };
 };
 
-const buildNotebookCellsFromContent = (chunks: MergedChunk[]): NotebookCellPreview[] | null => {
+type NotebookPreviewData = {
+  cells: NotebookCellPreview[];
+  language?: string;
+};
+
+const buildNotebookCellsFromContent = (chunks: MergedChunk[]): NotebookPreviewData | null => {
   const afterText = buildTextFromChunks(chunks, ['add', 'context']);
   const beforeText = buildTextFromChunks(chunks, ['delete', 'context']);
 
-  const afterCells = parseNotebookContent(afterText);
-  const beforeCells = parseNotebookContent(beforeText);
+  const afterDoc = parseNotebookContent(afterText);
+  const beforeDoc = parseNotebookContent(beforeText);
 
-  if (!afterCells && !beforeCells) {
+  if (!afterDoc && !beforeDoc) {
     return null;
   }
 
-  if (afterCells && afterCells.length === 0 && !beforeCells) {
+  if (afterDoc && afterDoc.cells.length === 0 && !beforeDoc) {
     return null;
   }
 
-  return buildCellsFromNotebookContent(beforeCells ?? [], afterCells ?? []);
+  const language = afterDoc?.language ?? beforeDoc?.language;
+  return {
+    cells: buildCellsFromNotebookContent(beforeDoc?.cells ?? [], afterDoc?.cells ?? []),
+    language,
+  };
 };
 
 const buildTextFromChunks = (chunks: MergedChunk[], allow: PreviewLineType[]): string =>
@@ -290,7 +306,7 @@ const buildTextFromChunks = (chunks: MergedChunk[], allow: PreviewLineType[]): s
     .filter((line): line is string => line !== null)
     .join('\n');
 
-const parseNotebookContent = (text: string): NotebookCellContent[] | null => {
+const parseNotebookContent = (text: string): NotebookDocument | null => {
   if (!text.trim()) return null;
 
   try {
@@ -300,10 +316,41 @@ const parseNotebookContent = (text: string): NotebookCellContent[] | null => {
     const cells = (parsed as { cells?: unknown }).cells;
     if (!Array.isArray(cells)) return null;
 
-    return cells.map((cell) => normalizeNotebookCell(cell));
+    const metadata = (parsed as { metadata?: unknown }).metadata;
+    const language = extractNotebookLanguage(metadata);
+
+    return {
+      cells: cells.map((cell) => normalizeNotebookCell(cell)),
+      language,
+    };
   } catch {
     return null;
   }
+};
+
+const extractNotebookLanguage = (metadata: unknown): string | undefined => {
+  if (!metadata || typeof metadata !== 'object') {
+    return undefined;
+  }
+
+  const record = metadata as Record<string, unknown>;
+  const languageInfo = record.language_info;
+  if (languageInfo && typeof languageInfo === 'object') {
+    const name = (languageInfo as Record<string, unknown>).name;
+    if (typeof name === 'string' && name.trim()) {
+      return name;
+    }
+  }
+
+  const kernelSpec = record.kernelspec;
+  if (kernelSpec && typeof kernelSpec === 'object') {
+    const language = (kernelSpec as Record<string, unknown>).language;
+    if (typeof language === 'string' && language.trim()) {
+      return language;
+    }
+  }
+
+  return undefined;
 };
 
 const normalizeNotebookCell = (cell: unknown): NotebookCellContent => {
@@ -672,6 +719,7 @@ const renderCellContent = (
   cellType: NotebookCellType,
   content: string,
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'],
+  language?: string,
 ) => {
   if (!content.trim()) {
     return <span className="text-xs text-github-text-muted">Empty cell</span>;
@@ -700,8 +748,9 @@ const renderCellContent = (
 
   return (
     <pre className="overflow-x-auto text-xs">
-      <PrismSyntaxHighlighter
+      <EnhancedPrismSyntaxHighlighter
         code={content.replace(/\n$/, '')}
+        language={language || 'python'}
         syntaxTheme={syntaxTheme}
         className="font-mono text-github-text-primary [&_.token-line]:block [&_.token-line]:whitespace-pre"
       />
@@ -712,9 +761,11 @@ const renderCellContent = (
 const NotebookPreview = ({
   cells,
   syntaxTheme,
+  language,
 }: {
   cells: NotebookCellPreview[];
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
+  language?: string;
 }) => (
   <div className="space-y-4">
     {cells.map((cell, index) => {
@@ -764,7 +815,7 @@ const NotebookPreview = ({
                   {section.label}
                 </div>
                 <div className="text-sm text-github-text-primary">
-                  {renderCellContent(cell.cellType, section.content, syntaxTheme)}
+                  {renderCellContent(cell.cellType, section.content, syntaxTheme, language)}
                 </div>
               </div>
             ))}
@@ -777,13 +828,14 @@ const NotebookPreview = ({
 
 export function NotebookDiffViewer(props: DiffViewerBodyProps) {
   const [mode, setMode] = useState<PreviewMode>('diff');
-  const fallbackCells = useMemo(
+  const fallbackPreview = useMemo(
     () => buildNotebookCellsFromDiff(props.mergedChunks),
     [props.mergedChunks],
   );
   const [previewState, setPreviewState] = useState<PreviewState>({
     status: 'idle',
-    cells: fallbackCells,
+    cells: fallbackPreview.cells,
+    language: fallbackPreview.language,
   });
 
   useEffect(() => {
@@ -800,7 +852,8 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
       if (!canFetchOld && !canFetchNew) {
         setPreviewState({
           status: 'ready',
-          cells: fallbackCells,
+          cells: fallbackPreview.cells,
+          language: fallbackPreview.language,
           source: 'diff',
           message: 'Notebook content could not be loaded, falling back to diff preview.',
         });
@@ -818,14 +871,15 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
           canFetchNew ? fetchNotebookContent(props.file.path, targetRef) : Promise.resolve(null),
         ]);
 
-        const oldCells = oldText ? parseNotebookContent(oldText) : null;
-        const newCells = newText ? parseNotebookContent(newText) : null;
+        const oldDoc = oldText ? parseNotebookContent(oldText) : null;
+        const newDoc = newText ? parseNotebookContent(newText) : null;
 
-        if (!oldCells && !newCells) {
+        if (!oldDoc && !newDoc) {
           if (!cancelled) {
             setPreviewState({
               status: 'ready',
-              cells: fallbackCells,
+              cells: fallbackPreview.cells,
+              language: fallbackPreview.language,
               source: 'diff',
               message: 'Notebook content could not be parsed, falling back to diff preview.',
             });
@@ -833,19 +887,22 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
           return;
         }
 
-        const cells = buildCellsFromNotebookContent(oldCells ?? [], newCells ?? []);
+        const language = newDoc?.language ?? oldDoc?.language ?? fallbackPreview.language;
+        const cells = buildCellsFromNotebookContent(oldDoc?.cells ?? [], newDoc?.cells ?? []);
         if (!cancelled) {
           setPreviewState({
             status: 'ready',
             cells,
             source: 'blob',
+            language,
           });
         }
       } catch (error) {
         if (!cancelled) {
           setPreviewState({
             status: 'error',
-            cells: fallbackCells,
+            cells: fallbackPreview.cells,
+            language: fallbackPreview.language,
             source: 'diff',
             message: error instanceof Error ? error.message : 'Failed to load notebook preview.',
           });
@@ -865,7 +922,7 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
     props.file.status,
     props.mergedChunks,
     props.targetCommitish,
-    fallbackCells,
+    fallbackPreview,
   ]);
 
   return (
@@ -915,7 +972,11 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
               </div>
               <TextDiffViewer {...props} />
             </div>
-          : <NotebookPreview cells={previewState.cells} syntaxTheme={props.syntaxTheme} />}
+          : <NotebookPreview
+              cells={previewState.cells}
+              syntaxTheme={props.syntaxTheme}
+              language={previewState.language}
+            />}
         </div>
       }
     </div>
