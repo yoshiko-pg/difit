@@ -1,3 +1,4 @@
+import { Eye, FileDiff } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -262,26 +263,30 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
 
   return (
     <div className="bg-github-bg-primary">
-      <div className="flex items-center justify-between border-b border-github-border px-4 py-3">
-        <div className="flex bg-github-bg-tertiary border border-github-border rounded-md p-1">
+      <div className="flex items-center justify-between border-b border-github-border px-4 py-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setMode('diff')}
-            className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
               mode === 'diff' ?
-                'bg-github-bg-primary text-github-text-primary shadow-sm'
+                'text-github-text-primary'
               : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
+            title="Code Diff"
           >
-            Code Diff
+            <FileDiff size={14} />
+            Diff
           </button>
           <button
             onClick={() => setMode('preview')}
-            className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
               mode === 'preview' ?
-                'bg-github-bg-primary text-github-text-primary shadow-sm'
+                'text-github-text-primary'
               : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
+            title="Preview"
           >
+            <Eye size={14} />
             Preview
           </button>
         </div>
