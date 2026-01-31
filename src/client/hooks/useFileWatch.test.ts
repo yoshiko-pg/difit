@@ -108,7 +108,7 @@ describe('useFileWatch', () => {
             changeType: 'file',
             timestamp: new Date().toISOString(),
             message: 'Connected to file watcher',
-          })
+          }),
         );
       });
 
@@ -134,7 +134,7 @@ describe('useFileWatch', () => {
             diffMode: DiffMode.DOT,
             changeType: 'commit',
             timestamp: new Date().toISOString(),
-          })
+          }),
         );
       });
 
@@ -162,7 +162,7 @@ describe('useFileWatch', () => {
             changeType: 'file',
             timestamp: new Date().toISOString(),
             message: 'Watch error occurred',
-          })
+          }),
         );
       });
 
@@ -209,7 +209,7 @@ describe('useFileWatch', () => {
             diffMode: DiffMode.DEFAULT,
             changeType: 'file',
             timestamp: new Date().toISOString(),
-          })
+          }),
         );
       });
 
@@ -251,7 +251,7 @@ describe('useFileWatch', () => {
             diffMode: DiffMode.DEFAULT,
             changeType: 'file',
             timestamp: new Date().toISOString(),
-          })
+          }),
         );
       });
 
@@ -289,7 +289,7 @@ describe('useFileWatch', () => {
             diffMode: DiffMode.DEFAULT,
             changeType: 'file',
             timestamp: new Date().toISOString(),
-          })
+          }),
         );
       });
 

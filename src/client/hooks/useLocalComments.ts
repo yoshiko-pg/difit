@@ -26,7 +26,7 @@ export function useLocalComments(commitHash?: string) {
     file: string,
     line: LineNumber,
     body: string,
-    codeContent?: string
+    codeContent?: string,
   ): Comment => {
     console.log('Adding comment with codeContent:', codeContent);
     const comment: Comment = {

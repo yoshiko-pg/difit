@@ -128,7 +128,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       expect(result.current.cursor).toBeNull();
@@ -149,7 +149,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       await user.keyboard('j');
@@ -174,7 +174,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       await user.keyboard('{ArrowDown}');
@@ -199,7 +199,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // First set cursor to a line
@@ -235,7 +235,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       await user.keyboard('{\\]}');
@@ -259,7 +259,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Set cursor to second file
@@ -288,7 +288,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Set cursor to second file
@@ -319,7 +319,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Set cursor to first file
@@ -353,7 +353,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       await user.keyboard('n');
@@ -374,7 +374,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // First navigate to a chunk
@@ -417,7 +417,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       await user.keyboard('{Shift>}n{/Shift}');
@@ -454,7 +454,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Navigate to second comment first
@@ -480,7 +480,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       expect(result.current.isHelpOpen).toBe(false);
@@ -502,7 +502,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       act(() => {
@@ -533,7 +533,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed,
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Set cursor first
@@ -564,7 +564,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed,
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       await user.keyboard('v');
@@ -588,7 +588,7 @@ describe('useKeyboardNavigation', () => {
             reviewedFiles: new Set<string>(),
             onRefresh,
           }),
-        { wrapper }
+        { wrapper },
       );
 
       await user.keyboard('{Shift>}r{/Shift}');
@@ -608,7 +608,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Should not throw error
@@ -631,7 +631,7 @@ describe('useKeyboardNavigation', () => {
             reviewedFiles: new Set<string>(),
             onCreateComment,
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Navigate to a normal line
@@ -663,7 +663,7 @@ describe('useKeyboardNavigation', () => {
             reviewedFiles: new Set<string>(),
             onCreateComment,
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Navigate to a delete line
@@ -695,7 +695,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Set cursor to right side
@@ -725,7 +725,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Set cursor to left side
@@ -756,7 +756,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Mock multiple elements at different positions
@@ -799,7 +799,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Test should pass as long as no errors are thrown
@@ -827,7 +827,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed,
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Type in the input
@@ -859,7 +859,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed,
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Type in the textarea
@@ -885,7 +885,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       const position = {
@@ -912,7 +912,7 @@ describe('useKeyboardNavigation', () => {
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
-        { wrapper }
+        { wrapper },
       );
 
       // Try to set cursor on a delete line with right side

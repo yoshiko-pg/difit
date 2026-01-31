@@ -24,7 +24,7 @@ export class GitDiffParser {
   async parseDiff(
     targetCommitish: string,
     baseCommitish: string,
-    ignoreWhitespace = false
+    ignoreWhitespace = false,
   ): Promise<DiffResponse> {
     try {
       // Validate arguments
@@ -92,7 +92,7 @@ export class GitDiffParser {
           } catch {
             // Ignore errors (e.g. file too large, file not found in target ref)
           }
-        })
+        }),
       );
 
       return {
@@ -102,7 +102,7 @@ export class GitDiffParser {
       };
     } catch (error) {
       throw new Error(
-        `Failed to parse diff for ${targetCommitish} vs ${baseCommitish}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to parse diff for ${targetCommitish} vs ${baseCommitish}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -222,7 +222,7 @@ export class GitDiffParser {
   }
 
   private parseDiffHeaderPaths(
-    headerLine: string
+    headerLine: string,
   ): { oldPath: string | undefined; newPath: string | undefined } | null {
     if (!headerLine.startsWith('diff --git ')) {
       return null;
@@ -270,14 +270,14 @@ export class GitDiffParser {
   }
 
   private hasRenameInfo(
-    summary: DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile
+    summary: DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile,
   ): summary is DiffResultNameStatusFile {
     return 'from' in summary && typeof summary.from === 'string';
   }
 
   private parseFileBlock(
     block: string,
-    summary: DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile | null
+    summary: DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile | null,
   ): DiffFile | null {
     const lines = block.split('\n');
     const headerLine = lines[0];
@@ -521,7 +521,7 @@ export class GitDiffParser {
       }
 
       throw new Error(
-        `Failed to get blob content for ${filepath} at ${ref}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to get blob content for ${filepath} at ${ref}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -570,7 +570,7 @@ export class GitDiffParser {
 
   async getRevisionOptions(
     currentBase?: string,
-    currentTarget?: string
+    currentTarget?: string,
   ): Promise<{
     branches: Array<{ name: string; current: boolean }>;
     commits: Array<{ hash: string; shortHash: string; message: string }>;

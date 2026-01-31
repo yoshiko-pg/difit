@@ -25,7 +25,7 @@ type EnhancedPrismSyntaxHighlighterProps = Omit<
  * - Preserves original syntax highlighting from Prism
  */
 export const EnhancedPrismSyntaxHighlighter = React.memo(function EnhancedPrismSyntaxHighlighter(
-  props: EnhancedPrismSyntaxHighlighterProps
+  props: EnhancedPrismSyntaxHighlighterProps,
 ) {
   const { handleMouseOver, handleMouseOut, isWordHighlighted } = useWordHighlight();
 
@@ -33,7 +33,7 @@ export const EnhancedPrismSyntaxHighlighter = React.memo(function EnhancedPrismS
     (
       token: Token,
       key: number,
-      getTokenProps: (options: { token: Token }) => Record<string, unknown>
+      getTokenProps: (options: { token: Token }) => Record<string, unknown>,
     ) => {
       const tokenProps = getTokenProps({ token });
 
@@ -76,7 +76,7 @@ export const EnhancedPrismSyntaxHighlighter = React.memo(function EnhancedPrismS
         </span>
       );
     },
-    [isWordHighlighted]
+    [isWordHighlighted],
   );
 
   return (

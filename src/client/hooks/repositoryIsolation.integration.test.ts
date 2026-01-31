@@ -40,12 +40,12 @@ describe('Repository Isolation Integration Tests', () => {
     it('should isolate comments between different repositories', () => {
       // Render hook for repository 1
       const { result: result1 } = renderHook(() =>
-        useDiffComments('base', 'target', undefined, undefined, 'repo-1')
+        useDiffComments('base', 'target', undefined, undefined, 'repo-1'),
       );
 
       // Render hook for repository 2
       const { result: result2 } = renderHook(() =>
-        useDiffComments('base', 'target', undefined, undefined, 'repo-2')
+        useDiffComments('base', 'target', undefined, undefined, 'repo-2'),
       );
 
       // Add comment in repository 1
@@ -87,12 +87,12 @@ describe('Repository Isolation Integration Tests', () => {
     it('should isolate comments in working diff mode across repositories', () => {
       // Repository 1 - working diff
       const { result: result1 } = renderHook(() =>
-        useDiffComments('HEAD', 'working', 'abc123', undefined, 'repo-1')
+        useDiffComments('HEAD', 'working', 'abc123', undefined, 'repo-1'),
       );
 
       // Repository 2 - working diff with same commit
       const { result: result2 } = renderHook(() =>
-        useDiffComments('HEAD', 'working', 'abc123', undefined, 'repo-2')
+        useDiffComments('HEAD', 'working', 'abc123', undefined, 'repo-2'),
       );
 
       act(() => {
@@ -132,12 +132,12 @@ describe('Repository Isolation Integration Tests', () => {
 
       // Repository 1
       const { result: result1 } = renderHook(() =>
-        useViewedFiles('base', 'target', undefined, undefined, [mockFile1], 'repo-1')
+        useViewedFiles('base', 'target', undefined, undefined, [mockFile1], 'repo-1'),
       );
 
       // Repository 2
       const { result: result2 } = renderHook(() =>
-        useViewedFiles('base', 'target', undefined, undefined, [mockFile2], 'repo-2')
+        useViewedFiles('base', 'target', undefined, undefined, [mockFile2], 'repo-2'),
       );
 
       // Mark file as viewed in repository 1
@@ -190,12 +190,12 @@ describe('Repository Isolation Integration Tests', () => {
 
       // Repository 1 with generated file
       const { result: result1 } = renderHook(() =>
-        useViewedFiles('base', 'target', undefined, undefined, [generatedFile1], 'repo-1')
+        useViewedFiles('base', 'target', undefined, undefined, [generatedFile1], 'repo-1'),
       );
 
       // Repository 2 with different generated file
       const { result: result2 } = renderHook(() =>
-        useViewedFiles('base', 'target', undefined, undefined, [generatedFile2], 'repo-2')
+        useViewedFiles('base', 'target', undefined, undefined, [generatedFile2], 'repo-2'),
       );
 
       // Each repository should only auto-mark its own generated files
@@ -234,7 +234,7 @@ describe('Repository Isolation Integration Tests', () => {
 
       // Repository 1 - view 1 file
       const { result: result1 } = renderHook(() =>
-        useViewedFiles('base', 'target', undefined, undefined, [file1], 'repo-1')
+        useViewedFiles('base', 'target', undefined, undefined, [file1], 'repo-1'),
       );
 
       await act(async () => {
@@ -243,7 +243,7 @@ describe('Repository Isolation Integration Tests', () => {
 
       // Repository 2 - view a different file
       const { result: result2 } = renderHook(() =>
-        useViewedFiles('base', 'target', undefined, undefined, [file2], 'repo-2')
+        useViewedFiles('base', 'target', undefined, undefined, [file2], 'repo-2'),
       );
 
       await act(async () => {
@@ -271,11 +271,11 @@ describe('Repository Isolation Integration Tests', () => {
 
       // Both repos have a file with the same path
       const { result: result1 } = renderHook(() =>
-        useViewedFiles('base', 'target', undefined, undefined, [file], 'repo-1')
+        useViewedFiles('base', 'target', undefined, undefined, [file], 'repo-1'),
       );
 
       const { result: result2 } = renderHook(() =>
-        useViewedFiles('base', 'target', undefined, undefined, [file], 'repo-2')
+        useViewedFiles('base', 'target', undefined, undefined, [file], 'repo-2'),
       );
 
       // Mark as viewed in repo 1

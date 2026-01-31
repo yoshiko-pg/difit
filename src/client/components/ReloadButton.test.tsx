@@ -246,7 +246,7 @@ describe('ReloadButton', () => {
         'py-1.5',
         'text-xs',
         'rounded-md',
-        'border'
+        'border',
       );
     });
 
@@ -257,7 +257,7 @@ describe('ReloadButton', () => {
       expect(button).toHaveClass(
         'bg-github-text-primary',
         'text-github-bg-primary',
-        'border-github-text-primary'
+        'border-github-text-primary',
       );
     });
 

@@ -65,11 +65,11 @@ program
   .argument(
     '[commit-ish]',
     'Git commit, tag, branch, HEAD~n reference, or "working"/"staged"/"."',
-    'HEAD'
+    'HEAD',
   )
   .argument(
     '[compare-with]',
-    'Optional: Compare with this commit/branch (shows diff between commit-ish and compare-with)'
+    'Optional: Compare with this commit/branch (shows diff between commit-ish and compare-with)',
   )
   .option('--port <port>', 'preferred port (auto-assigned if occupied)', parseInt)
   .option('--host <host>', 'host address to bind', '')
@@ -138,7 +138,7 @@ program
           console.log(`📍 Base commit: ${baseCommitish.substring(0, 7)}`);
         } catch (error) {
           console.error(
-            `Error resolving PR: ${error instanceof Error ? error.message : 'Unknown error'}`
+            `Error resolving PR: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
           process.exit(1);
         }
@@ -180,7 +180,7 @@ program
             baseCommitish,
             mode: options.mode,
             repoPath,
-          })
+          }),
         );
         return;
       }
@@ -217,7 +217,7 @@ program
 
       if (isEmpty) {
         console.log(
-          '\n! \x1b[33mNo differences found. Browser will not open automatically.\x1b[0m'
+          '\n! \x1b[33mNo differences found. Browser will not open automatically.\x1b[0m',
         );
         console.log(`   Server is running at ${url} if you want to check manually.\n`);
       } else if (options.open) {
@@ -286,6 +286,6 @@ async function promptUserToIncludeUntracked(files: string[]): Promise<boolean> {
   }
 
   return await promptUser(
-    '\n❓ Would you like to include these untracked files in the diff review? (Y/n): '
+    '\n❓ Would you like to include these untracked files in the diff review? (Y/n): ',
   );
 }

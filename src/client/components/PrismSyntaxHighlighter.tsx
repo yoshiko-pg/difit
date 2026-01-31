@@ -17,7 +17,7 @@ export interface PrismSyntaxHighlighterProps {
   renderToken?: (
     token: Token,
     key: number,
-    getTokenProps: (options: { token: Token }) => Record<string, unknown>
+    getTokenProps: (options: { token: Token }) => Record<string, unknown>,
   ) => React.ReactNode;
   onMouseOver?: (e: React.MouseEvent) => void;
   onMouseOut?: (e: React.MouseEvent) => void;
@@ -127,13 +127,13 @@ export const PrismSyntaxHighlighter = React.memo(function PrismSyntaxHighlighter
             {line.map((token, key) =>
               renderToken ?
                 renderToken(token, key, getTokenProps)
-              : <span key={key} {...getTokenProps({ token })} />
+              : <span key={key} {...getTokenProps({ token })} />,
             )}
           </span>
         ))}
       </span>
     ),
-    [className, onMouseOver, onMouseOut, renderToken]
+    [className, onMouseOver, onMouseOut, renderToken],
   );
 
   return (

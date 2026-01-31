@@ -143,14 +143,14 @@ describe('StorageService - Repository Isolation', () => {
         'target',
         undefined,
         undefined,
-        'repo-1'
+        'repo-1',
       );
       const retrievedComments2 = service.getComments(
         'base',
         'target',
         undefined,
         undefined,
-        'repo-2'
+        'repo-2',
       );
 
       // Each repository should only see its own comments
@@ -187,14 +187,14 @@ describe('StorageService - Repository Isolation', () => {
         'target',
         undefined,
         undefined,
-        'repo-1'
+        'repo-1',
       );
       const retrievedFiles2 = service.getViewedFiles(
         'base',
         'target',
         undefined,
         undefined,
-        'repo-2'
+        'repo-2',
       );
 
       // Each repository should only see its own viewed files

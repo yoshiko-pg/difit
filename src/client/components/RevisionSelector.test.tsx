@@ -30,7 +30,7 @@ describe('RevisionSelector', () => {
         onChange={vi.fn()}
         options={options}
         disabledValues={['working']}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Base:/ }));
@@ -47,7 +47,7 @@ describe('RevisionSelector', () => {
         resolvedValue="abc1234"
         onChange={vi.fn()}
         options={options}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Target:/ }));

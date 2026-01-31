@@ -182,7 +182,7 @@ describe('WordHighlightContext', () => {
     });
 
     expect((result.current as { error: unknown }).error).toEqual(
-      new Error('useWordHighlight must be used within a WordHighlightProvider')
+      new Error('useWordHighlight must be used within a WordHighlightProvider'),
     );
   });
 });

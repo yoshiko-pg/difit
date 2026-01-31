@@ -52,7 +52,7 @@ export function WordHighlightProvider({ children }: { children: ReactNode }) {
         setHighlightedWord(word);
       }, HOVER_DELAY_MS);
     },
-    [clearHighlightTimeout]
+    [clearHighlightTimeout],
   );
 
   const handleMouseOut = useCallback(() => {
@@ -65,7 +65,7 @@ export function WordHighlightProvider({ children }: { children: ReactNode }) {
       if (!highlightedWord) return false;
       return normalizeWord(word) === normalizeWord(highlightedWord);
     },
-    [highlightedWord]
+    [highlightedWord],
   );
 
   // Cleanup timeout on unmount

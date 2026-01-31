@@ -30,12 +30,12 @@ interface UseExpandedLinesResult {
     file: DiffFile,
     chunkIndex: number,
     direction: 'up' | 'down',
-    count?: number
+    count?: number,
   ) => Promise<void>;
   expandAllBetweenChunks: (
     file: DiffFile,
     chunkIndex: number,
-    hiddenLines: number
+    hiddenLines: number,
   ) => Promise<void>;
   prefetchFileContent: (file: DiffFile) => Promise<void>;
   getMergedChunks: (file: DiffFile) => MergedChunk[];
@@ -45,7 +45,7 @@ interface UseExpandedLinesResult {
 
 async function fetchFileContent(
   filePath: string,
-  commitish: string
+  commitish: string,
 ): Promise<{ lines: string[]; totalLines: number }> {
   const encodedPath = encodeURIComponent(filePath);
   const response = await fetch(`/api/blob/${encodedPath}?ref=${encodeURIComponent(commitish)}`);
@@ -67,7 +67,7 @@ async function fetchLineCount(
   filePath: string,
   oldRef?: string,
   newRef?: string,
-  oldPath?: string
+  oldPath?: string,
 ): Promise<{ oldLineCount?: number; newLineCount?: number }> {
   const encodedPath = encodeURIComponent(filePath);
   const params = new URLSearchParams();
@@ -156,7 +156,7 @@ export function useExpandedLines({
         pendingFetchesRef.current.delete(file.path);
       }
     },
-    [baseCommitish, targetCommitish]
+    [baseCommitish, targetCommitish],
   );
 
   const markFileUpdated = useCallback((filePath: string) => {
@@ -169,7 +169,7 @@ export function useExpandedLines({
       file: DiffFile,
       chunkIndex: number,
       direction: 'up' | 'down',
-      count: number = DEFAULT_EXPAND_COUNT
+      count: number = DEFAULT_EXPAND_COUNT,
     ) => {
       setIsLoading(true);
       try {
@@ -183,7 +183,7 @@ export function useExpandedLines({
 
           // Find existing range or create new one
           const existingRangeIndex = currentRanges.findIndex(
-            (r) => r.chunkIndex === chunkIndex && r.direction === direction
+            (r) => r.chunkIndex === chunkIndex && r.direction === direction,
           );
 
           const newRanges = [...currentRanges];
@@ -218,7 +218,7 @@ export function useExpandedLines({
         setIsLoading(false);
       }
     },
-    [ensureFileContent, markFileUpdated]
+    [ensureFileContent, markFileUpdated],
   );
 
   const expandAllBetweenChunks = useCallback(
@@ -241,11 +241,11 @@ export function useExpandedLines({
           // This is because the UI buttons call different functions based on direction
 
           const existingUpIndex = newRanges.findIndex(
-            (r) => r.chunkIndex === chunkIndex && r.direction === 'up'
+            (r) => r.chunkIndex === chunkIndex && r.direction === 'up',
           );
 
           const existingDownPrevIndex = newRanges.findIndex(
-            (r) => r.chunkIndex === chunkIndex - 1 && r.direction === 'down'
+            (r) => r.chunkIndex === chunkIndex - 1 && r.direction === 'down',
           );
 
           // Calculate total already expanded from both directions
@@ -266,12 +266,12 @@ export function useExpandedLines({
           // Remove the 'down' range from previous chunk (if exists) to consolidate into 'up' direction
           // We need to remove it first before updating 'up' to avoid index shifting issues
           const filteredRanges = newRanges.filter(
-            (r) => !(r.chunkIndex === chunkIndex - 1 && r.direction === 'down')
+            (r) => !(r.chunkIndex === chunkIndex - 1 && r.direction === 'down'),
           );
 
           // Now find or create the 'up' range
           const upIndexInFiltered = filteredRanges.findIndex(
-            (r) => r.chunkIndex === chunkIndex && r.direction === 'up'
+            (r) => r.chunkIndex === chunkIndex && r.direction === 'up',
           );
 
           if (upIndexInFiltered >= 0 && filteredRanges[upIndexInFiltered]) {
@@ -301,7 +301,7 @@ export function useExpandedLines({
         setIsLoading(false);
       }
     },
-    [ensureFileContent, markFileUpdated]
+    [ensureFileContent, markFileUpdated],
   );
 
   // Pre-fetch only line counts (lightweight) to show bottom expand button
@@ -323,7 +323,7 @@ export function useExpandedLines({
           file.path,
           oldRef,
           newRef,
-          file.oldPath
+          file.oldPath,
         );
 
         setExpandedState((prev) => {
@@ -346,7 +346,7 @@ export function useExpandedLines({
         console.error('Failed to prefetch line count:', error);
       }
     },
-    [baseCommitish, targetCommitish, markFileUpdated]
+    [baseCommitish, targetCommitish, markFileUpdated],
   );
 
   const getExpandedCount = useCallback(
@@ -355,11 +355,11 @@ export function useExpandedLines({
       if (!fileState) return 0;
 
       const range = fileState.expandedRanges.find(
-        (r) => r.chunkIndex === chunkIndex && r.direction === direction
+        (r) => r.chunkIndex === chunkIndex && r.direction === direction,
       );
       return range?.count || 0;
     },
-    [expandedState]
+    [expandedState],
   );
 
   const getHiddenLinesBefore = useCallback(
@@ -390,7 +390,7 @@ export function useExpandedLines({
 
       return Math.max(0, hiddenLines - expandedUp - expandedDownPrev);
     },
-    [getExpandedCount]
+    [getExpandedCount],
   );
 
   /**
@@ -437,7 +437,7 @@ export function useExpandedLines({
 
       return Math.max(0, hiddenLines - expandedDown);
     },
-    [expandedState, getExpandedCount]
+    [expandedState, getExpandedCount],
   );
 
   const getExpandedChunk = useCallback(
@@ -539,7 +539,7 @@ export function useExpandedLines({
           1,
       };
     },
-    [expandedState, getExpandedCount]
+    [expandedState, getExpandedCount],
   );
 
   const getMergedChunks = useCallback(
@@ -584,7 +584,7 @@ export function useExpandedLines({
 
       return mergedChunks;
     },
-    [getExpandedChunk, getHiddenLinesBefore, getHiddenLinesAfter]
+    [getExpandedChunk, getHiddenLinesBefore, getHiddenLinesAfter],
   );
 
   return {

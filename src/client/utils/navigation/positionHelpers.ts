@@ -11,7 +11,7 @@ import type { CursorPosition } from '../../hooks/keyboardNavigation/types';
 export function findLinePosition(
   file: DiffFile,
   fileIndex: number,
-  targetLineNumber: number
+  targetLineNumber: number,
 ): CursorPosition | null {
   for (let chunkIndex = 0; chunkIndex < file.chunks.length; chunkIndex++) {
     const chunk = file.chunks[chunkIndex];

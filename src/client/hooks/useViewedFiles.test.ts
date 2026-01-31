@@ -26,7 +26,7 @@ vi.mock('../utils/diffUtils', () => ({
 function createMockDiffFile(
   path: string,
   status: 'modified' | 'added' | 'deleted' | 'renamed' = 'modified',
-  isGenerated = false
+  isGenerated = false,
 ): DiffFile {
   return {
     path,
@@ -86,7 +86,7 @@ describe('useViewedFiles', () => {
       ];
 
       const { result } = renderHook(() =>
-        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles)
+        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles),
       );
 
       await waitFor(() => {
@@ -104,7 +104,7 @@ describe('useViewedFiles', () => {
       ];
 
       const { result } = renderHook(() =>
-        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles)
+        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles),
       );
 
       await waitFor(() => {
@@ -123,7 +123,7 @@ describe('useViewedFiles', () => {
       ];
 
       const { result } = renderHook(() =>
-        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles)
+        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles),
       );
 
       await waitFor(() => {
@@ -151,7 +151,7 @@ describe('useViewedFiles', () => {
       ];
 
       const { result } = renderHook(() =>
-        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles)
+        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles),
       );
 
       await waitFor(() => {
@@ -315,7 +315,7 @@ describe('useViewedFiles', () => {
         [],
         undefined,
         undefined,
-        undefined
+        undefined,
       );
     });
   });

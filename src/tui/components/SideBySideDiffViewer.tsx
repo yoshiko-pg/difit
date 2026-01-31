@@ -62,7 +62,7 @@ const SideBySideDiffViewer: React.FC<SideBySideDiffViewerProps> = ({
         setScrollOffset(0);
       }
     },
-    { isActive: true }
+    { isActive: true },
   );
 
   if (!currentFile || files.length === 0) {

@@ -30,7 +30,7 @@ interface SideBySideDiffChunkProps {
     line: LineNumber,
     body: string,
     codeContent?: string,
-    side?: DiffSide
+    side?: DiffSide,
   ) => Promise<void>;
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
@@ -42,7 +42,7 @@ interface SideBySideDiffChunkProps {
     fileIndex: number,
     chunkIndex: number,
     lineIndex: number,
-    side: 'left' | 'right'
+    side: 'left' | 'right',
   ) => void;
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
@@ -146,7 +146,7 @@ export function SideBySideDiffChunk({
         setCommentingLine({ side, lineNumber });
       }
     },
-    [commentingLine]
+    [commentingLine],
   );
 
   const handleCancelComment = useCallback(() => {
@@ -160,7 +160,7 @@ export function SideBySideDiffChunk({
         setCommentingLine(null);
       }
     },
-    [commentingLine, onAddComment]
+    [commentingLine, onAddComment],
   );
 
   const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
@@ -323,12 +323,12 @@ export function SideBySideDiffChunk({
 
       return result;
     },
-    [chunk.oldStart, chunk.newStart]
+    [chunk.oldStart, chunk.newStart],
   );
 
   const sideBySideLines = useMemo(
     () => convertToSideBySide(chunk.lines),
-    [chunk.lines, convertToSideBySide]
+    [chunk.lines, convertToSideBySide],
   );
 
   return (

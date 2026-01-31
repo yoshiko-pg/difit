@@ -165,7 +165,7 @@ describe('useLocalComments', () => {
       const prompt = result.current.generatePrompt(comment);
 
       expect(prompt).toBe(
-        'src/components/Button.tsx:L42\nThis button should be disabled when form is invalid'
+        'src/components/Button.tsx:L42\nThis button should be disabled when form is invalid',
       );
     });
 
@@ -183,7 +183,7 @@ describe('useLocalComments', () => {
       const prompt = result.current.generatePrompt(comment);
 
       expect(prompt).toBe(
-        'src/utils/validation.ts:L100-L150\nExtract this validation logic into a separate function'
+        'src/utils/validation.ts:L100-L150\nExtract this validation logic into a separate function',
       );
     });
 
@@ -201,7 +201,7 @@ describe('useLocalComments', () => {
       const prompt = result.current.generatePrompt(comment);
 
       expect(prompt).toBe(
-        'src/api/client.ts:L25\nAdd error handling:\n- Network errors\n- Timeout errors\n- Invalid response format'
+        'src/api/client.ts:L25\nAdd error handling:\n- Network errors\n- Timeout errors\n- Invalid response format',
       );
     });
 
@@ -256,7 +256,7 @@ describe('useLocalComments', () => {
         result.current.addComment(
           'src/App.tsx',
           [50, 60] as [number, number],
-          'Refactor this component'
+          'Refactor this component',
         );
         result.current.addComment('src/utils/helper.ts', 100, 'Add type annotations');
       });
@@ -315,7 +315,7 @@ describe('useLocalComments', () => {
           'Refactor this form component:\n' +
             '1. Extract validation logic\n' +
             '2. Add error handling\n' +
-            '3. Improve accessibility'
+            '3. Improve accessibility',
         );
         result.current.addComment('src/api/auth.ts', 45, 'TODO: Implement refresh token logic');
       });
@@ -330,7 +330,7 @@ describe('useLocalComments', () => {
           '3. Improve accessibility\n' +
           '=====\n' +
           'src/api/auth.ts:L45\n' +
-          'TODO: Implement refresh token logic'
+          'TODO: Implement refresh token logic',
       );
     });
   });
@@ -344,7 +344,7 @@ describe('useLocalComments', () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'difit-comments-test-commit',
-      expect.stringContaining('Comment 1')
+      expect.stringContaining('Comment 1'),
     );
 
     act(() => {
@@ -375,7 +375,7 @@ describe('useLocalComments', () => {
     expect(result.current.comments).toEqual([]);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to parse saved comments:',
-      expect.any(Error)
+      expect.any(Error),
     );
 
     consoleErrorSpy.mockRestore();

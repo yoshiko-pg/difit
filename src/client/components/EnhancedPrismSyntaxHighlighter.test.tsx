@@ -15,7 +15,7 @@ vi.mock('./PrismSyntaxHighlighter', () => ({
       <span className={className} onMouseOver={onMouseOver} onMouseOut={onMouseOut}>
         {renderToken ?
           tokens.map((token: any, idx: number) =>
-            renderToken(token, idx, () => ({ className: 'token' }))
+            renderToken(token, idx, () => ({ className: 'token' })),
           )
         : <span>{code}</span>}
       </span>
@@ -45,7 +45,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="const hello = world" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     expect(screen.getByText(/hello/)).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="hello world" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     const wordTokens = container.querySelectorAll('.word-token');
@@ -76,7 +76,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="hello world Hello" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     const highlightedWords = container.querySelectorAll('.word-highlight');
@@ -95,7 +95,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="hello world" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     const firstWord = container.querySelector('.word-token');
@@ -117,7 +117,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="hello world" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     const firstWord = container.querySelector('.word-token');
@@ -131,7 +131,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="hello world" className="custom-class" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     expect(container.querySelector('.custom-class')).toBeInTheDocument();
@@ -141,7 +141,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     const wordTokens = container.querySelectorAll('.word-token');
@@ -152,7 +152,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="hello world foo bar" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     const wordTokens = container.querySelectorAll('.word-token');
@@ -163,7 +163,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="+ - = ! @" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     const wordTokens = container.querySelectorAll('.word-token');
@@ -174,7 +174,7 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     const { container } = render(
       <WordHighlightProvider>
         <EnhancedPrismSyntaxHighlighter code="EnhancedPrismSyntaxHighlighter code" />
-      </WordHighlightProvider>
+      </WordHighlightProvider>,
     );
 
     const wordTokens = container.querySelectorAll('.word-token');

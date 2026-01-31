@@ -7,7 +7,7 @@ import type { CursorPosition } from '../../hooks/keyboardNavigation/types';
  */
 export function getLineType(
   position: CursorPosition,
-  files: DiffFile[]
+  files: DiffFile[],
 ): 'add' | 'delete' | 'normal' | null {
   const line = files[position.fileIndex]?.chunks[position.chunkIndex]?.lines[position.lineIndex];
   if (!line) return null;

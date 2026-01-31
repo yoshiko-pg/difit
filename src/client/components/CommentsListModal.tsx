@@ -46,7 +46,7 @@ export function CommentsListModal({
       onNavigate(comment);
       onClose();
     },
-    [onNavigate, onClose]
+    [onNavigate, onClose],
   );
 
   const handleDeleteComment = useCallback(
@@ -59,7 +59,7 @@ export function CommentsListModal({
         }
       }
     },
-    [onRemoveComment, selectedIndex, sortedComments.length]
+    [onRemoveComment, selectedIndex, sortedComments.length],
   );
   // Reset state and manage scope when modal opens/closes
   useEffect(() => {
@@ -91,7 +91,7 @@ export function CommentsListModal({
     'j, down',
     () => setSelectedIndex((prev) => Math.min(prev + 1, sortedComments.length - 1)),
     hotkeyOptions,
-    [sortedComments.length]
+    [sortedComments.length],
   );
 
   useHotkeys('k, up', () => setSelectedIndex((prev) => Math.max(prev - 1, 0)), hotkeyOptions, []);
@@ -104,7 +104,7 @@ export function CommentsListModal({
       }
     },
     hotkeyOptions,
-    [selectedIndex, sortedComments, handleCommentClick]
+    [selectedIndex, sortedComments, handleCommentClick],
   );
 
   // Delete selected comment with 'd' key (only in comments-list scope)
@@ -116,7 +116,7 @@ export function CommentsListModal({
       }
     },
     hotkeyOptions,
-    [selectedIndex, sortedComments, handleDeleteComment]
+    [selectedIndex, sortedComments, handleDeleteComment],
   );
 
   // Scroll selected comment into view

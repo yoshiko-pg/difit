@@ -70,14 +70,14 @@ function generateMarkdownTable(comparison) {
       avgChange.improved ? '🟢'
       : avgChange.percent > 5 ? '🔴'
       : '🟡'
-    } ${avgChange.absolute.toFixed(2)}ms (${avgChange.percent > 0 ? '+' : ''}${avgChange.percent.toFixed(1)}%)`
+    } ${avgChange.absolute.toFixed(2)}ms (${avgChange.percent > 0 ? '+' : ''}${avgChange.percent.toFixed(1)}%)`,
   );
   lines.push('```\n');
 
   // Test details
   lines.push('### Test Configuration');
   lines.push(
-    `- **Size**: ${baseline.size} (${baseline.totalFiles} files, ${baseline.totalLines} lines)`
+    `- **Size**: ${baseline.size} (${baseline.totalFiles} files, ${baseline.totalLines} lines)`,
   );
   lines.push(`- **Iterations**: ${baseline.iterations} → ${current.iterations}\n`);
 
@@ -86,12 +86,12 @@ function generateMarkdownTable(comparison) {
   lines.push('| | Baseline | Current |');
   lines.push('|---|----------|---------|');
   lines.push(
-    `| **Commit** | \`${baseline.commitHash.substring(0, 8)}\` | \`${current.commitHash.substring(0, 8)}\` |`
+    `| **Commit** | \`${baseline.commitHash.substring(0, 8)}\` | \`${current.commitHash.substring(0, 8)}\` |`,
   );
   lines.push(`| **Branch** | ${baseline.branch} | ${current.branch} |`);
   if (baseline.isDirty || current.isDirty) {
     lines.push(
-      `| **Dirty** | ${baseline.isDirty ? '⚠️ Yes' : '✅ No'} | ${current.isDirty ? '⚠️ Yes' : '✅ No'} |`
+      `| **Dirty** | ${baseline.isDirty ? '⚠️ Yes' : '✅ No'} | ${current.isDirty ? '⚠️ Yes' : '✅ No'} |`,
     );
   }
   if (baseline.memo || current.memo) {
@@ -144,7 +144,7 @@ function generateComparison(baselineResults, comparedResults) {
         compared: comparedResults.summary.keyboardNavigation,
         change: calculateChange(
           baselineResults.summary.keyboardNavigation.averageOperationTime,
-          comparedResults.summary.keyboardNavigation.averageOperationTime
+          comparedResults.summary.keyboardNavigation.averageOperationTime,
         ),
         operationBreakdown: {},
       },
@@ -218,11 +218,11 @@ async function main() {
     comparedFile = path.resolve(positionalArgs[1]);
   } else {
     console.error(
-      'Usage: pnpm perf:compare [--size <size>] or pnpm perf:compare <baseline-file> <compared-file>'
+      'Usage: pnpm perf:compare [--size <size>] or pnpm perf:compare <baseline-file> <compared-file>',
     );
     console.error('Options:');
     console.error(
-      '  --size <size>  Size to compare (small, medium, large, xlarge). Default: medium'
+      '  --size <size>  Size to compare (small, medium, large, xlarge). Default: medium',
     );
     console.error('  --json         Output as JSON');
     console.error('  --save         Save markdown output to file');

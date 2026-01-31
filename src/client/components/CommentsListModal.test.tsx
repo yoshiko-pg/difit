@@ -68,7 +68,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
     expect(container.firstChild).toBeNull();
   });
@@ -86,7 +86,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
     expect(screen.getByText('All Comments')).toBeInTheDocument();
   });
@@ -104,7 +104,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
 
     // Check comment bodies
@@ -126,7 +126,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
 
     // Check that file paths and line numbers are displayed correctly
@@ -148,7 +148,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
 
     const firstComment = screen.getByText('First comment').closest('div');
@@ -172,7 +172,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
 
     const deleteButtons = screen.getAllByTitle('Resolve');
@@ -194,7 +194,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
 
     expect(screen.getByText('No comments yet')).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
 
     const closeButton = screen.getByLabelText('Close comments list');
@@ -237,7 +237,7 @@ describe('CommentsListModal', () => {
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
       />,
-      { wrapper }
+      { wrapper },
     );
 
     // Find the escape handler

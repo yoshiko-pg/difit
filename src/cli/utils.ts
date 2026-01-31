@@ -191,7 +191,7 @@ export async function fetchPrDetails(prInfo: PullRequestInfo): Promise<PullReque
 
 export function resolveCommitInLocalRepo(
   sha: string,
-  context?: { owner: string; repo: string }
+  context?: { owner: string; repo: string },
 ): string {
   try {
     // Verify if the commit exists locally
@@ -223,12 +223,12 @@ export function resolveCommitInLocalRepo(
 }
 
 export async function resolvePrCommits(
-  prUrl: string
+  prUrl: string,
 ): Promise<{ targetCommitish: string; baseCommitish: string }> {
   const prInfo = parseGitHubPrUrl(prUrl);
   if (!prInfo) {
     throw new Error(
-      'Invalid GitHub PR URL format. Expected: https://github.com/owner/repo/pull/123 or https://github.enterprise.com/owner/repo/pull/123'
+      'Invalid GitHub PR URL format. Expected: https://github.com/owner/repo/pull/123 or https://github.enterprise.com/owner/repo/pull/123',
     );
   }
 
@@ -243,7 +243,7 @@ export async function resolvePrCommits(
 
 export function validateDiffArguments(
   targetCommitish: string,
-  baseCommitish?: string
+  baseCommitish?: string,
 ): { valid: boolean; error?: string } {
   // Validate target commitish format
   if (!validateCommitish(targetCommitish)) {

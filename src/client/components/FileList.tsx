@@ -134,7 +134,7 @@ export function FileList({
   };
 
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
-    () => new Set(getAllDirectoryPaths(fileTree))
+    () => new Set(getAllDirectoryPaths(fileTree)),
   );
   const [filterText, setFilterText] = useState('');
 
@@ -230,7 +230,7 @@ export function FileList({
     if (isSticky) {
       const wrapper = dirContainerRefs.current.get(path);
       const firstChild = wrapper?.querySelector<HTMLElement>(
-        '[data-tree-row="true"]:not([data-dir-header="true"])'
+        '[data-tree-row="true"]:not([data-dir-header="true"])',
       );
       const rowHeight = row.getBoundingClientRect().height || 0;
       const target = firstChild ?? row;

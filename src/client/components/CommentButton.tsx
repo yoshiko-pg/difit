@@ -33,7 +33,7 @@ export const CommentButton: React.FC<CommentButtonProps> = React.memo(
         <MessageSquare className="w-4 h-4" />
       </button>
     );
-  }
+  },
 );
 
 CommentButton.displayName = 'CommentButton';

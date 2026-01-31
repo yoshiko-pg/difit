@@ -123,7 +123,7 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
         </td>
       </tr>
     );
-  }
+  },
 );
 
 DiffLineRow.displayName = 'DiffLineRow';

@@ -78,7 +78,7 @@ export function InlineComment({
       }
     },
     { enableOnFormTags: ['textarea'], enabled: isEditing },
-    [isEditing]
+    [isEditing],
   );
 
   useHotkeys(
@@ -89,7 +89,7 @@ export function InlineComment({
       }
     },
     { enableOnFormTags: ['textarea'], enabled: isEditing },
-    [isEditing, editedBody, comment.body]
+    [isEditing, editedBody, comment.body],
   );
 
   return (

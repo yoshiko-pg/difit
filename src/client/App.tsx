@@ -77,7 +77,7 @@ function App() {
     diffData?.targetCommitish,
     diffData?.commit, // Using commit as currentCommitHash
     undefined, // branchToHash map - could be populated from server data
-    diffData?.repositoryId // Repository identifier for storage isolation
+    diffData?.repositoryId, // Repository identifier for storage isolation
   );
 
   const normalizedComments = useMemo<Comment[]>(
@@ -94,7 +94,7 @@ function App() {
         codeContent: comment.codeSnapshot?.content,
         side: comment.position.side,
       })),
-    [comments]
+    [comments],
   );
 
   const commentsByFile = useMemo(() => {
@@ -117,7 +117,7 @@ function App() {
     diffData?.commit,
     undefined,
     diffData?.files,
-    diffData?.repositoryId // Repository identifier for storage isolation
+    diffData?.repositoryId, // Repository identifier for storage isolation
   );
 
   // Reset initialization flag when diff context changes
@@ -166,7 +166,7 @@ function App() {
         }, 100);
       }
     },
-    [diffData, toggleFileViewed, viewedFiles]
+    [diffData, toggleFileViewed, viewedFiles],
   );
 
   const toggleFileCollapsed = useCallback((filePath: string) => {
@@ -193,7 +193,7 @@ function App() {
         setCollapsedFiles(new Set());
       }
     },
-    [diffData]
+    [diffData],
   );
 
   const handleDiffModeChange = useCallback((mode: DiffViewMode) => {
@@ -221,7 +221,7 @@ function App() {
   }, [getMergedChunks]);
 
   const [mergedChunksByFile, setMergedChunksByFile] = useState<Map<string, MergedChunk[]>>(
-    new Map()
+    new Map(),
   );
 
   // Compute merged chunks for all files on initial diff load
@@ -314,7 +314,7 @@ function App() {
         side,
       });
     },
-    [setCursorPosition]
+    [setCursorPosition],
   );
 
   const handleCommentTriggerHandled = useCallback(() => {
@@ -323,7 +323,7 @@ function App() {
 
   const handleGeneratePrompt = useCallback(
     (comment: Comment) => generatePrompt(comment.id),
-    [generatePrompt]
+    [generatePrompt],
   );
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -384,7 +384,7 @@ function App() {
         setLoading(false);
       }
     },
-    [ignoreWhitespace]
+    [ignoreWhitespace],
   );
 
   useEffect(() => {
@@ -420,13 +420,13 @@ function App() {
       setError(null);
       await fetchDiffData(newBase, newTarget);
     },
-    [baseRevision, targetRevision, fetchDiffData]
+    [baseRevision, targetRevision, fetchDiffData],
   );
 
   const getCommitIndex = (commitish: string) => {
     if (!revisionOptions) return -1;
     return revisionOptions.commits.findIndex(
-      (commit) => commit.shortHash === commitish || commit.hash === commitish
+      (commit) => commit.shortHash === commitish || commit.hash === commitish,
     );
   };
 
@@ -469,7 +469,7 @@ function App() {
       clearAllComments();
       clearViewedFiles();
       console.log(
-        '✅ All existing comments and viewed files cleared as requested via --clean flag'
+        '✅ All existing comments and viewed files cleared as requested via --clean flag',
       );
     }
   }, [diffData?.clearComments, clearAllComments, clearViewedFiles]);
@@ -572,7 +572,7 @@ function App() {
       line: LineNumber,
       body: string,
       codeContent?: string,
-      side?: DiffSide
+      side?: DiffSide,
     ): Promise<void> => {
       addComment({
         filePath: file,
@@ -589,7 +589,7 @@ function App() {
       });
       return Promise.resolve();
     },
-    [addComment]
+    [addComment],
   );
 
   const handleCopyAllComments = async () => {

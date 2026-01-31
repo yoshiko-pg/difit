@@ -21,7 +21,7 @@ export class StorageService {
   private normalizeCommitish(
     commitish: string,
     currentCommitHash?: string,
-    branchToHash?: Map<string, string>
+    branchToHash?: Map<string, string>,
   ): string {
     // Handle working directory and staged cases
     if (commitish === '.' || commitish === 'working') {
@@ -55,7 +55,7 @@ export class StorageService {
     ) {
       console.warn(
         `[StorageService] Cannot normalize symbolic ref '${commitish}' - may cause key collision. ` +
-          `currentCommitHash=${currentCommitHash}`
+          `currentCommitHash=${currentCommitHash}`,
       );
     }
 
@@ -71,7 +71,7 @@ export class StorageService {
     targetCommitish: string,
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
-    repositoryId?: string
+    repositoryId?: string,
   ): string {
     let normalizedBase: string;
     let normalizedTarget: string;
@@ -104,7 +104,7 @@ export class StorageService {
     targetCommitish: string,
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
-    repositoryId?: string
+    repositoryId?: string,
   ): DiffContextStorage | null {
     try {
       const key = this.getStorageKey(
@@ -112,7 +112,7 @@ export class StorageService {
         targetCommitish,
         currentCommitHash,
         branchToHash,
-        repositoryId
+        repositoryId,
       );
       const data = localStorage.getItem(key);
 
@@ -141,7 +141,7 @@ export class StorageService {
     data: DiffContextStorage,
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
-    repositoryId?: string
+    repositoryId?: string,
   ): void {
     try {
       const key = this.getStorageKey(
@@ -149,7 +149,7 @@ export class StorageService {
         targetCommitish,
         currentCommitHash,
         branchToHash,
-        repositoryId
+        repositoryId,
       );
       // Ensure data includes original commitish values
       const dataToSave: DiffContextStorage = {
@@ -177,14 +177,14 @@ export class StorageService {
     targetCommitish: string,
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
-    repositoryId?: string
+    repositoryId?: string,
   ): DiffComment[] {
     const data = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
       branchToHash,
-      repositoryId
+      repositoryId,
     );
     return data?.comments || [];
   }
@@ -198,14 +198,14 @@ export class StorageService {
     comments: DiffComment[],
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
-    repositoryId?: string
+    repositoryId?: string,
   ): void {
     const existingData = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
       branchToHash,
-      repositoryId
+      repositoryId,
     );
     const data: DiffContextStorage = existingData || {
       version: 1,
@@ -224,7 +224,7 @@ export class StorageService {
       data,
       currentCommitHash,
       branchToHash,
-      repositoryId
+      repositoryId,
     );
   }
 
@@ -236,14 +236,14 @@ export class StorageService {
     targetCommitish: string,
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
-    repositoryId?: string
+    repositoryId?: string,
   ): ViewedFileRecord[] {
     const data = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
       branchToHash,
-      repositoryId
+      repositoryId,
     );
     return data?.viewedFiles || [];
   }
@@ -257,14 +257,14 @@ export class StorageService {
     files: ViewedFileRecord[],
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
-    repositoryId?: string
+    repositoryId?: string,
   ): void {
     const existingData = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
       branchToHash,
-      repositoryId
+      repositoryId,
     );
     const data: DiffContextStorage = existingData || {
       version: 1,
@@ -283,7 +283,7 @@ export class StorageService {
       data,
       currentCommitHash,
       branchToHash,
-      repositoryId
+      repositoryId,
     );
   }
 

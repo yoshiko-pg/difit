@@ -216,7 +216,7 @@ export function RevisionSelector({
                       disabled={isDisabled(commit.shortHash)}
                       className={getItemClasses(
                         isCommitHighlighted(commit.shortHash, commit.hash),
-                        isDisabled(commit.shortHash)
+                        isDisabled(commit.shortHash),
                       )}
                     >
                       <div className="flex items-start gap-2">

@@ -49,7 +49,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ files, initialFileIndex }) => {
         setScrollOffset(0);
       }
     },
-    { isActive: true }
+    { isActive: true },
   );
 
   const visibleLines = lines.slice(scrollOffset, scrollOffset + viewportHeight);

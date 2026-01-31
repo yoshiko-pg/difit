@@ -23,7 +23,7 @@ const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode, repoPat
   const [error, setError] = useState<string | null>(null);
 
   const [viewMode, setViewMode] = useState<'list' | 'inline' | 'side-by-side'>(
-    mode === 'inline' ? 'inline' : 'side-by-side'
+    mode === 'inline' ? 'inline' : 'side-by-side',
   );
   const { exit } = useApp();
 
@@ -74,7 +74,7 @@ const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode, repoPat
         setViewMode('list');
       }
     },
-    { isActive: true }
+    { isActive: true },
   );
 
   if (loading) {

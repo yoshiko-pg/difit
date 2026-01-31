@@ -61,7 +61,7 @@ export class FileWatcherService {
     diffMode: DiffMode,
     watchPath: string,
     debounceMs = 300,
-    onCacheInvalidate?: () => void
+    onCacheInvalidate?: () => void,
   ): Promise<void> {
     this.config = { watchPath, diffMode, debounceMs, onCacheInvalidate };
 
@@ -135,7 +135,7 @@ export class FileWatcherService {
           },
           {
             ignore: modeConfig.ignore,
-          }
+          },
         )) as { unsubscribe: () => Promise<void> };
 
         this.subscriptions.push(subscription);
@@ -223,7 +223,7 @@ export class FileWatcherService {
         } catch (error) {
           console.warn('Error unsubscribing from file watcher:', error);
         }
-      })
+      }),
     );
     this.subscriptions = [];
 

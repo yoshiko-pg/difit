@@ -36,7 +36,7 @@ interface ServerOptions {
 }
 
 export async function startServer(
-  options: ServerOptions
+  options: ServerOptions,
 ): Promise<{ port: number; url: string; isEmpty?: boolean; server?: Server }> {
   const app = express();
   const parser = new GitDiffParser(options.repoPath);
@@ -74,7 +74,7 @@ export async function startServer(
     diffDataCache = await parser.parseDiff(
       options.targetCommitish ?? '',
       options.baseCommitish ?? '',
-      currentIgnoreWhitespace
+      currentIgnoreWhitespace,
     );
   }
 
@@ -170,7 +170,7 @@ export async function startServer(
     try {
       const { branches, commits, resolvedBase, resolvedTarget } = await parser.getRevisionOptions(
         currentBaseCommitish,
-        currentTargetCommitish
+        currentTargetCommitish,
       );
 
       const response: RevisionsResponse = {
@@ -395,7 +395,7 @@ export async function startServer(
   const { port, url, server } = await startServerWithFallback(
     app,
     options.preferredPort || 4966,
-    options.host || 'localhost'
+    options.host || 'localhost',
   );
 
   // Security warning for non-localhost binding
@@ -412,7 +412,7 @@ export async function startServer(
         options.diffMode,
         options.repoPath || process.cwd(),
         300,
-        invalidateCache
+        invalidateCache,
       );
     } catch (error) {
       console.warn('⚠️  File watcher failed to start:', error);
@@ -437,7 +437,7 @@ export async function startServer(
 async function startServerWithFallback(
   app: Express,
   preferredPort: number,
-  host: string
+  host: string,
 ): Promise<{ port: number; url: string; server: Server }> {
   return new Promise((resolve, reject) => {
     // express's listen() method uses listen() method in node:net Server instance internally

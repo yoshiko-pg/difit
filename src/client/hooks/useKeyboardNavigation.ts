@@ -57,7 +57,7 @@ export function useKeyboardNavigation({
   // Create navigation filters
   const filters = useMemo(
     () => createNavigationFilters(files, commentIndex, viewMode, reviewedFiles),
-    [files, commentIndex, viewMode, reviewedFiles]
+    [files, commentIndex, viewMode, reviewedFiles],
   );
 
   // Core navigation function - finds next/prev position matching filter
@@ -70,7 +70,7 @@ export function useKeyboardNavigation({
       const startPosition = getStartPosition(cursor);
       return findNextMatchingPosition(startPosition, direction, filter, files, viewMode);
     },
-    [cursor, files, viewMode]
+    [cursor, files, viewMode],
   );
 
   // Create navigation commands
@@ -86,29 +86,29 @@ export function useKeyboardNavigation({
         }
       };
     },
-    [navigate, scrollToElement]
+    [navigate, scrollToElement],
   );
 
   // Navigation commands
   const navigateToLine = useMemo(
     () => createNavigationCommand(filters.line),
-    [createNavigationCommand, filters.line]
+    [createNavigationCommand, filters.line],
   );
 
   const navigateToChunk = useMemo(
     () => createNavigationCommand(filters.chunk),
-    [createNavigationCommand, filters.chunk]
+    [createNavigationCommand, filters.chunk],
   );
 
   const navigateToFile = useMemo(
     () => createNavigationCommand(filters.file),
-    [createNavigationCommand, filters.file]
+    [createNavigationCommand, filters.file],
   );
 
   // Navigation to comments
   const navigateToComment = useMemo(
     () => createNavigationCommand(filters.comment),
-    [createNavigationCommand, filters.comment]
+    [createNavigationCommand, filters.comment],
   );
 
   // Switch between left and right sides in side-by-side mode
@@ -218,14 +218,14 @@ export function useKeyboardNavigation({
       setCursor(newCursor);
       scrollToElement(getElementId(newCursor, viewMode));
     },
-    [cursor, viewMode, scrollToElement, files]
+    [cursor, viewMode, scrollToElement, files],
   );
 
   // Move cursor to center of viewport
   const moveToCenterOfViewport = useCallback(() => {
     // Get the scrollable container
     const scrollContainer = document.querySelector(
-      NAVIGATION_SELECTORS.SCROLL_CONTAINER
+      NAVIGATION_SELECTORS.SCROLL_CONTAINER,
     ) as HTMLElement | null;
     if (!scrollContainer) return;
 
@@ -292,7 +292,7 @@ export function useKeyboardNavigation({
       setCursor(fixedPosition);
       scrollToElement(getElementId(fixedPosition, viewMode));
     },
-    [files, viewMode, scrollToElement]
+    [files, viewMode, scrollToElement],
   );
 
   // Common options for all hotkeys
@@ -341,13 +341,13 @@ export function useKeyboardNavigation({
               lineIndex: 0,
               side: viewMode === 'side-by-side' ? 'left' : 'right',
             },
-            viewMode
-          )
+            viewMode,
+          ),
         );
       }
     },
     { ...hotkeyOptions, useKey: true },
-    [files, viewMode, scrollToElement]
+    [files, viewMode, scrollToElement],
   );
 
   useHotkeys(
@@ -371,14 +371,14 @@ export function useKeyboardNavigation({
                 lineIndex: 0,
                 side: viewMode === 'side-by-side' ? 'left' : 'right',
               },
-              viewMode
-            )
+              viewMode,
+            ),
           );
         }
       }
     },
     { ...hotkeyOptions, useKey: true },
-    [files, viewMode, scrollToElement]
+    [files, viewMode, scrollToElement],
   );
 
   // Side switching (side-by-side mode only)
@@ -386,13 +386,13 @@ export function useKeyboardNavigation({
     'h, left',
     () => switchSide('left'),
     { ...hotkeyOptions, enabled: viewMode === 'side-by-side' },
-    [switchSide, viewMode]
+    [switchSide, viewMode],
   );
   useHotkeys(
     'l, right',
     () => switchSide('right'),
     { ...hotkeyOptions, enabled: viewMode === 'side-by-side' },
-    [switchSide, viewMode]
+    [switchSide, viewMode],
   );
 
   // File review toggle
@@ -407,7 +407,7 @@ export function useKeyboardNavigation({
       }
     },
     hotkeyOptions,
-    [cursor, files, onToggleReviewed]
+    [cursor, files, onToggleReviewed],
   );
 
   // Refresh
@@ -419,7 +419,7 @@ export function useKeyboardNavigation({
       }
     },
     hotkeyOptions,
-    [onRefresh]
+    [onRefresh],
   );
 
   // Comment creation
@@ -436,7 +436,7 @@ export function useKeyboardNavigation({
       }
     },
     hotkeyOptions,
-    [cursor, files, onCreateComment]
+    [cursor, files, onCreateComment],
   );
 
   // Help toggle
@@ -457,7 +457,7 @@ export function useKeyboardNavigation({
       event.preventDefault();
     },
     { ...hotkeyOptions, useKey: true, preventDefault: false },
-    [moveToCenterOfViewport]
+    [moveToCenterOfViewport],
   );
 
   // Copy all comments prompt - available in both navigation and comments-list scopes
@@ -469,7 +469,7 @@ export function useKeyboardNavigation({
       }
     },
     { ...hotkeyOptions, scopes: ['navigation', 'comments-list'] },
-    [onCopyAllComments]
+    [onCopyAllComments],
   );
 
   // Delete all comments - available in both navigation and comments-list scopes
@@ -481,7 +481,7 @@ export function useKeyboardNavigation({
       }
     },
     { ...hotkeyOptions, scopes: ['navigation', 'comments-list'] },
-    [onDeleteAllComments]
+    [onDeleteAllComments],
   );
 
   // Show comments list
@@ -493,7 +493,7 @@ export function useKeyboardNavigation({
       }
     },
     hotkeyOptions,
-    [onShowCommentsList]
+    [onShowCommentsList],
   );
 
   return {

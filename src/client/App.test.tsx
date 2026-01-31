@@ -99,7 +99,7 @@ const renderApp = () => {
   return render(
     <HotkeysProvider initiallyActiveScopes={['navigation']}>
       <App />
-    </HotkeysProvider>
+    </HotkeysProvider>,
   );
 };
 
@@ -277,7 +277,7 @@ describe('App Component - Clear Comments Functionality', () => {
 
       await waitFor(() => {
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          '✅ All existing comments and viewed files cleared as requested via --clean flag'
+          '✅ All existing comments and viewed files cleared as requested via --clean flag',
         );
       });
 

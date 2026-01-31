@@ -18,7 +18,7 @@ export function useViewedFiles(
   currentCommitHash?: string,
   branchToHash?: Map<string, string>,
   initialFiles?: DiffFile[],
-  repositoryId?: string
+  repositoryId?: string,
 ): UseViewedFilesReturn {
   const [viewedFileRecords, setViewedFileRecords] = useState<ViewedFileRecord[]>([]);
   const [fileHashes, setFileHashes] = useState<Map<string, string>>(new Map());
@@ -32,7 +32,7 @@ export function useViewedFiles(
       targetCommitish,
       currentCommitHash,
       branchToHash,
-      repositoryId
+      repositoryId,
     );
 
     // Auto-mark generated/deleted files as viewed if we have initial files and they are not already viewed
@@ -73,7 +73,7 @@ export function useViewedFiles(
             updatedRecords,
             currentCommitHash,
             branchToHash,
-            repositoryId
+            repositoryId,
           );
           setViewedFileRecords(updatedRecords);
           return;
@@ -98,11 +98,11 @@ export function useViewedFiles(
         newRecords,
         currentCommitHash,
         branchToHash,
-        repositoryId
+        repositoryId,
       );
       setViewedFileRecords(newRecords);
     },
-    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]
+    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId],
   );
 
   // Convert records to Set of file paths for easy checking
@@ -115,7 +115,7 @@ export function useViewedFiles(
     (filePath: string): ViewedFileRecord | undefined => {
       return viewedFileRecords.find((record) => record.filePath === filePath);
     },
-    [viewedFileRecords]
+    [viewedFileRecords],
   );
 
   // Generate and cache hash for a file
@@ -130,7 +130,7 @@ export function useViewedFiles(
       setFileHashes((prev) => new Map(prev).set(diffFile.path, hash));
       return hash;
     },
-    [fileHashes]
+    [fileHashes],
   );
 
   // Check if file content has changed
@@ -142,7 +142,7 @@ export function useViewedFiles(
       const currentHash = await getFileHash(diffFile);
       return record.diffContentHash !== currentHash;
     },
-    [getViewedFileRecord, getFileHash]
+    [getViewedFileRecord, getFileHash],
   );
 
   // Toggle viewed state for a file
@@ -167,7 +167,7 @@ export function useViewedFiles(
         saveViewedFiles(newRecords);
       }
     },
-    [viewedFileRecords, getViewedFileRecord, getFileHash, saveViewedFiles]
+    [viewedFileRecords, getViewedFileRecord, getFileHash, saveViewedFiles],
   );
 
   // Clear all viewed files

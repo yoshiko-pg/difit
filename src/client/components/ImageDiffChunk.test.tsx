@@ -253,7 +253,7 @@ describe('ImageDiffChunk', () => {
             expect(screen.getByRole('img')).toBeInTheDocument();
           }
         },
-        { timeout: 100 }
+        { timeout: 100 },
       );
     });
   });
@@ -302,7 +302,7 @@ describe('ImageDiffChunk', () => {
 
       // Mock file to have an unsupported status by changing the component logic
       const { container } = render(
-        <ImageDiffChunk file={{ ...unsupportedFile, status: 'unknown' as any }} />
+        <ImageDiffChunk file={{ ...unsupportedFile, status: 'unknown' as any }} />,
       );
 
       // Should render nothing

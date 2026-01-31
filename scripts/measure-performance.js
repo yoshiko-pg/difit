@@ -78,7 +78,7 @@ async function startDifitServer(size, difitPath) {
     [difitBinaryPath, '--port', config.port.toString(), '--no-open'],
     {
       env: { ...process.env, NODE_ENV: 'production' },
-    }
+    },
   );
 
   // Pipe diff to difit
@@ -191,13 +191,13 @@ async function measureKeyboardNavigation(page) {
 
     log(
       `    ${test.description}: avg ${avgDuration.toFixed(2)}ms, max ${maxDuration.toFixed(2)}ms`,
-      colors.green
+      colors.green,
     );
   }
 
   metrics.totalDuration = metrics.operations.reduce(
     (total, op) => total + op.durations.reduce((a, b) => a + b, 0),
-    0
+    0,
   );
 
   metrics.averageOperationTime =
@@ -214,7 +214,7 @@ async function measurePerformance(size, options = {}) {
   log(`\nRunning performance test (${size})...`, colors.yellow);
   log(
     `Files: ${files}, Lines per file: ${linesPerFile}, Total lines: ${totalLines}`,
-    colors.yellow
+    colors.yellow,
   );
 
   const browser = await chromium.launch({
@@ -229,7 +229,7 @@ async function measurePerformance(size, options = {}) {
 
     const { process: difitProcess, port: actualPort } = await startDifitServer(
       size,
-      options.difitPath
+      options.difitPath,
     );
     const iterationMetrics = {
       iteration: i + 1,
@@ -441,13 +441,13 @@ async function main() {
   log(`Total files: ${results.stats.files}`);
   log(`Total lines: ${results.stats.totalLines}`);
   log(
-    `Valid iterations: ${results.results.filter((r) => !r.error).length}/${results.config.iterations}`
+    `Valid iterations: ${results.results.filter((r) => !r.error).length}/${results.config.iterations}`,
   );
 
   if (results.summary.keyboardNavigation.averageOperationTime > 0) {
     log(`\nKeyboard Navigation Performance:`);
     log(
-      `  Average operation time: ${results.summary.keyboardNavigation.averageOperationTime.toFixed(2)}ms`
+      `  Average operation time: ${results.summary.keyboardNavigation.averageOperationTime.toFixed(2)}ms`,
     );
     log(`\n  Operation breakdown:`);
     Object.entries(results.summary.keyboardNavigation.operationBreakdown).forEach(
@@ -455,7 +455,7 @@ async function main() {
         log(`    ${type}:`);
         log(`      Average: ${data.averageTime.toFixed(2)}ms`);
         log(`      Max average: ${data.averageMaxTime.toFixed(2)}ms`);
-      }
+      },
     );
   }
 
@@ -471,7 +471,7 @@ async function main() {
 
   if (gitInfo) {
     log(
-      `\nCommit: ${gitInfo.commitHash.substring(0, 8)} - ${gitInfo.commitMessage.split('\n')[0]}`
+      `\nCommit: ${gitInfo.commitHash.substring(0, 8)} - ${gitInfo.commitMessage.split('\n')[0]}`,
     );
     if (gitInfo.isDirty) {
       log(`Working directory: DIRTY (uncommitted changes)`, colors.yellow);

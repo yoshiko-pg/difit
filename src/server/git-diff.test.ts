@@ -112,7 +112,7 @@ describe('GitDiffParser', () => {
       });
 
       await expect(parser.getBlobContent('large-file.jpg', 'HEAD')).rejects.toThrow(
-        'Image file large-file.jpg is too large to display (over 10MB limit)'
+        'Image file large-file.jpg is too large to display (over 10MB limit)',
       );
     });
 
@@ -123,7 +123,7 @@ describe('GitDiffParser', () => {
       });
 
       await expect(parser.getBlobContent('large-file.jpg', 'HEAD')).rejects.toThrow(
-        'Image file large-file.jpg is too large to display (over 10MB limit)'
+        'Image file large-file.jpg is too large to display (over 10MB limit)',
       );
     });
 
@@ -134,7 +134,7 @@ describe('GitDiffParser', () => {
       });
 
       await expect(parser.getBlobContent('missing.txt', 'HEAD')).rejects.toThrow(
-        'Failed to get blob content for missing.txt at HEAD: fatal: Path does not exist'
+        'Failed to get blob content for missing.txt at HEAD: fatal: Path does not exist',
       );
     });
   });

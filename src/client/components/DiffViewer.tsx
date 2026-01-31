@@ -41,7 +41,7 @@ interface DiffViewerProps {
     line: LineNumber,
     body: string,
     codeContent?: string,
-    side?: DiffSide
+    side?: DiffSide,
   ) => Promise<void>;
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
@@ -56,12 +56,12 @@ interface DiffViewerProps {
     file: DiffFile,
     chunkIndex: number,
     direction: 'up' | 'down',
-    count?: number
+    count?: number,
   ) => Promise<void>;
   expandAllBetweenChunks: (
     file: DiffFile,
     chunkIndex: number,
-    hiddenLines: number
+    hiddenLines: number,
   ) => Promise<void>;
   prefetchFileContent: (file: DiffFile) => Promise<void>;
   isExpandLoading: boolean;
@@ -69,7 +69,7 @@ interface DiffViewerProps {
     fileIndex: number,
     chunkIndex: number,
     lineIndex: number,
-    side: 'left' | 'right'
+    side: 'left' | 'right',
   ) => void;
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
@@ -219,7 +219,7 @@ export const DiffViewer = memo(function DiffViewer({
       ([entry]) => {
         if (entry?.isIntersecting) setIsVisible(true);
       },
-      { rootMargin: '200px' }
+      { rootMargin: '200px' },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -253,7 +253,7 @@ export const DiffViewer = memo(function DiffViewer({
         console.error('Failed to add comment:', error);
       }
     },
-    [file.path, onAddComment]
+    [file.path, onAddComment],
   );
 
   const mergedChunkItems = useMemo(
@@ -263,7 +263,7 @@ export const DiffViewer = memo(function DiffViewer({
         onAddComment: (line: LineNumber, body: string, codeContent?: string, side?: DiffSide) =>
           handleAddComment(line, body, codeContent, side),
       })),
-    [mergedChunks, handleAddComment]
+    [mergedChunks, handleAddComment],
   );
 
   useEffect(() => {
@@ -296,7 +296,7 @@ export const DiffViewer = memo(function DiffViewer({
 
       gaps.forEach((gap) => {
         const hasComment = commentRanges.some(
-          (range) => range.start <= gap.end && range.end >= gap.start
+          (range) => range.start <= gap.end && range.end >= gap.start,
         );
         if (!hasComment) return;
 
@@ -341,7 +341,7 @@ export const DiffViewer = memo(function DiffViewer({
     position: 'top' | 'middle' | 'bottom',
     mergedChunk: MergedChunk,
     firstOriginalIndex: number,
-    lastOriginalIndex: number
+    lastOriginalIndex: number,
   ) => {
     if (position === 'top' && mergedChunk.hiddenLinesBefore > 0) {
       return (
@@ -508,7 +508,7 @@ export const DiffViewer = memo(function DiffViewer({
                       'middle',
                       mergedChunk,
                       firstOriginalIndex,
-                      lastOriginalIndex
+                      lastOriginalIndex,
                     )}
 
                   <div id={`chunk-${file.path.replace(/[^a-zA-Z0-9]/g, '-')}-${mergedIndex}`}>
@@ -541,7 +541,7 @@ export const DiffViewer = memo(function DiffViewer({
                       'bottom',
                       mergedChunk,
                       firstOriginalIndex,
-                      lastOriginalIndex
+                      lastOriginalIndex,
                     )}
                 </React.Fragment>
               );

@@ -496,7 +496,7 @@ describe('CLI index.ts', () => {
       });
 
       expect(console.error).toHaveBeenCalledWith(
-        'Error: --pr option cannot be used with positional arguments'
+        'Error: --pr option cannot be used with positional arguments',
       );
       expect(process.exit).toHaveBeenCalledWith(1);
     });
@@ -607,10 +607,10 @@ describe('CLI index.ts', () => {
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
           clearComments: true,
-        })
+        }),
       );
       expect(console.log).toHaveBeenCalledWith(
-        '🧹 Starting with a clean slate - all existing comments will be cleared'
+        '🧹 Starting with a clean slate - all existing comments will be cleared',
       );
     });
 
@@ -658,10 +658,10 @@ describe('CLI index.ts', () => {
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
           clearComments: undefined,
-        })
+        }),
       );
       expect(console.log).not.toHaveBeenCalledWith(
-        '🧹 Starting with a clean slate - all existing comments will be cleared'
+        '🧹 Starting with a clean slate - all existing comments will be cleared',
       );
     });
   });
@@ -712,7 +712,7 @@ describe('CLI index.ts', () => {
       await program.parseAsync([], { from: 'user' });
 
       expect(console.log).toHaveBeenCalledWith(
-        '\n🚀 difit server started on http://localhost:4966'
+        '\n🚀 difit server started on http://localhost:4966',
       );
       expect(console.log).toHaveBeenCalledWith('📋 Reviewing: HEAD');
     });
@@ -758,10 +758,10 @@ describe('CLI index.ts', () => {
       await program.parseAsync([], { from: 'user' });
 
       expect(console.log).toHaveBeenCalledWith(
-        '\n! No differences found. Browser will not open automatically.'
+        '\n! No differences found. Browser will not open automatically.',
       );
       expect(console.log).toHaveBeenCalledWith(
-        '   Server is running at http://localhost:4966 if you want to check manually.\n'
+        '   Server is running at http://localhost:4966 if you want to check manually.\n',
       );
     });
   });
@@ -797,7 +797,7 @@ describe('CLI index.ts', () => {
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: 'inline',
-        })
+        }),
       );
     });
 
@@ -831,7 +831,7 @@ describe('CLI index.ts', () => {
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: 'side-by-side',
-        })
+        }),
       );
     });
   });
@@ -855,7 +855,7 @@ describe('CLI index.ts', () => {
 
       // Mock React.createElement for testing
       vi.spyOn(React, 'createElement').mockImplementation(
-        (component, props) => ({ component, props }) as any
+        (component, props) => ({ component, props }) as any,
       );
 
       // Mock process.stdin.isTTY
@@ -900,7 +900,7 @@ describe('CLI index.ts', () => {
                 targetCommitish: commitish,
                 baseCommitish: commitish + '^',
                 mode: options.mode,
-              })
+              }),
             );
           }
         });
@@ -946,7 +946,7 @@ describe('CLI index.ts', () => {
                 targetCommitish: commitish,
                 baseCommitish: commitish + '^',
                 mode: options.mode,
-              })
+              }),
             );
           }
         });
@@ -998,7 +998,7 @@ describe('CLI index.ts', () => {
                 targetCommitish,
                 baseCommitish,
                 mode: options.mode,
-              })
+              }),
             );
           }
         });
@@ -1046,10 +1046,10 @@ describe('CLI index.ts', () => {
       await program.parseAsync(['--tui'], { from: 'user' });
 
       expect(console.error).toHaveBeenCalledWith(
-        'Error: TUI mode requires an interactive terminal (TTY).'
+        'Error: TUI mode requires an interactive terminal (TTY).',
       );
       expect(console.error).toHaveBeenCalledWith(
-        'Try running the command directly in your terminal without piping.'
+        'Try running the command directly in your terminal without piping.',
       );
       expect(process.exit).toHaveBeenCalledWith(1);
     });
@@ -1135,7 +1135,7 @@ describe('CLI index.ts', () => {
         expect(mockStartServer).toHaveBeenCalledWith(
           expect.objectContaining({
             diffMode: expectedMode,
-          })
+          }),
         );
       });
     });
@@ -1187,7 +1187,7 @@ describe('CLI index.ts', () => {
           diffMode: 'default', // HEAD with comparison is still DEFAULT mode
           targetCommitish: 'HEAD',
           baseCommitish: 'main',
-        })
+        }),
       );
     });
 
@@ -1238,7 +1238,7 @@ describe('CLI index.ts', () => {
           diffMode: 'dot', // Dot with comparison should still be DOT mode (watch enabled)
           targetCommitish: '.',
           baseCommitish: 'origin/main',
-        })
+        }),
       );
     });
   });

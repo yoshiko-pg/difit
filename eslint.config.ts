@@ -67,15 +67,15 @@ const baseJSRules = { ...eslint.configs.recommended.rules };
 // TypeScript recommended rules (without type-checking)
 const tsRecommendedRules = Object.fromEntries(
   Object.entries(tseslint.configs.recommended?.rules || {}).filter(
-    ([key]) => !key.includes('typescript-eslint')
-  )
+    ([key]) => !key.includes('typescript-eslint'),
+  ),
 );
 
 // TypeScript type-checking rules
 const tsTypeCheckingRules = Object.fromEntries(
   Object.entries(tseslint.configs['recommended-type-checking']?.rules || {}).filter(
-    ([key]) => !key.includes('typescript-eslint')
-  )
+    ([key]) => !key.includes('typescript-eslint'),
+  ),
 );
 
 // Combined base rules

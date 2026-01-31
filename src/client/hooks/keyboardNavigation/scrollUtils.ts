@@ -13,7 +13,7 @@ export function createScrollToElement() {
 
     // The main scrollable container is always the same in this app
     const scrollContainer = document.querySelector(
-      NAVIGATION_SELECTORS.SCROLL_CONTAINER
+      NAVIGATION_SELECTORS.SCROLL_CONTAINER,
     ) as HTMLElement | null;
     if (!scrollContainer) {
       throw new Error(`Scrollable container (${NAVIGATION_SELECTORS.SCROLL_CONTAINER}) not found`);

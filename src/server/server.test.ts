@@ -539,10 +539,10 @@ describe('Server Integration Tests', () => {
 
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:*');
       expect(response.headers.get('Access-Control-Allow-Methods')).toBe(
-        'GET, POST, PUT, DELETE, OPTIONS'
+        'GET, POST, PUT, DELETE, OPTIONS',
       );
       expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
-        'Origin, X-Requested-With, Content-Type, Accept'
+        'Origin, X-Requested-With, Content-Type, Accept',
       );
     });
   });

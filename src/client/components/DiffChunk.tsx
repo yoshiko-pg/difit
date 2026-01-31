@@ -29,7 +29,7 @@ interface DiffChunkProps {
     line: LineNumber,
     body: string,
     codeContent?: string,
-    side?: DiffSide
+    side?: DiffSide,
   ) => Promise<void>;
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
@@ -42,7 +42,7 @@ interface DiffChunkProps {
     fileIndex: number,
     chunkIndex: number,
     lineIndex: number,
-    side: 'left' | 'right'
+    side: 'left' | 'right',
   ) => void;
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
@@ -116,7 +116,7 @@ export const DiffChunk = memo(function DiffChunk({
         setCommentingLine({ side, lineNumber });
       }
     },
-    [commentingLine]
+    [commentingLine],
   );
 
   const handleCancelComment = useCallback(() => {
@@ -130,7 +130,7 @@ export const DiffChunk = memo(function DiffChunk({
         setCommentingLine(null);
       }
     },
-    [commentingLine, onAddComment]
+    [commentingLine, onAddComment],
   );
 
   const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
@@ -246,7 +246,7 @@ export const DiffChunk = memo(function DiffChunk({
             if (shouldComputeWordDiff(deleteLine.content, addLineInfo.line.content)) {
               const wordLevelDiff = computeWordLevelDiff(
                 deleteLine.content,
-                addLineInfo.line.content
+                addLineInfo.line.content,
               );
               map.set(deleteStartIndex + k, wordLevelDiff.oldSegments);
               map.set(addLineInfo.index, wordLevelDiff.newSegments);
@@ -322,7 +322,7 @@ export const DiffChunk = memo(function DiffChunk({
                   hoveredLineIndex={hoveredLine}
                   selectedLineStyle={getSelectedLineStyle(
                     line.newLineNumber || line.oldLineNumber,
-                    line.type === 'delete' ? 'old' : 'new'
+                    line.type === 'delete' ? 'old' : 'new',
                   )}
                   onMouseEnter={() => {
                     setHoveredLine(index);

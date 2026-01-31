@@ -130,19 +130,19 @@ describe('CLI Utils', () => {
         const result1 = validateDiffArguments('HEAD', 'working');
         expect(result1.valid).toBe(false);
         expect(result1.error).toBe(
-          'Special arguments (working, staged, .) are only allowed as target, not base. Got base: working'
+          'Special arguments (working, staged, .) are only allowed as target, not base. Got base: working',
         );
 
         const result2 = validateDiffArguments('main', 'staged');
         expect(result2.valid).toBe(false);
         expect(result2.error).toBe(
-          'Special arguments (working, staged, .) are only allowed as target, not base. Got base: staged'
+          'Special arguments (working, staged, .) are only allowed as target, not base. Got base: staged',
         );
 
         const result3 = validateDiffArguments('HEAD', '.');
         expect(result3.valid).toBe(false);
         expect(result3.error).toBe(
-          'Special arguments (working, staged, .) are only allowed as target, not base. Got base: .'
+          'Special arguments (working, staged, .) are only allowed as target, not base. Got base: .',
         );
       });
 
@@ -158,7 +158,7 @@ describe('CLI Utils', () => {
         const result = validateDiffArguments('HEAD', 'staged');
         expect(result.valid).toBe(false);
         expect(result.error).toBe(
-          'Special arguments (working, staged, .) are only allowed as target, not base. Got base: staged'
+          'Special arguments (working, staged, .) are only allowed as target, not base. Got base: staged',
         );
       });
     });
@@ -185,7 +185,7 @@ describe('CLI Utils', () => {
         const result = validateDiffArguments('working', 'HEAD');
         expect(result.valid).toBe(false);
         expect(result.error).toBe(
-          '"working" shows unstaged changes and cannot be compared with another commit. Use "." instead to compare all uncommitted changes with a specific commit.'
+          '"working" shows unstaged changes and cannot be compared with another commit. Use "." instead to compare all uncommitted changes with a specific commit.',
         );
       });
 
@@ -201,13 +201,13 @@ describe('CLI Utils', () => {
         const result1 = validateDiffArguments('working', 'main');
         expect(result1.valid).toBe(false);
         expect(result1.error).toBe(
-          '"working" shows unstaged changes and cannot be compared with another commit. Use "." instead to compare all uncommitted changes with a specific commit.'
+          '"working" shows unstaged changes and cannot be compared with another commit. Use "." instead to compare all uncommitted changes with a specific commit.',
         );
 
         const result2 = validateDiffArguments('working', 'abc123');
         expect(result2.valid).toBe(false);
         expect(result2.error).toBe(
-          '"working" shows unstaged changes and cannot be compared with another commit. Use "." instead to compare all uncommitted changes with a specific commit.'
+          '"working" shows unstaged changes and cannot be compared with another commit. Use "." instead to compare all uncommitted changes with a specific commit.',
         );
       });
 
@@ -233,7 +233,7 @@ describe('CLI Utils', () => {
 
       it('should handle SHA hashes with parent/ancestor references', () => {
         expect(
-          validateDiffArguments('bd4b7513e075b5b245284c38fd23427b9bd0f42e^', 'abc123')
+          validateDiffArguments('bd4b7513e075b5b245284c38fd23427b9bd0f42e^', 'abc123'),
         ).toEqual({ valid: true });
         expect(validateDiffArguments('abc123', 'def456^')).toEqual({ valid: true });
         expect(validateDiffArguments('abc123~1', 'def456~2')).toEqual({ valid: true });

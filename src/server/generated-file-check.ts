@@ -189,7 +189,7 @@ const LANGUAGE_SPECIFIC: LanguagePattern[] = [
  */
 export function isGeneratedFile(
   parsedPath: string,
-  getHeaderLines?: () => string[]
+  getHeaderLines?: () => string[],
 ): GeneratedCheckResult {
   // Layer 1: Path-based check (no file read)
   // We check if the filename matches any known generated patterns

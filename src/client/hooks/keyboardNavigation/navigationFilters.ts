@@ -11,7 +11,7 @@ export function createNavigationFilters(
   files: DiffFile[],
   commentIndex: Map<string, Comment[]>,
   viewMode: ViewMode,
-  reviewedFiles?: Set<string>
+  reviewedFiles?: Set<string>,
 ) {
   return {
     /**

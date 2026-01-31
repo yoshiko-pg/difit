@@ -28,7 +28,7 @@ export function useDiffComments(
   targetCommitish?: string,
   currentCommitHash?: string,
   branchToHash?: Map<string, string>,
-  repositoryId?: string
+  repositoryId?: string,
 ): UseDiffCommentsReturn {
   const [comments, setComments] = useState<DiffComment[]>([]);
 
@@ -41,7 +41,7 @@ export function useDiffComments(
       targetCommitish,
       currentCommitHash,
       branchToHash,
-      repositoryId
+      repositoryId,
     );
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync state from external storage on prop change
     setComments(loadedComments);
@@ -58,11 +58,11 @@ export function useDiffComments(
         newComments,
         currentCommitHash,
         branchToHash,
-        repositoryId
+        repositoryId,
       );
       setComments(newComments);
     },
-    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]
+    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId],
   );
 
   const addComment = useCallback(
@@ -87,7 +87,7 @@ export function useDiffComments(
       saveComments(newComments);
       return newComment;
     },
-    [comments, saveComments]
+    [comments, saveComments],
   );
 
   const removeComment = useCallback(
@@ -95,17 +95,17 @@ export function useDiffComments(
       const newComments = comments.filter((c) => c.id !== commentId);
       saveComments(newComments);
     },
-    [comments, saveComments]
+    [comments, saveComments],
   );
 
   const updateComment = useCallback(
     (commentId: string, newBody: string) => {
       const newComments = comments.map((c) =>
-        c.id === commentId ? { ...c, body: newBody, updatedAt: new Date().toISOString() } : c
+        c.id === commentId ? { ...c, body: newBody, updatedAt: new Date().toISOString() } : c,
       );
       saveComments(newComments);
     },
-    [comments, saveComments]
+    [comments, saveComments],
   );
 
   const clearAllComments = useCallback(() => {
@@ -124,7 +124,7 @@ export function useDiffComments(
 
       return formatCommentPrompt(comment.filePath, line, comment.body);
     },
-    [comments]
+    [comments],
   );
 
   const generateAllCommentsPrompt = useCallback((): string => {

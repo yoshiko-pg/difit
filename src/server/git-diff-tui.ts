@@ -6,7 +6,7 @@ import type { FileDiff } from '../types/diff.js';
 export async function loadGitDiff(
   targetCommitish: string,
   baseCommitish: string,
-  repoPath?: string
+  repoPath?: string,
 ): Promise<FileDiff[]> {
   // Validate arguments
   const validation = validateDiffArguments(targetCommitish, baseCommitish);
@@ -98,7 +98,7 @@ export async function loadGitDiff(
         additions,
         deletions,
       };
-    })
+    }),
   );
 
   return fileDiffs;

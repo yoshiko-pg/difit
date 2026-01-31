@@ -68,7 +68,7 @@ export function getThemesForBackgroundColor(backgroundColor: 'light' | 'dark') {
 
 export function isValidThemeForBackground(
   themeId: string,
-  backgroundColor: 'light' | 'dark'
+  backgroundColor: 'light' | 'dark',
 ): boolean {
   const availableThemes = getThemesForBackgroundColor(backgroundColor);
   return availableThemes.some((theme) => theme.id === themeId);

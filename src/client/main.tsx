@@ -16,5 +16,5 @@ ReactDOM.createRoot(rootElement).render(
     <HotkeysProvider initiallyActiveScopes={['navigation']}>
       <App />
     </HotkeysProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

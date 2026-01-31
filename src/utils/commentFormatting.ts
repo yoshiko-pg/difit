@@ -16,7 +16,7 @@ export function formatAllCommentsPrompt(comments: Comment[]): string {
   if (comments.length === 0) return '';
 
   const prompts = comments.map((comment) =>
-    formatCommentPrompt(comment.file, comment.line, comment.body)
+    formatCommentPrompt(comment.file, comment.line, comment.body),
   );
 
   return prompts.join('\n=====\n');

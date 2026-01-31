@@ -17,7 +17,7 @@ const WARNING_THRESHOLD = 0.8; // Warn at 80% usage
 export function useStorageMonitor(): StorageMonitorReturn {
   const [storageSize, setStorageSize] = useState(() => storageService.getStorageSize());
   const [isNearLimit, setIsNearLimit] = useState(
-    () => storageService.getStorageSize() > STORAGE_LIMIT * WARNING_THRESHOLD
+    () => storageService.getStorageSize() > STORAGE_LIMIT * WARNING_THRESHOLD,
   );
 
   const formatBytes = (bytes: number): string => {
@@ -39,7 +39,7 @@ export function useStorageMonitor(): StorageMonitorReturn {
       storageService.cleanupOldData(daysToKeep);
       refreshStorageInfo();
     },
-    [refreshStorageInfo]
+    [refreshStorageInfo],
   );
 
   return {

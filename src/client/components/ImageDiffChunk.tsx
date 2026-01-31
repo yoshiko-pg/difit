@@ -36,7 +36,7 @@ export function ImageDiffChunk({
   // Function to handle image load and get dimensions/file size
   const handleImageLoad = async (
     img: HTMLImageElement,
-    setImageInfo: (info: ImageInfo) => void
+    setImageInfo: (info: ImageInfo) => void,
   ) => {
     try {
       // Get image dimensions

@@ -103,7 +103,7 @@ describe('DiffViewer', () => {
           file={imageFile}
           baseCommitish="main"
           targetCommitish="feature"
-        />
+        />,
       );
 
       expect(screen.getByTestId('image-diff-chunk')).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('DiffViewer', () => {
           file={imageFile}
           baseCommitish="main"
           targetCommitish="feature"
-        />
+        />,
       );
 
       // Check that ImageDiffChunk is rendered for image files

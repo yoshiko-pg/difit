@@ -16,7 +16,7 @@ describe('CommentsDropdown', () => {
         onCopyAll={onCopyAll}
         onDeleteAll={onDeleteAll}
         onViewAll={onViewAll}
-      />
+      />,
     );
 
     // Click dropdown arrow
@@ -39,7 +39,7 @@ describe('CommentsDropdown', () => {
         onCopyAll={onCopyAll}
         onDeleteAll={onDeleteAll}
         onViewAll={onViewAll}
-      />
+      />,
     );
 
     // Click dropdown arrow
@@ -65,7 +65,7 @@ describe('CommentsDropdown', () => {
         onCopyAll={onCopyAll}
         onDeleteAll={onDeleteAll}
         onViewAll={onViewAll}
-      />
+      />,
     );
 
     // Click dropdown arrow

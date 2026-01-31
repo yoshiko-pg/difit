@@ -19,7 +19,7 @@ describe('commentFormatting', () => {
       const result = formatCommentPrompt(
         'src/utils/validation.ts',
         [100, 120],
-        'Extract validation logic'
+        'Extract validation logic',
       );
       expect(result).toBe('src/utils/validation.ts:L100-L120\nExtract validation logic');
     });
@@ -95,7 +95,7 @@ describe('commentFormatting', () => {
       ];
       const result = formatAllCommentsPrompt(comments);
       expect(result).toBe(
-        'src/App.tsx:L10\nFirst comment\n=====\nsrc/utils/helper.ts:L20-L25\nSecond comment'
+        'src/App.tsx:L10\nFirst comment\n=====\nsrc/utils/helper.ts:L20-L25\nSecond comment',
       );
     });
 
@@ -118,7 +118,7 @@ describe('commentFormatting', () => {
       ];
       const result = formatAllCommentsPrompt(comments);
       expect(result).toBe(
-        'src/components/Form.tsx:L50-L75\nRefactor form validation\n=====\nsrc/api/endpoints.ts:L100-L150\nAdd error handling'
+        'src/components/Form.tsx:L50-L75\nRefactor form validation\n=====\nsrc/api/endpoints.ts:L100-L150\nAdd error handling',
       );
     });
 
@@ -148,7 +148,7 @@ describe('commentFormatting', () => {
       ];
       const result = formatAllCommentsPrompt(comments);
       expect(result).toBe(
-        'third.ts:L30\nThird\n=====\nfirst.ts:L10\nFirst\n=====\nsecond.ts:L20\nSecond'
+        'third.ts:L30\nThird\n=====\nfirst.ts:L10\nFirst\n=====\nsecond.ts:L20\nSecond',
       );
     });
   });
@@ -230,7 +230,7 @@ describe('commentFormatting', () => {
 
       expect(result).toContain('src/complex.ts:L100-L200');
       expect(result).toContain(
-        'This is a complex issue that\nspans multiple lines\nand needs attention'
+        'This is a complex issue that\nspans multiple lines\nand needs attention',
       );
       expect(result).toContain('Total comments: 1');
     });

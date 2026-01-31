@@ -121,10 +121,10 @@ describe('FileWatcherService', () => {
 
       // Should send connected event to new clients
       expect(mockResponse1.write).toHaveBeenCalledWith(
-        expect.stringContaining('"type":"connected"')
+        expect.stringContaining('"type":"connected"'),
       );
       expect(mockResponse2.write).toHaveBeenCalledWith(
-        expect.stringContaining('"type":"connected"')
+        expect.stringContaining('"type":"connected"'),
       );
 
       fileWatcher.removeClient(mockResponse1);
@@ -221,7 +221,7 @@ describe('FileWatcherService', () => {
 
       // Should not broadcast for ignored files
       expect(mockResponse.write).not.toHaveBeenCalledWith(
-        expect.stringContaining('"type":"reload"')
+        expect.stringContaining('"type":"reload"'),
       );
     });
   });
@@ -291,7 +291,7 @@ describe('FileWatcherService', () => {
           await new Promise((resolve) => setTimeout(resolve, 350)); // Wait for debounce
 
           expect(mockClient.write).toHaveBeenCalledWith(
-            expect.stringContaining(`"changeType":"${expectedType}"`)
+            expect.stringContaining(`"changeType":"${expectedType}"`),
           );
         }
 
@@ -332,7 +332,7 @@ describe('FileWatcherService', () => {
         expect.any(Function),
         {
           ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-        }
+        },
       );
     });
 
@@ -352,7 +352,7 @@ describe('FileWatcherService', () => {
         expect.any(Function),
         {
           ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-        }
+        },
       );
     });
 

@@ -23,7 +23,7 @@ export function getStartPosition(cursor: CursorPosition | null): CursorPosition 
 export function hasWrappedAround(
   current: CursorPosition,
   start: CursorPosition,
-  started: boolean
+  started: boolean,
 ): boolean {
   return (
     started &&
@@ -39,7 +39,7 @@ export function hasWrappedAround(
 export function advancePosition(
   pos: CursorPosition,
   direction: NavigationDirection,
-  files: DiffFile[]
+  files: DiffFile[],
 ): CursorPosition | null {
   let { fileIndex, chunkIndex, lineIndex } = pos;
   const totalFiles = files.length;
@@ -133,7 +133,7 @@ export function findNextMatchingPosition(
   direction: NavigationDirection,
   filter: NavigationFilter,
   files: DiffFile[],
-  viewMode: ViewMode
+  viewMode: ViewMode,
 ): NavigationResult {
   let current: CursorPosition | null = startPos;
   let started = false;
