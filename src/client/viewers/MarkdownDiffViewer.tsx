@@ -10,7 +10,7 @@ import type { MergedChunk } from '../hooks/useExpandedLines';
 import { TextDiffViewer } from './TextDiffViewer';
 import type { DiffViewerBodyProps } from './types';
 
-type PreviewMode = 'diff' | 'preview';
+type PreviewMode = 'diff' | 'diff-preview' | 'full-preview';
 
 type PreviewBlockType = 'add' | 'delete' | 'change' | 'context';
 
@@ -227,30 +227,14 @@ const getBlockStyle = (type: PreviewBlockType) => {
   }
 };
 
-const MarkdownPreview = ({
-  content,
+const MarkdownDiffPreview = ({
   blocks,
   syntaxTheme,
 }: {
-  content: string | null;
   blocks: PreviewBlock[];
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
-
-  if (content !== null) {
-    return (
-      <div className="space-y-4">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          urlTransform={(url) => (isSafeUrl(url) ? url : '')}
-          components={components}
-        >
-          {content}
-        </ReactMarkdown>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -273,12 +257,35 @@ const MarkdownPreview = ({
   );
 };
 
+const MarkdownFullPreview = ({
+  content,
+  syntaxTheme,
+}: {
+  content: string;
+  syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
+}) => {
+  const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
+
+  return (
+    <div className="space-y-4">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        urlTransform={(url) => (isSafeUrl(url) ? url : '')}
+        components={components}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+};
+
 export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   const { file, baseCommitish, targetCommitish, mergedChunks, syntaxTheme } = props;
-  const [mode, setMode] = useState<PreviewMode>('preview');
+  const [mode, setMode] = useState<PreviewMode>('diff-preview');
   const [fullContent, setFullContent] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [loadedSourceKey, setLoadedSourceKey] = useState<string | null>(null);
   const previewBlocks = useMemo(() => buildPreviewBlocks(mergedChunks), [mergedChunks]);
   const previewSource = useMemo(() => {
     if (!baseCommitish && !targetCommitish) return null;
@@ -298,9 +305,19 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
     return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
   }, [baseCommitish, targetCommitish, file.path, file.oldPath, file.status]);
 
+  const previewSourceKey = useMemo(
+    () => (previewSource ? `${previewSource.ref}:${previewSource.path}` : null),
+    [previewSource],
+  );
+
   useEffect(() => {
-    if (!previewSource) {
+    if (mode !== 'full-preview') {
+      return;
+    }
+
+    if (!previewSource || !previewSourceKey) {
       setFullContent(null);
+      setLoadedSourceKey(null);
       setPreviewError(null);
       setIsPreviewLoading(false);
       return;
@@ -309,6 +326,9 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
     let isCanceled = false;
 
     const fetchContent = async () => {
+      if (previewSourceKey !== loadedSourceKey) {
+        setFullContent(null);
+      }
       setIsPreviewLoading(true);
       setPreviewError(null);
       try {
@@ -322,10 +342,12 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
         const text = await response.text();
         if (!isCanceled) {
           setFullContent(text);
+          setLoadedSourceKey(previewSourceKey);
         }
       } catch (error) {
         if (!isCanceled) {
           setFullContent(null);
+          setLoadedSourceKey(null);
           setPreviewError(error instanceof Error ? error.message : 'Failed to load preview');
         }
       } finally {
@@ -335,12 +357,14 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
       }
     };
 
-    void fetchContent();
+    if (previewSourceKey !== loadedSourceKey || !fullContent) {
+      void fetchContent();
+    }
 
     return () => {
       isCanceled = true;
     };
-  }, [previewSource]);
+  }, [fullContent, loadedSourceKey, mode, previewSource, previewSourceKey]);
 
   return (
     <div className="bg-github-bg-primary">
@@ -359,30 +383,54 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             Diff
           </button>
           <button
-            onClick={() => setMode('preview')}
+            onClick={() => setMode('diff-preview')}
             className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'preview' ?
+              mode === 'diff-preview' ?
                 'text-github-text-primary'
               : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
-            title="Preview"
+            title="Diff Preview"
           >
             <Eye size={14} />
-            Preview
+            Diff Preview
+          </button>
+          <button
+            onClick={() => setMode('full-preview')}
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
+              mode === 'full-preview' ?
+                'text-github-text-primary'
+              : 'text-github-text-secondary hover:text-github-text-primary'
+            }`}
+            title="Full Preview"
+          >
+            <Eye size={14} />
+            Full Preview
           </button>
         </div>
       </div>
 
-      {mode === 'diff' ?
-        <TextDiffViewer {...props} />
-      : <div className="p-4">
-          {isPreviewLoading && !fullContent && (
+      {mode === 'diff' && <TextDiffViewer {...props} />}
+
+      {mode === 'diff-preview' && (
+        <div className="p-4">
+          <MarkdownDiffPreview blocks={previewBlocks} syntaxTheme={syntaxTheme} />
+        </div>
+      )}
+
+      {mode === 'full-preview' && (
+        <div className="p-4">
+          {isPreviewLoading && (
             <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
           )}
           {previewError && <div className="text-sm text-github-danger mb-3">{previewError}</div>}
-          <MarkdownPreview content={fullContent} blocks={previewBlocks} syntaxTheme={syntaxTheme} />
+          {!isPreviewLoading && !previewError && fullContent && (
+            <MarkdownFullPreview content={fullContent} syntaxTheme={syntaxTheme} />
+          )}
+          {!isPreviewLoading && !previewError && !fullContent && (
+            <div className="text-sm text-github-text-muted">Preview unavailable.</div>
+          )}
         </div>
-      }
+      )}
     </div>
   );
 }
