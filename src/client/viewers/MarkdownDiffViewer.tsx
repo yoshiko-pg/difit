@@ -1,5 +1,5 @@
 import { Eye, FileDiff } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -20,12 +20,12 @@ type PreviewBlock = {
 };
 
 const headingStyles = [
-  'text-2xl font-semibold',
+  'text-[26px] font-semibold',
+  'text-[22px] font-semibold',
   'text-xl font-semibold',
   'text-lg font-semibold',
+  'text-base font-semibold uppercase tracking-wide',
   'text-base font-semibold',
-  'text-sm font-semibold uppercase tracking-wide',
-  'text-sm font-semibold',
 ];
 
 const isDeletionLine = (line: DiffLine) => line.type === 'delete' || line.type === 'remove';
@@ -112,31 +112,31 @@ const extractText = (node: React.ReactNode): string => {
 
 const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme']) => ({
   h1: ({ children }: { children?: React.ReactNode }) => (
-    <h1 className={`${headingStyles[0]} mb-2`}>{children}</h1>
+    <h1 className={`${headingStyles[0]} mt-6 mb-2 first:mt-0`}>{children}</h1>
   ),
   h2: ({ children }: { children?: React.ReactNode }) => (
-    <h2 className={`${headingStyles[1]} mb-2`}>{children}</h2>
+    <h2 className={`${headingStyles[1]} mt-6 mb-2 first:mt-0`}>{children}</h2>
   ),
   h3: ({ children }: { children?: React.ReactNode }) => (
-    <h3 className={`${headingStyles[2]} mb-2`}>{children}</h3>
+    <h3 className={`${headingStyles[2]} mt-6 mb-2 first:mt-0`}>{children}</h3>
   ),
   h4: ({ children }: { children?: React.ReactNode }) => (
-    <h4 className={`${headingStyles[3]} mb-2`}>{children}</h4>
+    <h4 className={`${headingStyles[3]} mt-6 mb-2 first:mt-0`}>{children}</h4>
   ),
   h5: ({ children }: { children?: React.ReactNode }) => (
-    <h5 className={`${headingStyles[4]} mb-2`}>{children}</h5>
+    <h5 className={`${headingStyles[4]} mt-6 mb-2 first:mt-0`}>{children}</h5>
   ),
   h6: ({ children }: { children?: React.ReactNode }) => (
-    <h6 className={`${headingStyles[5]} mb-2`}>{children}</h6>
+    <h6 className={`${headingStyles[5]} mt-6 mb-2 first:mt-0`}>{children}</h6>
   ),
   p: ({ children }: { children?: React.ReactNode }) => (
-    <p className="text-sm leading-7">{children}</p>
+    <p className="text-base leading-7">{children}</p>
   ),
   ul: ({ children }: { children?: React.ReactNode }) => (
-    <ul className="list-disc pl-6 text-sm space-y-1">{children}</ul>
+    <ul className="list-disc pl-6 text-base space-y-1">{children}</ul>
   ),
   ol: ({ children }: { children?: React.ReactNode }) => (
-    <ol className="list-decimal pl-6 text-sm space-y-1">{children}</ol>
+    <ol className="list-decimal pl-6 text-base space-y-1">{children}</ol>
   ),
   li: ({ children }: { children?: React.ReactNode }) => <li>{children}</li>,
   blockquote: ({ children }: { children?: React.ReactNode }) => (
@@ -185,14 +185,14 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
 
     if (!codeText.trim()) {
       return (
-        <pre className="markdown-preview-code border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-xs">
+        <pre className="markdown-preview-code border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-sm">
           {children}
         </pre>
       );
     }
 
     return (
-      <pre className="markdown-preview-code border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-xs">
+      <pre className="markdown-preview-code border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-sm">
         <PrismSyntaxHighlighter
           code={codeText.replace(/\n$/, '')}
           language={language}
@@ -207,7 +207,7 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
       return <code className={className}>{children}</code>;
     }
     return (
-      <code className="px-1 py-0.5 rounded bg-github-bg-tertiary border border-github-border text-xs font-mono">
+      <code className="px-1 py-0.5 rounded bg-github-bg-tertiary border border-github-border text-sm font-mono">
         {children}
       </code>
     );
@@ -228,13 +228,29 @@ const getBlockStyle = (type: PreviewBlockType) => {
 };
 
 const MarkdownPreview = ({
+  content,
   blocks,
   syntaxTheme,
 }: {
+  content: string | null;
   blocks: PreviewBlock[];
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
+
+  if (content !== null) {
+    return (
+      <div className="space-y-4">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          urlTransform={(url) => (isSafeUrl(url) ? url : '')}
+          components={components}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -258,8 +274,73 @@ const MarkdownPreview = ({
 };
 
 export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
-  const [mode, setMode] = useState<PreviewMode>('diff');
-  const previewBlocks = useMemo(() => buildPreviewBlocks(props.mergedChunks), [props.mergedChunks]);
+  const { file, baseCommitish, targetCommitish, mergedChunks, syntaxTheme } = props;
+  const [mode, setMode] = useState<PreviewMode>('preview');
+  const [fullContent, setFullContent] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const previewBlocks = useMemo(() => buildPreviewBlocks(mergedChunks), [mergedChunks]);
+  const previewSource = useMemo(() => {
+    if (!baseCommitish && !targetCommitish) return null;
+
+    if (file.status === 'added') {
+      return targetCommitish ? { path: file.path, ref: targetCommitish } : null;
+    }
+
+    if (file.status === 'deleted') {
+      return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
+    }
+
+    if (targetCommitish) {
+      return { path: file.path, ref: targetCommitish };
+    }
+
+    return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
+  }, [baseCommitish, targetCommitish, file.path, file.oldPath, file.status]);
+
+  useEffect(() => {
+    if (!previewSource) {
+      setFullContent(null);
+      setPreviewError(null);
+      setIsPreviewLoading(false);
+      return;
+    }
+
+    let isCanceled = false;
+
+    const fetchContent = async () => {
+      setIsPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        const encodedPath = encodeURIComponent(previewSource.path);
+        const response = await fetch(
+          `/api/blob/${encodedPath}?ref=${encodeURIComponent(previewSource.ref)}`,
+        );
+        if (!response.ok) {
+          throw new Error(`Failed to fetch preview: ${response.statusText}`);
+        }
+        const text = await response.text();
+        if (!isCanceled) {
+          setFullContent(text);
+        }
+      } catch (error) {
+        if (!isCanceled) {
+          setFullContent(null);
+          setPreviewError(error instanceof Error ? error.message : 'Failed to load preview');
+        }
+      } finally {
+        if (!isCanceled) {
+          setIsPreviewLoading(false);
+        }
+      }
+    };
+
+    void fetchContent();
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [previewSource]);
 
   return (
     <div className="bg-github-bg-primary">
@@ -295,7 +376,11 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
       {mode === 'diff' ?
         <TextDiffViewer {...props} />
       : <div className="p-4">
-          <MarkdownPreview blocks={previewBlocks} syntaxTheme={props.syntaxTheme} />
+          {isPreviewLoading && !fullContent && (
+            <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
+          )}
+          {previewError && <div className="text-sm text-github-danger mb-3">{previewError}</div>}
+          <MarkdownPreview content={fullContent} blocks={previewBlocks} syntaxTheme={syntaxTheme} />
         </div>
       }
     </div>
