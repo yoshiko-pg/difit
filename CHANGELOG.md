@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.2] - 2026-02-01
+
+### Added
+
+- Markdown full preview support
+- Enhance markdown preview
+- Add markdown all-syntax sample
+
+### Fixed
+
+- Show non-rendered markdown blocks
+- Scope markdown code line display
+
 ## [3.1.1] - 2026-01-31
 
 ### Added
@@ -800,7 +813,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.1...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.2...HEAD
+[3.1.2]: https://github.com/yoshiko-pg/difit/compare/v3.1.1...v3.1.2
 [3.1.1]: https://github.com/yoshiko-pg/difit/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/yoshiko-pg/difit/compare/v3.0.9...v3.1.0
 [3.0.9]: https://github.com/yoshiko-pg/difit/compare/v3.0.8...v3.0.9
