@@ -185,14 +185,14 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
 
     if (!codeText.trim()) {
       return (
-        <pre className="border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-xs">
+        <pre className="markdown-preview-code border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-xs">
           {children}
         </pre>
       );
     }
 
     return (
-      <pre className="border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-xs">
+      <pre className="markdown-preview-code border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-xs">
         <PrismSyntaxHighlighter
           code={codeText.replace(/\n$/, '')}
           language={language}

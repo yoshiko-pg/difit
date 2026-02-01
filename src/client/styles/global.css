@@ -51,6 +51,11 @@ button {
   cursor: pointer;
 }
 
+/* Markdown preview code blocks: render each Prism line on its own line */
+.markdown-preview-code .token-line {
+  display: block;
+}
+
 /* Sparkle animation */
 @keyframes sparkle-rise {
   0% {
