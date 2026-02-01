@@ -227,6 +227,20 @@ const getBlockStyle = (type: PreviewBlockType) => {
   }
 };
 
+const isReferenceDefinitionLine = (line: string) => /^\s*\[[^\]]+\]:\s+\S+/.test(line);
+
+const isFootnoteDefinitionLine = (line: string) => /^\s*\[\^[^\]]+\]:\s+/.test(line);
+
+const isHtmlCommentLine = (line: string) => /^\s*<!--.*-->\s*$/.test(line);
+
+const isNonRenderableLine = (line: string) =>
+  line.trim() === '' ||
+  isReferenceDefinitionLine(line) ||
+  isFootnoteDefinitionLine(line) ||
+  isHtmlCommentLine(line);
+
+const isPlainPreviewBlock = (lines: string[]) => lines.every(isNonRenderableLine);
+
 const MarkdownDiffPreview = ({
   blocks,
   syntaxTheme,
@@ -239,17 +253,24 @@ const MarkdownDiffPreview = ({
   return (
     <div className="space-y-4">
       {blocks.map((block, index) => {
-        const content = block.lines.join('\n').trim();
-        if (!content) return null;
+        const rawContent = block.lines.join('\n');
+        const trimmedContent = rawContent.trim();
+        if (!trimmedContent) return null;
+        const renderAsPlain = isPlainPreviewBlock(block.lines);
         return (
           <div key={`preview-block-${index}`} className={`px-4 ${getBlockStyle(block.type)}`}>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              urlTransform={(url) => (isSafeUrl(url) ? url : '')}
-              components={components}
-            >
-              {content}
-            </ReactMarkdown>
+            {renderAsPlain ?
+              <pre className="whitespace-pre-wrap text-sm text-github-text-primary font-mono">
+                {trimmedContent}
+              </pre>
+            : <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                urlTransform={(url) => (isSafeUrl(url) ? url : '')}
+                components={components}
+              >
+                {trimmedContent}
+              </ReactMarkdown>
+            }
           </div>
         );
       })}
