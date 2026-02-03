@@ -1,20 +1,21 @@
 import {
-  ChevronRight,
   ChevronDown,
-  FileDiff,
-  FolderOpen,
-  Folder,
-  FilePlus,
-  FileX,
-  FilePen,
-  Search,
-  MessageSquare,
+  ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
+  FileDiff,
+  FilePen,
+  FilePlus,
+  FileX,
+  Folder,
+  FolderOpen,
+  MessageSquare,
+  Search,
+  Undo2,
 } from 'lucide-react';
 import { useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 
-import { type DiffFile, type Comment } from '../../types/diff';
+import { type Comment, type DiffFile } from '../../types/diff';
 
 import { Checkbox } from './Checkbox';
 
@@ -25,6 +26,8 @@ interface FileListProps {
   reviewedFiles: Set<string>;
   onToggleReviewed: (path: string) => void;
   selectedFileIndex: number | null;
+  onDiscardChanges?: (filePath: string) => Promise<void>;
+  canDiscard?: boolean;
 }
 
 interface TreeNode {
@@ -114,13 +117,38 @@ export function FileList({
   reviewedFiles,
   onToggleReviewed,
   selectedFileIndex,
+  onDiscardChanges,
+  canDiscard = true,
 }: FileListProps) {
   const fileTree = buildFileTree(files);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dirContainerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [discardingFile, setDiscardingFile] = useState<string | null>(null);
   const stickyContainerStyle = {
     '--dir-row-height': 'calc(var(--spacing, 0.25rem) * 9)',
   } as CSSProperties;
+
+  const handleDiscard = async (e: MouseEvent, filePath: string) => {
+    e.stopPropagation();
+    if (!onDiscardChanges) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to discard all changes to "${filePath}"?\n\nThis action cannot be undone.`,
+    );
+
+    if (!confirmed) return;
+
+    setDiscardingFile(filePath);
+    try {
+      await onDiscardChanges(filePath);
+    } catch (error) {
+      alert(
+        `Failed to discard changes: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    } finally {
+      setDiscardingFile(null);
+    }
+  };
 
   // Initialize with all directories expanded
   const getAllDirectoryPaths = (node: TreeNode): string[] => {
@@ -305,10 +333,12 @@ export function FileList({
       const fileIndex = files.findIndex((f) => f.path === file.path);
       const isSelected = selectedFileIndex !== null && selectedFileIndex === fileIndex;
 
+      const isDiscarding = discardingFile === file.path;
+
       return (
         <div
           key={file.path}
-          className={`flex items-center gap-2 px-4 py-2 hover:bg-github-bg-tertiary cursor-pointer transition-colors ${
+          className={`group flex items-center gap-2 px-4 py-2 hover:bg-github-bg-tertiary cursor-pointer transition-colors ${
             isReviewed ? 'opacity-70' : ''
           } ${isSelected ? 'bg-github-bg-tertiary' : ''}`}
           data-file-row="true"
@@ -335,10 +365,24 @@ export function FileList({
             {node.name}
           </span>
           {commentCount > 0 && (
-            <span className="text-github-warning text-sm font-medium ml-auto flex items-center gap-1">
+            <span className="text-github-warning text-sm font-medium flex items-center gap-1">
               <MessageSquare size={14} />
               {commentCount}
             </span>
+          )}
+          {canDiscard && onDiscardChanges && (
+            <button
+              onClick={(e) => handleDiscard(e, file.path)}
+              disabled={isDiscarding}
+              className={`p-1 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 ${
+                isDiscarding ?
+                  'text-github-text-muted cursor-not-allowed'
+                : 'text-github-text-secondary hover:text-github-danger hover:bg-red-100/10'
+              }`}
+              title="Discard changes"
+            >
+              <Undo2 size={14} className={isDiscarding ? 'animate-spin' : ''} />
+            </button>
           )}
         </div>
       );

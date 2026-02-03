@@ -1,15 +1,16 @@
 import { type Server } from 'http';
-import { join, dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 import express, { type Express } from 'express';
 import open from 'open';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 import { type DiffMode } from '../types/watch.js';
 import { formatCommentsOutput } from '../utils/commentFormatting.js';
 import { getFileExtension } from '../utils/fileUtils.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
@@ -301,6 +302,34 @@ export async function startServer(
       res.send(output);
     } else {
       res.send('');
+    }
+  });
+
+  // Discard changes to a file
+  app.post(/^\/api\/discard\/(.*)$/, async (req, res) => {
+    // Discard not available for stdin diff
+    if (options.stdinDiff) {
+      res.status(400).json({ error: 'Discard not available for stdin diff' });
+      return;
+    }
+
+    const filepath = req.params[0];
+
+    if (filepath.includes('..') || filepath.startsWith('/')) {
+      res.status(400).json({ error: 'Invalid file path' });
+      return;
+    }
+
+    try {
+      await parser.discardChanges(filepath);
+      // Invalidate cache so next diff request gets fresh data
+      invalidateCache();
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error discarding changes:', error);
+      res.status(500).json({
+        error: `Failed to discard changes: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
     }
   });
 

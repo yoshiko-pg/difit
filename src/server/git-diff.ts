@@ -1,14 +1,14 @@
 import {
   simpleGit,
-  type SimpleGit,
   type DiffResult,
-  type DiffResultTextFile,
   type DiffResultBinaryFile,
   type DiffResultNameStatusFile,
+  type DiffResultTextFile,
+  type SimpleGit,
 } from 'simple-git';
 
-import { validateDiffArguments, shortHash, createCommitRangeString } from '../cli/utils.js';
-import { type DiffFile, type DiffChunk, type DiffLine, type DiffResponse } from '../types/diff.js';
+import { createCommitRangeString, shortHash, validateDiffArguments } from '../cli/utils.js';
+import { type DiffChunk, type DiffFile, type DiffLine, type DiffResponse } from '../types/diff.js';
 
 import { isGeneratedFile } from './generated-file-check.js';
 
@@ -626,5 +626,12 @@ export class GitDiffParser {
     }
 
     return { branches, commits, resolvedBase, resolvedTarget };
+  }
+
+  /**
+   * @param filepath - The path to the file to discard changes for
+   */
+  async discardChanges(filepath: string): Promise<void> {
+    await this.git.checkout(['--', filepath]);
   }
 }

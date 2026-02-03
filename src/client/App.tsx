@@ -391,6 +391,27 @@ function App() {
     void fetchDiffData();
   }, [fetchDiffData]);
 
+  // Handle discard changes for a file
+  const handleDiscardChanges = useCallback(
+    async (filePath: string): Promise<void> => {
+      const response = await fetch(`/api/discard/${encodeURIComponent(filePath)}`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error || 'Failed to discard changes');
+      }
+
+      // Refresh diff data after successful discard
+      await fetchDiffData();
+    },
+    [fetchDiffData],
+  );
+
+  // Check if we're in stdin mode (discard not available)
+  const isStdinMode = diffData?.commit === 'stdin diff';
+
   // Fetch revision options on mount
   useEffect(() => {
     fetch('/api/revisions')
@@ -867,6 +888,8 @@ function App() {
                   reviewedFiles={viewedFiles}
                   onToggleReviewed={toggleFileReviewed}
                   selectedFileIndex={cursor?.fileIndex ?? null}
+                  onDiscardChanges={handleDiscardChanges}
+                  canDiscard={!isStdinMode}
                 />
               </div>
               <div className="p-4 border-t border-github-border flex justify-between items-center">

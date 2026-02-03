@@ -55,6 +55,7 @@ vi.mock('./git-diff.js', () => {
       resolvedBase: 'abc1234',
       resolvedTarget: 'def5678',
     });
+    discardChanges = vi.fn().mockResolvedValue(undefined);
   }
 
   return { GitDiffParser: GitDiffParserMock };
@@ -692,6 +693,75 @@ describe('Server Integration Tests', () => {
       const response2 = await fetch(`http://localhost:${port}/api/diff?ignoreWhitespace=true`);
       const data2 = (await response2.json()) as any;
       expect(data2.clearComments).toBe(true);
+    });
+  });
+
+  describe('Discard changes API', () => {
+    it('POST /api/discard/* discards changes to a file', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9070,
+      });
+      servers.push(server);
+
+      const response = await fetch(`http://localhost:${port}/api/discard/test.js`, {
+        method: 'POST',
+      });
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data).toEqual({ success: true });
+    });
+
+    it('POST /api/discard/* returns 400 for stdin diff mode', async () => {
+      const { port, server } = await startServer({
+        stdinDiff: 'diff --git a/test.js b/test.js\n',
+        preferredPort: 9071,
+      });
+      servers.push(server);
+
+      const response = await fetch(`http://localhost:${port}/api/discard/test.js`, {
+        method: 'POST',
+      });
+      const data = (await response.json()) as any;
+
+      expect(response.status).toBe(400);
+      expect(data).toHaveProperty('error', 'Discard not available for stdin diff');
+    });
+
+    it('POST /api/discard/* rejects path traversal attempts', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9072,
+      });
+      servers.push(server);
+
+      const response = await fetch(`http://localhost:${port}/api/discard/../etc/passwd`, {
+        method: 'POST',
+      });
+      const data = (await response.json()) as any;
+
+      expect(response.status).toBe(400);
+      expect(data).toHaveProperty('error', 'Invalid file path');
+    });
+
+    it('POST /api/discard/* handles nested file paths', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9073,
+      });
+      servers.push(server);
+
+      const response = await fetch(`http://localhost:${port}/api/discard/src/components/App.tsx`, {
+        method: 'POST',
+      });
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data).toEqual({ success: true });
     });
   });
 });
