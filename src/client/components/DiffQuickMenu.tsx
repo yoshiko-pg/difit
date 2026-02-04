@@ -94,11 +94,14 @@ export function DiffQuickMenu({
     whileElementsMounted: autoUpdate,
   });
 
+  const hover = useHover(context, {
+    handleClose: safePolygon(),
+  });
   const click = useClick(context);
   const dismiss = useDismiss(context);
   const role = useRole(context, { role: 'menu' });
 
-  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
+  const { getReferenceProps, getFloatingProps } = useInteractions([hover, click, dismiss, role]);
 
   const {
     refs: commitRefs,
@@ -113,7 +116,7 @@ export function DiffQuickMenu({
   });
 
   const commitHover = useHover(commitContext, {
-    handleClose: safePolygon({ blockPointerEvents: true }),
+    handleClose: safePolygon(),
   });
   const commitClick = useClick(commitContext);
   const commitDismiss = useDismiss(commitContext);
@@ -195,7 +198,6 @@ export function DiffQuickMenu({
         aria-expanded={isOpen}
         {...getReferenceProps()}
       >
-        <span className="text-xs text-github-text-secondary">Diff:</span>
         <div className="flex items-center gap-1 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
           <code className="text-xs text-github-text-primary max-w-[220px] truncate">
             {currentLabel}
