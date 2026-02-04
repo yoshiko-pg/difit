@@ -48,7 +48,6 @@ interface SideBySideDiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
-  oldFilename?: string;
   onOpenInEditor?: (filePath: string, lineNumber: number) => void;
 }
 
@@ -99,7 +98,6 @@ export function SideBySideDiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
-  oldFilename,
   onOpenInEditor,
 }: SideBySideDiffChunkProps) {
   const [startLine, setStartLine] = useState<LineSelection | null>(null);
@@ -462,16 +460,17 @@ export function SideBySideDiffChunk({
                     {hoveredLine?.side === 'old' &&
                       hoveredLine?.lineNumber === sideLine.oldLineNumber && (
                         <>
-                          {onOpenInEditor && (
-                            <OpenInEditorButton
-                              onClick={() => {
-                                const lineNumber = sideLine.oldLineNumber;
-                                const targetPath = oldFilename || filename;
-                                if (!targetPath || lineNumber === undefined) return;
-                                onOpenInEditor(targetPath, lineNumber);
-                              }}
-                            />
-                          )}
+                          {onOpenInEditor &&
+                            sideLine.oldLine?.type !== 'delete' &&
+                            sideLine.newLineNumber !== undefined && (
+                              <OpenInEditorButton
+                                onClick={() => {
+                                  const lineNumber = sideLine.newLineNumber;
+                                  if (!filename || lineNumber === undefined) return;
+                                  onOpenInEditor(filename, lineNumber);
+                                }}
+                              />
+                            )}
                           <CommentButton
                             onMouseDown={(e) => {
                               e.stopPropagation();

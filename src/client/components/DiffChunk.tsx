@@ -47,7 +47,6 @@ interface DiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
-  oldFilename?: string;
   onOpenInEditor?: (filePath: string, lineNumber: number) => void;
 }
 
@@ -67,7 +66,6 @@ export const DiffChunk = memo(function DiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
-  oldFilename,
   onOpenInEditor,
 }: DiffChunkProps) {
   const [startLine, setStartLine] = useState<number | null>(null);
@@ -284,7 +282,6 @@ export const DiffChunk = memo(function DiffChunk({
         fileIndex={fileIndex}
         onLineClick={onLineClick}
         filename={filename}
-        oldFilename={oldFilename}
         commentTrigger={commentTrigger}
         onCommentTriggerHandled={onCommentTriggerHandled}
       />
@@ -376,14 +373,16 @@ export const DiffChunk = memo(function DiffChunk({
                     setEndLine(null);
                   }}
                   onOpenInEditor={
-                    onOpenInEditor && (line.newLineNumber || line.oldLineNumber) ?
+                    (
+                      onOpenInEditor &&
+                      line.type !== 'delete' &&
+                      (line.newLineNumber || line.oldLineNumber)
+                    ) ?
                       () => {
                         const lineNumber = line.newLineNumber || line.oldLineNumber;
                         if (!lineNumber) return;
-                        const side: DiffSide = line.type === 'delete' ? 'old' : 'new';
-                        const targetPath = side === 'old' ? oldFilename || filename : filename;
-                        if (!targetPath) return;
-                        onOpenInEditor(targetPath, lineNumber);
+                        if (!filename) return;
+                        onOpenInEditor(filename, lineNumber);
                       }
                     : undefined
                   }

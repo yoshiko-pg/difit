@@ -116,7 +116,6 @@ export function TextDiffViewer({
                 }
                 onCommentTriggerHandled={onCommentTriggerHandled}
                 filename={file.path}
-                oldFilename={file.oldPath}
               />
             </div>
 
