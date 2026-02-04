@@ -14,13 +14,14 @@ import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode
 import { Checkbox } from './components/Checkbox';
 import { CommentsDropdown } from './components/CommentsDropdown';
 import { CommentsListModal } from './components/CommentsListModal';
+import { DiffQuickMenu } from './components/DiffQuickMenu';
 import { DiffViewer } from './components/DiffViewer';
 import { FileList } from './components/FileList';
 import { GitHubIcon } from './components/GitHubIcon';
 import { HelpModal } from './components/HelpModal';
 import { Logo } from './components/Logo';
 import { ReloadButton } from './components/ReloadButton';
-import { RevisionSelector } from './components/RevisionSelector';
+import { RevisionDetailModal } from './components/RevisionDetailModal';
 import { SettingsModal } from './components/SettingsModal';
 import { SparkleAnimation } from './components/SparkleAnimation';
 import { WordHighlightProvider } from './contexts/WordHighlightContext';
@@ -70,6 +71,7 @@ function App() {
   const [showSparkles, setShowSparkles] = useState(false);
   const [hasTriggeredSparkles, setHasTriggeredSparkles] = useState(false);
   const [isCommentsListOpen, setIsCommentsListOpen] = useState(false);
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
   const collapsedInitializedRef = useRef(false);
 
@@ -454,44 +456,6 @@ function App() {
     [baseRevision, targetRevision, fetchDiffData],
   );
 
-  const getCommitIndex = (commitish: string) => {
-    if (!revisionOptions) return -1;
-    return revisionOptions.commits.findIndex(
-      (commit) => commit.shortHash === commitish || commit.hash === commitish,
-    );
-  };
-
-  const getBaseDisabledValues = () => {
-    if (!revisionOptions) return [];
-    const targetCommitish = resolvedTargetRevision || targetRevision;
-    const targetIndex = getCommitIndex(targetCommitish);
-    if (targetIndex === -1) return targetRevision ? [targetRevision] : [];
-    const disabledValues = revisionOptions.commits
-      .slice(0, targetIndex + 1)
-      .map((commit) => commit.shortHash);
-    if (targetRevision && !disabledValues.includes(targetRevision)) {
-      disabledValues.push(targetRevision);
-    }
-    if (!disabledValues.includes('working')) {
-      disabledValues.push('working');
-    }
-    return disabledValues;
-  };
-
-  const getTargetDisabledValues = () => {
-    if (!revisionOptions) return [];
-    const baseCommitish = resolvedBaseRevision || baseRevision;
-    const baseIndex = getCommitIndex(baseCommitish);
-    if (baseIndex === -1) return baseRevision ? [baseRevision] : [];
-    const disabledValues = revisionOptions.commits
-      .slice(baseIndex)
-      .map((commit) => commit.shortHash);
-    if (baseRevision && !disabledValues.includes(baseRevision)) {
-      disabledValues.push(baseRevision);
-    }
-    return disabledValues;
-  };
-
   // Clear comments and viewed files on initial load if requested via CLI flag
   const hasCleanedRef = useRef(false);
   useEffect(() => {
@@ -851,25 +815,15 @@ function App() {
                 </div>
               </div>
               {revisionOptions ?
-                <div className="flex items-center gap-2">
-                  <RevisionSelector
-                    label="Base"
-                    value={baseRevision}
-                    resolvedValue={resolvedBaseRevision}
-                    onChange={(v) => void handleRevisionChange(v, targetRevision)}
-                    options={revisionOptions}
-                    disabledValues={getBaseDisabledValues()}
-                  />
-                  <span className="text-github-text-muted">...</span>
-                  <RevisionSelector
-                    label="Target"
-                    value={targetRevision}
-                    resolvedValue={resolvedTargetRevision}
-                    onChange={(v) => void handleRevisionChange(baseRevision, v)}
-                    options={revisionOptions}
-                    disabledValues={getTargetDisabledValues()}
-                  />
-                </div>
+                <DiffQuickMenu
+                  options={revisionOptions}
+                  baseRevision={baseRevision}
+                  targetRevision={targetRevision}
+                  resolvedBaseRevision={resolvedBaseRevision}
+                  resolvedTargetRevision={resolvedTargetRevision}
+                  onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
+                  onOpenAdvanced={() => setIsRevisionModalOpen(true)}
+                />
               : <span>
                   Reviewing:{' '}
                   <code className="bg-github-bg-tertiary px-1.5 py-0.5 rounded text-xs text-github-text-primary">
@@ -887,6 +841,19 @@ function App() {
             </div>
           </div>
         </header>
+        {revisionOptions && (
+          <RevisionDetailModal
+            key={isRevisionModalOpen ? `${baseRevision}:${targetRevision}` : 'closed'}
+            isOpen={isRevisionModalOpen}
+            onClose={() => setIsRevisionModalOpen(false)}
+            options={revisionOptions}
+            baseRevision={baseRevision}
+            targetRevision={targetRevision}
+            resolvedBaseRevision={resolvedBaseRevision}
+            resolvedTargetRevision={resolvedTargetRevision}
+            onApply={(base, target) => void handleRevisionChange(base, target)}
+          />
+        )}
 
         <div className="flex flex-1 overflow-hidden">
           <div
