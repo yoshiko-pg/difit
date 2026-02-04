@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.5] - 2026-02-05
+
+### Added
+
+- Mobile View Support (#200)
+
+### Fixed
+
+- Handle mjs/cjs/mts/cts syntax
+
 ## [3.1.4] - 2026-02-04
 
 ### Added
@@ -824,7 +834,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.4...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.5...HEAD
+[3.1.5]: https://github.com/yoshiko-pg/difit/compare/v3.1.4...v3.1.5
 [3.1.4]: https://github.com/yoshiko-pg/difit/compare/v3.1.3...v3.1.4
 [3.1.3]: https://github.com/yoshiko-pg/difit/compare/v3.1.2...v3.1.3
 [3.1.2]: https://github.com/yoshiko-pg/difit/compare/v3.1.1...v3.1.2
