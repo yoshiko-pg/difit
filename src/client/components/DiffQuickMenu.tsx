@@ -27,7 +27,7 @@ interface DiffQuickMenuProps {
   resolvedTargetRevision?: string;
   onSelectDiff: (base: string, target: string) => void;
   onOpenAdvanced: () => void;
-  variant?: 'default' | 'compact';
+  compact?: boolean;
 }
 
 const SPECIAL_LABEL_OVERRIDES: Record<string, string> = {
@@ -84,11 +84,11 @@ export function DiffQuickMenu({
   resolvedTargetRevision,
   onSelectDiff,
   onOpenAdvanced,
-  variant = 'default',
+  compact = false,
 }: DiffQuickMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCommitMenuOpen, setIsCommitMenuOpen] = useState(false);
-  const isCompact = variant === 'compact';
+  const isCompact = compact;
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen || isCommitMenuOpen,

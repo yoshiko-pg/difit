@@ -8,7 +8,7 @@ interface CommentsDropdownProps {
   onDeleteAll: () => void;
   onViewAll?: () => void;
   direction?: 'down' | 'up';
-  variant?: 'default' | 'compact';
+  compact?: boolean;
 }
 
 export function CommentsDropdown({
@@ -18,11 +18,11 @@ export function CommentsDropdown({
   onDeleteAll,
   onViewAll,
   direction = 'down',
-  variant = 'default',
+  compact = false,
 }: CommentsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const isCompact = variant === 'compact';
+  const isCompact = compact;
   const isUp = direction === 'up';
 
   useEffect(() => {

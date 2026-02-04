@@ -860,7 +860,7 @@ function App() {
                   resolvedTargetRevision={resolvedTargetRevision}
                   onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
                   onOpenAdvanced={() => setIsRevisionModalOpen(true)}
-                  variant={isDesktop ? 'default' : 'compact'}
+                  compact={!isDesktop}
                 />
               : <span className="text-xs">
                   Reviewing:{' '}
@@ -1041,7 +1041,7 @@ function App() {
               onDeleteAll={clearAllComments}
               onViewAll={() => setIsCommentsListOpen(true)}
               direction="up"
-              variant="compact"
+              compact
             />
           </div>
         )}
