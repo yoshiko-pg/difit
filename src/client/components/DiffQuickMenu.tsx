@@ -86,10 +86,15 @@ export function DiffQuickMenu({
 }: DiffQuickMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCommitMenuOpen, setIsCommitMenuOpen] = useState(false);
+  const [isHoveringMenu, setIsHoveringMenu] = useState(false);
+  const [isHoveringCommitMenu, setIsHoveringCommitMenu] = useState(false);
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
-    onOpenChange: setIsOpen,
+    onOpenChange: (open) => {
+      if (!open && (isCommitMenuOpen || isHoveringCommitMenu)) return;
+      setIsOpen(open);
+    },
     middleware: [offset(6), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   });
@@ -109,7 +114,12 @@ export function DiffQuickMenu({
     context: commitContext,
   } = useFloating({
     open: isCommitMenuOpen,
-    onOpenChange: setIsCommitMenuOpen,
+    onOpenChange: (open) => {
+      if (open) {
+        setIsOpen(true);
+      }
+      setIsCommitMenuOpen(open);
+    },
     placement: 'left-start',
     middleware: [offset(0), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
@@ -130,6 +140,12 @@ export function DiffQuickMenu({
       setIsCommitMenuOpen(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && !isCommitMenuOpen && !isHoveringMenu && !isHoveringCommitMenu) {
+      setIsOpen(false);
+    }
+  }, [isOpen, isCommitMenuOpen, isHoveringMenu, isHoveringCommitMenu]);
 
   const currentLabel = useMemo(() => {
     const baseLabel = resolveDisplayLabel(options, baseRevision, resolvedBaseRevision);
@@ -216,6 +232,8 @@ export function DiffQuickMenu({
             style={floatingStyles}
             className="bg-github-bg-secondary border border-github-border rounded shadow-lg z-50 w-[260px] max-h-[360px] overflow-y-auto"
             {...getFloatingProps()}
+            onMouseEnter={() => setIsHoveringMenu(true)}
+            onMouseLeave={() => setIsHoveringMenu(false)}
           >
             <div className="border-b border-github-border">
               <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
@@ -292,6 +310,8 @@ export function DiffQuickMenu({
             style={commitFloatingStyles}
             className="bg-github-bg-secondary border border-github-border rounded shadow-lg z-50 w-[360px] max-h-[360px] overflow-y-auto"
             {...getCommitFloatingProps()}
+            onMouseEnter={() => setIsHoveringCommitMenu(true)}
+            onMouseLeave={() => setIsHoveringCommitMenu(false)}
           >
             <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
               Recent Commits
