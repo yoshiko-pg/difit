@@ -218,7 +218,7 @@ export function DiffQuickMenu({
         {...getReferenceProps()}
       >
         <div className="flex items-center gap-1 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
-          <code className="text-xs text-github-text-primary max-w-[220px] truncate">
+          <code className="text-xs text-github-text-primary max-w-[220px] truncate group-hover:max-w-none group-hover:overflow-visible group-hover:text-clip">
             {currentLabel}
           </code>
           <ChevronDown
