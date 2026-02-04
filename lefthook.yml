@@ -30,6 +30,21 @@ pre-commit:
       run: npm run typecheck
       fail_text: 'TypeScript compilation failed. Please fix type errors and try again.'
 
+    knip:
+      glob:
+        - 'src/**/*.{ts,tsx,js,jsx,json,css}'
+        - 'scripts/**/*.{js,mjs,cjs}'
+        - 'package.json'
+        - 'pnpm-lock.yaml'
+        - 'tsconfig.json'
+        - 'tsconfig.*.json'
+        - 'vite.config.ts'
+        - 'vitest.config.ts'
+        - 'postcss.config.js'
+        - 'knip.json'
+      run: pnpm run knip
+      fail_text: 'Knip detected unused files/exports/dependencies. Please fix the issues and try again.'
+
     test:
       glob:
         - 'src/**/*.{ts,tsx}'

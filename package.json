@@ -28,6 +28,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "tsc -b",
+    "knip": "knip --use-tsconfig-files",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "lefthook install",

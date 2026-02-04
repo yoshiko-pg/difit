@@ -34,6 +34,9 @@ jobs:
       - name: Run type checking
         run: pnpm run typecheck
 
+      - name: Run knip
+        run: pnpm run knip
+
       - name: Run tests
         run: pnpm test
 
