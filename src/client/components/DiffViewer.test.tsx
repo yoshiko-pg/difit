@@ -71,7 +71,7 @@ describe('DiffViewer', () => {
     comments: [] as Comment[],
     reviewedFiles: new Set<string>(),
     collapsedFiles: new Set<string>(),
-    diffMode: 'side-by-side' as const,
+    diffMode: 'split' as const,
     onAddComment: mockOnAddComment,
     onGeneratePrompt: mockOnGeneratePrompt,
     onRemoveComment: mockOnRemoveComment,
@@ -149,7 +149,7 @@ describe('DiffViewer', () => {
         path: 'image.gif',
       });
 
-      render(<DiffViewer {...defaultProps} file={imageFile} diffMode="inline" />);
+      render(<DiffViewer {...defaultProps} file={imageFile} diffMode="unified" />);
 
       // Check that ImageDiffViewer is rendered
       expect(screen.getByTestId('image-diff-chunk')).toBeInTheDocument();

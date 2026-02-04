@@ -64,7 +64,7 @@ const isExpandedLine = (line: DiffLine | undefined): boolean => {
   return line !== undefined && 'isExpanded' in line && line.isExpanded === true;
 };
 
-// Utility function to get side-by-side line class (#10)
+// Utility function to get split line class (#10)
 const getSideBySideLineClass = (line: DiffLine | undefined, isExpanded: boolean): string => {
   if (isExpanded) {
     return 'bg-github-bg-tertiary/80';
@@ -234,7 +234,7 @@ export function SideBySideDiffChunk({
     return '';
   };
 
-  // Convert unified diff to side-by-side format
+  // Convert unified diff to split format
   const convertToSideBySide = useCallback(
     (lines: DiffLine[]): SideBySideLine[] => {
       const result: SideBySideLine[] = [];

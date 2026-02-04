@@ -2,7 +2,8 @@ import { Box, Text, useApp, useInput } from 'ink';
 import React, { useState, useEffect } from 'react';
 
 import { loadGitDiff } from '../server/git-diff-tui.js';
-import { type FileDiff } from '../types/diff.js';
+import { type DiffViewMode, type FileDiff } from '../types/diff.js';
+import { normalizeDiffViewMode } from '../utils/diffMode.js';
 
 import DiffViewer from './components/DiffViewer.js';
 import FileList from './components/FileList.js';
@@ -22,9 +23,7 @@ const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode, repoPat
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [viewMode, setViewMode] = useState<'list' | 'inline' | 'side-by-side'>(
-    mode === 'inline' ? 'inline' : 'side-by-side',
-  );
+  const [viewMode, setViewMode] = useState<'list' | DiffViewMode>(normalizeDiffViewMode(mode));
   const { exit } = useApp();
 
   const loadDiff = async () => {
@@ -65,10 +64,10 @@ const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode, repoPat
           setSelectedFileIndex((prev) => Math.min(files.length - 1, prev + 1));
         }
         if (key.return || input === ' ') {
-          setViewMode('side-by-side');
+          setViewMode('split');
         }
         if (input === 'd') {
-          setViewMode('inline');
+          setViewMode('unified');
         }
       } else if (key.escape || input === 'b') {
         setViewMode('list');
@@ -105,7 +104,7 @@ const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode, repoPat
       <Box flexGrow={1} flexDirection="column">
         {viewMode === 'list' ?
           <FileList files={files} selectedIndex={selectedFileIndex} />
-        : viewMode === 'side-by-side' ?
+        : viewMode === 'split' ?
           <SideBySideDiffViewer
             files={files}
             initialFileIndex={selectedFileIndex}
@@ -116,8 +115,8 @@ const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode, repoPat
       <Box borderStyle="single" paddingX={1}>
         <Text dimColor>
           {viewMode === 'list' ?
-            '↑/↓ or j/k: navigate | Enter/Space: side-by-side | d: inline diff | r: reload | q: quit'
-          : viewMode === 'side-by-side' ?
+            '↑/↓ or j/k: navigate | Enter/Space: split | d: unified diff | r: reload | q: quit'
+          : viewMode === 'split' ?
             'Tab: next file | Shift+Tab: prev | ↑/↓ or j/k: scroll | ESC/b: list | r: reload | q: quit'
           : 'Tab: next | Shift+Tab: prev | ↑/↓ or j/k: scroll | ESC/b: list | r: reload | q: quit'}
         </Text>

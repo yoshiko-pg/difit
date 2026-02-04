@@ -36,7 +36,8 @@ export interface ParsedDiff {
   chunks: DiffChunk[];
 }
 
-export type DiffViewMode = 'side-by-side' | 'inline';
+export type DiffViewMode = 'split' | 'unified';
+export type LegacyDiffViewMode = 'side-by-side' | 'inline';
 export type DiffSide = 'old' | 'new';
 
 export interface DiffResponse {
@@ -44,7 +45,7 @@ export interface DiffResponse {
   files: DiffFile[];
   ignoreWhitespace?: boolean;
   isEmpty?: boolean;
-  mode?: DiffViewMode;
+  mode?: DiffViewMode | LegacyDiffViewMode;
   baseCommitish?: string;
   targetCommitish?: string;
   requestedBaseCommitish?: string;

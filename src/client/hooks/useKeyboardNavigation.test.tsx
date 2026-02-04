@@ -124,7 +124,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -145,7 +145,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -170,7 +170,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -195,7 +195,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -231,7 +231,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -255,7 +255,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -284,7 +284,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -315,7 +315,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -349,7 +349,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -370,7 +370,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -413,7 +413,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments,
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -450,7 +450,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments,
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -476,7 +476,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -498,7 +498,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -529,7 +529,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed,
             reviewedFiles: new Set<string>(),
           }),
@@ -560,7 +560,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed,
             reviewedFiles: new Set<string>(),
           }),
@@ -583,7 +583,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
             onRefresh,
@@ -604,7 +604,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -626,7 +626,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
             onCreateComment,
@@ -658,7 +658,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
             onCreateComment,
@@ -691,7 +691,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'side-by-side',
+            viewMode: 'split',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -721,7 +721,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'side-by-side',
+            viewMode: 'split',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -752,7 +752,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -795,7 +795,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -823,7 +823,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed,
             reviewedFiles: new Set<string>(),
           }),
@@ -855,7 +855,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed,
             reviewedFiles: new Set<string>(),
           }),
@@ -881,7 +881,7 @@ describe('useKeyboardNavigation', () => {
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'inline',
+            viewMode: 'unified',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),
@@ -902,13 +902,13 @@ describe('useKeyboardNavigation', () => {
       expect(result.current.cursor).toEqual(position);
     });
 
-    it('should fix side when setting cursor position in side-by-side mode', () => {
+    it('should fix side when setting cursor position in split mode', () => {
       const { result } = renderHook(
         () =>
           useKeyboardNavigation({
             files: mockFiles,
             comments: [],
-            viewMode: 'side-by-side',
+            viewMode: 'split',
             onToggleReviewed: vi.fn(),
             reviewedFiles: new Set<string>(),
           }),

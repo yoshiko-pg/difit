@@ -7,6 +7,7 @@ import { mockFetch } from '../../vitest.setup';
 import type { DiffResponse, DiffViewMode } from '../types/diff';
 import type { ClientWatchState } from '../types/watch';
 import { DiffMode } from '../types/watch';
+import { normalizeDiffViewMode } from '../utils/diffMode';
 
 import App from './App';
 
@@ -116,7 +117,7 @@ const mockDiffResponse: DiffResponse = {
   ],
   ignoreWhitespace: false,
   isEmpty: false,
-  mode: 'side-by-side',
+  mode: 'split',
 };
 
 describe('App Component - Clear Comments Functionality', () => {
@@ -299,11 +300,11 @@ describe('App Component - Diff Mode Persistence', () => {
 
     renderApp();
 
-    const inlineButton = await screen.findByRole('button', { name: 'Inline' });
-    fireEvent.click(inlineButton);
+    const unifiedButton = await screen.findByRole('button', { name: 'Unified' });
+    fireEvent.click(unifiedButton);
 
     await waitFor(() => {
-      expect(inlineButton).toHaveClass('bg-github-bg-primary');
+      expect(unifiedButton).toHaveClass('bg-github-bg-primary');
     });
 
     const refreshButton = await screen.findByRole('button', { name: 'Refresh' });
@@ -315,7 +316,7 @@ describe('App Component - Diff Mode Persistence', () => {
     });
 
     await waitFor(() => {
-      expect(inlineButton).toHaveClass('bg-github-bg-primary');
+      expect(unifiedButton).toHaveClass('bg-github-bg-primary');
     });
     mockWatchState.shouldReload = false;
     mockWatchState.lastChangeType = null;
@@ -330,24 +331,24 @@ describe('Client mode handling logic', () => {
       files: [],
       ignoreWhitespace: false,
       isEmpty: false,
-      mode: 'inline',
+      mode: 'unified',
     };
 
-    expect(mockResponse.mode).toBe('inline');
+    expect(mockResponse.mode).toBe('unified');
     expect(mockResponse.commit).toBe('abc123');
     expect(mockResponse.files).toEqual([]);
   });
 
-  it('validates DiffResponse with side-by-side mode', () => {
+  it('validates DiffResponse with split mode', () => {
     const mockResponse: DiffResponse = {
       commit: 'abc123',
       files: [],
       ignoreWhitespace: false,
       isEmpty: false,
-      mode: 'side-by-side',
+      mode: 'split',
     };
 
-    expect(mockResponse.mode).toBe('side-by-side');
+    expect(mockResponse.mode).toBe('split');
   });
 
   it('validates DiffResponse without mode property', () => {
@@ -366,18 +367,30 @@ describe('Client mode handling logic', () => {
     // Test the mode setting logic that would be used in fetchDiffData
     const setModeFromResponse = (data: DiffResponse): DiffViewMode => {
       if (data.mode) {
-        return data.mode;
+        return normalizeDiffViewMode(data.mode);
       }
-      return 'side-by-side'; // default
+      return 'split'; // default
     };
 
-    const responseWithInline: DiffResponse = { commit: 'abc', files: [], mode: 'inline' };
-    const responseWithSideBySide: DiffResponse = { commit: 'abc', files: [], mode: 'side-by-side' };
+    const responseWithUnified: DiffResponse = { commit: 'abc', files: [], mode: 'unified' };
+    const responseWithSplit: DiffResponse = { commit: 'abc', files: [], mode: 'split' };
+    const responseWithInline: DiffResponse = {
+      commit: 'abc',
+      files: [],
+      mode: 'inline',
+    };
+    const responseWithSideBySide: DiffResponse = {
+      commit: 'abc',
+      files: [],
+      mode: 'side-by-side',
+    };
     const responseWithoutMode: DiffResponse = { commit: 'abc', files: [] };
 
-    expect(setModeFromResponse(responseWithInline)).toBe('inline');
-    expect(setModeFromResponse(responseWithSideBySide)).toBe('side-by-side');
-    expect(setModeFromResponse(responseWithoutMode)).toBe('side-by-side');
+    expect(setModeFromResponse(responseWithUnified)).toBe('unified');
+    expect(setModeFromResponse(responseWithSplit)).toBe('split');
+    expect(setModeFromResponse(responseWithInline)).toBe('unified');
+    expect(setModeFromResponse(responseWithSideBySide)).toBe('split');
+    expect(setModeFromResponse(responseWithoutMode)).toBe('split');
   });
 });
 
