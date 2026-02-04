@@ -25,6 +25,7 @@ Write the categorized changes to the Unreleased section of CHANGELOG.md, then in
 If confirmed OK:
 
 - npm version --no-git-tag-version patch
+- Treat the Unreleased section *as-is* at the time of user OK as the single source of truth. Do not regenerate, re-categorize, or overwrite it after the OK signal.
 - Create a version section in CHANGELOG.md and move Unreleased section content there
 - Update the version links at the bottom of CHANGELOG.md (add new version links and update Unreleased link)
 - Commit CHANGELOG.md
