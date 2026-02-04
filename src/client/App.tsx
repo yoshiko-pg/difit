@@ -642,31 +642,34 @@ function App() {
     }
   };
 
-  const handleOpenInEditor = useCallback(async (filePath: string, lineNumber: number) => {
-    try {
-      const response = await fetch('/api/open-in-editor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath, line: lineNumber }),
-      });
+  const handleOpenInEditor = useCallback(
+    async (filePath: string, lineNumber: number) => {
+      try {
+        const response = await fetch('/api/open-in-editor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath, line: lineNumber, editor: settings.editor }),
+        });
 
-      if (!response.ok) {
-        const payload: unknown = await response.json().catch(() => null);
-        let message = response.statusText;
-        if (
-          payload &&
-          typeof payload === 'object' &&
-          'error' in payload &&
-          typeof (payload as { error?: unknown }).error === 'string'
-        ) {
-          message = (payload as { error: string }).error;
+        if (!response.ok) {
+          const payload: unknown = await response.json().catch(() => null);
+          let message = response.statusText;
+          if (
+            payload &&
+            typeof payload === 'object' &&
+            'error' in payload &&
+            typeof (payload as { error?: unknown }).error === 'string'
+          ) {
+            message = (payload as { error: string }).error;
+          }
+          console.error('Failed to open file in editor:', message);
         }
-        console.error('Failed to open file in editor:', message);
+      } catch (error) {
+        console.error('Failed to open file in editor:', error);
       }
-    } catch (error) {
-      console.error('Failed to open file in editor:', error);
-    }
-  }, []);
+    },
+    [settings.editor],
+  );
 
   const handleGlobalClick = (e: React.MouseEvent) => {
     // Clear cursor position
@@ -977,7 +980,7 @@ function App() {
                     onGeneratePrompt={handleGeneratePrompt}
                     onRemoveComment={removeComment}
                     onUpdateComment={updateComment}
-                    onOpenInEditor={handleOpenInEditor}
+                    onOpenInEditor={settings.editor === 'none' ? undefined : handleOpenInEditor}
                     syntaxTheme={settings.syntaxTheme}
                     baseCommitish={diffData.baseCommitish}
                     targetCommitish={diffData.targetCommitish}

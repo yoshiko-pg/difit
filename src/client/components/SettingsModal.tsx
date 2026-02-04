@@ -2,6 +2,7 @@ import { Settings, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 
+import { DEFAULT_EDITOR_ID, EDITOR_OPTIONS, type EditorOptionId } from '../../utils/editorOptions';
 import { LIGHT_THEMES, DARK_THEMES } from '../utils/themeLoader';
 
 interface AppearanceSettings {
@@ -9,6 +10,7 @@ interface AppearanceSettings {
   fontFamily: string;
   theme: 'light' | 'dark' | 'auto';
   syntaxTheme: string;
+  editor: EditorOptionId;
 }
 
 interface SettingsModalProps {
@@ -24,6 +26,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
     '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
   theme: 'dark',
   syntaxTheme: 'vsDark',
+  editor: DEFAULT_EDITOR_ID,
 };
 
 const FONT_FAMILIES = [
@@ -210,6 +213,29 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
               {getAvailableThemes().map((theme) => (
                 <option key={theme.id} value={theme.id}>
                   {theme.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Editor */}
+          <div>
+            <label className="block text-sm font-medium text-github-text-primary mb-2">
+              Open In Editor
+            </label>
+            <select
+              value={localSettings.editor}
+              onChange={(e) =>
+                setLocalSettings({
+                  ...localSettings,
+                  editor: e.target.value as AppearanceSettings['editor'],
+                })
+              }
+              className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
+            >
+              {EDITOR_OPTIONS.map((editor) => (
+                <option key={editor.id} value={editor.id}>
+                  {editor.label}
                 </option>
               ))}
             </select>

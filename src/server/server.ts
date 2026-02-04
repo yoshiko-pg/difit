@@ -9,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 import { type DiffMode } from '../types/watch.js';
 import { formatCommentsOutput } from '../utils/commentFormatting.js';
+import { resolveEditorOption } from '../utils/editorOptions.js';
 import { getFileExtension } from '../utils/fileUtils.js';
 
 import { FileWatcherService } from './file-watcher.js';
@@ -310,7 +311,11 @@ export async function startServer(
       return;
     }
 
-    const { filePath, line } = (req.body ?? {}) as { filePath?: unknown; line?: unknown };
+    const { filePath, line, editor } = (req.body ?? {}) as {
+      filePath?: unknown;
+      line?: unknown;
+      editor?: unknown;
+    };
 
     if (typeof filePath !== 'string' || typeof line !== 'number' || !Number.isFinite(line)) {
       res.status(400).json({ error: 'Invalid request payload' });
@@ -325,14 +330,14 @@ export async function startServer(
       return;
     }
 
-    const editor = (process.env.DIFIT_EDITOR ?? process.env.EDITOR ?? 'vscode').toLowerCase();
-    const protocol =
-      editor.includes('cursor') ? 'cursor'
-      : editor.includes('zed') ? 'zed'
-      : editor.includes('code') || editor.includes('vscode') ? 'vscode'
-      : 'vscode';
-
-    const fileUri = `${protocol}://file${encodeURI(resolvedPath)}:${line}`;
+    const editorInput =
+      typeof editor === 'string' ? editor : (process.env.DIFIT_EDITOR ?? process.env.EDITOR);
+    const resolvedEditor = resolveEditorOption(editorInput);
+    if (resolvedEditor.protocol === null) {
+      res.status(400).json({ error: 'Open in editor is disabled' });
+      return;
+    }
+    const fileUri = `${resolvedEditor.protocol}://file${encodeURI(resolvedPath)}:${line}`;
 
     try {
       await open(fileUri);

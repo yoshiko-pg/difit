@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
+import { DEFAULT_EDITOR_ID } from '../../utils/editorOptions';
 import type { AppearanceSettings } from '../components/SettingsModal';
 
 const DEFAULT_SETTINGS: AppearanceSettings = {
@@ -8,6 +9,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
     '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
   theme: 'dark',
   syntaxTheme: 'vsDark',
+  editor: DEFAULT_EDITOR_ID,
 };
 
 const STORAGE_KEY = 'reviewit-appearance-settings';
