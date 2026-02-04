@@ -47,6 +47,8 @@ interface DiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
+  oldFilename?: string;
+  onOpenInEditor?: (filePath: string, lineNumber: number) => void;
 }
 
 export const DiffChunk = memo(function DiffChunk({
@@ -65,6 +67,8 @@ export const DiffChunk = memo(function DiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
+  oldFilename,
+  onOpenInEditor,
 }: DiffChunkProps) {
   const [startLine, setStartLine] = useState<number | null>(null);
   const [endLine, setEndLine] = useState<number | null>(null);
@@ -274,11 +278,13 @@ export const DiffChunk = memo(function DiffChunk({
         onGeneratePrompt={onGeneratePrompt}
         onRemoveComment={onRemoveComment}
         onUpdateComment={onUpdateComment}
+        onOpenInEditor={onOpenInEditor}
         syntaxTheme={syntaxTheme}
         cursor={cursor}
         fileIndex={fileIndex}
         onLineClick={onLineClick}
         filename={filename}
+        oldFilename={oldFilename}
         commentTrigger={commentTrigger}
         onCommentTriggerHandled={onCommentTriggerHandled}
       />
@@ -369,6 +375,18 @@ export const DiffChunk = memo(function DiffChunk({
                     setStartLine(null);
                     setEndLine(null);
                   }}
+                  onOpenInEditor={
+                    onOpenInEditor && (line.newLineNumber || line.oldLineNumber) ?
+                      () => {
+                        const lineNumber = line.newLineNumber || line.oldLineNumber;
+                        if (!lineNumber) return;
+                        const side: DiffSide = line.type === 'delete' ? 'old' : 'new';
+                        const targetPath = side === 'old' ? oldFilename || filename : filename;
+                        if (!targetPath) return;
+                        onOpenInEditor(targetPath, lineNumber);
+                      }
+                    : undefined
+                  }
                   syntaxTheme={syntaxTheme}
                   filename={filename}
                   diffSegments={wordLevelDiffMap.get(index)}

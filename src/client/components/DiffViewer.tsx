@@ -34,6 +34,7 @@ interface DiffViewerProps {
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, newBody: string) => void;
+  onOpenInEditor?: (filePath: string, lineNumber: number) => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   baseCommitish?: string;
   targetCommitish?: string;
@@ -175,6 +176,7 @@ export const DiffViewer = memo(function DiffViewer({
   onGeneratePrompt,
   onRemoveComment,
   onUpdateComment,
+  onOpenInEditor,
   syntaxTheme,
   baseCommitish,
   targetCommitish,
@@ -318,6 +320,7 @@ export const DiffViewer = memo(function DiffViewer({
     onGeneratePrompt,
     onRemoveComment,
     onUpdateComment,
+    onOpenInEditor,
     onLineClick,
     commentTrigger,
     onCommentTriggerHandled,

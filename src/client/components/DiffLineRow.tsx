@@ -5,6 +5,7 @@ import { type DiffSegment } from '../utils/wordLevelDiff';
 
 import { CommentButton } from './CommentButton';
 import { EnhancedPrismSyntaxHighlighter } from './EnhancedPrismSyntaxHighlighter';
+import { OpenInEditorButton } from './OpenInEditorButton';
 import type { AppearanceSettings } from './SettingsModal';
 import { WordLevelDiffHighlighter } from './WordLevelDiffHighlighter';
 
@@ -20,6 +21,7 @@ interface DiffLineRowProps {
   onMouseMove: () => void;
   onCommentButtonMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onCommentButtonMouseUp: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onOpenInEditor?: () => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   onClick?: () => void;
   filename?: string;
@@ -65,13 +67,14 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
     onMouseMove,
     onCommentButtonMouseDown,
     onCommentButtonMouseUp,
+    onOpenInEditor,
     syntaxTheme,
     onClick,
     filename,
     diffSegments,
   }) => {
     const lineNumber = line.newLineNumber || line.oldLineNumber;
-    const showCommentButton = hoveredLineIndex === index && lineNumber;
+    const showLineActions = hoveredLineIndex === index && lineNumber;
 
     const highlightClass = isCurrentLine ? 'keyboard-cursor' : '';
 
@@ -89,11 +92,14 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
         </td>
         <td className="w-[var(--line-number-width)] min-w-[var(--line-number-width)] max-w-[var(--line-number-width)] px-2 text-right text-github-text-muted bg-github-bg-secondary border-r border-github-border select-none align-top relative overflow-visible">
           <span>{line.newLineNumber || ''}</span>
-          {showCommentButton && (
-            <CommentButton
-              onMouseDown={onCommentButtonMouseDown}
-              onMouseUp={onCommentButtonMouseUp}
-            />
+          {showLineActions && (
+            <>
+              {onOpenInEditor && <OpenInEditorButton onClick={onOpenInEditor} />}
+              <CommentButton
+                onMouseDown={onCommentButtonMouseDown}
+                onMouseUp={onCommentButtonMouseUp}
+              />
+            </>
           )}
         </td>
         <td className="p-0 w-full relative align-top">

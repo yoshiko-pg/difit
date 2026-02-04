@@ -21,6 +21,7 @@ export function TextDiffViewer({
   onRemoveComment,
   onUpdateComment,
   onLineClick,
+  onOpenInEditor,
   commentTrigger,
   onCommentTriggerHandled,
 }: DiffViewerBodyProps) {
@@ -102,6 +103,7 @@ export function TextDiffViewer({
                 onGeneratePrompt={onGeneratePrompt}
                 onRemoveComment={onRemoveComment}
                 onUpdateComment={onUpdateComment}
+                onOpenInEditor={onOpenInEditor}
                 mode={diffMode}
                 syntaxTheme={syntaxTheme}
                 cursor={cursor && cursor.chunkIndex === mergedIndex ? cursor : null}
@@ -114,6 +116,7 @@ export function TextDiffViewer({
                 }
                 onCommentTriggerHandled={onCommentTriggerHandled}
                 filename={file.path}
+                oldFilename={file.oldPath}
               />
             </div>
 

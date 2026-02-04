@@ -66,6 +66,13 @@ export function useAppearanceSettings() {
       // Light yellow path colors
       root.style.setProperty('--color-yellow-path-bg', '#fde68a');
       root.style.setProperty('--color-yellow-path-text', '#92400e');
+
+      // Light editor button colors (invert)
+      root.style.setProperty('--color-editor-btn-bg', 'rgba(248, 250, 252, 0.1)');
+      root.style.setProperty('--color-editor-btn-border', 'rgba(31, 41, 55, 0.35)');
+      root.style.setProperty('--color-editor-btn-text', '#1f2937');
+      root.style.setProperty('--color-editor-btn-hover-bg', 'rgba(248, 250, 252, 0.2)');
+      root.style.setProperty('--color-editor-btn-hover-border', 'rgba(31, 41, 55, 0.5)');
     } else {
       // Dark theme colors (default)
       root.style.setProperty('--color-github-bg-primary', '#0d1117');
@@ -101,6 +108,13 @@ export function useAppearanceSettings() {
       // Dark yellow path colors
       root.style.setProperty('--color-yellow-path-bg', 'rgba(180, 83, 9, 0.3)');
       root.style.setProperty('--color-yellow-path-text', '#fbbf24');
+
+      // Dark editor button colors (invert)
+      root.style.setProperty('--color-editor-btn-bg', 'rgba(248, 250, 252, 0.1)');
+      root.style.setProperty('--color-editor-btn-border', 'rgba(248, 250, 252, 0.3)');
+      root.style.setProperty('--color-editor-btn-text', '#f0f6fc');
+      root.style.setProperty('--color-editor-btn-hover-bg', 'rgba(248, 250, 252, 0.2)');
+      root.style.setProperty('--color-editor-btn-hover-border', 'rgba(248, 250, 252, 0.45)');
     }
 
     // Update body background color

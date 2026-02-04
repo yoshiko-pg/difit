@@ -1,5 +1,5 @@
 import { type Server } from 'http';
-import { join, dirname } from 'path';
+import { join, dirname, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 
 import express, { type Express } from 'express';
@@ -301,6 +301,45 @@ export async function startServer(
       res.send(output);
     } else {
       res.send('');
+    }
+  });
+
+  app.post('/api/open-in-editor', async (req, res) => {
+    if (options.stdinDiff) {
+      res.status(400).json({ error: 'Open in editor is not available for stdin diff' });
+      return;
+    }
+
+    const { filePath, line } = (req.body ?? {}) as { filePath?: unknown; line?: unknown };
+
+    if (typeof filePath !== 'string' || typeof line !== 'number' || !Number.isFinite(line)) {
+      res.status(400).json({ error: 'Invalid request payload' });
+      return;
+    }
+
+    const repoRoot = resolve(options.repoPath ?? process.cwd());
+    const resolvedPath = resolve(repoRoot, filePath);
+
+    if (resolvedPath !== repoRoot && !resolvedPath.startsWith(`${repoRoot}${sep}`)) {
+      res.status(400).json({ error: 'File path outside repository' });
+      return;
+    }
+
+    const editor = (process.env.DIFIT_EDITOR ?? process.env.EDITOR ?? 'vscode').toLowerCase();
+    const protocol =
+      editor.includes('cursor') ? 'cursor'
+      : editor.includes('zed') ? 'zed'
+      : editor.includes('code') || editor.includes('vscode') ? 'vscode'
+      : 'vscode';
+
+    const fileUri = `${protocol}://file${encodeURI(resolvedPath)}:${line}`;
+
+    try {
+      await open(fileUri);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to open file in editor:', error);
+      res.status(500).json({ error: 'Failed to open file in editor' });
     }
   });
 

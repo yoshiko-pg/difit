@@ -19,6 +19,7 @@ import { CommentButton } from './CommentButton';
 import { CommentForm } from './CommentForm';
 import { EnhancedPrismSyntaxHighlighter } from './EnhancedPrismSyntaxHighlighter';
 import { InlineComment } from './InlineComment';
+import { OpenInEditorButton } from './OpenInEditorButton';
 import type { AppearanceSettings } from './SettingsModal';
 import { WordLevelDiffHighlighter } from './WordLevelDiffHighlighter';
 
@@ -47,6 +48,8 @@ interface SideBySideDiffChunkProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
+  oldFilename?: string;
+  onOpenInEditor?: (filePath: string, lineNumber: number) => void;
 }
 
 interface SideBySideLine {
@@ -96,6 +99,8 @@ export function SideBySideDiffChunk({
   commentTrigger,
   onCommentTriggerHandled,
   filename,
+  oldFilename,
+  onOpenInEditor,
 }: SideBySideDiffChunkProps) {
   const [startLine, setStartLine] = useState<LineSelection | null>(null);
   const [endLine, setEndLine] = useState<LineSelection | null>(null);
@@ -456,44 +461,56 @@ export function SideBySideDiffChunk({
                     <span>{sideLine.oldLineNumber || ''}</span>
                     {hoveredLine?.side === 'old' &&
                       hoveredLine?.lineNumber === sideLine.oldLineNumber && (
-                        <CommentButton
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            if (sideLine.oldLineNumber) {
-                              setStartLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
-                              setEndLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
-                              setIsDragging(true);
-                            }
-                          }}
-                          onMouseUp={(e) => {
-                            e.stopPropagation();
-                            if (!sideLine.oldLineNumber || !startLine) {
+                        <>
+                          {onOpenInEditor && (
+                            <OpenInEditorButton
+                              onClick={() => {
+                                const lineNumber = sideLine.oldLineNumber;
+                                const targetPath = oldFilename || filename;
+                                if (!targetPath || lineNumber === undefined) return;
+                                onOpenInEditor(targetPath, lineNumber);
+                              }}
+                            />
+                          )}
+                          <CommentButton
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              if (sideLine.oldLineNumber) {
+                                setStartLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
+                                setEndLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
+                                setIsDragging(true);
+                              }
+                            }}
+                            onMouseUp={(e) => {
+                              e.stopPropagation();
+                              if (!sideLine.oldLineNumber || !startLine) {
+                                setIsDragging(false);
+                                setStartLine(null);
+                                setEndLine(null);
+                                return;
+                              }
+
+                              const actualEndLine =
+                                endLine && endLine.side === 'old' ?
+                                  endLine.lineNumber
+                                : sideLine.oldLineNumber;
+                              if (
+                                startLine.side !== 'old' ||
+                                startLine.lineNumber === actualEndLine
+                              ) {
+                                handleAddComment('old', sideLine.oldLineNumber);
+                              } else {
+                                const min = Math.min(startLine.lineNumber, actualEndLine);
+                                const max = Math.max(startLine.lineNumber, actualEndLine);
+                                handleAddComment('old', [min, max]);
+                              }
+
                               setIsDragging(false);
                               setStartLine(null);
                               setEndLine(null);
-                              return;
-                            }
-
-                            const actualEndLine =
-                              endLine && endLine.side === 'old' ?
-                                endLine.lineNumber
-                              : sideLine.oldLineNumber;
-                            if (
-                              startLine.side !== 'old' ||
-                              startLine.lineNumber === actualEndLine
-                            ) {
-                              handleAddComment('old', sideLine.oldLineNumber);
-                            } else {
-                              const min = Math.min(startLine.lineNumber, actualEndLine);
-                              const max = Math.max(startLine.lineNumber, actualEndLine);
-                              handleAddComment('old', [min, max]);
-                            }
-
-                            setIsDragging(false);
-                            setStartLine(null);
-                            setEndLine(null);
-                          }}
-                        />
+                            }}
+                          />
+                        </>
                       )}
                   </td>
                   <td
@@ -525,44 +542,55 @@ export function SideBySideDiffChunk({
                     <span>{sideLine.newLineNumber || ''}</span>
                     {hoveredLine?.side === 'new' &&
                       hoveredLine?.lineNumber === sideLine.newLineNumber && (
-                        <CommentButton
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            if (sideLine.newLineNumber) {
-                              setStartLine({ side: 'new', lineNumber: sideLine.newLineNumber });
-                              setEndLine({ side: 'new', lineNumber: sideLine.newLineNumber });
-                              setIsDragging(true);
-                            }
-                          }}
-                          onMouseUp={(e) => {
-                            e.stopPropagation();
-                            if (!sideLine.newLineNumber || !startLine) {
+                        <>
+                          {onOpenInEditor && (
+                            <OpenInEditorButton
+                              onClick={() => {
+                                const lineNumber = sideLine.newLineNumber;
+                                if (!filename || lineNumber === undefined) return;
+                                onOpenInEditor(filename, lineNumber);
+                              }}
+                            />
+                          )}
+                          <CommentButton
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              if (sideLine.newLineNumber) {
+                                setStartLine({ side: 'new', lineNumber: sideLine.newLineNumber });
+                                setEndLine({ side: 'new', lineNumber: sideLine.newLineNumber });
+                                setIsDragging(true);
+                              }
+                            }}
+                            onMouseUp={(e) => {
+                              e.stopPropagation();
+                              if (!sideLine.newLineNumber || !startLine) {
+                                setIsDragging(false);
+                                setStartLine(null);
+                                setEndLine(null);
+                                return;
+                              }
+
+                              const actualEndLine =
+                                endLine && endLine.side === 'new' ?
+                                  endLine.lineNumber
+                                : sideLine.newLineNumber;
+                              if (
+                                startLine.side !== 'new' ||
+                                startLine.lineNumber === actualEndLine
+                              ) {
+                                handleAddComment('new', sideLine.newLineNumber);
+                              } else {
+                                const min = Math.min(startLine.lineNumber, actualEndLine);
+                                const max = Math.max(startLine.lineNumber, actualEndLine);
+                                handleAddComment('new', [min, max]);
+                              }
+
                               setIsDragging(false);
                               setStartLine(null);
                               setEndLine(null);
-                              return;
-                            }
-
-                            const actualEndLine =
-                              endLine && endLine.side === 'new' ?
-                                endLine.lineNumber
-                              : sideLine.newLineNumber;
-                            if (
-                              startLine.side !== 'new' ||
-                              startLine.lineNumber === actualEndLine
-                            ) {
-                              handleAddComment('new', sideLine.newLineNumber);
-                            } else {
-                              const min = Math.min(startLine.lineNumber, actualEndLine);
-                              const max = Math.max(startLine.lineNumber, actualEndLine);
-                              handleAddComment('new', [min, max]);
-                            }
-
-                            setIsDragging(false);
-                            setStartLine(null);
-                            setEndLine(null);
-                          }}
-                        />
+                            }}
+                          />
+                        </>
                       )}
                   </td>
                   <td

@@ -642,6 +642,32 @@ function App() {
     }
   };
 
+  const handleOpenInEditor = useCallback(async (filePath: string, lineNumber: number) => {
+    try {
+      const response = await fetch('/api/open-in-editor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath, line: lineNumber }),
+      });
+
+      if (!response.ok) {
+        const payload: unknown = await response.json().catch(() => null);
+        let message = response.statusText;
+        if (
+          payload &&
+          typeof payload === 'object' &&
+          'error' in payload &&
+          typeof (payload as { error?: unknown }).error === 'string'
+        ) {
+          message = (payload as { error: string }).error;
+        }
+        console.error('Failed to open file in editor:', message);
+      }
+    } catch (error) {
+      console.error('Failed to open file in editor:', error);
+    }
+  }, []);
+
   const handleGlobalClick = (e: React.MouseEvent) => {
     // Clear cursor position
     setCursorPosition(null);
@@ -649,9 +675,10 @@ function App() {
     // Check if clicking on a comment button
     const target = e.target as HTMLElement;
     const isCommentButton = target.closest('[data-comment-button="true"]');
+    const isOpenInEditorButton = target.closest('[data-open-in-editor-button="true"]');
 
     // Close empty comment forms (unless clicking on a comment button)
-    if (!isCommentButton) {
+    if (!isCommentButton && !isOpenInEditorButton) {
       closeEmptyCommentForms(e);
     }
   };
@@ -950,6 +977,7 @@ function App() {
                     onGeneratePrompt={handleGeneratePrompt}
                     onRemoveComment={removeComment}
                     onUpdateComment={updateComment}
+                    onOpenInEditor={handleOpenInEditor}
                     syntaxTheme={settings.syntaxTheme}
                     baseCommitish={diffData.baseCommitish}
                     targetCommitish={diffData.targetCommitish}
