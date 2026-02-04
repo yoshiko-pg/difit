@@ -3,6 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { DiffMode } from '../types/watch.js';
+import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 
 // Mock all external dependencies
 vi.mock('simple-git');
@@ -126,7 +127,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -170,7 +171,7 @@ describe('CLI index.ts', () => {
         preferredPort: undefined,
         host: '',
         openBrowser: true,
-        mode: 'side-by-side',
+        mode: 'split',
       });
     });
   });
@@ -194,8 +195,18 @@ describe('CLI index.ts', () => {
       },
       {
         name: '--mode option',
+        args: ['--mode', 'unified'],
+        expectedOptions: { mode: 'unified' },
+      },
+      {
+        name: '--mode option (legacy inline)',
         args: ['--mode', 'inline'],
-        expectedOptions: { mode: 'inline' },
+        expectedOptions: { mode: 'unified' },
+      },
+      {
+        name: '--mode option (legacy side-by-side)',
+        args: ['--mode', 'side-by-side'],
+        expectedOptions: { mode: 'split' },
       },
       {
         name: '--clean option',
@@ -213,7 +224,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
@@ -240,7 +251,7 @@ describe('CLI index.ts', () => {
         preferredPort: expectedOptions.port,
         host: expectedOptions.host || '',
         openBrowser: expectedOptions.open !== false,
-        mode: expectedOptions.mode || 'side-by-side',
+        mode: expectedOptions.mode || 'split',
         clearComments: expectedOptions.clean,
       };
 
@@ -263,7 +274,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -299,7 +310,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -336,7 +347,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--include-untracked', 'include untracked')
@@ -378,7 +389,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--include-untracked', 'include untracked')
@@ -427,7 +438,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -466,7 +477,7 @@ describe('CLI index.ts', () => {
         preferredPort: undefined,
         host: '',
         openBrowser: true,
-        mode: 'side-by-side',
+        mode: 'split',
       });
     });
 
@@ -479,7 +490,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -518,7 +529,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -557,7 +568,7 @@ describe('CLI index.ts', () => {
         preferredPort: undefined,
         host: '',
         openBrowser: true,
-        mode: 'side-by-side',
+        mode: 'split',
       });
     });
   });
@@ -579,7 +590,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
@@ -630,7 +641,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
@@ -683,7 +694,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -733,7 +744,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -778,7 +789,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -792,11 +803,11 @@ describe('CLI index.ts', () => {
           });
         });
 
-      await program.parseAsync(['--mode', 'inline'], { from: 'user' });
+      await program.parseAsync(['--mode', 'unified'], { from: 'user' });
 
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
-          mode: 'inline',
+          mode: 'unified',
         }),
       );
     });
@@ -812,7 +823,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -830,7 +841,7 @@ describe('CLI index.ts', () => {
 
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
-          mode: 'side-by-side',
+          mode: 'split',
         }),
       );
     });
@@ -882,7 +893,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -912,7 +923,7 @@ describe('CLI index.ts', () => {
         props: {
           targetCommitish: 'main',
           baseCommitish: 'main^',
-          mode: 'side-by-side',
+          mode: 'split',
         },
       });
     });
@@ -928,7 +939,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -951,14 +962,14 @@ describe('CLI index.ts', () => {
           }
         });
 
-      await program.parseAsync(['--tui', '--mode', 'inline'], { from: 'user' });
+      await program.parseAsync(['--tui', '--mode', 'unified'], { from: 'user' });
 
       expect(mockRender).toHaveBeenCalledWith({
         component: mockTuiApp,
         props: {
           targetCommitish: 'HEAD',
           baseCommitish: 'HEAD^',
-          mode: 'inline',
+          mode: 'unified',
         },
       });
     });
@@ -974,7 +985,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -1003,14 +1014,14 @@ describe('CLI index.ts', () => {
           }
         });
 
-      await program.parseAsync(['working', '--tui', '--mode', 'inline'], { from: 'user' });
+      await program.parseAsync(['working', '--tui', '--mode', 'unified'], { from: 'user' });
 
       expect(mockRender).toHaveBeenCalledWith({
         component: mockTuiApp,
         props: {
           targetCommitish: 'working',
           baseCommitish: 'staged',
-          mode: 'inline',
+          mode: 'unified',
         },
       });
     });
@@ -1030,7 +1041,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (_commitish: string, _compareWith: string | undefined, options: any) => {
@@ -1101,7 +1112,7 @@ describe('CLI index.ts', () => {
           .option('--port <port>', 'port', parseInt)
           .option('--host <host>', 'host', '')
           .option('--no-open', 'no-open')
-          .option('--mode <mode>', 'mode', 'side-by-side')
+          .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
           .option('--tui', 'tui')
           .option('--pr <url>', 'pr')
           .action(async (commitish: string, compareWith: string | undefined, options: any) => {
@@ -1151,7 +1162,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, compareWith: string | undefined, options: any) => {
@@ -1202,7 +1213,7 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', 'side-by-side')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, compareWith: string | undefined, options: any) => {

@@ -109,7 +109,7 @@ git diff -- /dev/null path/to/file | difit
 | `--port`              | 4966         | 優先ポート。使用中の場合は+1にフォールバック                                      |
 | `--host`              | 127.0.0.1    | サーバーをバインドするホストアドレス（外部からアクセスしたい場合は0.0.0.0を指定） |
 | `--no-open`           | false        | ブラウザを自動的に開かない                                                        |
-| `--mode`              | side-by-side | 表示モード。inline`または`side-by-side`                                           |
+| `--mode`              | split | 表示モード。`unified`または`split`                                         |
 | `--tui`               | false        | WebUIの代わりにターミナルUIを使用                                                 |
 | `--clean`             | false        | 起動時に既存コメントと閲覧済みファイルをすべてクリア                              |
 | `--include-untracked` | false        | diffにuntrackedファイルを自動的に含める（`.`または`working`のみ有効）             |

@@ -9,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 import { type DiffMode } from '../types/watch.js';
 import { formatCommentsOutput } from '../utils/commentFormatting.js';
+import { normalizeDiffViewMode } from '../utils/diffMode.js';
 import { getFileExtension } from '../utils/fileUtils.js';
 
 import { FileWatcherService } from './file-watcher.js';
@@ -17,7 +18,6 @@ import { GitDiffParser } from './git-diff.js';
 import {
   type Comment,
   type DiffResponse,
-  type DiffViewMode,
   type RevisionsResponse,
 } from '@/types/diff.js';
 
@@ -44,9 +44,7 @@ export async function startServer(
 
   let diffDataCache: DiffResponse | null = null;
   let currentIgnoreWhitespace = options.ignoreWhitespace || false;
-  const normalizeDiffMode = (mode?: string): DiffViewMode =>
-    mode === 'inline' ? 'inline' : 'side-by-side';
-  const diffMode = normalizeDiffMode(options.mode);
+  const diffMode = normalizeDiffViewMode(options.mode);
 
   app.use(express.json());
   app.use(express.text()); // For sendBeacon text/plain requests

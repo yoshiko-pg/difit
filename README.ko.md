@@ -109,7 +109,7 @@ git diff -- /dev/null path/to/file | difit
 | `--port`              | 4966         | 선호 포트; 사용 중인 경우 +1로 대체                               |
 | `--host`              | 127.0.0.1    | 서버를 바인딩할 호스트 주소 (외부 액세스는 0.0.0.0 사용)          |
 | `--no-open`           | false        | 브라우저를 자동으로 열지 않음                                     |
-| `--mode`              | side-by-side | 표시 모드: `inline` 또는 `side-by-side`                           |
+| `--mode`              | split | 표시 모드: `unified` 또는 `split`                           |
 | `--tui`               | false        | WebUI 대신 터미널 UI 모드 사용                                    |
 | `--clean`             | false        | 시작 시 모든 기존 코멘트와 열람된 파일 표시 초기화                |
 | `--include-untracked` | false        | diff에 untracked 파일 자동 포함 (`.` 또는 `working`에서만 유효)   |

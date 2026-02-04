@@ -16,8 +16,8 @@ export function createNavigationFilters(
   return {
     /**
      * Line navigation - navigates to lines with content on the current side
-     * In inline mode, all lines are navigable
-     * In side-by-side mode, only lines with content on the current side
+     * In unified mode, all lines are navigable
+     * In split mode, only lines with content on the current side
      * Skip lines in reviewed/collapsed files
      */
     line: (pos: CursorPosition): boolean => {
@@ -27,7 +27,7 @@ export function createNavigationFilters(
       // Skip if file is reviewed/collapsed
       if (reviewedFiles?.has(file.path)) return false;
 
-      return viewMode === 'inline' || hasContentOnSide(pos, files);
+      return viewMode === 'unified' || hasContentOnSide(pos, files);
     },
 
     /**
