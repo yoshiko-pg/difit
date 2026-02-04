@@ -793,7 +793,7 @@ function App() {
               <Checkbox
                 checked={ignoreWhitespace}
                 onChange={setIgnoreWhitespace}
-                label={isMobile ? '-w' : 'Ignore Whitespace'}
+                label="Ignore Whitespace"
                 title={ignoreWhitespace ? 'Show whitespace changes' : 'Ignore whitespace changes'}
               />
               {/* File Watch Reload Button */}
