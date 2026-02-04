@@ -4,7 +4,7 @@ export const EDITOR_OPTIONS = [
     label: 'VS Code',
     protocol: 'vscode',
     cliCommand: 'code',
-    cliArgs: ['-r'],
+    cliArgs: [],
     aliases: ['vscode', 'code'],
   },
   {
@@ -12,7 +12,7 @@ export const EDITOR_OPTIONS = [
     label: 'Cursor',
     protocol: 'cursor',
     cliCommand: 'cursor',
-    cliArgs: ['-r'],
+    cliArgs: [],
     aliases: ['cursor'],
   },
   {
