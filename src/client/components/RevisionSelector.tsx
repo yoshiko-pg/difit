@@ -79,7 +79,7 @@ export function RevisionSelector({
     if (branch) return `${branch.name}${branch.current ? ' (current)' : ''}`;
 
     // Check commits
-    const commit = options.commits.find((c) => c.shortHash === value);
+    const commit = options.commits.find((c) => c.shortHash === value || c.hash === value);
     if (commit) return `${commit.shortHash} - ${commit.message}`;
 
     return value || 'Select...';
