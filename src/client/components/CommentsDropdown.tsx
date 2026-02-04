@@ -7,6 +7,8 @@ interface CommentsDropdownProps {
   onCopyAll: () => void;
   onDeleteAll: () => void;
   onViewAll?: () => void;
+  direction?: 'down' | 'up';
+  compact?: boolean;
 }
 
 export function CommentsDropdown({
@@ -15,9 +17,13 @@ export function CommentsDropdown({
   onCopyAll,
   onDeleteAll,
   onViewAll,
+  direction = 'down',
+  compact = false,
 }: CommentsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isCompact = compact;
+  const isUp = direction === 'up';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,12 +51,21 @@ export function CommentsDropdown({
     setIsOpen(false);
   };
 
+  const copyLabel =
+    isCompact ?
+      isCopiedAll ? 'Copied'
+      : `Copy All (${commentsCount})`
+    : isCopiedAll ? 'Copied All!'
+    : `Copy All Prompt (${commentsCount})`;
+
   return (
     <div className="relative" ref={dropdownRef}>
       <div className="flex">
         <button
           onClick={handleCopyAll}
-          className="text-xs px-3 py-1.5 pr-2 rounded-l transition-all whitespace-nowrap flex items-center gap-1.5"
+          className={`text-xs px-3 py-1.5 pr-2 rounded-l transition-all flex items-center gap-1.5 ${
+            isCompact ? 'whitespace-normal' : 'whitespace-nowrap'
+          }`}
           style={{
             backgroundColor: 'var(--color-yellow-btn-bg)',
             color: 'var(--color-yellow-btn-text)',
@@ -70,7 +85,7 @@ export function CommentsDropdown({
           {isCopiedAll ?
             <Check size={12} />
           : <Copy size={12} />}
-          {isCopiedAll ? 'Copied All!' : `Copy All Prompt (${commentsCount})`}
+          {copyLabel}
         </button>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -102,9 +117,12 @@ export function CommentsDropdown({
 
       {isOpen && (
         <div
-          className="absolute left-0 right-0 bg-github-bg-primary border border-github-border rounded-b z-50 pb-px"
+          className={`absolute left-0 right-0 bg-github-bg-primary border border-github-border z-50 pb-px ${
+            isUp ? 'bottom-full rounded-t' : 'top-full rounded-b'
+          }`}
           style={{
-            borderTop: 'none',
+            borderTop: isUp ? undefined : 'none',
+            borderBottom: isUp ? 'none' : undefined,
           }}
         >
           {onViewAll && (

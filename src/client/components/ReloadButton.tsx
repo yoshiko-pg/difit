@@ -6,6 +6,7 @@ interface ReloadButtonProps {
   onReload: () => void;
   changeType?: 'file' | 'commit' | 'staging' | null;
   className?: string;
+  compact?: boolean;
 }
 
 export function ReloadButton({
@@ -14,6 +15,7 @@ export function ReloadButton({
   onReload,
   changeType,
   className = '',
+  compact = false,
 }: ReloadButtonProps) {
   if (!shouldReload) {
     return null;
@@ -37,7 +39,9 @@ export function ReloadButton({
       onClick={onReload}
       disabled={isReloading}
       className={`
-        flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border ${className}
+        flex items-center gap-1.5 text-xs rounded-md border ${className} ${
+          compact ? 'px-2 py-2' : 'px-3 py-1.5'
+        }
         ${
           isReloading ?
             'bg-github-text-primary text-github-bg-primary border-github-text-primary cursor-not-allowed'
@@ -45,9 +49,12 @@ export function ReloadButton({
         }
       `}
       title={`${getChangeMessage()} - Click to refresh`}
+      aria-label={compact ? 'Refresh' : undefined}
     >
       <RefreshCw size={12} className={`${isReloading ? 'animate-spin' : ''}`} />
-      Refresh
+      {compact ?
+        <span className="sr-only">Refresh</span>
+      : 'Refresh'}
     </button>
   );
 }
