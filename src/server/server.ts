@@ -334,7 +334,7 @@ export async function startServer(
     }
 
     const lineNumber = (() => {
-      const parsed = typeof line === 'number' ? line : Number.parseInt(String(line ?? ''), 10);
+      const parsed = Number.parseInt(String(line ?? ''), 10);
       return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
     })();
 
