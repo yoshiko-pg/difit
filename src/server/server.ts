@@ -15,11 +15,7 @@ import { getFileExtension } from '../utils/fileUtils.js';
 import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
 
-import {
-  type Comment,
-  type DiffResponse,
-  type RevisionsResponse,
-} from '@/types/diff.js';
+import { type Comment, type DiffResponse, type RevisionsResponse } from '@/types/diff.js';
 
 interface ServerOptions {
   targetCommitish?: string;
