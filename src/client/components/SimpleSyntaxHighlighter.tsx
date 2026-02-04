@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { getFileExtension } from '../../utils/fileUtils';
+import { getSimpleLanguageFromFilename } from '../utils/languageDetection';
 
 interface SimpleSyntaxHighlighterProps {
   code: string;
@@ -63,24 +63,7 @@ function highlightCSS(code: string): string {
 }
 
 function detectLanguage(filename: string): string {
-  const ext = getFileExtension(filename);
-
-  const extensionMap: Record<string, string> = {
-    ts: 'typescript',
-    tsx: 'typescript',
-    mts: 'typescript',
-    cts: 'typescript',
-    js: 'javascript',
-    jsx: 'javascript',
-    mjs: 'javascript',
-    cjs: 'javascript',
-    json: 'json',
-    css: 'css',
-    scss: 'css',
-    html: 'html',
-  };
-
-  return extensionMap[ext || ''] || 'text';
+  return getSimpleLanguageFromFilename(filename);
 }
 
 let currentFilename = '';

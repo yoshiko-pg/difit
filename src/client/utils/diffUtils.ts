@@ -1,4 +1,5 @@
 import { type DiffFile } from '../../types/diff';
+export { getLanguageFromPath } from './languageDetection';
 
 /**
  * Generate SHA-256 hash of diff content
@@ -46,56 +47,4 @@ export function getDiffContentForHashing(file: DiffFile): string {
     .join('\n\n');
 
   return `${file.path}\n${file.status}\n${chunks}`;
-}
-
-/**
- * Extract language from file path
- */
-export function getLanguageFromPath(filePath: string): string | undefined {
-  const ext = filePath.split('.').pop()?.toLowerCase();
-  if (!ext) return undefined;
-
-  const languageMap: Record<string, string> = {
-    js: 'javascript',
-    mjs: 'javascript',
-    cjs: 'javascript',
-    jsx: 'javascript',
-    ts: 'typescript',
-    mts: 'typescript',
-    cts: 'typescript',
-    tsx: 'typescript',
-    py: 'python',
-    rb: 'ruby',
-    go: 'go',
-    rs: 'rust',
-    java: 'java',
-    cpp: 'cpp',
-    c: 'c',
-    cs: 'csharp',
-    php: 'php',
-    swift: 'swift',
-    kt: 'kotlin',
-    scala: 'scala',
-    r: 'r',
-    sql: 'sql',
-    sh: 'bash',
-    bash: 'bash',
-    zsh: 'bash',
-    fish: 'bash',
-    yml: 'yaml',
-    yaml: 'yaml',
-    json: 'json',
-    xml: 'xml',
-    html: 'html',
-    css: 'css',
-    scss: 'scss',
-    sass: 'sass',
-    less: 'less',
-    md: 'markdown',
-    markdown: 'markdown',
-    tex: 'latex',
-    vim: 'vim',
-  };
-
-  return languageMap[ext];
 }
