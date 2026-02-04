@@ -9,7 +9,7 @@ import type { DiffViewerBodyProps } from './types';
 describe('ImageDiffViewer', () => {
   const baseProps: Omit<DiffViewerBodyProps, 'file'> = {
     comments: [],
-    diffMode: 'inline',
+    diffMode: 'unified',
     mergedChunks: [],
     isExpandLoading: false,
     expandHiddenLines: vi.fn().mockResolvedValue(undefined),
@@ -65,7 +65,7 @@ describe('ImageDiffViewer', () => {
       expect(screen.getByRole('img')).toHaveAttribute('src', '/api/blob/test.jpg?ref=HEAD');
     });
 
-    it('renders modified image correctly in side-by-side mode', () => {
+    it('renders modified image correctly in split mode', () => {
       const modifiedFile: DiffFile = {
         path: 'test.jpg',
         oldPath: 'test.jpg',
@@ -75,7 +75,7 @@ describe('ImageDiffViewer', () => {
         chunks: [],
       };
 
-      renderViewer(modifiedFile, { diffMode: 'side-by-side' });
+      renderViewer(modifiedFile, { diffMode: 'split' });
 
       expect(screen.getByText('Modified Image')).toBeInTheDocument();
       expect(screen.getByText('Previous version:')).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('ImageDiffViewer', () => {
       expect(images).toHaveLength(2);
     });
 
-    it('renders modified image correctly in inline mode', () => {
+    it('renders modified image correctly in unified mode', () => {
       const modifiedFile: DiffFile = {
         path: 'test.jpg',
         oldPath: 'test.jpg',
@@ -95,7 +95,7 @@ describe('ImageDiffViewer', () => {
         chunks: [],
       };
 
-      renderViewer(modifiedFile, { diffMode: 'inline' });
+      renderViewer(modifiedFile, { diffMode: 'unified' });
 
       expect(screen.getByText('Modified Image')).toBeInTheDocument();
       expect(screen.getByText('Previous version:')).toBeInTheDocument();

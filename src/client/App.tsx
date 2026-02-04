@@ -9,6 +9,7 @@ import {
   type Comment,
   type RevisionsResponse,
 } from '../types/diff';
+import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode';
 
 import { Checkbox } from './components/Checkbox';
 import { CommentsDropdown } from './components/CommentsDropdown';
@@ -56,7 +57,7 @@ const getInitialSidebarWidth = () => {
 
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
-  const [diffMode, setDiffMode] = useState<DiffViewMode>('side-by-side');
+  const [diffMode, setDiffMode] = useState<DiffViewMode>(DEFAULT_DIFF_VIEW_MODE);
   const hasUserSetDiffModeRef = useRef(false);
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -396,7 +397,7 @@ function App() {
 
         // Set diff mode from server response if provided
         if (data.mode && !hasUserSetDiffModeRef.current) {
-          setDiffMode(data.mode);
+          setDiffMode(normalizeDiffViewMode(data.mode));
         }
 
         // Lock files are now automatically marked as viewed by useViewedFiles hook
@@ -773,26 +774,26 @@ function App() {
             <div className="flex items-center gap-3">
               <div className="flex bg-github-bg-tertiary border border-github-border rounded-md p-1">
                 <button
-                  onClick={() => handleDiffModeChange('side-by-side')}
+                  onClick={() => handleDiffModeChange('split')}
                   className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    diffMode === 'side-by-side' ?
+                    diffMode === 'split' ?
                       'bg-github-bg-primary text-github-text-primary shadow-sm'
                     : 'text-github-text-secondary hover:text-github-text-primary'
                   }`}
                 >
                   <Columns size={14} />
-                  Side by Side
+                  Split
                 </button>
                 <button
-                  onClick={() => handleDiffModeChange('inline')}
+                  onClick={() => handleDiffModeChange('unified')}
                   className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    diffMode === 'inline' ?
+                    diffMode === 'unified' ?
                       'bg-github-bg-primary text-github-text-primary shadow-sm'
                     : 'text-github-text-secondary hover:text-github-text-primary'
                   }`}
                 >
                   <AlignLeft size={14} />
-                  Inline
+                  Unified
                 </button>
               </div>
               <Checkbox

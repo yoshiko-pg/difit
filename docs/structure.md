@@ -47,14 +47,14 @@ difit [commit-ish] [compare-with]
 
 ### Options
 
-| Option          | Description                                | Default      |
-| --------------- | ------------------------------------------ | ------------ |
-| `--port <port>` | Preferred port (auto-assigned if occupied) | 4966         |
-| `--host <host>` | Host address to bind                       | 127.0.0.1    |
-| `--no-open`     | Do not automatically open browser          | false        |
-| `--mode <mode>` | Diff display mode (side-by-side or inline) | side-by-side |
-| `--tui`         | Use terminal UI instead of web interface   | false        |
-| `--pr <url>`    | Review GitHub PR by URL                    | -            |
+| Option          | Description                                | Default   |
+| --------------- | ------------------------------------------ | --------- |
+| `--port <port>` | Preferred port (auto-assigned if occupied) | 4966      |
+| `--host <host>` | Host address to bind                       | 127.0.0.1 |
+| `--no-open`     | Do not automatically open browser          | false     |
+| `--mode <mode>` | Diff display mode (split or unified)       | split     |
+| `--tui`         | Use terminal UI instead of web interface   | false     |
+| `--pr <url>`    | Review GitHub PR by URL                    | -         |
 
 ### Special Arguments Behavior
 

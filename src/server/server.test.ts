@@ -431,7 +431,7 @@ describe('Server Integration Tests', () => {
       const result = await startServer({
         targetCommitish: 'HEAD',
         baseCommitish: 'HEAD^',
-        mode: 'inline',
+        mode: 'unified',
       });
       servers.push(result.server);
 
@@ -443,14 +443,14 @@ describe('Server Integration Tests', () => {
       const inlineResult = await startServer({
         targetCommitish: 'HEAD',
         baseCommitish: 'HEAD^',
-        mode: 'inline',
+        mode: 'unified',
       });
       servers.push(inlineResult.server);
 
       const sideBySideResult = await startServer({
         targetCommitish: 'HEAD',
         baseCommitish: 'HEAD^',
-        mode: 'side-by-side',
+        mode: 'split',
       });
       servers.push(sideBySideResult.server);
 
@@ -470,7 +470,7 @@ describe('Server Integration Tests', () => {
       const data = await response.json();
 
       // The mode should be included in the response
-      expect(data).toHaveProperty('mode', 'inline');
+      expect(data).toHaveProperty('mode', 'unified');
     });
   });
 

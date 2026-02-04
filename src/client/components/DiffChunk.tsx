@@ -8,6 +8,7 @@ import {
   type LineNumber,
   type DiffViewMode,
 } from '../../types/diff';
+import { DEFAULT_DIFF_VIEW_MODE } from '../../utils/diffMode';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import {
   computeWordLevelDiff,
@@ -58,7 +59,7 @@ export const DiffChunk = memo(function DiffChunk({
   onGeneratePrompt,
   onRemoveComment,
   onUpdateComment,
-  mode = 'inline',
+  mode = DEFAULT_DIFF_VIEW_MODE,
   syntaxTheme,
   cursor = null,
   fileIndex = 0,
@@ -148,8 +149,8 @@ export const DiffChunk = memo(function DiffChunk({
   };
 
   const getCommentLayout = (line: DiffLine): 'left' | 'right' | 'full' => {
-    // In inline mode, always use full width for comments
-    if (mode === 'inline') {
+    // In unified mode, always use full width for comments
+    if (mode === 'unified') {
       return 'full';
     }
 
@@ -205,7 +206,7 @@ export const DiffChunk = memo(function DiffChunk({
     return '';
   };
 
-  // Compute word-level diff for inline mode
+  // Compute word-level diff for unified mode
   // Maps line index to diff segments for that line
   const wordLevelDiffMap = useMemo(() => {
     const map = new Map<number, DiffSegment[]>();
@@ -265,8 +266,8 @@ export const DiffChunk = memo(function DiffChunk({
     return map;
   }, [chunk.lines]);
 
-  // Use side-by-side component for side-by-side mode
-  if (mode === 'side-by-side') {
+  // Use side-by-side component for split mode
+  if (mode === 'split') {
     return (
       <SideBySideDiffChunk
         chunk={chunk}
@@ -390,7 +391,7 @@ export const DiffChunk = memo(function DiffChunk({
                   filename={filename}
                   diffSegments={wordLevelDiffMap.get(index)}
                   onClick={() => {
-                    // Determine the side based on line type for inline mode
+                    // Determine the side based on line type for unified mode
                     const side = line.type === 'delete' ? 'left' : 'right';
                     onLineClick?.(fileIndex, chunkIndex, index, side);
                   }}

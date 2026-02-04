@@ -97,12 +97,12 @@ body,
     border-color 0.3s ease;
 }
 
-/* Keyboard navigation cursor styles for inline mode (tr level) */
+/* Keyboard navigation cursor styles for unified mode (tr level) */
 tr.keyboard-cursor td {
   position: relative;
 }
 
-/* Keyboard navigation highlight overlay for inline mode table cells */
+/* Keyboard navigation highlight overlay for unified mode table cells */
 tr.keyboard-cursor td::before {
   content: '';
   position: absolute;
@@ -112,7 +112,7 @@ tr.keyboard-cursor td::before {
   z-index: 1;
 }
 
-/* Add border to the first cell only (inline mode) */
+/* Add border to the first cell only (unified mode) */
 tr.keyboard-cursor td:first-child::before {
   box-shadow:
     inset 1px 0 0 0 rgba(255, 253, 84, 0.4),
@@ -120,7 +120,7 @@ tr.keyboard-cursor td:first-child::before {
     inset 0 -1px 0 0 rgba(255, 253, 84, 0.4);
 }
 
-/* Add border to the last cell only (inline mode) */
+/* Add border to the last cell only (unified mode) */
 tr.keyboard-cursor td:last-child::before {
   box-shadow:
     inset -1px 0 0 0 rgba(255, 253, 84, 0.4),
@@ -128,19 +128,19 @@ tr.keyboard-cursor td:last-child::before {
     inset 0 -1px 0 0 rgba(255, 253, 84, 0.4);
 }
 
-/* Add border to middle cells (inline mode) */
+/* Add border to middle cells (unified mode) */
 tr.keyboard-cursor td:not(:first-child):not(:last-child)::before {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 253, 84, 0.4),
     inset 0 -1px 0 0 rgba(255, 253, 84, 0.4);
 }
 
-/* Keyboard navigation cursor styles for side-by-side mode (td level) */
+/* Keyboard navigation cursor styles for split mode (td level) */
 td.keyboard-cursor {
   position: relative;
 }
 
-/* Keyboard navigation highlight overlay for side-by-side mode cells */
+/* Keyboard navigation highlight overlay for split mode cells */
 td.keyboard-cursor::before {
   content: '';
   position: absolute;

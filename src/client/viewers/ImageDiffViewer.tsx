@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { DEFAULT_DIFF_VIEW_MODE } from '../../utils/diffMode';
+
 import type { DiffViewerBodyProps } from './types';
 
 interface ImageInfo {
@@ -14,7 +16,7 @@ export function ImageDiffViewer({
   baseCommitish,
   targetCommitish,
 }: DiffViewerBodyProps) {
-  const mode = diffMode ?? 'inline';
+  const mode = diffMode ?? DEFAULT_DIFF_VIEW_MODE;
   const isDeleted = file.status === 'deleted';
   const isAdded = file.status === 'added';
   const isModified = file.status === 'modified' || file.status === 'renamed';
@@ -155,7 +157,7 @@ export function ImageDiffViewer({
 
   // For modified/renamed files, show both versions
   if (isModified) {
-    if (mode === 'side-by-side') {
+    if (mode === 'split') {
       return (
         <div className="bg-github-bg-primary p-4">
           <div className="text-center mb-4">
@@ -227,7 +229,7 @@ export function ImageDiffViewer({
         </div>
       );
     } else {
-      // Inline mode: stack vertically
+      // Unified mode: stack vertically
       return (
         <div className="bg-github-bg-primary p-4">
           <div className="text-center mb-4">

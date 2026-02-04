@@ -4,7 +4,7 @@ import React from 'react';
 interface StatusBarProps {
   commitish: string;
   totalFiles: number;
-  currentMode: 'list' | 'inline' | 'side-by-side';
+  currentMode: 'list' | 'split' | 'unified';
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ commitish, totalFiles, currentMode }) => {
@@ -24,9 +24,9 @@ const StatusBar: React.FC<StatusBarProps> = ({ commitish, totalFiles, currentMod
           [
           {currentMode === 'list' ?
             'File List'
-          : currentMode === 'side-by-side' ?
-            'Side-by-Side'
-          : 'Inline Diff'}
+          : currentMode === 'split' ?
+            'Split'
+          : 'Unified'}
           ]
         </Text>
       </Box>

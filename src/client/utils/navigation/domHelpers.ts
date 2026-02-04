@@ -6,7 +6,7 @@ import type { CursorPosition, ViewMode } from '../../hooks/keyboardNavigation/ty
  */
 export function getElementId(position: CursorPosition, viewMode: ViewMode): string {
   const baseId = `file-${position.fileIndex}-chunk-${position.chunkIndex}-line-${position.lineIndex}`;
-  return viewMode === 'side-by-side' ? `${baseId}-${position.side}` : baseId;
+  return viewMode === 'split' ? `${baseId}-${position.side}` : baseId;
 }
 
 /**

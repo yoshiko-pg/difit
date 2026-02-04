@@ -6,7 +6,9 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 
 import pkg from '../../package.json' with { type: 'json' };
 import { startServer } from '../server/server.js';
+import { type DiffViewMode } from '../types/diff.js';
 import { DiffMode } from '../types/watch.js';
+import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 
 import {
   findUntrackedFiles,
@@ -49,7 +51,7 @@ interface CliOptions {
   port?: number;
   host?: string;
   open: boolean;
-  mode: string;
+  mode: DiffViewMode;
   tui?: boolean;
   pr?: string;
   clean?: boolean;
@@ -74,7 +76,12 @@ program
   .option('--port <port>', 'preferred port (auto-assigned if occupied)', parseInt)
   .option('--host <host>', 'host address to bind', '')
   .option('--no-open', 'do not automatically open browser')
-  .option('--mode <mode>', 'diff mode (side-by-side or inline)', 'side-by-side')
+  .option(
+    '--mode <mode>',
+    'diff mode (split or unified)',
+    normalizeDiffViewMode,
+    DEFAULT_DIFF_VIEW_MODE,
+  )
   .option('--tui', 'use terminal UI instead of web interface')
   .option('--pr <url>', 'GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)')
   .option('--clean', 'start with a clean slate by clearing all existing comments')

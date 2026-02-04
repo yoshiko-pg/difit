@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import type { Comment } from '../../types/diff';
+import { DEFAULT_DIFF_VIEW_MODE } from '../../utils/diffMode';
 import { NAVIGATION_SELECTORS } from '../constants/navigation';
 import { getElementId, getCommentKey } from '../utils/navigation/domHelpers';
 import { fixSide, hasContentOnSide } from '../utils/navigation/lineHelpers';
@@ -25,7 +26,7 @@ import { getStartPosition, findNextMatchingPosition } from './keyboardNavigation
 export function useKeyboardNavigation({
   files,
   comments,
-  viewMode = 'inline',
+  viewMode = DEFAULT_DIFF_VIEW_MODE,
   reviewedFiles,
   onToggleReviewed,
   onCreateComment,
@@ -111,15 +112,15 @@ export function useKeyboardNavigation({
     [createNavigationCommand, filters.comment],
   );
 
-  // Switch between left and right sides in side-by-side mode
+  // Switch between left and right sides in split mode
   const switchSide = useCallback(
     (side: 'left' | 'right') => {
-      if (!cursor || viewMode !== 'side-by-side') return;
+      if (!cursor || viewMode !== 'split') return;
 
       // Create new cursor with the requested side
       let newCursor = { ...cursor, side };
 
-      // Special handling for delete/add pairs in side-by-side view
+      // Special handling for delete/add pairs in split view
       // These appear on the same visual line but are different line indices
       const currentLine =
         files[cursor.fileIndex]?.chunks[cursor.chunkIndex]?.lines[cursor.lineIndex];
@@ -240,15 +241,14 @@ export function useKeyboardNavigation({
     files.forEach((file, fileIndex) => {
       file.chunks.forEach((chunk, chunkIndex) => {
         chunk.lines.forEach((_, lineIndex) => {
-          // Check both sides in side-by-side mode
-          const sides =
-            viewMode === 'side-by-side' ? (['left', 'right'] as const) : (['right'] as const);
+          // Check both sides in split mode
+          const sides = viewMode === 'split' ? (['left', 'right'] as const) : (['right'] as const);
 
           for (const side of sides) {
             const position: CursorPosition = { fileIndex, chunkIndex, lineIndex, side };
 
-            // Skip positions without content in side-by-side mode
-            if (viewMode === 'side-by-side' && !hasContentOnSide(position, files)) {
+            // Skip positions without content in split mode
+            if (viewMode === 'split' && !hasContentOnSide(position, files)) {
               continue;
             }
 
@@ -331,7 +331,7 @@ export function useKeyboardNavigation({
           fileIndex: 0,
           chunkIndex: 0,
           lineIndex: 0,
-          side: viewMode === 'side-by-side' ? 'left' : 'right',
+          side: viewMode === 'split' ? 'left' : 'right',
         });
         scrollToElement(
           getElementId(
@@ -339,7 +339,7 @@ export function useKeyboardNavigation({
               fileIndex: 0,
               chunkIndex: 0,
               lineIndex: 0,
-              side: viewMode === 'side-by-side' ? 'left' : 'right',
+              side: viewMode === 'split' ? 'left' : 'right',
             },
             viewMode,
           ),
@@ -361,7 +361,7 @@ export function useKeyboardNavigation({
             fileIndex: lastFileIndex,
             chunkIndex: 0,
             lineIndex: 0,
-            side: viewMode === 'side-by-side' ? 'left' : 'right',
+            side: viewMode === 'split' ? 'left' : 'right',
           });
           scrollToElement(
             getElementId(
@@ -369,7 +369,7 @@ export function useKeyboardNavigation({
                 fileIndex: lastFileIndex,
                 chunkIndex: 0,
                 lineIndex: 0,
-                side: viewMode === 'side-by-side' ? 'left' : 'right',
+                side: viewMode === 'split' ? 'left' : 'right',
               },
               viewMode,
             ),
@@ -381,17 +381,17 @@ export function useKeyboardNavigation({
     [files, viewMode, scrollToElement],
   );
 
-  // Side switching (side-by-side mode only)
+  // Side switching (split mode only)
   useHotkeys(
     'h, left',
     () => switchSide('left'),
-    { ...hotkeyOptions, enabled: viewMode === 'side-by-side' },
+    { ...hotkeyOptions, enabled: viewMode === 'split' },
     [switchSide, viewMode],
   );
   useHotkeys(
     'l, right',
     () => switchSide('right'),
-    { ...hotkeyOptions, enabled: viewMode === 'side-by-side' },
+    { ...hotkeyOptions, enabled: viewMode === 'split' },
     [switchSide, viewMode],
   );
 
