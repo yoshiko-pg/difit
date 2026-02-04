@@ -89,7 +89,7 @@ export interface PullRequestInfo {
   hostname: string;
 }
 
-export interface PullRequestDetails {
+interface PullRequestDetails {
   baseSha: string;
   headSha: string;
   baseRef: string;
@@ -138,7 +138,7 @@ function getGitHubToken(): string | undefined {
   }
 }
 
-export async function fetchPrDetails(prInfo: PullRequestInfo): Promise<PullRequestDetails> {
+async function fetchPrDetails(prInfo: PullRequestInfo): Promise<PullRequestDetails> {
   const token = getGitHubToken();
 
   const octokitOptions: ConstructorParameters<typeof Octokit>[0] = {
@@ -189,10 +189,7 @@ export async function fetchPrDetails(prInfo: PullRequestInfo): Promise<PullReque
   }
 }
 
-export function resolveCommitInLocalRepo(
-  sha: string,
-  context?: { owner: string; repo: string },
-): string {
+function resolveCommitInLocalRepo(sha: string, context?: { owner: string; repo: string }): string {
   try {
     // Verify if the commit exists locally
     execSync(`git cat-file -e ${sha}`, { stdio: 'ignore' });

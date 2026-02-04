@@ -86,8 +86,3 @@ export function createNavigationFilters(
     },
   };
 }
-
-/**
- * Type for the navigation filters object
- */
-export type NavigationFilters = ReturnType<typeof createNavigationFilters>;

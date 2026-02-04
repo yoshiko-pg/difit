@@ -16,11 +16,3 @@ export function getFileElementId(filePath: string): string {
   }
   return fileIdMap.get(filePath) ?? '';
 }
-
-/**
- * Clear the file ID map (useful for testing)
- */
-export function clearFileIdMap(): void {
-  fileIdMap.clear();
-  fileIdCounter = 0;
-}
