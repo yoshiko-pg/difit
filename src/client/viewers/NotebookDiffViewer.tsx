@@ -1,3 +1,4 @@
+import { diffLines } from 'diff';
 import { Eye, FileDiff } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -11,7 +12,7 @@ import type { MergedChunk } from '../hooks/useExpandedLines';
 import { TextDiffViewer } from './TextDiffViewer';
 import type { DiffViewerBodyProps } from './types';
 
-type PreviewMode = 'diff' | 'preview';
+type PreviewMode = 'diff' | 'diff-preview' | 'full-preview';
 
 type PreviewLineType = 'add' | 'delete' | 'context';
 
@@ -20,6 +21,11 @@ type NotebookCellType = 'markdown' | 'code' | 'raw' | 'unknown';
 type NotebookCellStatus = 'add' | 'delete' | 'change' | 'context';
 
 type NotebookSourceLine = {
+  type: PreviewLineType;
+  content: string;
+};
+
+type NotebookDiffLine = {
   type: PreviewLineType;
   content: string;
 };
@@ -74,13 +80,6 @@ const cellTypeLabels: Record<NotebookCellType, string> = {
   code: 'Code',
   raw: 'Raw',
   unknown: 'Cell',
-};
-
-const statusLabels: Record<NotebookCellStatus, string> = {
-  add: 'Added',
-  delete: 'Deleted',
-  change: 'Modified',
-  context: 'Unchanged',
 };
 
 const cellTypePattern = /"cell_type"\s*:\s*"([^"]+)"/;
@@ -496,6 +495,39 @@ const buildSourceText = (lines: NotebookSourceLine[], allow: PreviewLineType[]):
     .map((line) => line.content)
     .join('');
 
+const splitDiffValue = (value: string): string[] => {
+  if (!value) return [];
+  const lines = value.split('\n');
+  if (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop();
+  }
+  return lines;
+};
+
+const buildDiffLines = (beforeText: string, afterText: string): NotebookDiffLine[] => {
+  if (!beforeText && !afterText) return [];
+
+  if (!beforeText) {
+    return splitDiffValue(afterText).map((line) => ({ type: 'add', content: line }));
+  }
+
+  if (!afterText) {
+    return splitDiffValue(beforeText).map((line) => ({ type: 'delete', content: line }));
+  }
+
+  return diffLines(beforeText, afterText).flatMap((change) => {
+    const type: PreviewLineType =
+      change.added ? 'add'
+      : change.removed ? 'delete'
+      : 'context';
+
+    return splitDiffValue(change.value).map((line) => ({
+      type,
+      content: line,
+    }));
+  });
+};
+
 const isElementWithChildren = (
   node: React.ReactNode,
 ): node is React.ReactElement<{ children?: React.ReactNode }> => React.isValidElement(node);
@@ -534,36 +566,45 @@ const getCellBorderStyle = (status: NotebookCellStatus) => {
   }
 };
 
-const getStatusClass = (status: NotebookCellStatus) => {
-  switch (status) {
+const getSectionClass = (tone: SectionTone) => {
+  switch (tone) {
+    case 'before':
+      return 'border-l-4 border-diff-deletion-border';
+    case 'after':
+      return 'border-l-4 border-diff-addition-border';
+    default:
+      return 'border-l-4 border-transparent';
+  }
+};
+
+const getCodeLineClass = (type: PreviewLineType) => {
+  switch (type) {
+    case 'add':
+      return 'bg-diff-addition-bg';
+    case 'delete':
+      return 'bg-diff-deletion-bg';
+    default:
+      return 'bg-transparent';
+  }
+};
+
+const getCodeLinePrefix = (type: PreviewLineType) => {
+  switch (type) {
+    case 'add':
+      return '+';
+    case 'delete':
+      return '-';
+    default:
+      return ' ';
+  }
+};
+
+const getCodeLinePrefixClass = (type: PreviewLineType) => {
+  switch (type) {
     case 'add':
       return 'text-github-accent';
     case 'delete':
       return 'text-github-danger';
-    case 'change':
-      return 'text-github-warning';
-    default:
-      return 'text-github-text-muted';
-  }
-};
-
-const getSectionClass = (tone: SectionTone) => {
-  switch (tone) {
-    case 'before':
-      return 'border-l-4 border-diff-deletion-border bg-diff-deletion-bg/20';
-    case 'after':
-      return 'border-l-4 border-diff-addition-border bg-diff-addition-bg/20';
-    default:
-      return 'border-l-4 border-transparent bg-github-bg-tertiary/50';
-  }
-};
-
-const getSectionLabelClass = (tone: SectionTone) => {
-  switch (tone) {
-    case 'before':
-      return 'text-github-danger';
-    case 'after':
-      return 'text-github-accent';
     default:
       return 'text-github-text-muted';
   }
@@ -758,7 +799,48 @@ const renderCellContent = (
   );
 };
 
-const NotebookPreview = ({
+const NotebookCodeDiff = ({
+  lines,
+  syntaxTheme,
+  language,
+}: {
+  lines: NotebookDiffLine[];
+  syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
+  language?: string;
+}) => {
+  if (lines.length === 0) {
+    return <span className="text-xs text-github-text-muted">Empty cell</span>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="font-mono text-xs">
+        {lines.map((line, index) => (
+          <div
+            key={`notebook-code-line-${index}`}
+            className={`flex items-start min-h-[16px] ${getCodeLineClass(line.type)}`}
+          >
+            <span
+              className={`w-5 text-center flex-shrink-0 select-none ${getCodeLinePrefixClass(
+                line.type,
+              )}`}
+            >
+              {getCodeLinePrefix(line.type)}
+            </span>
+            <EnhancedPrismSyntaxHighlighter
+              code={line.content || ' '}
+              language={language || 'python'}
+              syntaxTheme={syntaxTheme}
+              className="flex-1 px-3 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const NotebookDiffPreview = ({
   cells,
   syntaxTheme,
   language,
@@ -774,6 +856,19 @@ const NotebookPreview = ({
         cell.cellType === 'code' && cell.executionCount !== undefined ?
           `In[${cell.executionCount ?? ' '}]`
         : null;
+
+      const isCodeCell = cell.cellType === 'code';
+      const diffLines =
+        isCodeCell ?
+          buildDiffLines(
+            buildSourceText(cell.sourceLines, ['context', 'delete']),
+            buildSourceText(cell.sourceLines, ['context', 'add']),
+          ).filter((line) => line.type !== 'context')
+        : [];
+
+      if (isCodeCell && diffLines.length === 0) {
+        return null;
+      }
 
       return (
         <div
@@ -796,29 +891,67 @@ const NotebookPreview = ({
                 <span className="text-xs font-mono text-github-text-muted">{cell.id}</span>
               )}
             </div>
-            <span className={`text-xs font-semibold ${getStatusClass(cell.status)}`}>
-              {statusLabels[cell.status]}
-            </span>
           </div>
 
           <div className="space-y-3">
-            {sections.map((section, sectionIndex) => (
+            {isCodeCell ?
               <div
-                key={`notebook-cell-${index}-section-${sectionIndex}`}
-                className={`rounded border border-github-border p-3 ${getSectionClass(section.tone)}`}
+                className={`px-4 py-3 ${getSectionClass(
+                  cell.status === 'delete' ? 'before' : 'after',
+                )}`}
               >
-                <div
-                  className={`mb-2 text-[11px] font-semibold uppercase tracking-wide ${getSectionLabelClass(
-                    section.tone,
-                  )}`}
-                >
-                  {section.label}
-                </div>
-                <div className="text-sm text-github-text-primary">
-                  {renderCellContent(cell.cellType, section.content, syntaxTheme, language)}
-                </div>
+                <NotebookCodeDiff lines={diffLines} syntaxTheme={syntaxTheme} language={language} />
               </div>
-            ))}
+            : sections.map((section, sectionIndex) => (
+                <div
+                  key={`notebook-cell-${index}-section-${sectionIndex}`}
+                  className={`px-4 py-3 ${getSectionClass(section.tone)}`}
+                >
+                  <div className="text-sm text-github-text-primary">
+                    {renderCellContent(cell.cellType, section.content, syntaxTheme, language)}
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      );
+    })}
+  </div>
+);
+
+const NotebookFullPreview = ({
+  cells,
+  syntaxTheme,
+  language,
+}: {
+  cells: NotebookCellContent[];
+  syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
+  language?: string;
+}) => (
+  <div className="space-y-4">
+    {cells.map((cell, index) => {
+      const executionLabel =
+        cell.cellType === 'code' && cell.executionCount !== undefined ?
+          `In[${cell.executionCount ?? ' '}]`
+        : null;
+
+      return (
+        <div
+          key={`notebook-full-cell-${index}`}
+          className="rounded border border-github-border bg-github-bg-secondary/40 p-4"
+        >
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-github-text-muted">
+              {cellTypeLabels[cell.cellType]}
+            </span>
+            {executionLabel && (
+              <span className="text-xs font-mono text-github-text-secondary">{executionLabel}</span>
+            )}
+            {cell.id && <span className="text-xs font-mono text-github-text-muted">{cell.id}</span>}
+          </div>
+          <div className="text-sm text-github-text-primary">
+            {renderCellContent(cell.cellType, cell.sourceText, syntaxTheme, language)}
           </div>
         </div>
       );
@@ -827,7 +960,8 @@ const NotebookPreview = ({
 );
 
 export function NotebookDiffViewer(props: DiffViewerBodyProps) {
-  const [mode, setMode] = useState<PreviewMode>('diff');
+  const { file, baseCommitish, targetCommitish } = props;
+  const [mode, setMode] = useState<PreviewMode>('diff-preview');
   const fallbackPreview = useMemo(
     () => buildNotebookCellsFromDiff(props.mergedChunks),
     [props.mergedChunks],
@@ -837,17 +971,60 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
     cells: fallbackPreview.cells,
     language: fallbackPreview.language,
   });
+  const diffPreviewCells = useMemo(
+    () =>
+      previewState.cells.filter((cell) => {
+        if (cell.status === 'context') return false;
+        if (cell.cellType !== 'code') return true;
+        const diffLines = buildDiffLines(
+          buildSourceText(cell.sourceLines, ['context', 'delete']),
+          buildSourceText(cell.sourceLines, ['context', 'add']),
+        ).filter((line) => line.type !== 'context');
+        return diffLines.length > 0;
+      }),
+    [previewState.cells],
+  );
+  const [fullPreviewCells, setFullPreviewCells] = useState<NotebookCellContent[] | null>(null);
+  const [fullPreviewLanguage, setFullPreviewLanguage] = useState<string | undefined>(
+    fallbackPreview.language,
+  );
+  const [isFullPreviewLoading, setIsFullPreviewLoading] = useState(false);
+  const [fullPreviewError, setFullPreviewError] = useState<string | null>(null);
+  const [loadedFullPreviewKey, setLoadedFullPreviewKey] = useState<string | null>(null);
+
+  const previewSource = useMemo(() => {
+    if (!baseCommitish && !targetCommitish) return null;
+
+    if (file.status === 'added') {
+      return targetCommitish ? { path: file.path, ref: targetCommitish } : null;
+    }
+
+    if (file.status === 'deleted') {
+      return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
+    }
+
+    if (targetCommitish) {
+      return { path: file.path, ref: targetCommitish };
+    }
+
+    return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
+  }, [baseCommitish, targetCommitish, file.oldPath, file.path, file.status]);
+
+  const previewSourceKey = useMemo(
+    () => (previewSource ? `${previewSource.ref}:${previewSource.path}` : null),
+    [previewSource],
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     const loadPreview = async () => {
-      const baseRef = props.baseCommitish || 'HEAD~1';
-      const targetRef = props.targetCommitish || 'HEAD';
-      const oldPath = props.file.oldPath || props.file.path;
+      const baseRef = baseCommitish || 'HEAD~1';
+      const targetRef = targetCommitish || 'HEAD';
+      const oldPath = file.oldPath || file.path;
 
-      const canFetchOld = props.file.status !== 'added' && isFetchableRef(baseRef);
-      const canFetchNew = props.file.status !== 'deleted' && isFetchableRef(targetRef);
+      const canFetchOld = file.status !== 'added' && isFetchableRef(baseRef);
+      const canFetchNew = file.status !== 'deleted' && isFetchableRef(targetRef);
 
       if (!canFetchOld && !canFetchNew) {
         setPreviewState({
@@ -868,7 +1045,7 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
       try {
         const [oldText, newText] = await Promise.all([
           canFetchOld ? fetchNotebookContent(oldPath, baseRef) : Promise.resolve(null),
-          canFetchNew ? fetchNotebookContent(props.file.path, targetRef) : Promise.resolve(null),
+          canFetchNew ? fetchNotebookContent(file.path, targetRef) : Promise.resolve(null),
         ]);
 
         const oldDoc = oldText ? parseNotebookContent(oldText) : null;
@@ -916,13 +1093,77 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
       cancelled = true;
     };
   }, [
-    props.baseCommitish,
-    props.file.oldPath,
-    props.file.path,
-    props.file.status,
+    baseCommitish,
+    file.oldPath,
+    file.path,
+    file.status,
     props.mergedChunks,
-    props.targetCommitish,
+    targetCommitish,
     fallbackPreview,
+  ]);
+
+  useEffect(() => {
+    if (mode !== 'full-preview') {
+      return;
+    }
+
+    if (!previewSource || !previewSourceKey || !isFetchableRef(previewSource.ref)) {
+      setFullPreviewCells(null);
+      setLoadedFullPreviewKey(null);
+      setFullPreviewError(null);
+      setIsFullPreviewLoading(false);
+      return;
+    }
+
+    let isCanceled = false;
+
+    const fetchContent = async () => {
+      if (previewSourceKey !== loadedFullPreviewKey) {
+        setFullPreviewCells(null);
+      }
+      setIsFullPreviewLoading(true);
+      setFullPreviewError(null);
+      try {
+        const text = await fetchNotebookContent(previewSource.path, previewSource.ref);
+        if (!text) {
+          throw new Error('Failed to load preview.');
+        }
+        const doc = parseNotebookContent(text);
+        if (!doc) {
+          throw new Error('Notebook content could not be parsed.');
+        }
+        if (!isCanceled) {
+          setFullPreviewCells(doc.cells);
+          setFullPreviewLanguage(doc.language ?? fallbackPreview.language);
+          setLoadedFullPreviewKey(previewSourceKey);
+        }
+      } catch (error) {
+        if (!isCanceled) {
+          setFullPreviewCells(null);
+          setLoadedFullPreviewKey(null);
+          setFullPreviewError(error instanceof Error ? error.message : 'Failed to load preview');
+        }
+      } finally {
+        if (!isCanceled) {
+          setIsFullPreviewLoading(false);
+        }
+      }
+    };
+
+    if (previewSourceKey !== loadedFullPreviewKey || !fullPreviewCells) {
+      void fetchContent();
+    }
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [
+    fallbackPreview.language,
+    fullPreviewCells,
+    loadedFullPreviewKey,
+    mode,
+    previewSource,
+    previewSourceKey,
   ]);
 
   return (
@@ -942,43 +1183,78 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
             Diff
           </button>
           <button
-            onClick={() => setMode('preview')}
+            onClick={() => setMode('diff-preview')}
             className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'preview' ?
+              mode === 'diff-preview' ?
                 'text-github-text-primary'
               : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
-            title="Preview"
+            title="Diff Preview"
           >
             <Eye size={14} />
-            Preview
+            Diff Preview
+          </button>
+          <button
+            onClick={() => setMode('full-preview')}
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
+              mode === 'full-preview' ?
+                'text-github-text-primary'
+              : 'text-github-text-secondary hover:text-github-text-primary'
+            }`}
+            title="Full Preview"
+          >
+            <Eye size={14} />
+            Full Preview
           </button>
         </div>
       </div>
 
-      {mode === 'diff' ?
-        <TextDiffViewer {...props} />
-      : <div className="p-4">
+      {mode === 'diff' && <TextDiffViewer {...props} />}
+
+      {mode === 'diff-preview' && (
+        <div className="p-4">
           {previewState.status === 'loading' && (
             <div className="text-xs text-github-text-muted mb-3">Loading notebook preview…</div>
           )}
           {previewState.message && (
             <div className="text-xs text-github-text-muted mb-3">{previewState.message}</div>
           )}
-          {previewState.cells.length === 0 ?
+          {diffPreviewCells.length === 0 ?
             <div>
               <div className="text-xs text-github-text-muted mb-3">
-                No notebook cells could be extracted from this diff. Showing raw diff instead.
+                No changed notebook cells were found. Showing raw diff instead.
               </div>
               <TextDiffViewer {...props} />
             </div>
-          : <NotebookPreview
-              cells={previewState.cells}
+          : <NotebookDiffPreview
+              cells={diffPreviewCells}
               syntaxTheme={props.syntaxTheme}
               language={previewState.language}
-            />}
+            />
+          }
         </div>
-      }
+      )}
+
+      {mode === 'full-preview' && (
+        <div className="p-4">
+          {isFullPreviewLoading && (
+            <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
+          )}
+          {fullPreviewError && (
+            <div className="text-sm text-github-danger mb-3">{fullPreviewError}</div>
+          )}
+          {!isFullPreviewLoading && !fullPreviewError && fullPreviewCells && (
+            <NotebookFullPreview
+              cells={fullPreviewCells}
+              syntaxTheme={props.syntaxTheme}
+              language={fullPreviewLanguage ?? fallbackPreview.language}
+            />
+          )}
+          {!isFullPreviewLoading && !fullPreviewError && !fullPreviewCells && (
+            <div className="text-sm text-github-text-muted">Preview unavailable.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
