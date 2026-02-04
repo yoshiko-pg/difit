@@ -34,6 +34,25 @@ import { findCommentPosition } from './utils/navigation/positionHelpers';
 
 const EMPTY_COMMENTS: Comment[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
+const SIDEBAR_WIDTH_STORAGE_KEY = 'difit.sidebarWidth';
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 600;
+const SIDEBAR_DEFAULT_WIDTH = 320;
+
+const getInitialSidebarWidth = () => {
+  if (typeof window === 'undefined') {
+    return SIDEBAR_DEFAULT_WIDTH;
+  }
+  const stored = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
+  if (!stored) {
+    return SIDEBAR_DEFAULT_WIDTH;
+  }
+  const parsed = Number.parseInt(stored, 10);
+  if (!Number.isFinite(parsed)) {
+    return SIDEBAR_DEFAULT_WIDTH;
+  }
+  return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, parsed));
+};
 
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
@@ -43,7 +62,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCopiedAll, setIsCopiedAll] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(320); // 320px default width
+  const [sidebarWidth, setSidebarWidth] = useState(getInitialSidebarWidth);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
@@ -333,7 +352,10 @@ function App() {
     const startWidth = sidebarWidth;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(200, Math.min(600, startWidth + (e.clientX - startX)));
+      const newWidth = Math.max(
+        SIDEBAR_MIN_WIDTH,
+        Math.min(SIDEBAR_MAX_WIDTH, startWidth + (e.clientX - startX)),
+      );
       setSidebarWidth(newWidth);
     };
 
@@ -390,6 +412,14 @@ function App() {
   useEffect(() => {
     void fetchDiffData();
   }, [fetchDiffData]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
+    } catch {
+      // Ignore localStorage errors (e.g. disabled storage).
+    }
+  }, [sidebarWidth]);
 
   // Fetch revision options on mount
   useEffect(() => {
