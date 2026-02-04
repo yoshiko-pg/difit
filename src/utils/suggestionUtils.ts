@@ -1,15 +1,10 @@
 import type { SuggestionBlock } from '../types/diff';
 
-// Regex pattern to match GitHub-style suggestion blocks
-// Matches: ```suggestion ... ```
-const SUGGESTION_BLOCK_REGEX = /```suggestion\n([\s\S]*?)```/g;
-
 /**
  * Check if a comment body contains any suggestion blocks
  */
 export function hasSuggestionBlock(body: string): boolean {
-  SUGGESTION_BLOCK_REGEX.lastIndex = 0; // Reset regex state
-  return SUGGESTION_BLOCK_REGEX.test(body);
+  return /```suggestion\n([\s\S]*?)```/.test(body);
 }
 
 /**

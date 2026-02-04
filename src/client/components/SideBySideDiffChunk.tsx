@@ -421,7 +421,8 @@ export function SideBySideDiffChunk({
                   className="group cursor-pointer"
                   onClick={(e) => {
                     if (!isDragging) {
-                      const target = e.target as HTMLElement;
+                      const target = e.target;
+                      if (!(target instanceof HTMLElement)) return;
                       const isInOldSide =
                         target.closest('td:nth-child(1)') || target.closest('td:nth-child(2)');
                       const isInNewSide =
@@ -435,7 +436,8 @@ export function SideBySideDiffChunk({
                     }
                   }}
                   onMouseEnter={(e) => {
-                    const target = e.target as HTMLElement;
+                    const target = e.target;
+                    if (!(target instanceof HTMLElement)) return;
                     const isInOldSide =
                       target.closest('td:nth-child(1)') || target.closest('td:nth-child(2)');
                     const isInNewSide =
@@ -448,7 +450,8 @@ export function SideBySideDiffChunk({
                     }
                   }}
                   onMouseMove={(e) => {
-                    const target = e.target as HTMLElement;
+                    const target = e.target;
+                    if (!(target instanceof HTMLElement)) return;
                     const isInOldSide =
                       target.closest('td:nth-child(1)') || target.closest('td:nth-child(2)');
                     const isInNewSide =

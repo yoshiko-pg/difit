@@ -4,6 +4,7 @@ import { useHotkeys } from 'react-hotkeys-hook';
 
 import { type Comment } from '../../types/diff';
 import { hasSuggestionBlock, parseSuggestionBlocks } from '../../utils/suggestionUtils';
+import { getLanguageFromPath } from '../utils/diffUtils';
 
 interface InlineCommentProps {
   comment: Comment;
@@ -269,7 +270,7 @@ export function InlineComment({
         hasSuggestionBlock(comment.body) ?
           <SuggestionBlockRenderer
             body={comment.body}
-            language={comment.codeContent?.split('.').pop()}
+            language={getLanguageFromPath(comment.file)}
             originalCode={comment.codeContent}
           />
         : <div className="text-github-text-primary text-sm leading-6 whitespace-pre-wrap">
