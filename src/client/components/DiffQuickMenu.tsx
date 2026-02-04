@@ -140,6 +140,17 @@ export function DiffQuickMenu({
   }, [isOpen]);
 
   const currentLabel = useMemo(() => {
+    const commitMatch = options.commits.find((commit) => {
+      const targetMatches = targetRevision === commit.shortHash || targetRevision === commit.hash;
+      const baseMatches =
+        baseRevision === `${commit.shortHash}^` || baseRevision === `${commit.hash}^`;
+      return targetMatches && baseMatches;
+    });
+
+    if (commitMatch) {
+      return `${commitMatch.shortHash} ${commitMatch.message}`;
+    }
+
     const baseLabel = resolveDisplayLabel(options, baseRevision, resolvedBaseRevision);
     const targetLabel = resolveDisplayLabel(options, targetRevision, resolvedTargetRevision);
     return `${baseLabel}...${targetLabel}`;
