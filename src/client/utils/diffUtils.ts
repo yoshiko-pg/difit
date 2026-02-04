@@ -57,8 +57,12 @@ export function getLanguageFromPath(filePath: string): string | undefined {
 
   const languageMap: Record<string, string> = {
     js: 'javascript',
+    mjs: 'javascript',
+    cjs: 'javascript',
     jsx: 'javascript',
     ts: 'typescript',
+    mts: 'typescript',
+    cts: 'typescript',
     tsx: 'typescript',
     py: 'python',
     rb: 'ruby',

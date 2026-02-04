@@ -47,8 +47,12 @@ function detectLanguage(filename: string): string {
   const extensionMap: Record<string, string> = {
     ts: 'typescript',
     tsx: 'tsx',
+    mts: 'typescript',
+    cts: 'typescript',
     js: 'javascript',
     jsx: 'jsx',
+    mjs: 'javascript',
+    cjs: 'javascript',
     json: 'json',
     css: 'css',
     scss: 'css',
