@@ -31,6 +31,7 @@ import { useExpandedLines, type MergedChunk } from './hooks/useExpandedLines';
 import { useFileWatch } from './hooks/useFileWatch';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { useViewedFiles } from './hooks/useViewedFiles';
+import { useViewport } from './hooks/useViewport';
 import { getFileElementId } from './utils/domUtils';
 import { findCommentPosition } from './utils/navigation/positionHelpers';
 
@@ -73,9 +74,6 @@ function App() {
   const [isCommentsListOpen, setIsCommentsListOpen] = useState(false);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window === 'undefined' ? false : window.matchMedia('(max-width: 767px)').matches,
-  );
   const collapsedInitializedRef = useRef(false);
 
   // Revision selector state
@@ -87,6 +85,7 @@ function App() {
   const hasUserSelectedRevisionRef = useRef(false);
 
   const { settings, updateSettings } = useAppearanceSettings();
+  const { isMobile, isDesktop } = useViewport();
 
   // New diff-aware comment system
   const {
@@ -421,15 +420,6 @@ function App() {
   }, [fetchDiffData]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const update = () => setIsMobile(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener('change', update);
-    return () => mediaQuery.removeEventListener('change', update);
-  }, []);
-
-  useEffect(() => {
     if (isMobile && diffMode !== 'unified') {
       setDiffMode('unified');
     }
@@ -710,9 +700,15 @@ function App() {
   return (
     <WordHighlightProvider>
       <div className="h-screen flex flex-col" onClickCapture={handleGlobalClick}>
-        <header className="bg-github-bg-secondary border-b border-github-border flex flex-col md:flex-row md:items-center">
+        <header
+          className={`bg-github-bg-secondary border-b border-github-border flex ${
+            isMobile ? 'flex-col' : 'flex-row items-center'
+          }`}
+        >
           <div
-            className={`px-3 py-2 md:px-4 md:py-3 flex items-center justify-between gap-3 md:gap-4 w-full md:w-auto ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
+            className={`flex items-center justify-between w-full ${
+              isMobile ? 'px-3 py-2 gap-3' : 'px-4 py-3 gap-4 w-auto'
+            } ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
             style={{
               width:
                 isMobile ? '100%'
@@ -753,17 +749,23 @@ function App() {
               </button>
             </div>
           </div>
+          {!isMobile && (
+            <div
+              className={`border-r border-github-border ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
+              style={{
+                width: isFileTreeOpen ? '4px' : '0px',
+                height: 'calc(100% - 16px)',
+                margin: '8px 0',
+                transform: 'translateX(-2px)',
+              }}
+            />
+          )}
           <div
-            className={`border-r border-github-border hidden md:block ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
-            style={{
-              width: isFileTreeOpen ? '4px' : '0px',
-              height: 'calc(100% - 16px)',
-              margin: '8px 0',
-              transform: 'translateX(-2px)',
-            }}
-          />
-          <div className="flex-1 px-3 pb-2 md:px-4 md:py-3 flex flex-wrap items-center justify-between gap-3 md:gap-4">
-            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            className={`flex-1 flex flex-wrap items-center justify-between ${
+              isMobile ? 'px-3 pb-2 gap-3' : 'px-4 py-3 gap-4'
+            }`}
+          >
+            <div className={`flex flex-wrap items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
               {!isMobile && (
                 <div className="flex bg-github-bg-tertiary border border-github-border rounded-md p-1">
                   <button
@@ -805,7 +807,11 @@ function App() {
                 compact={isMobile}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-github-text-secondary">
+            <div
+              className={`flex flex-wrap items-center text-sm text-github-text-secondary ${
+                isMobile ? 'gap-3' : 'gap-4'
+              }`}
+            >
               {!isMobile && comments.length > 0 && (
                 <CommentsDropdown
                   commentsCount={comments.length}
@@ -846,32 +852,16 @@ function App() {
                 </div>
               </div>
               {revisionOptions ?
-                <>
-                  <div className="lg:hidden">
-                    <DiffQuickMenu
-                      options={revisionOptions}
-                      baseRevision={baseRevision}
-                      targetRevision={targetRevision}
-                      resolvedBaseRevision={resolvedBaseRevision}
-                      resolvedTargetRevision={resolvedTargetRevision}
-                      onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
-                      onOpenAdvanced={() => setIsRevisionModalOpen(true)}
-                      variant="compact"
-                    />
-                  </div>
-                  <div className="hidden lg:block">
-                    <DiffQuickMenu
-                      options={revisionOptions}
-                      baseRevision={baseRevision}
-                      targetRevision={targetRevision}
-                      resolvedBaseRevision={resolvedBaseRevision}
-                      resolvedTargetRevision={resolvedTargetRevision}
-                      onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
-                      onOpenAdvanced={() => setIsRevisionModalOpen(true)}
-                      variant="default"
-                    />
-                  </div>
-                </>
+                <DiffQuickMenu
+                  options={revisionOptions}
+                  baseRevision={baseRevision}
+                  targetRevision={targetRevision}
+                  resolvedBaseRevision={resolvedBaseRevision}
+                  resolvedTargetRevision={resolvedTargetRevision}
+                  onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
+                  onOpenAdvanced={() => setIsRevisionModalOpen(true)}
+                  variant={isDesktop ? 'default' : 'compact'}
+                />
               : <span className="text-xs">
                   Reviewing:{' '}
                   <code className="bg-github-bg-tertiary px-1.5 py-0.5 rounded text-xs text-github-text-primary">
@@ -966,37 +956,41 @@ function App() {
                   selectedFileIndex={cursor?.fileIndex ?? null}
                 />
               </div>
-              <div className="p-4 border-t border-github-border hidden md:flex justify-between items-center">
-                <button
-                  onClick={() => setIsHelpOpen(true)}
-                  className="flex items-center gap-1.5 text-github-text-secondary hover:text-github-text-primary transition-colors"
-                  title="Keyboard shortcuts (Shift+?)"
-                >
-                  <Keyboard size={16} />
-                  <span className="text-sm">Shortcuts</span>
-                </button>
-                <a
-                  href="https://github.com/yoshiko-pg/difit"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-github-text-secondary hover:text-github-text-primary transition-colors"
-                  title="View on GitHub"
-                >
-                  <span className="text-sm">Star on GitHub</span>
-                  <GitHubIcon style={{ height: '18px', width: '18px' }} />
-                </a>
-              </div>
+              {!isMobile && (
+                <div className="p-4 border-t border-github-border flex justify-between items-center">
+                  <button
+                    onClick={() => setIsHelpOpen(true)}
+                    className="flex items-center gap-1.5 text-github-text-secondary hover:text-github-text-primary transition-colors"
+                    title="Keyboard shortcuts (Shift+?)"
+                  >
+                    <Keyboard size={16} />
+                    <span className="text-sm">Shortcuts</span>
+                  </button>
+                  <a
+                    href="https://github.com/yoshiko-pg/difit"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-github-text-secondary hover:text-github-text-primary transition-colors"
+                    title="View on GitHub"
+                  >
+                    <span className="text-sm">Star on GitHub</span>
+                    <GitHubIcon style={{ height: '18px', width: '18px' }} />
+                  </a>
+                </div>
+              )}
             </aside>
           </div>
 
-          <div
-            className={`bg-github-border hover:bg-github-text-muted cursor-col-resize hidden md:block ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
-            style={{
-              width: isFileTreeOpen ? '4px' : '0px',
-            }}
-            onMouseDown={handleMouseDown}
-            title="Drag to resize file list"
-          />
+          {!isMobile && (
+            <div
+              className={`bg-github-border hover:bg-github-text-muted cursor-col-resize ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
+              style={{
+                width: isFileTreeOpen ? '4px' : '0px',
+              }}
+              onMouseDown={handleMouseDown}
+              title="Drag to resize file list"
+            />
+          )}
 
           <main className={`flex-1 overflow-y-auto ${showMobileCommentsBar ? 'pb-16' : ''}`}>
             {diffData.files.map((file, fileIndex) => {
