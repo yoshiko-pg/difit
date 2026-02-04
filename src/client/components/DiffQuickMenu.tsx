@@ -93,6 +93,7 @@ export function DiffQuickMenu({
       if (!open && isCommitMenuOpen) return;
       setIsOpen(open);
     },
+    placement: 'bottom-end',
     middleware: [offset(6), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   });
