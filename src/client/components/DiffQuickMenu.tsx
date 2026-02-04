@@ -14,7 +14,7 @@ import {
   FloatingPortal,
   safePolygon,
 } from '@floating-ui/react';
-import { ChevronDown, ChevronLeft } from 'lucide-react';
+import { ChevronDown, ChevronLeft, GitBranch } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { type CommitInfo, type RevisionsResponse } from '../../types/diff';
@@ -27,6 +27,7 @@ interface DiffQuickMenuProps {
   resolvedTargetRevision?: string;
   onSelectDiff: (base: string, target: string) => void;
   onOpenAdvanced: () => void;
+  variant?: 'default' | 'compact';
 }
 
 const SPECIAL_LABEL_OVERRIDES: Record<string, string> = {
@@ -83,9 +84,11 @@ export function DiffQuickMenu({
   resolvedTargetRevision,
   onSelectDiff,
   onOpenAdvanced,
+  variant = 'default',
 }: DiffQuickMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCommitMenuOpen, setIsCommitMenuOpen] = useState(false);
+  const isCompact = variant === 'compact';
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen || isCommitMenuOpen,
@@ -216,15 +219,26 @@ export function DiffQuickMenu({
         className="flex items-center gap-1.5 cursor-pointer group"
         aria-haspopup="menu"
         aria-expanded={isOpen}
+        aria-label={`Revision menu: ${currentLabel}`}
+        title={currentLabel}
         {...getReferenceProps()}
       >
-        <div className="flex items-center gap-1 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
-          <code className="text-xs text-github-text-primary">{currentLabel}</code>
-          <ChevronDown
-            size={12}
-            className="text-github-text-secondary group-hover:text-github-text-primary transition-colors"
-          />
-        </div>
+        {isCompact ?
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
+            <GitBranch size={14} className="text-github-text-secondary" />
+            <ChevronDown
+              size={12}
+              className="text-github-text-secondary group-hover:text-github-text-primary transition-colors"
+            />
+          </div>
+        : <div className="flex items-center gap-1 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
+            <code className="text-xs text-github-text-primary">{currentLabel}</code>
+            <ChevronDown
+              size={12}
+              className="text-github-text-secondary group-hover:text-github-text-primary transition-colors"
+            />
+          </div>
+        }
       </button>
 
       {isOpen && (

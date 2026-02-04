@@ -73,6 +73,9 @@ function App() {
   const [isCommentsListOpen, setIsCommentsListOpen] = useState(false);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window === 'undefined' ? false : window.matchMedia('(max-width: 767px)').matches,
+  );
   const collapsedInitializedRef = useRef(false);
 
   // Revision selector state
@@ -131,6 +134,7 @@ function App() {
     });
     return map;
   }, [normalizedComments]);
+  const showMobileCommentsBar = isMobile && comments.length > 0;
 
   // Viewed files management
   const { viewedFiles, toggleFileViewed, clearViewedFiles } = useViewedFiles(
@@ -417,6 +421,21 @@ function App() {
   }, [fetchDiffData]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener('change', update);
+    return () => mediaQuery.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && diffMode !== 'unified') {
+      setDiffMode('unified');
+    }
+  }, [diffMode, isMobile]);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
     } catch {
@@ -691,13 +710,22 @@ function App() {
   return (
     <WordHighlightProvider>
       <div className="h-screen flex flex-col" onClickCapture={handleGlobalClick}>
-        <header className="bg-github-bg-secondary border-b border-github-border flex items-center">
+        <header className="bg-github-bg-secondary border-b border-github-border flex flex-col md:flex-row md:items-center">
           <div
-            className={`px-4 py-3 flex items-center justify-between gap-4 ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
+            className={`px-3 py-2 md:px-4 md:py-3 flex items-center justify-between gap-3 md:gap-4 w-full md:w-auto ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
             style={{
-              width: isFileTreeOpen ? `${sidebarWidth}px` : 'auto',
-              minWidth: isFileTreeOpen ? '200px' : 'auto',
-              maxWidth: isFileTreeOpen ? '600px' : 'auto',
+              width:
+                isMobile ? '100%'
+                : isFileTreeOpen ? `${sidebarWidth}px`
+                : 'auto',
+              minWidth:
+                isMobile ? '0px'
+                : isFileTreeOpen ? '200px'
+                : 'auto',
+              maxWidth:
+                isMobile ? 'none'
+                : isFileTreeOpen ? '600px'
+                : 'none',
             }}
           >
             <h1>
@@ -726,7 +754,7 @@ function App() {
             </div>
           </div>
           <div
-            className={`border-r border-github-border ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
+            className={`border-r border-github-border hidden md:block ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
             style={{
               width: isFileTreeOpen ? '4px' : '0px',
               height: 'calc(100% - 16px)',
@@ -734,36 +762,38 @@ function App() {
               transform: 'translateX(-2px)',
             }}
           />
-          <div className="flex-1 px-4 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex bg-github-bg-tertiary border border-github-border rounded-md p-1">
-                <button
-                  onClick={() => handleDiffModeChange('split')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    diffMode === 'split' ?
-                      'bg-github-bg-primary text-github-text-primary shadow-sm'
-                    : 'text-github-text-secondary hover:text-github-text-primary'
-                  }`}
-                >
-                  <Columns size={14} />
-                  Split
-                </button>
-                <button
-                  onClick={() => handleDiffModeChange('unified')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    diffMode === 'unified' ?
-                      'bg-github-bg-primary text-github-text-primary shadow-sm'
-                    : 'text-github-text-secondary hover:text-github-text-primary'
-                  }`}
-                >
-                  <AlignLeft size={14} />
-                  Unified
-                </button>
-              </div>
+          <div className="flex-1 px-3 pb-2 md:px-4 md:py-3 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              {!isMobile && (
+                <div className="flex bg-github-bg-tertiary border border-github-border rounded-md p-1">
+                  <button
+                    onClick={() => handleDiffModeChange('split')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                      diffMode === 'split' ?
+                        'bg-github-bg-primary text-github-text-primary shadow-sm'
+                      : 'text-github-text-secondary hover:text-github-text-primary'
+                    }`}
+                  >
+                    <Columns size={14} />
+                    Split
+                  </button>
+                  <button
+                    onClick={() => handleDiffModeChange('unified')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                      diffMode === 'unified' ?
+                        'bg-github-bg-primary text-github-text-primary shadow-sm'
+                      : 'text-github-text-secondary hover:text-github-text-primary'
+                    }`}
+                  >
+                    <AlignLeft size={14} />
+                    Unified
+                  </button>
+                </div>
+              )}
               <Checkbox
                 checked={ignoreWhitespace}
                 onChange={setIgnoreWhitespace}
-                label="Ignore Whitespace"
+                label={isMobile ? '-w' : 'Ignore Whitespace'}
                 title={ignoreWhitespace ? 'Show whitespace changes' : 'Ignore whitespace changes'}
               />
               {/* File Watch Reload Button */}
@@ -774,8 +804,8 @@ function App() {
                 changeType={watchState.lastChangeType}
               />
             </div>
-            <div className="flex items-center gap-4 text-sm text-github-text-secondary">
-              {comments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-4 text-sm text-github-text-secondary">
+              {!isMobile && comments.length > 0 && (
                 <CommentsDropdown
                   commentsCount={comments.length}
                   isCopiedAll={isCopiedAll}
@@ -815,16 +845,33 @@ function App() {
                 </div>
               </div>
               {revisionOptions ?
-                <DiffQuickMenu
-                  options={revisionOptions}
-                  baseRevision={baseRevision}
-                  targetRevision={targetRevision}
-                  resolvedBaseRevision={resolvedBaseRevision}
-                  resolvedTargetRevision={resolvedTargetRevision}
-                  onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
-                  onOpenAdvanced={() => setIsRevisionModalOpen(true)}
-                />
-              : <span>
+                <>
+                  <div className="lg:hidden">
+                    <DiffQuickMenu
+                      options={revisionOptions}
+                      baseRevision={baseRevision}
+                      targetRevision={targetRevision}
+                      resolvedBaseRevision={resolvedBaseRevision}
+                      resolvedTargetRevision={resolvedTargetRevision}
+                      onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
+                      onOpenAdvanced={() => setIsRevisionModalOpen(true)}
+                      variant="compact"
+                    />
+                  </div>
+                  <div className="hidden lg:block">
+                    <DiffQuickMenu
+                      options={revisionOptions}
+                      baseRevision={baseRevision}
+                      targetRevision={targetRevision}
+                      resolvedBaseRevision={resolvedBaseRevision}
+                      resolvedTargetRevision={resolvedTargetRevision}
+                      onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
+                      onOpenAdvanced={() => setIsRevisionModalOpen(true)}
+                      variant="default"
+                    />
+                  </div>
+                </>
+              : <span className="text-xs">
                   Reviewing:{' '}
                   <code className="bg-github-bg-tertiary px-1.5 py-0.5 rounded text-xs text-github-text-primary">
                     {diffData.commit.includes('...') ?
@@ -855,21 +902,42 @@ function App() {
           />
         )}
 
-        <div className="flex flex-1 overflow-hidden">
+        {isMobile && isFileTreeOpen && (
+          <button
+            type="button"
+            aria-label="Close file tree"
+            className="fixed inset-0 bg-black/40 z-30"
+            onClick={() => setIsFileTreeOpen(false)}
+          />
+        )}
+
+        <div className="flex flex-1 overflow-hidden relative">
           <div
             className={`relative overflow-hidden ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
             style={{
-              width: isFileTreeOpen ? `${sidebarWidth}px` : '0px',
+              width:
+                isMobile ? '0px'
+                : isFileTreeOpen ? `${sidebarWidth}px`
+                : '0px',
             }}
           >
             <aside
               id="file-tree-panel"
-              className="bg-github-bg-secondary border-r border-github-border overflow-y-auto flex flex-col"
+              className={`bg-github-bg-secondary border-r border-github-border overflow-y-auto flex flex-col ${
+                isMobile ?
+                  'fixed inset-y-0 left-0 z-40 w-[min(85vw,360px)] transition-transform duration-300 ease-out'
+                : 'relative'
+              }`}
               style={{
-                width: `${sidebarWidth}px`,
-                minWidth: '200px',
-                maxWidth: '600px',
+                width: isMobile ? 'min(85vw, 360px)' : `${sidebarWidth}px`,
+                minWidth: isMobile ? '0px' : '200px',
+                maxWidth: isMobile ? 'none' : '600px',
                 height: '100%',
+                transform:
+                  isMobile ?
+                    isFileTreeOpen ? 'translateX(0)'
+                    : 'translateX(-100%)'
+                  : undefined,
               }}
             >
               <div className="flex-1 overflow-y-auto">
@@ -897,7 +965,7 @@ function App() {
                   selectedFileIndex={cursor?.fileIndex ?? null}
                 />
               </div>
-              <div className="p-4 border-t border-github-border flex justify-between items-center">
+              <div className="p-4 border-t border-github-border hidden md:flex justify-between items-center">
                 <button
                   onClick={() => setIsHelpOpen(true)}
                   className="flex items-center gap-1.5 text-github-text-secondary hover:text-github-text-primary transition-colors"
@@ -921,7 +989,7 @@ function App() {
           </div>
 
           <div
-            className={`bg-github-border hover:bg-github-text-muted cursor-col-resize ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
+            className={`bg-github-border hover:bg-github-text-muted cursor-col-resize hidden md:block ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
             style={{
               width: isFileTreeOpen ? '4px' : '0px',
             }}
@@ -929,7 +997,7 @@ function App() {
             title="Drag to resize file list"
           />
 
-          <main className="flex-1 overflow-y-auto">
+          <main className={`flex-1 overflow-y-auto ${showMobileCommentsBar ? 'pb-16' : ''}`}>
             {diffData.files.map((file, fileIndex) => {
               const fileComments = commentsByFile.get(file.path) ?? EMPTY_COMMENTS;
               const mergedChunks = mergedChunksByFile.get(file.path) ?? EMPTY_MERGED_CHUNKS;
@@ -968,6 +1036,20 @@ function App() {
             })}
           </main>
         </div>
+
+        {showMobileCommentsBar && (
+          <div className="fixed bottom-0 left-0 right-0 z-20 bg-github-bg-secondary border-t border-github-border px-4 py-2 flex justify-end">
+            <CommentsDropdown
+              commentsCount={comments.length}
+              isCopiedAll={isCopiedAll}
+              onCopyAll={handleCopyAllComments}
+              onDeleteAll={clearAllComments}
+              onViewAll={() => setIsCommentsListOpen(true)}
+              direction="up"
+              variant="compact"
+            />
+          </div>
+        )}
 
         <SettingsModal
           isOpen={isSettingsOpen}
