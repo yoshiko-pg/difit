@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import { Code } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+
+import { createSuggestionTemplate } from '../../utils/suggestionUtils';
 
 interface CommentFormProps {
   onSubmit: (body: string) => Promise<void>;
   onCancel: () => void;
+  selectedCode?: string;
+  language?: string;
 }
 
-export function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
+export function CommentForm({ onSubmit, onCancel, selectedCode, language }: CommentFormProps) {
   const [body, setBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +39,34 @@ export function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
     }
   };
 
+  const handleAddSuggestion = () => {
+    if (!selectedCode) return;
+
+    const template = createSuggestionTemplate(selectedCode, language);
+    const textarea = textareaRef.current;
+
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = body.slice(0, start);
+      const after = body.slice(end);
+      const newBody = before + (before && !before.endsWith('\n') ? '\n' : '') + template + after;
+      setBody(newBody);
+
+      // Move cursor to the suggested code for editing
+      const cursorStart =
+        before.length + (before && !before.endsWith('\n') ? 1 : 0) + '```suggestion\n'.length;
+      const cursorEnd = cursorStart + selectedCode.length;
+      setTimeout(() => {
+        textarea.setSelectionRange(cursorStart, cursorEnd);
+        textarea.focus();
+      }, 0);
+    } else {
+      // Fallback if ref is not available
+      setBody((prev) => (prev ? prev + '\n' : '') + template);
+    }
+  };
+
   const modifierKey = /Macintosh|Mac OS X/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl';
 
   return (
@@ -50,7 +84,22 @@ export function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
         </span>
       </div>
 
+      {selectedCode && (
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            type="button"
+            onClick={handleAddSuggestion}
+            className="text-xs px-2 py-1 bg-github-bg-tertiary text-github-text-secondary border border-github-border rounded hover:bg-github-bg-primary hover:text-github-text-primary transition-colors flex items-center gap-1"
+            title="Add code suggestion"
+          >
+            <Code size={12} />
+            Add suggestion
+          </button>
+        </div>
+      )}
+
       <textarea
+        ref={textareaRef}
         className="w-full min-h-[60px] mb-2 resize-y bg-github-bg-secondary border border-github-border rounded px-3 py-2 text-github-text-primary text-sm leading-6 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/30 focus:min-h-[80px] disabled:opacity-50"
         value={body}
         onChange={(e) => setBody(e.target.value)}
