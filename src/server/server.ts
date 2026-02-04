@@ -1,5 +1,6 @@
+import { spawn } from 'child_process';
 import { type Server } from 'http';
-import { join, dirname } from 'path';
+import { join, dirname, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 
 import express, { type Express } from 'express';
@@ -10,6 +11,7 @@ const __dirname = dirname(__filename);
 import { type DiffMode } from '../types/watch.js';
 import { formatCommentsOutput } from '../utils/commentFormatting.js';
 import { normalizeDiffViewMode } from '../utils/diffMode.js';
+import { resolveEditorOption } from '../utils/editorOptions.js';
 import { getFileExtension } from '../utils/fileUtils.js';
 
 import { FileWatcherService } from './file-watcher.js';
@@ -295,6 +297,87 @@ export async function startServer(
       res.send(output);
     } else {
       res.send('');
+    }
+  });
+
+  app.post('/api/open-in-editor', async (req, res) => {
+    if (options.stdinDiff) {
+      res.status(400).json({ error: 'Open in editor is not available for stdin diff' });
+      return;
+    }
+
+    const { filePath, line, editor } = (req.body ?? {}) as {
+      filePath?: unknown;
+      line?: unknown;
+      editor?: unknown;
+    };
+
+    if (typeof filePath !== 'string') {
+      res.status(400).json({ error: 'Invalid request payload' });
+      return;
+    }
+
+    const repoRoot = resolve(options.repoPath ?? process.cwd());
+    const resolvedPath = resolve(repoRoot, filePath);
+
+    if (resolvedPath !== repoRoot && !resolvedPath.startsWith(`${repoRoot}${sep}`)) {
+      res.status(400).json({ error: 'File path outside repository' });
+      return;
+    }
+
+    const editorInput =
+      typeof editor === 'string' ? editor : (process.env.DIFIT_EDITOR ?? process.env.EDITOR);
+    const resolvedEditor = resolveEditorOption(editorInput);
+    if (resolvedEditor.protocol === null) {
+      res.status(400).json({ error: 'Open in editor is disabled' });
+      return;
+    }
+
+    const lineNumber = (() => {
+      const parsed = Number.parseInt(String(line ?? ''), 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    })();
+
+    const tryOpenWithCli = async (): Promise<boolean> => {
+      if (!resolvedEditor.cliCommand) return false;
+      const args: string[] = [...resolvedEditor.cliArgs];
+      if (lineNumber !== null) {
+        args.push('-g', `${resolvedPath}:${lineNumber}`);
+      } else {
+        args.push(resolvedPath);
+      }
+      args.push(repoRoot);
+
+      return await new Promise<boolean>((resolvePromise) => {
+        const child = spawn(resolvedEditor.cliCommand, args, { stdio: 'ignore', detached: true });
+        child.once('error', (error) => {
+          const code = (error as NodeJS.ErrnoException).code;
+          if (code && code !== 'ENOENT') {
+            console.error('Failed to launch editor CLI:', error);
+          }
+          resolvePromise(false);
+        });
+        child.once('spawn', () => {
+          child.unref();
+          resolvePromise(true);
+        });
+      });
+    };
+
+    if (await tryOpenWithCli()) {
+      res.json({ success: true });
+      return;
+    }
+
+    const lineSuffix = lineNumber !== null ? `:${lineNumber}` : '';
+    const fileUri = `${resolvedEditor.protocol}://file${encodeURI(resolvedPath)}${lineSuffix}`;
+
+    try {
+      await open(fileUri);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to open file in editor:', error);
+      res.status(500).json({ error: 'Failed to open file in editor' });
     }
   });
 
