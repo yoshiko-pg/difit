@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.3] - 2026-02-04
+
+### Added
+
+- Jupyter notebook viewer (#192)
+- Open-in-editor actions in diff viewer (#196)
+- Persist sidebar width
+
+### Changed
+
+- Rename diff mode labels to split/unified (#195)
+- Update dependencies (#190 #191 #193 #194)
+
+### Fixed
+
+- Refine notebook diff preview rendering (#192)
+- Refine open-in-editor targeting (#196)
+- Address CodeQL alert (#196)
+
 ## [3.1.2] - 2026-02-01
 
 ### Added
@@ -813,7 +832,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.2...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.3...HEAD
+[3.1.3]: https://github.com/yoshiko-pg/difit/compare/v3.1.2...v3.1.3
 [3.1.2]: https://github.com/yoshiko-pg/difit/compare/v3.1.1...v3.1.2
 [3.1.1]: https://github.com/yoshiko-pg/difit/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/yoshiko-pg/difit/compare/v3.0.9...v3.1.0
