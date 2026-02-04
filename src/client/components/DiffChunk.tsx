@@ -10,6 +10,7 @@ import {
 } from '../../types/diff';
 import { DEFAULT_DIFF_VIEW_MODE } from '../../utils/diffMode';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
+import { getLanguageFromPath } from '../utils/diffUtils';
 import {
   computeWordLevelDiff,
   shouldComputeWordDiff,
@@ -126,14 +127,44 @@ export const DiffChunk = memo(function DiffChunk({
     setCommentingLine(null);
   }, []);
 
+  // Get the code content for the selected lines (for suggestion feature)
+  const getSelectedCodeContent = useCallback((): string => {
+    if (!commentingLine) return '';
+
+    const { side, lineNumber } = commentingLine;
+    const lines = chunk.lines;
+
+    if (typeof lineNumber === 'number') {
+      // Single line
+      const line = lines.find((l) =>
+        side === 'old' ? l.oldLineNumber === lineNumber : l.newLineNumber === lineNumber,
+      );
+      return line?.content?.replace(/^[+-]/, '') || '';
+    } else {
+      // Range of lines
+      const [start, end] = lineNumber;
+      const selectedLines = lines.filter((l) => {
+        const ln = side === 'old' ? l.oldLineNumber : l.newLineNumber;
+        return ln !== undefined && ln >= start && ln <= end;
+      });
+      return selectedLines.map((l) => l.content?.replace(/^[+-]/, '') || '').join('\n');
+    }
+  }, [commentingLine, chunk.lines]);
+
   const handleSubmitComment = useCallback(
     async (body: string) => {
       if (commentingLine !== null) {
-        await onAddComment(commentingLine.lineNumber, body, undefined, commentingLine.side);
+        const codeContent = getSelectedCodeContent();
+        await onAddComment(
+          commentingLine.lineNumber,
+          body,
+          codeContent || undefined,
+          commentingLine.side,
+        );
         setCommentingLine(null);
       }
     },
-    [commentingLine, onAddComment],
+    [commentingLine, onAddComment, getSelectedCodeContent],
   );
 
   const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
@@ -441,6 +472,8 @@ export const DiffChunk = memo(function DiffChunk({
                             <CommentForm
                               onSubmit={handleSubmitComment}
                               onCancel={handleCancelComment}
+                              selectedCode={getSelectedCodeContent()}
+                              language={filename ? getLanguageFromPath(filename) : undefined}
                             />
                           </div>
                         </div>
