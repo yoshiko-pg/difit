@@ -93,6 +93,15 @@ export interface DiffComment {
   };
 }
 
+// Suggestion block parsed from comment body (GitHub-style ```suggestion blocks)
+export interface SuggestionBlock {
+  originalCode: string; // Original code being suggested to replace
+  suggestedCode: string; // The suggested replacement code
+  language?: string; // Language for syntax highlighting
+  startIndex: number; // Start position in the comment body
+  endIndex: number; // End position in the comment body
+}
+
 export interface ViewedFileRecord {
   filePath: string;
   viewedAt: string; // ISO 8601 format
