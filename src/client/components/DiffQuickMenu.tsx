@@ -217,18 +217,8 @@ export function DiffQuickMenu({
         aria-expanded={isOpen}
         {...getReferenceProps()}
       >
-        <div
-          className={`flex items-center gap-1 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded transition-colors ${
-            isOpen || isCommitMenuOpen ?
-              'border-github-text-secondary'
-            : 'hover:border-github-text-secondary'
-          }`}
-        >
-          <code
-            className={`text-xs text-github-text-primary ${isOpen || isCommitMenuOpen ? 'max-w-none overflow-visible text-clip' : 'max-w-[220px] truncate'}`}
-          >
-            {currentLabel}
-          </code>
+        <div className="flex items-center gap-1 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
+          <code className="text-xs text-github-text-primary">{currentLabel}</code>
           <ChevronDown
             size={12}
             className="text-github-text-secondary group-hover:text-github-text-primary transition-colors"
