@@ -14,7 +14,7 @@ import {
   FloatingPortal,
   safePolygon,
 } from '@floating-ui/react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { type CommitInfo, type RevisionsResponse } from '../../types/diff';
@@ -110,8 +110,8 @@ export function DiffQuickMenu({
   } = useFloating({
     open: isCommitMenuOpen,
     onOpenChange: setIsCommitMenuOpen,
-    placement: 'right-start',
-    middleware: [offset({ mainAxis: 8, alignmentAxis: -4 }), flip(), shift({ padding: 8 })],
+    placement: 'left-start',
+    middleware: [offset(0), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   });
 
@@ -265,9 +265,9 @@ export function DiffQuickMenu({
                 disabled={options.commits.length === 0}
                 type="button"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ChevronLeft size={12} className="text-github-text-secondary" />
                   <span>Pick Commit...</span>
-                  <ChevronRight size={12} className="text-github-text-secondary" />
                 </div>
               </button>
             </div>
