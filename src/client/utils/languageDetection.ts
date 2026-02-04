@@ -1,5 +1,6 @@
 import { getFileExtension, getFileName } from '../../utils/fileUtils';
 
+// Diff metadata: use generic language names (e.g. tsx -> typescript) for snapshots/comments.
 const DIFF_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   js: 'javascript',
   mjs: 'javascript',
@@ -42,11 +43,7 @@ const DIFF_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   vim: 'vim',
 };
 
-const SIMPLE_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
-  ...DIFF_EXTENSION_LANGUAGE_MAP,
-  scss: 'css',
-};
-
+// Prism syntax highlighting: use Prism language IDs (e.g. tsx -> tsx, scss -> css).
 const PRISM_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   ts: 'typescript',
   tsx: 'tsx',
@@ -124,12 +121,6 @@ function getLanguageFromExtension(
 
 export function getLanguageFromPath(filePath: string): string | undefined {
   return getLanguageFromExtension(getFileExtension(filePath), DIFF_EXTENSION_LANGUAGE_MAP);
-}
-
-export function getSimpleLanguageFromFilename(filename: string): string {
-  return (
-    getLanguageFromExtension(getFileExtension(filename), SIMPLE_EXTENSION_LANGUAGE_MAP) || 'text'
-  );
 }
 
 export function getPrismLanguageFromFilename(filename: string): string {
