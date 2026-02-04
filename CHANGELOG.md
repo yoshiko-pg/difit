@@ -17,12 +17,6 @@ All notable changes to this project will be documented in this file.
 - Rename diff mode labels to split/unified (#195)
 - Update dependencies (#190 #191 #193 #194)
 
-### Fixed
-
-- Refine notebook diff preview rendering (#192)
-- Refine open-in-editor targeting (#196)
-- Address CodeQL alert (#196)
-
 ## [3.1.2] - 2026-02-01
 
 ### Added
@@ -30,11 +24,6 @@ All notable changes to this project will be documented in this file.
 - Markdown full preview support
 - Enhance markdown preview
 - Add markdown all-syntax sample
-
-### Fixed
-
-- Show non-rendered markdown blocks
-- Scope markdown code line display
 
 ## [3.1.1] - 2026-01-31
 
@@ -46,9 +35,6 @@ All notable changes to this project will be documented in this file.
 
 - Update Prettier trailing comma setting to `all`
 - make diff viewers pluggable
-
-### Fixed
-
 - Remove unnecessary chunk header props from comments
 
 ## [3.1.0] - 2026-01-31
