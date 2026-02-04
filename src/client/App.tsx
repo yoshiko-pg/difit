@@ -802,6 +802,7 @@ function App() {
                 isReloading={watchState.isReloading}
                 onReload={reload}
                 changeType={watchState.lastChangeType}
+                compact={isMobile}
               />
             </div>
             <div className="flex flex-wrap items-center gap-4 text-sm text-github-text-secondary">
