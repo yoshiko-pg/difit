@@ -101,18 +101,18 @@ git diff -- /dev/null path/to/file | difit
 
 ## ⚙️ CLI 옵션
 
-| 플래그                | 기본값       | 설명                                                              |
-| --------------------- | ------------ | ----------------------------------------------------------------- |
-| `<target>`            | HEAD         | 커밋 해시, 태그, HEAD~n, 브랜치 또는 특수 인수                    |
-| `[compare-with]`      | -            | 비교할 선택적 두 번째 커밋 (둘 사이의 diff 표시)                  |
-| `--pr <url>`          | -            | 검토할 GitHub PR URL (예: https://github.com/owner/repo/pull/123) |
-| `--port`              | 4966         | 선호 포트; 사용 중인 경우 +1로 대체                               |
-| `--host`              | 127.0.0.1    | 서버를 바인딩할 호스트 주소 (외부 액세스는 0.0.0.0 사용)          |
-| `--no-open`           | false        | 브라우저를 자동으로 열지 않음                                     |
-| `--mode`              | split | 표시 모드: `unified` 또는 `split`                           |
-| `--tui`               | false        | WebUI 대신 터미널 UI 모드 사용                                    |
-| `--clean`             | false        | 시작 시 모든 기존 코멘트와 열람된 파일 표시 초기화                |
-| `--include-untracked` | false        | diff에 untracked 파일 자동 포함 (`.` 또는 `working`에서만 유효)   |
+| 플래그                | 기본값    | 설명                                                              |
+| --------------------- | --------- | ----------------------------------------------------------------- |
+| `<target>`            | HEAD      | 커밋 해시, 태그, HEAD~n, 브랜치 또는 특수 인수                    |
+| `[compare-with]`      | -         | 비교할 선택적 두 번째 커밋 (둘 사이의 diff 표시)                  |
+| `--pr <url>`          | -         | 검토할 GitHub PR URL (예: https://github.com/owner/repo/pull/123) |
+| `--port`              | 4966      | 선호 포트; 사용 중인 경우 +1로 대체                               |
+| `--host`              | 127.0.0.1 | 서버를 바인딩할 호스트 주소 (외부 액세스는 0.0.0.0 사용)          |
+| `--no-open`           | false     | 브라우저를 자동으로 열지 않음                                     |
+| `--mode`              | split     | 표시 모드: `unified` 또는 `split`                                 |
+| `--tui`               | false     | WebUI 대신 터미널 UI 모드 사용                                    |
+| `--clean`             | false     | 시작 시 모든 기존 코멘트와 열람된 파일 표시 초기화                |
+| `--include-untracked` | false     | diff에 untracked 파일 자동 포함 (`.` 또는 `working`에서만 유효)   |
 
 ## 💬 코멘트 시스템
 

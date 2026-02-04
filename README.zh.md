@@ -101,18 +101,18 @@ git diff -- /dev/null path/to/file | difit
 
 ## ⚙️ CLI 选项
 
-| 标志                  | 默认值       | 描述                                                                   |
-| --------------------- | ------------ | ---------------------------------------------------------------------- |
-| `<target>`            | HEAD         | 提交哈希、标签、HEAD~n、分支或特殊参数                                 |
-| `[compare-with]`      | -            | 要比较的可选第二个提交（显示两者之间的差异）                           |
-| `--pr <url>`          | -            | 要审查的 GitHub PR URL（例如：https://github.com/owner/repo/pull/123） |
-| `--port`              | 4966         | 首选端口；如果被占用则回退到 +1                                        |
-| `--host`              | 127.0.0.1    | 绑定服务器的主机地址（使用 0.0.0.0 进行外部访问）                      |
-| `--no-open`           | false        | 不自动打开浏览器                                                       |
-| `--mode`              | split | 显示模式：`unified` 或 `split`                                   |
-| `--tui`               | false        | 使用终端 UI 模式而不是 WebUI                                           |
-| `--clean`             | false        | 启动时清除所有现有评论和已查看的文件                                   |
-| `--include-untracked` | false        | 自动将 untracked 文件包含在 diff 中（仅在 `.` 或 `working` 时有效）    |
+| 标志                  | 默认值    | 描述                                                                   |
+| --------------------- | --------- | ---------------------------------------------------------------------- |
+| `<target>`            | HEAD      | 提交哈希、标签、HEAD~n、分支或特殊参数                                 |
+| `[compare-with]`      | -         | 要比较的可选第二个提交（显示两者之间的差异）                           |
+| `--pr <url>`          | -         | 要审查的 GitHub PR URL（例如：https://github.com/owner/repo/pull/123） |
+| `--port`              | 4966      | 首选端口；如果被占用则回退到 +1                                        |
+| `--host`              | 127.0.0.1 | 绑定服务器的主机地址（使用 0.0.0.0 进行外部访问）                      |
+| `--no-open`           | false     | 不自动打开浏览器                                                       |
+| `--mode`              | split     | 显示模式：`unified` 或 `split`                                         |
+| `--tui`               | false     | 使用终端 UI 模式而不是 WebUI                                           |
+| `--clean`             | false     | 启动时清除所有现有评论和已查看的文件                                   |
+| `--include-untracked` | false     | 自动将 untracked 文件包含在 diff 中（仅在 `.` 或 `working` 时有效）    |
 
 ## 💬 评论系统
 
