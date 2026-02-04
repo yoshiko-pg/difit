@@ -1,3 +1,4 @@
+import { spawn } from 'child_process';
 import { type Server } from 'http';
 import { join, dirname, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
@@ -311,7 +312,7 @@ export async function startServer(
       editor?: unknown;
     };
 
-    if (typeof filePath !== 'string' || typeof line !== 'number' || !Number.isFinite(line)) {
+    if (typeof filePath !== 'string') {
       res.status(400).json({ error: 'Invalid request payload' });
       return;
     }
@@ -331,7 +332,45 @@ export async function startServer(
       res.status(400).json({ error: 'Open in editor is disabled' });
       return;
     }
-    const fileUri = `${resolvedEditor.protocol}://file${encodeURI(resolvedPath)}:${line}`;
+
+    const lineNumber = (() => {
+      const parsed = typeof line === 'number' ? line : Number.parseInt(String(line ?? ''), 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    })();
+
+    const tryOpenWithCli = async (): Promise<boolean> => {
+      if (!resolvedEditor.cliCommand) return false;
+      const args: string[] = [...resolvedEditor.cliArgs];
+      if (lineNumber !== null) {
+        args.push('-g', `${resolvedPath}:${lineNumber}`);
+      } else {
+        args.push(resolvedPath);
+      }
+      args.push(repoRoot);
+
+      return await new Promise<boolean>((resolvePromise) => {
+        const child = spawn(resolvedEditor.cliCommand, args, { stdio: 'ignore', detached: true });
+        child.once('error', (error) => {
+          const code = (error as NodeJS.ErrnoException).code;
+          if (code && code !== 'ENOENT') {
+            console.error('Failed to launch editor CLI:', error);
+          }
+          resolvePromise(false);
+        });
+        child.once('spawn', () => {
+          child.unref();
+          resolvePromise(true);
+        });
+      });
+    };
+
+    if (await tryOpenWithCli()) {
+      res.json({ success: true });
+      return;
+    }
+
+    const lineSuffix = lineNumber !== null ? `:${lineNumber}` : '';
+    const fileUri = `${resolvedEditor.protocol}://file${encodeURI(resolvedPath)}${lineSuffix}`;
 
     try {
       await open(fileUri);

@@ -1,10 +1,26 @@
 export const EDITOR_OPTIONS = [
-  { id: 'vscode', label: 'VS Code', protocol: 'vscode', aliases: ['vscode', 'code'] },
-  { id: 'cursor', label: 'Cursor', protocol: 'cursor', aliases: ['cursor'] },
+  {
+    id: 'vscode',
+    label: 'VS Code',
+    protocol: 'vscode',
+    cliCommand: 'code',
+    cliArgs: ['-r'],
+    aliases: ['vscode', 'code'],
+  },
+  {
+    id: 'cursor',
+    label: 'Cursor',
+    protocol: 'cursor',
+    cliCommand: 'cursor',
+    cliArgs: ['-r'],
+    aliases: ['cursor'],
+  },
   {
     id: 'none',
     label: 'Hide “Open in editor” button',
     protocol: null,
+    cliCommand: null,
+    cliArgs: [],
     aliases: ['none', 'disabled', 'off'],
   },
 ] as const;
