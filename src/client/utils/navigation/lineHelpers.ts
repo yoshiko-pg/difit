@@ -5,7 +5,7 @@ import type { CursorPosition } from '../../hooks/keyboardNavigation/types';
  * Gets the line type at a given position
  * Returns null if the position is invalid or has unsupported line type
  */
-export function getLineType(
+function getLineType(
   position: CursorPosition,
   files: DiffFile[],
 ): 'add' | 'delete' | 'normal' | null {

@@ -8,7 +8,7 @@ import type { CursorPosition } from '../../hooks/keyboardNavigation/types';
  * @param targetLineNumber The line number to find
  * @returns The cursor position including file, chunk, and line indices, or null if not found
  */
-export function findLinePosition(
+function findLinePosition(
   file: DiffFile,
   fileIndex: number,
   targetLineNumber: number,
