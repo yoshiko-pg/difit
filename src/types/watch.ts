@@ -6,22 +6,6 @@ export enum DiffMode {
   SPECIFIC = 'specific', // commit vs commit (no watching)
 }
 
-export interface FileWatchConfig {
-  watchPath: string;
-  diffMode: DiffMode;
-  ignore: string[];
-  debounceMs: number;
-  backend?: 'fs-events' | 'watchman' | 'windows' | 'linux';
-}
-
-export interface WatchEvent {
-  type: 'reload' | 'error' | 'connected';
-  diffMode: DiffMode;
-  changeType: 'file' | 'commit' | 'staging';
-  timestamp: string;
-  message?: string;
-}
-
 export interface ClientWatchState {
   isWatchEnabled: boolean;
   diffMode: DiffMode;
