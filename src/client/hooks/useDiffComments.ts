@@ -122,7 +122,12 @@ export function useDiffComments(
           comment.position.line
         : [comment.position.line.start, comment.position.line.end];
 
-      return formatCommentPrompt(comment.filePath, line, comment.body);
+      return formatCommentPrompt(
+        comment.filePath,
+        line,
+        comment.body,
+        comment.codeSnapshot?.content,
+      );
     },
     [comments],
   );

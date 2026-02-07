@@ -54,6 +54,39 @@ describe('commentFormatting', () => {
       const result = formatCommentPrompt('', 10, 'Comment body');
       expect(result).toBe('<unknown file>:L10\nComment body');
     });
+
+    it('should format suggestion block with ORIGINAL/SUGGESTED structure', () => {
+      const body = `\`\`\`suggestion
+const newCode = 42;
+\`\`\``;
+      const result = formatCommentPrompt('src/file.ts', 10, body, 'const oldCode = 1;');
+      expect(result).toContain('src/file.ts:L10');
+      expect(result).toContain('ORIGINAL:');
+      expect(result).toContain('const oldCode = 1;');
+      expect(result).toContain('SUGGESTED:');
+      expect(result).toContain('const newCode = 42;');
+    });
+
+    it('should format suggestion block with context text', () => {
+      const body = `Please refactor this:\n\`\`\`suggestion
+const better = true;
+\`\`\``;
+      const result = formatCommentPrompt('src/file.ts', 10, body, 'const old = false;');
+      expect(result).toContain('Please refactor this:');
+      expect(result).toContain('ORIGINAL:');
+      expect(result).toContain('SUGGESTED:');
+    });
+
+    it('should format suggestion block without codeContent', () => {
+      const body = `\`\`\`suggestion
+const newCode = 42;
+\`\`\``;
+      const result = formatCommentPrompt('src/file.ts', 10, body);
+      expect(result).toContain('src/file.ts:L10');
+      expect(result).not.toContain('ORIGINAL:');
+      expect(result).toContain('SUGGESTED:');
+      expect(result).toContain('const newCode = 42;');
+    });
   });
 
   describe('formatAllCommentsPrompt', () => {

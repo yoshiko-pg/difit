@@ -156,14 +156,44 @@ export function SideBySideDiffChunk({
     setCommentingLine(null);
   }, []);
 
+  // Get the code content for the selected lines (for suggestion feature)
+  const getSelectedCodeContent = useCallback((): string => {
+    if (!commentingLine) return '';
+
+    const { side, lineNumber } = commentingLine;
+    const lines = chunk.lines;
+
+    if (typeof lineNumber === 'number') {
+      // Single line
+      const line = lines.find((l) =>
+        side === 'old' ? l.oldLineNumber === lineNumber : l.newLineNumber === lineNumber,
+      );
+      return line?.content?.replace(/^[+-]/, '') || '';
+    } else {
+      // Range of lines
+      const [start, end] = lineNumber;
+      const selectedLines = lines.filter((l) => {
+        const ln = side === 'old' ? l.oldLineNumber : l.newLineNumber;
+        return ln !== undefined && ln >= start && ln <= end;
+      });
+      return selectedLines.map((l) => l.content?.replace(/^[+-]/, '') || '').join('\n');
+    }
+  }, [commentingLine, chunk.lines]);
+
   const handleSubmitComment = useCallback(
     async (body: string) => {
       if (commentingLine !== null) {
-        await onAddComment(commentingLine.lineNumber, body, undefined, commentingLine.side);
+        const codeContent = getSelectedCodeContent();
+        await onAddComment(
+          commentingLine.lineNumber,
+          body,
+          codeContent || undefined,
+          commentingLine.side,
+        );
         setCommentingLine(null);
       }
     },
-    [commentingLine, onAddComment],
+    [commentingLine, onAddComment, getSelectedCodeContent],
   );
 
   const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
@@ -390,7 +420,8 @@ export function SideBySideDiffChunk({
                   className="group cursor-pointer"
                   onClick={(e) => {
                     if (!isDragging) {
-                      const target = e.target as HTMLElement;
+                      const target = e.target;
+                      if (!(target instanceof HTMLElement)) return;
                       const isInOldSide =
                         target.closest('td:nth-child(1)') || target.closest('td:nth-child(2)');
                       const isInNewSide =
@@ -404,7 +435,8 @@ export function SideBySideDiffChunk({
                     }
                   }}
                   onMouseEnter={(e) => {
-                    const target = e.target as HTMLElement;
+                    const target = e.target;
+                    if (!(target instanceof HTMLElement)) return;
                     const isInOldSide =
                       target.closest('td:nth-child(1)') || target.closest('td:nth-child(2)');
                     const isInNewSide =
@@ -417,7 +449,8 @@ export function SideBySideDiffChunk({
                     }
                   }}
                   onMouseMove={(e) => {
-                    const target = e.target as HTMLElement;
+                    const target = e.target;
+                    if (!(target instanceof HTMLElement)) return;
                     const isInOldSide =
                       target.closest('td:nth-child(1)') || target.closest('td:nth-child(2)');
                     const isInNewSide =
@@ -679,6 +712,7 @@ export function SideBySideDiffChunk({
                             <CommentForm
                               onSubmit={handleSubmitComment}
                               onCancel={handleCancelComment}
+                              selectedCode={getSelectedCodeContent()}
                             />
                           </div>
                         </div>
