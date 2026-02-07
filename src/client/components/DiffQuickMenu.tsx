@@ -36,6 +36,28 @@ const SPECIAL_LABEL_OVERRIDES: Record<string, string> = {
   working: 'Working Directory',
 };
 
+const UNCOMMITTED_TARGETS = new Set(['.', 'staged', 'working']);
+
+export const getPreviousCommitPreset = (
+  targetRevision: string,
+): { base: string; target: string } => {
+  const target =
+    !targetRevision || UNCOMMITTED_TARGETS.has(targetRevision) ? 'HEAD' : `${targetRevision}^`;
+  return {
+    base: `${target}^`,
+    target,
+  };
+};
+
+const isPreviousPair = (baseRevision: string, targetRevision: string) => {
+  return Boolean(targetRevision) && baseRevision === `${targetRevision}^`;
+};
+
+const matchesCommitish = (value: string | undefined, commit: CommitInfo) => {
+  if (!value) return false;
+  return value === commit.shortHash || value === commit.hash;
+};
+
 const getCommitLabel = (commit: CommitInfo, withCaret: boolean) => {
   return withCaret ? `${commit.shortHash}^` : commit.shortHash;
 };
@@ -144,11 +166,12 @@ export function DiffQuickMenu({
   }, [isOpen]);
 
   const currentLabel = useMemo(() => {
+    const currentSelectionIsPreviousPair = isPreviousPair(baseRevision, targetRevision);
     const commitMatch = options.commits.find((commit) => {
-      const targetMatches = targetRevision === commit.shortHash || targetRevision === commit.hash;
-      const baseMatches =
-        baseRevision === `${commit.shortHash}^` || baseRevision === `${commit.hash}^`;
-      return targetMatches && baseMatches;
+      if (!currentSelectionIsPreviousPair) return false;
+      return (
+        matchesCommitish(targetRevision, commit) || matchesCommitish(resolvedTargetRevision, commit)
+      );
     });
 
     if (commitMatch) {
@@ -168,6 +191,10 @@ export function DiffQuickMenu({
   );
 
   const hasMainBranch = Boolean(mainBranch);
+  const previousCommitPreset = useMemo(
+    () => getPreviousCommitPreset(targetRevision),
+    [targetRevision],
+  );
 
   const handleSelect = (base: string, target: string) => {
     onSelectDiff(base, target);
@@ -205,10 +232,10 @@ export function DiffQuickMenu({
   };
 
   const isCommitActive = (commit: CommitInfo) => {
-    const targetMatches = targetRevision === commit.shortHash || targetRevision === commit.hash;
-    const baseMatches =
-      baseRevision === `${commit.shortHash}^` || baseRevision === `${commit.hash}^`;
-    return targetMatches && baseMatches;
+    if (!isPreviousPair(baseRevision, targetRevision)) return false;
+    return (
+      matchesCommitish(targetRevision, commit) || matchesCommitish(resolvedTargetRevision, commit)
+    );
   };
 
   return (
@@ -287,6 +314,19 @@ export function DiffQuickMenu({
                   </button>
                 </>
               )}
+            </div>
+
+            <div className="border-b border-github-border">
+              <button
+                onClick={() => handleSelect(previousCommitPreset.base, previousCommitPreset.target)}
+                className={getItemClasses(
+                  isPresetActive(previousCommitPreset.base, previousCommitPreset.target),
+                  false,
+                )}
+                type="button"
+              >
+                Previous commit
+              </button>
             </div>
 
             <div className="border-b border-github-border">
