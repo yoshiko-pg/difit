@@ -9,7 +9,6 @@ import {
   type LineSelection,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
-import { getLanguageFromPath } from '../utils/diffUtils';
 import {
   computeWordLevelDiff,
   shouldComputeWordDiff,
@@ -714,7 +713,6 @@ export function SideBySideDiffChunk({
                               onSubmit={handleSubmitComment}
                               onCancel={handleCancelComment}
                               selectedCode={getSelectedCodeContent()}
-                              language={filename ? getLanguageFromPath(filename) : undefined}
                             />
                           </div>
                         </div>

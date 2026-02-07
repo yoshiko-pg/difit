@@ -1,6 +1,6 @@
 import type { Comment } from '../types/diff';
 
-import { hasSuggestionBlock, extractFirstSuggestion } from './suggestionUtils.js';
+import { hasSuggestionBlock, parseSuggestionBlocks } from './suggestionUtils.js';
 
 export function formatCommentPrompt(
   file: string,
@@ -16,25 +16,35 @@ export function formatCommentPrompt(
   // Handle undefined or null file paths
   const filePath = file || '<unknown file>';
 
-  // Check if body contains a suggestion block
+  // Check if body contains suggestion blocks
   if (hasSuggestionBlock(body)) {
-    const suggestedCode = extractFirstSuggestion(body);
-    if (suggestedCode !== null) {
-      // Extract any text before/after the suggestion block as context
-      const textBeforeSuggestion = body.split('```suggestion')[0].trim();
-
+    const suggestions = parseSuggestionBlocks(body);
+    if (suggestions.length > 0) {
       let result = `${filePath}:${lineInfo}`;
 
-      // Add context comment if exists
-      if (textBeforeSuggestion) {
-        result += `\n${textBeforeSuggestion}`;
+      // Walk through body preserving text between suggestion blocks
+      let lastIndex = 0;
+      for (const suggestion of suggestions) {
+        // Add text before this suggestion block
+        const textBefore = body.slice(lastIndex, suggestion.startIndex).trim();
+        if (textBefore) {
+          result += `\n${textBefore}`;
+        }
+
+        // Add structured ORIGINAL/SUGGESTED format
+        if (codeContent) {
+          result += `\nORIGINAL:\n\`\`\`\n${codeContent}\n\`\`\``;
+        }
+        result += `\nSUGGESTED:\n\`\`\`\n${suggestion.suggestedCode}\n\`\`\``;
+
+        lastIndex = suggestion.endIndex;
       }
 
-      // Add structured ORIGINAL/SUGGESTED format
-      if (codeContent) {
-        result += `\nORIGINAL:\n\`\`\`\n${codeContent}\n\`\`\``;
+      // Add remaining text after the last suggestion block
+      const textAfter = body.slice(lastIndex).trim();
+      if (textAfter) {
+        result += `\n${textAfter}`;
       }
-      result += `\nSUGGESTED:\n\`\`\`\n${suggestedCode}\n\`\`\``;
 
       return result;
     }

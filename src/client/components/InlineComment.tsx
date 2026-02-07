@@ -4,7 +4,8 @@ import { useHotkeys } from 'react-hotkeys-hook';
 
 import { type Comment } from '../../types/diff';
 import { hasSuggestionBlock, parseSuggestionBlocks } from '../../utils/suggestionUtils';
-import { getLanguageFromPath } from '../utils/diffUtils';
+
+import { SuggestionDiffLine } from './SuggestionDiffLine';
 
 interface InlineCommentProps {
   comment: Comment;
@@ -15,24 +16,15 @@ interface InlineCommentProps {
 }
 
 // Component to render suggestion blocks with GitHub-style diff view
-function SuggestionBlockRenderer({
-  body,
-  language,
-  originalCode,
-}: {
-  body: string;
-  language?: string;
-  originalCode?: string;
-}) {
+function SuggestionBlockRenderer({ body, originalCode }: { body: string; originalCode?: string }) {
   const parts = useMemo(() => {
-    const suggestions = parseSuggestionBlocks(body, originalCode, language);
+    const suggestions = parseSuggestionBlocks(body);
     if (suggestions.length === 0) {
       return [{ type: 'text' as const, content: body }];
     }
 
     const result: Array<
-      | { type: 'text'; content: string }
-      | { type: 'suggestion'; code: string; original: string; language?: string }
+      { type: 'text'; content: string } | { type: 'suggestion'; code: string; original: string }
     > = [];
     let lastIndex = 0;
 
@@ -44,12 +36,11 @@ function SuggestionBlockRenderer({
           content: body.slice(lastIndex, suggestion.startIndex),
         });
       }
-      // Add the suggestion block with original code
+      // Add the suggestion block with original code from caller context
       result.push({
         type: 'suggestion',
         code: suggestion.suggestedCode,
         original: originalCode || '',
-        language: suggestion.language,
       });
       lastIndex = suggestion.endIndex;
     }
@@ -63,7 +54,7 @@ function SuggestionBlockRenderer({
     }
 
     return result;
-  }, [body, language, originalCode]);
+  }, [body, originalCode]);
 
   return (
     <div className="text-github-text-primary text-sm leading-6">
@@ -92,26 +83,16 @@ function SuggestionBlockRenderer({
             <div className="font-mono text-sm">
               {/* Original code (red/deletion) */}
               {part.original && (
-                <div className="bg-diff-deletion-bg border-l-4 border-red-500">
+                <div className="border-l-4 border-red-500">
                   {part.original.split('\n').map((line, lineIndex) => (
-                    <div key={`orig-${lineIndex}`} className="px-3 py-0.5 flex items-start">
-                      <span className="text-red-400 select-none mr-2 flex-shrink-0">-</span>
-                      <span className="text-github-text-primary whitespace-pre-wrap break-all">
-                        {line}
-                      </span>
-                    </div>
+                    <SuggestionDiffLine key={`orig-${lineIndex}`} line={line} type="delete" />
                   ))}
                 </div>
               )}
               {/* Suggested code (green/addition) */}
-              <div className="bg-diff-addition-bg border-l-4 border-green-500">
+              <div className="border-l-4 border-green-500">
                 {part.code.split('\n').map((line, lineIndex) => (
-                  <div key={`sugg-${lineIndex}`} className="px-3 py-0.5 flex items-start">
-                    <span className="text-green-400 select-none mr-2 flex-shrink-0">+</span>
-                    <span className="text-github-text-primary whitespace-pre-wrap break-all">
-                      {line}
-                    </span>
-                  </div>
+                  <SuggestionDiffLine key={`sugg-${lineIndex}`} line={line} type="add" />
                 ))}
               </div>
             </div>
@@ -268,11 +249,7 @@ export function InlineComment({
 
       {!isEditing ?
         hasSuggestionBlock(comment.body) ?
-          <SuggestionBlockRenderer
-            body={comment.body}
-            language={getLanguageFromPath(comment.file)}
-            originalCode={comment.codeContent}
-          />
+          <SuggestionBlockRenderer body={comment.body} originalCode={comment.codeContent} />
         : <div className="text-github-text-primary text-sm leading-6 whitespace-pre-wrap">
             {comment.body}
           </div>

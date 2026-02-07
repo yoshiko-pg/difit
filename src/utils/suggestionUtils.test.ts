@@ -4,8 +4,6 @@ import {
   hasSuggestionBlock,
   parseSuggestionBlocks,
   createSuggestionTemplate,
-  extractFirstSuggestion,
-  formatSuggestionForPrompt,
 } from './suggestionUtils';
 
 describe('suggestionUtils', () => {
@@ -97,23 +95,6 @@ function example() {
       expect(result[0].suggestedCode).toContain('return {');
       expect(result[0].suggestedCode).toContain('value: 42');
     });
-
-    it('should pass through originalCode and language', () => {
-      const body = `\`\`\`suggestion
-new code
-\`\`\``;
-      const result = parseSuggestionBlocks(body, 'old code', 'typescript');
-      expect(result[0].originalCode).toBe('old code');
-      expect(result[0].language).toBe('typescript');
-    });
-
-    it('should use empty string for originalCode when not provided', () => {
-      const body = `\`\`\`suggestion
-code
-\`\`\``;
-      const result = parseSuggestionBlocks(body);
-      expect(result[0].originalCode).toBe('');
-    });
   });
 
   describe('createSuggestionTemplate', () => {
@@ -138,66 +119,6 @@ code
     it('should handle empty code', () => {
       const result = createSuggestionTemplate('');
       expect(result).toBe('```suggestion\n\n```');
-    });
-  });
-
-  describe('extractFirstSuggestion', () => {
-    it('should extract the first suggestion from body', () => {
-      const body = `Comment with suggestions:
-\`\`\`suggestion
-first code
-\`\`\`
-\`\`\`suggestion
-second code
-\`\`\``;
-      const result = extractFirstSuggestion(body);
-      expect(result).toBe('first code');
-    });
-
-    it('should return null when no suggestions exist', () => {
-      const body = 'Regular comment without suggestions';
-      const result = extractFirstSuggestion(body);
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('formatSuggestionForPrompt', () => {
-    it('should format suggestion with single line number', () => {
-      const result = formatSuggestionForPrompt(
-        'src/Button.tsx',
-        42,
-        'const old = 1;',
-        'const new = 2;',
-      );
-      expect(result).toContain('src/Button.tsx:L42');
-      expect(result).toContain('ORIGINAL:');
-      expect(result).toContain('const old = 1;');
-      expect(result).toContain('SUGGESTED:');
-      expect(result).toContain('const new = 2;');
-    });
-
-    it('should format suggestion with line range', () => {
-      const result = formatSuggestionForPrompt(
-        'src/utils.ts',
-        [10, 20],
-        'original code',
-        'suggested code',
-      );
-      expect(result).toContain('src/utils.ts:L10-L20');
-      expect(result).toContain('original code');
-      expect(result).toContain('suggested code');
-    });
-
-    it('should handle multi-line code in both original and suggested', () => {
-      const originalCode = `function old() {
-  return 1;
-}`;
-      const suggestedCode = `function new() {
-  return 2;
-}`;
-      const result = formatSuggestionForPrompt('src/func.ts', [1, 3], originalCode, suggestedCode);
-      expect(result).toContain('function old()');
-      expect(result).toContain('function new()');
     });
   });
 });

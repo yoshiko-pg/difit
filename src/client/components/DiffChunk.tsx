@@ -10,7 +10,6 @@ import {
 } from '../../types/diff';
 import { DEFAULT_DIFF_VIEW_MODE } from '../../utils/diffMode';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
-import { getLanguageFromPath } from '../utils/diffUtils';
 import {
   computeWordLevelDiff,
   shouldComputeWordDiff,
@@ -473,7 +472,6 @@ export const DiffChunk = memo(function DiffChunk({
                               onSubmit={handleSubmitComment}
                               onCancel={handleCancelComment}
                               selectedCode={getSelectedCodeContent()}
-                              language={filename ? getLanguageFromPath(filename) : undefined}
                             />
                           </div>
                         </div>

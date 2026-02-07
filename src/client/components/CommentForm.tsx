@@ -7,10 +7,9 @@ interface CommentFormProps {
   onSubmit: (body: string) => Promise<void>;
   onCancel: () => void;
   selectedCode?: string;
-  language?: string;
 }
 
-export function CommentForm({ onSubmit, onCancel, selectedCode, language }: CommentFormProps) {
+export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormProps) {
   const [body, setBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -42,7 +41,7 @@ export function CommentForm({ onSubmit, onCancel, selectedCode, language }: Comm
   const handleAddSuggestion = () => {
     if (!selectedCode) return;
 
-    const template = createSuggestionTemplate(selectedCode, language);
+    const template = createSuggestionTemplate(selectedCode);
     const textarea = textareaRef.current;
 
     if (textarea) {
@@ -50,7 +49,12 @@ export function CommentForm({ onSubmit, onCancel, selectedCode, language }: Comm
       const end = textarea.selectionEnd;
       const before = body.slice(0, start);
       const after = body.slice(end);
-      const newBody = before + (before && !before.endsWith('\n') ? '\n' : '') + template + after;
+      const newBody =
+        before +
+        (before && !before.endsWith('\n') ? '\n' : '') +
+        template +
+        (after && !after.startsWith('\n') ? '\n' : '') +
+        after;
       setBody(newBody);
 
       // Move cursor to the suggested code for editing
