@@ -75,6 +75,7 @@ function App() {
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
   const collapsedInitializedRef = useRef(false);
+  const diffScrollContainerRef = useRef<HTMLElement | null>(null);
 
   // Revision selector state
   const [revisionOptions, setRevisionOptions] = useState<RevisionsResponse | null>(null);
@@ -158,6 +159,23 @@ function App() {
     }
   }, [viewedFiles]);
 
+  const scrollFileIntoDiffContainer = useCallback((filePath: string) => {
+    const scrollContainer = diffScrollContainerRef.current;
+    const target = document.getElementById(getFileElementId(filePath));
+    if (!scrollContainer || !target) {
+      return;
+    }
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const targetScrollTop = scrollContainer.scrollTop + (targetRect.top - containerRect.top);
+
+    scrollContainer.scrollTo({
+      top: Math.max(0, targetScrollTop),
+      behavior: 'smooth',
+    });
+  }, []);
+
   const toggleFileReviewed = useCallback(
     async (filePath: string) => {
       if (!diffData) return;
@@ -184,14 +202,11 @@ function App() {
       // When marking as reviewed (closing file), scroll to the file header
       if (!wasViewed) {
         setTimeout(() => {
-          const element = document.getElementById(getFileElementId(filePath));
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+          scrollFileIntoDiffContainer(filePath);
         }, 100);
       }
     },
-    [diffData, toggleFileViewed, viewedFiles],
+    [diffData, scrollFileIntoDiffContainer, toggleFileViewed, viewedFiles],
   );
 
   const toggleFileCollapsed = useCallback((filePath: string) => {
@@ -934,12 +949,7 @@ function App() {
               <div className="flex-1 overflow-y-auto">
                 <FileList
                   files={diffData.files}
-                  onScrollToFile={(filePath) => {
-                    const element = document.getElementById(getFileElementId(filePath));
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  }}
+                  onScrollToFile={scrollFileIntoDiffContainer}
                   comments={comments.map((c) => ({
                     id: c.id,
                     file: c.filePath,
@@ -992,7 +1002,10 @@ function App() {
             />
           )}
 
-          <main className={`flex-1 overflow-y-auto ${showMobileCommentsBar ? 'pb-16' : ''}`}>
+          <main
+            ref={diffScrollContainerRef}
+            className={`flex-1 overflow-y-auto ${showMobileCommentsBar ? 'pb-16' : ''}`}
+          >
             {diffData.files.map((file, fileIndex) => {
               const fileComments = commentsByFile.get(file.path) ?? EMPTY_COMMENTS;
               const mergedChunks = mergedChunksByFile.get(file.path) ?? EMPTY_MERGED_CHUNKS;
