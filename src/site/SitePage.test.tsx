@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 
-import { LandingPage } from './LandingPage';
+import { SitePage } from './SitePage';
 import type { StaticDiffDataset } from './types/staticDiff';
 
 const staticDataset: StaticDiffDataset = {
@@ -29,7 +29,7 @@ const staticDataset: StaticDiffDataset = {
   },
 };
 
-describe('LandingPage', () => {
+describe('SitePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -39,7 +39,7 @@ describe('LandingPage', () => {
   });
 
   it('renders the interactive difit iframe at the top', async () => {
-    render(<LandingPage />);
+    render(<SitePage />);
 
     await waitFor(() => {
       const frame = screen.getByTitle('difit live preview');
@@ -49,7 +49,7 @@ describe('LandingPage', () => {
   });
 
   it('shows a quick-start command', () => {
-    render(<LandingPage />);
+    render(<SitePage />);
 
     expect(screen.getByText('pnpm dlx difit HEAD')).toBeInTheDocument();
   });

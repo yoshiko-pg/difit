@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import type { StaticDiffDataset } from './types/staticDiff';
-import './styles/landing.css';
+import './styles/site.css';
 
 const features = [
   {
@@ -25,7 +25,7 @@ const quickStartSteps = [
   'Review, annotate, and export your prompts.',
 ];
 
-export function LandingPage() {
+export function SitePage() {
   const [dataset, setDataset] = useState<StaticDiffDataset | null>(null);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
 
@@ -34,7 +34,7 @@ export function LandingPage() {
 
     const load = async () => {
       try {
-        const response = await fetch('/landing-data/diffs.json');
+        const response = await fetch('/site-data/diffs.json');
         if (!response.ok) return;
 
         const data = (await response.json()) as StaticDiffDataset;
@@ -49,7 +49,7 @@ export function LandingPage() {
           '';
         setSelectedSnapshotId(initialSnapshot);
       } catch {
-        // Landing still works without snapshot metadata.
+        // Site page still works without snapshot metadata.
       }
     };
 
@@ -98,8 +98,13 @@ export function LandingPage() {
           backend API.
         </p>
         <div className="landing-cta-group">
-          <a className="landing-cta landing-cta-primary" href="/" target="_blank" rel="noreferrer">
-            Open full viewer
+          <a
+            className="landing-cta landing-cta-primary"
+            href="/app-static"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open static viewer
           </a>
           <a
             className="landing-cta landing-cta-secondary"
@@ -169,4 +174,4 @@ export function LandingPage() {
   );
 }
 
-export default LandingPage;
+export default SitePage;

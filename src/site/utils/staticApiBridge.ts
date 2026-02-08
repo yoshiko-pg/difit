@@ -2,7 +2,7 @@ import type { DiffResponse } from '../../types/diff';
 import { DiffMode } from '../../types/watch';
 import type { StaticDiffDataset } from '../types/staticDiff';
 
-const STATIC_DIFF_DATA_URL = '/landing-data/diffs.json';
+const STATIC_DIFF_DATA_URL = '/site-data/diffs.json';
 
 export interface StaticApiBridge {
   restore: () => void;

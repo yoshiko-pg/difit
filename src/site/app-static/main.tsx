@@ -2,8 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HotkeysProvider } from 'react-hotkeys-hook';
 
-import App from './App';
-import './styles/global.css';
+import '../../client/styles/global.css';
+import StaticDiffApp from '../StaticDiffApp';
 
 const rootElement = document.getElementById('root');
 
@@ -11,12 +11,12 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
-document.title = 'difit - Git Diff Viewer';
+document.title = 'difit - Static Diff Viewer';
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <HotkeysProvider initiallyActiveScopes={['navigation']}>
-      <App />
+      <StaticDiffApp />
     </HotkeysProvider>
   </React.StrictMode>,
 );

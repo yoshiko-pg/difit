@@ -100,7 +100,7 @@ describe('StaticDiffApp', () => {
     window.history.pushState({}, '', '/app-static');
     global.fetch = vi.fn((input: RequestInfo | URL) => {
       const target = String(input);
-      if (target.includes('/landing-data/diffs.json')) {
+      if (target.includes('/site-data/diffs.json')) {
         return Promise.resolve({
           ok: true,
           json: async () => staticDataset,

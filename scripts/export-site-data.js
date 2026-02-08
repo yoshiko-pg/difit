@@ -7,8 +7,11 @@ import { simpleGit } from 'simple-git';
 import { GitDiffParser } from '../dist/server/git-diff.js';
 
 const repoPath = process.cwd();
-const outputPath = resolve(repoPath, 'public/landing-data/diffs.json');
-const rawLimit = Number.parseInt(process.env.DIFIT_LANDING_HISTORY ?? '8', 10);
+const outputPath = resolve(repoPath, 'public/site-data/diffs.json');
+const rawLimit = Number.parseInt(
+  process.env.DIFIT_SITE_HISTORY ?? process.env.DIFIT_LANDING_HISTORY ?? '8',
+  10,
+);
 const historyLimit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 8;
 const historyScanLimit = Math.max(historyLimit * 4, historyLimit + 8);
 
@@ -94,11 +97,11 @@ async function main() {
   writeFileSync(outputPath, JSON.stringify(dataset, null, 2) + '\n', 'utf8');
 
   console.log(
-    `Exported ${dataset.revisions.length} static landing diffs to ${outputPath} (${dataset.generatedAt})`,
+    `Exported ${dataset.revisions.length} static site diffs to ${outputPath} (${dataset.generatedAt})`,
   );
 }
 
 main().catch((error) => {
-  console.error('Failed to export static landing diffs:', error);
+  console.error('Failed to export static site diffs:', error);
   process.exitCode = 1;
 });
