@@ -97,7 +97,7 @@ const staticDataset: StaticDiffDataset = {
 describe('StaticDiffApp', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.history.pushState({}, '', '/app-static');
+    window.history.pushState({}, '', '/preview');
     global.fetch = vi.fn((input: RequestInfo | URL) => {
       const target = String(input);
       if (target.includes('/site-data/diffs.json')) {
@@ -124,7 +124,7 @@ describe('StaticDiffApp', () => {
   });
 
   it('applies snapshot query and renders requested revision', async () => {
-    window.history.pushState({}, '', '/app-static?snapshot=2222222...3333333');
+    window.history.pushState({}, '', '/preview?snapshot=2222222...3333333');
     render(
       <HotkeysProvider initiallyActiveScopes={['navigation']}>
         <StaticDiffApp />

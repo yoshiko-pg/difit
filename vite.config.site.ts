@@ -15,8 +15,12 @@ const normalizeDevRoute = (url) => {
     return `/site/${suffix}`;
   }
 
+  if (pathname === '/preview') {
+    return `/preview/${suffix}`;
+  }
+
   if (pathname === '/app-static') {
-    return `/app-static/${suffix}`;
+    return `/preview/${suffix}`;
   }
 
   return null;
@@ -48,7 +52,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         site: resolve(__dirname, 'src/site/site/index.html'),
-        'app-static': resolve(__dirname, 'src/site/app-static/index.html'),
+        preview: resolve(__dirname, 'src/site/preview/index.html'),
       },
     },
   },

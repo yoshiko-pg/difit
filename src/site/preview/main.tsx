@@ -11,7 +11,7 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
-document.title = 'difit - Static Diff Viewer';
+document.title = 'difit - Preview';
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>

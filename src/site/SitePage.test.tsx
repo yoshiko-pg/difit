@@ -44,7 +44,7 @@ describe('SitePage', () => {
     await waitFor(() => {
       const frame = screen.getByTitle('difit live preview');
       expect(frame).toBeInTheDocument();
-      expect(frame).toHaveAttribute('src', '/app-static?snapshot=aaaaaaa...bbbbbbb');
+      expect(frame).toHaveAttribute('src', '/preview?snapshot=aaaaaaa...bbbbbbb');
     });
   });
 

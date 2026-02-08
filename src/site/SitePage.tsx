@@ -62,9 +62,9 @@ export function SitePage() {
 
   const iframeSrc = useMemo(() => {
     if (!selectedSnapshotId) {
-      return '/app-static';
+      return '/preview';
     }
-    return `/app-static?snapshot=${encodeURIComponent(selectedSnapshotId)}`;
+    return `/preview?snapshot=${encodeURIComponent(selectedSnapshotId)}`;
   }, [selectedSnapshotId]);
 
   const selectableRevisions = useMemo(
@@ -100,11 +100,11 @@ export function SitePage() {
         <div className="landing-cta-group">
           <a
             className="landing-cta landing-cta-primary"
-            href="/app-static"
+            href="/preview"
             target="_blank"
             rel="noreferrer"
           >
-            Open static viewer
+            Open preview
           </a>
           <a
             className="landing-cta landing-cta-secondary"
