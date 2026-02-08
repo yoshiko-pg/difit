@@ -4,6 +4,7 @@ import { HotkeysProvider } from 'react-hotkeys-hook';
 
 import App from './App';
 import LandingPage from './LandingPage';
+import StaticDiffApp from './StaticDiffApp';
 import './styles/global.css';
 
 const rootElement = document.getElementById('root');
@@ -13,10 +14,17 @@ if (!rootElement) {
 }
 
 const pathname = window.location.pathname;
-const isDiffViewerRoute = pathname === '/app' || pathname.startsWith('/app/');
-const RootComponent = isDiffViewerRoute ? App : LandingPage;
+const isDynamicDiffViewerRoute = pathname === '/app' || pathname.startsWith('/app/');
+const isStaticDiffViewerRoute = pathname === '/app-static' || pathname.startsWith('/app-static/');
+const RootComponent =
+  isDynamicDiffViewerRoute ? App
+  : isStaticDiffViewerRoute ? StaticDiffApp
+  : LandingPage;
 
-document.title = isDiffViewerRoute ? 'difit - Git Diff Viewer' : 'difit - Interactive Landing';
+document.title =
+  isDynamicDiffViewerRoute ? 'difit - Git Diff Viewer'
+  : isStaticDiffViewerRoute ? 'difit - Static Diff Viewer'
+  : 'difit - Interactive Landing';
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>

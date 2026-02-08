@@ -38,8 +38,9 @@
   "scripts": {
     "dev": "node scripts/dev.js",
     "dev:cli": "tsc --project tsconfig.cli.json && NODE_ENV=development node dist/cli/index.js",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && node scripts/export-landing-data.js && vite build",
     "build:cli": "tsc --project tsconfig.cli.json",
+    "export:landing-data": "node scripts/export-landing-data.js",
     "package:vscode": "pnpm -C packages/vscode run package",
     "start": "pnpm run build && node dist/cli/index.js",
     "check": "oxlint . --type-aware --type-check --deny-warnings --report-unused-disable-directives",

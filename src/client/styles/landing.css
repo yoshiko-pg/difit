@@ -154,6 +154,7 @@
 .landing-demo-head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.55rem;
   padding: 0.6rem 0.8rem;
   border-bottom: 1px solid rgb(148 163 184 / 26%);
@@ -172,6 +173,25 @@
 .landing-demo-title {
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.landing-snapshot-selector {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+}
+
+.landing-snapshot-selector select {
+  max-width: min(460px, 72vw);
+  padding: 0.28rem 0.45rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgb(148 163 184 / 40%);
+  background: rgb(15 23 42 / 72%);
+  color: #e2e8f0;
+  font-size: 0.74rem;
 }
 
 .landing-demo-frame {

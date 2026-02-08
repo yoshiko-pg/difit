@@ -1,3 +1,6 @@
+import { useEffect, useMemo, useState } from 'react';
+
+import type { StaticDiffDataset } from './types/staticDiff';
 import './styles/landing.css';
 
 const features = [
@@ -23,6 +26,52 @@ const quickStartSteps = [
 ];
 
 export function LandingPage() {
+  const [dataset, setDataset] = useState<StaticDiffDataset | null>(null);
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const response = await fetch('/landing-data/diffs.json');
+        if (!response.ok) return;
+
+        const data = (await response.json()) as StaticDiffDataset;
+        if (cancelled) return;
+
+        setDataset(data);
+        const initialSnapshot =
+          (data.initialRevisionId &&
+            data.diffs[data.initialRevisionId] &&
+            data.initialRevisionId) ||
+          data.revisions.find((revision) => data.diffs[revision.id])?.id ||
+          '';
+        setSelectedSnapshotId(initialSnapshot);
+      } catch {
+        // Landing still works without snapshot metadata.
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const iframeSrc = useMemo(() => {
+    if (!selectedSnapshotId) {
+      return '/app-static';
+    }
+    return `/app-static?snapshot=${encodeURIComponent(selectedSnapshotId)}`;
+  }, [selectedSnapshotId]);
+
+  const selectableRevisions = useMemo(
+    () => dataset?.revisions.filter((revision) => dataset.diffs[revision.id]) ?? [],
+    [dataset],
+  );
+
   return (
     <main className="landing-page">
       <div className="landing-orb landing-orb-left" aria-hidden />
@@ -41,16 +90,17 @@ export function LandingPage() {
       </header>
 
       <section className="landing-hero">
-        <p className="landing-kicker">One-page landing with a live difit embed</p>
+        <p className="landing-kicker">One-page landing with a static difit embed</p>
         <h1 className="landing-title">Review difit by using difit itself.</h1>
         <p className="landing-description">
-          The panel below is a real, interactive difit session. It shows this repository&apos;s Git
-          history, so visitors can inspect difit while using the actual product.
+          The panel below is a static-exported difit session generated at build time. It ships with
+          commit snapshots from this repository, so anyone can browse diffs safely without a live
+          backend API.
         </p>
         <div className="landing-cta-group">
           <a
             className="landing-cta landing-cta-primary"
-            href="/app"
+            href="/app-static"
             target="_blank"
             rel="noreferrer"
           >
@@ -70,11 +120,26 @@ export function LandingPage() {
       <section className="landing-demo" aria-label="live difit demo">
         <div className="landing-demo-head">
           <span className="landing-demo-dot" />
-          <span className="landing-demo-title">Live difit / current repo history</span>
+          <span className="landing-demo-title">Static difit snapshot / commit history</span>
+          {selectableRevisions.length > 0 && (
+            <label className="landing-snapshot-selector">
+              <span>Snapshot:</span>
+              <select
+                value={selectedSnapshotId}
+                onChange={(event) => setSelectedSnapshotId(event.target.value)}
+              >
+                {selectableRevisions.map((revision) => (
+                  <option key={revision.id} value={revision.id}>
+                    {revision.targetShortHash} {revision.message}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
         <iframe
           className="landing-demo-frame"
-          src="/app"
+          src={iframeSrc}
           title="difit live preview"
           loading="eager"
         />
