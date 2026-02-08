@@ -9,7 +9,6 @@ dist/
 build/
 *.tsbuildinfo
 public/site-data/diffs.json
-public/landing-data/diffs.json
 
 # Environment variables
 .env

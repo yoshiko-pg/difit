@@ -8,10 +8,7 @@ import { GitDiffParser } from '../dist/server/git-diff.js';
 
 const repoPath = process.cwd();
 const outputPath = resolve(repoPath, 'public/site-data/diffs.json');
-const rawLimit = Number.parseInt(
-  process.env.DIFIT_SITE_HISTORY ?? process.env.DIFIT_LANDING_HISTORY ?? '8',
-  10,
-);
+const rawLimit = Number.parseInt(process.env.DIFIT_SITE_HISTORY ?? '8', 10);
 const historyLimit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 8;
 const historyScanLimit = Math.max(historyLimit * 4, historyLimit + 8);
 

@@ -11,8 +11,6 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
-document.title = 'difit - Git Diff Viewer';
-
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <HotkeysProvider initiallyActiveScopes={['navigation']}>

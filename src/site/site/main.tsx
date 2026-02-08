@@ -9,8 +9,6 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
-document.title = 'difit - Interactive Site';
-
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <SitePage />

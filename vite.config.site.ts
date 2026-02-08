@@ -19,10 +19,6 @@ const normalizeDevRoute = (url) => {
     return `/preview/${suffix}`;
   }
 
-  if (pathname === '/app-static') {
-    return `/preview/${suffix}`;
-  }
-
   return null;
 };
 
@@ -67,6 +63,6 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
-    port: 5174,
+    port: 3000,
   },
 });

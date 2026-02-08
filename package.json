@@ -37,7 +37,7 @@
   },
   "scripts": {
     "dev": "node scripts/dev.js",
-    "dev:site": "pnpm run build:cli && node scripts/export-site-data.js && vite --config vite.config.site.ts --open /site",
+    "dev:site": "pnpm run build:cli && node scripts/export-site-data.js && vite --config vite.config.site.ts --open /",
     "dev:cli": "tsc --project tsconfig.cli.json && NODE_ENV=development node dist/cli/index.js",
     "build": "pnpm run build:cli && vite build",
     "build:site": "pnpm run build:cli && node scripts/export-site-data.js && vite build --config vite.config.site.ts",
