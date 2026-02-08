@@ -2,9 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HotkeysProvider } from 'react-hotkeys-hook';
 
+import LandingPage from '../site/LandingPage';
+import StaticDiffApp from '../site/StaticDiffApp';
+
 import App from './App';
-import LandingPage from './LandingPage';
-import StaticDiffApp from './StaticDiffApp';
 import './styles/global.css';
 
 const rootElement = document.getElementById('root');
@@ -14,17 +15,17 @@ if (!rootElement) {
 }
 
 const pathname = window.location.pathname;
-const isDynamicDiffViewerRoute = pathname === '/app' || pathname.startsWith('/app/');
+const isLandingRoute = pathname === '/site' || pathname.startsWith('/site/');
 const isStaticDiffViewerRoute = pathname === '/app-static' || pathname.startsWith('/app-static/');
 const RootComponent =
-  isDynamicDiffViewerRoute ? App
+  isLandingRoute ? LandingPage
   : isStaticDiffViewerRoute ? StaticDiffApp
-  : LandingPage;
+  : App;
 
 document.title =
-  isDynamicDiffViewerRoute ? 'difit - Git Diff Viewer'
+  isLandingRoute ? 'difit - Interactive Landing'
   : isStaticDiffViewerRoute ? 'difit - Static Diff Viewer'
-  : 'difit - Interactive Landing';
+  : 'difit - Git Diff Viewer';
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import App from './App';
+import App from '../client/App';
+
 import {
   installStaticApiBridge,
   loadStaticDataset,

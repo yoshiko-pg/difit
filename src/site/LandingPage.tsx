@@ -98,12 +98,7 @@ export function LandingPage() {
           backend API.
         </p>
         <div className="landing-cta-group">
-          <a
-            className="landing-cta landing-cta-primary"
-            href="/app-static"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a className="landing-cta landing-cta-primary" href="/" target="_blank" rel="noreferrer">
             Open full viewer
           </a>
           <a
