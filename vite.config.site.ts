@@ -3,8 +3,43 @@ import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+const normalizeDevRoute = (url) => {
+  const [pathname, query = ''] = url.split('?', 2);
+  const suffix = query ? `?${query}` : '';
+
+  if (pathname === '/') {
+    return `/site/${suffix}`;
+  }
+
+  if (pathname === '/site') {
+    return `/site/${suffix}`;
+  }
+
+  if (pathname === '/app-static') {
+    return `/app-static/${suffix}`;
+  }
+
+  return null;
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'site-dev-route-normalizer',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url) {
+            const normalized = normalizeDevRoute(req.url);
+            if (normalized) {
+              req.url = normalized;
+            }
+          }
+          next();
+        });
+      },
+    },
+  ],
   root: 'src/site',
   publicDir: '../../public',
   build: {
@@ -27,6 +62,7 @@ export default defineConfig({
     postcss: './postcss.config.js',
   },
   server: {
+    host: '127.0.0.1',
     port: 5174,
   },
 });
