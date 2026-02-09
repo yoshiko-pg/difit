@@ -19,6 +19,8 @@ type PreviewBlock = {
   lines: string[];
 };
 
+const isFetchableRef = (ref?: string) => Boolean(ref && ref !== 'stdin');
+
 const headingStyles = [
   'text-[26px] font-semibold',
   'text-[22px] font-semibold',
@@ -332,11 +334,7 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   );
 
   useEffect(() => {
-    if (mode !== 'full-preview') {
-      return;
-    }
-
-    if (!previewSource || !previewSourceKey) {
+    if (!previewSource || !previewSourceKey || !isFetchableRef(previewSource.ref)) {
       setFullContent(null);
       setLoadedSourceKey(null);
       setPreviewError(null);
@@ -378,14 +376,25 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
       }
     };
 
-    if (previewSourceKey !== loadedSourceKey || !fullContent) {
+    if (previewSourceKey !== loadedSourceKey || fullContent === null) {
       void fetchContent();
     }
 
     return () => {
       isCanceled = true;
     };
-  }, [fullContent, loadedSourceKey, mode, previewSource, previewSourceKey]);
+  }, [fullContent, loadedSourceKey, previewSource, previewSourceKey]);
+
+  const hasFullPreview = useMemo(
+    () => previewSourceKey === loadedSourceKey && fullContent !== null,
+    [fullContent, loadedSourceKey, previewSourceKey],
+  );
+
+  useEffect(() => {
+    if (mode === 'full-preview' && !hasFullPreview) {
+      setMode('diff-preview');
+    }
+  }, [hasFullPreview, mode]);
 
   return (
     <div className="bg-github-bg-primary">
@@ -415,18 +424,20 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             <Eye size={14} />
             Diff Preview
           </button>
-          <button
-            onClick={() => setMode('full-preview')}
-            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'full-preview' ?
-                'text-github-text-primary'
-              : 'text-github-text-secondary hover:text-github-text-primary'
-            }`}
-            title="Full Preview"
-          >
-            <Eye size={14} />
-            Full Preview
-          </button>
+          {hasFullPreview && (
+            <button
+              onClick={() => setMode('full-preview')}
+              className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
+                mode === 'full-preview' ?
+                  'text-github-text-primary'
+                : 'text-github-text-secondary hover:text-github-text-primary'
+              }`}
+              title="Full Preview"
+            >
+              <Eye size={14} />
+              Full Preview
+            </button>
+          )}
         </div>
       </div>
 
@@ -444,10 +455,10 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
           )}
           {previewError && <div className="text-sm text-github-danger mb-3">{previewError}</div>}
-          {!isPreviewLoading && !previewError && fullContent && (
+          {!isPreviewLoading && !previewError && fullContent !== null && (
             <MarkdownFullPreview content={fullContent} syntaxTheme={syntaxTheme} />
           )}
-          {!isPreviewLoading && !previewError && !fullContent && (
+          {!isPreviewLoading && !previewError && fullContent === null && (
             <div className="text-sm text-github-text-muted">Preview unavailable.</div>
           )}
         </div>
