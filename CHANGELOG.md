@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.6] - 2026-02-09
+
+### Added
+
+- Add previous commit quick preset
+
+### Changed
+
+- Update dependencies (#201 #203)
+
+### Fixed
+
+- Keep iframe scroll changes inside diff container
+- Prefetch markdown full preview before showing tab
+
 ## [3.1.5] - 2026-02-05
 
 ### Added
@@ -834,7 +849,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.5...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.6...HEAD
+[3.1.6]: https://github.com/yoshiko-pg/difit/compare/v3.1.5...v3.1.6
 [3.1.5]: https://github.com/yoshiko-pg/difit/compare/v3.1.4...v3.1.5
 [3.1.4]: https://github.com/yoshiko-pg/difit/compare/v3.1.3...v3.1.4
 [3.1.3]: https://github.com/yoshiko-pg/difit/compare/v3.1.2...v3.1.3
