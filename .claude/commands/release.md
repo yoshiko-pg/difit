@@ -16,7 +16,7 @@ Use the script output to categorize changes:
 
 When processing commits:
 1. Use the GitHub username from script output (not git commit author names)
-2. Only include contributors in Thanks section (exclude yoshiko-pg as that's the maintainer)
+2. Only include contributors in Thanks section (exclude yoshiko-pg as that's the maintainer, and exclude renovate[bot])
 3. Include PR numbers when available
 4. Use commit subject and body to properly categorize changes
 
