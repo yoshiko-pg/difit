@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.7] - 2026-02-11
+
+### Changed
+
+- Update dependencies (#205 #206)
+- Default markdown and notebook view to code diff
+
 ## [3.1.6] - 2026-02-09
 
 ### Added
@@ -849,7 +856,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.6...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.7...HEAD
+[3.1.7]: https://github.com/yoshiko-pg/difit/compare/v3.1.6...v3.1.7
 [3.1.6]: https://github.com/yoshiko-pg/difit/compare/v3.1.5...v3.1.6
 [3.1.5]: https://github.com/yoshiko-pg/difit/compare/v3.1.4...v3.1.5
 [3.1.4]: https://github.com/yoshiko-pg/difit/compare/v3.1.3...v3.1.4
