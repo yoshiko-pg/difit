@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DiffFile } from '../../types/diff';
+import { WordHighlightProvider } from '../contexts/WordHighlightContext';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
 import { MarkdownDiffViewer } from './MarkdownDiffViewer';
@@ -47,6 +48,13 @@ const createProps = (overrides: Partial<DiffViewerBodyProps> = {}): DiffViewerBo
   ...overrides,
 });
 
+const renderViewer = (overrides: Partial<DiffViewerBodyProps> = {}) =>
+  render(
+    <WordHighlightProvider>
+      <MarkdownDiffViewer {...createProps(overrides)} />
+    </WordHighlightProvider>,
+  );
+
 describe('MarkdownDiffViewer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -58,7 +66,7 @@ describe('MarkdownDiffViewer', () => {
       text: async () => '# Prefetched title',
     });
 
-    render(<MarkdownDiffViewer {...createProps()} />);
+    renderViewer();
 
     expect(screen.queryByRole('button', { name: 'Full Preview' })).not.toBeInTheDocument();
 
@@ -76,7 +84,7 @@ describe('MarkdownDiffViewer', () => {
       text: async () => '',
     });
 
-    render(<MarkdownDiffViewer {...createProps()} />);
+    renderViewer();
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -91,7 +99,7 @@ describe('MarkdownDiffViewer', () => {
       text: async () => '# Prefetched title',
     });
 
-    render(<MarkdownDiffViewer {...createProps()} />);
+    renderViewer();
 
     const fullPreviewButton = await screen.findByRole('button', {
       name: 'Full Preview',
