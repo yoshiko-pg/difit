@@ -3,14 +3,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import type { DiffLine } from '../../types/diff';
+import type { DiffLine, PreviewMode } from '../../types/diff';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
 import { TextDiffViewer } from './TextDiffViewer';
 import type { DiffViewerBodyProps } from './types';
-
-type PreviewMode = 'diff' | 'diff-preview' | 'full-preview';
 
 type PreviewBlockType = 'add' | 'delete' | 'change' | 'context';
 
@@ -304,7 +302,7 @@ const MarkdownFullPreview = ({
 
 export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   const { file, baseCommitish, targetCommitish, mergedChunks, syntaxTheme } = props;
-  const [mode, setMode] = useState<PreviewMode>('diff-preview');
+  const [mode, setMode] = useState<PreviewMode>(props.previewMode);
   const [fullContent, setFullContent] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);

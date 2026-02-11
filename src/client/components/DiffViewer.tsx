@@ -6,6 +6,7 @@ import {
   type DiffSide,
   type Comment,
   type LineNumber,
+  type PreviewMode,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import { type MergedChunk } from '../hooks/useExpandedLines';
@@ -62,6 +63,7 @@ interface DiffViewerProps {
   ) => void;
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
+  previewMode: PreviewMode;
 }
 
 type LineRange = { start: number; end: number };
@@ -190,6 +192,7 @@ export const DiffViewer = memo(function DiffViewer({
   expandAllBetweenChunks,
   prefetchFileContent,
   isExpandLoading,
+  previewMode,
 }: DiffViewerProps) {
   const isCollapsed = collapsedFiles.has(file.path);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -324,6 +327,7 @@ export const DiffViewer = memo(function DiffViewer({
     onLineClick,
     commentTrigger,
     onCommentTriggerHandled,
+    previewMode,
   };
 
   return (

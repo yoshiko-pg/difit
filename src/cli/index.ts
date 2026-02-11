@@ -6,9 +6,14 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 
 import pkg from '../../package.json' with { type: 'json' };
 import { startServer } from '../server/server.js';
-import { type DiffViewMode } from '../types/diff.js';
+import { type DiffViewMode, type PreviewMode } from '../types/diff.js';
 import { DiffMode } from '../types/watch.js';
-import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
+import {
+  DEFAULT_DIFF_VIEW_MODE,
+  DEFAULT_PREVIEW_MODE,
+  normalizeDiffViewMode,
+  normalizePreviewMode,
+} from '../utils/diffMode.js';
 
 import {
   findUntrackedFiles,
@@ -52,6 +57,7 @@ interface CliOptions {
   host?: string;
   open: boolean;
   mode: DiffViewMode;
+  previewMode: PreviewMode;
   tui?: boolean;
   pr?: string;
   clean?: boolean;
@@ -82,6 +88,12 @@ program
     normalizeDiffViewMode,
     DEFAULT_DIFF_VIEW_MODE,
   )
+  .option(
+    '--preview-mode <mode>',
+    'default preview mode for markdown/notebook files (diff, diff-preview, full-preview)',
+    normalizePreviewMode,
+    DEFAULT_PREVIEW_MODE,
+  )
   .option('--tui', 'use terminal UI instead of web interface')
   .option('--pr <url>', 'GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)')
   .option('--clean', 'start with a clean slate by clearing all existing comments')
@@ -106,6 +118,7 @@ program
           host: options.host,
           openBrowser: options.open,
           mode: options.mode,
+          previewMode: options.previewMode,
           clearComments: options.clean,
         });
 
@@ -210,6 +223,7 @@ program
         host: options.host,
         openBrowser: options.open,
         mode: options.mode,
+        previewMode: options.previewMode,
         clearComments: options.clean,
         diffMode,
         repoPath,

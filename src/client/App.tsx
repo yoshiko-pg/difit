@@ -7,9 +7,14 @@ import {
   type DiffSide,
   type LineNumber,
   type Comment,
+  type PreviewMode,
   type RevisionsResponse,
 } from '../types/diff';
-import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode';
+import {
+  DEFAULT_DIFF_VIEW_MODE,
+  DEFAULT_PREVIEW_MODE,
+  normalizeDiffViewMode,
+} from '../utils/diffMode';
 
 import { Checkbox } from './components/Checkbox';
 import { CommentsDropdown } from './components/CommentsDropdown';
@@ -61,6 +66,7 @@ function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
   const [diffMode, setDiffMode] = useState<DiffViewMode>(DEFAULT_DIFF_VIEW_MODE);
   const hasUserSetDiffModeRef = useRef(false);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>(DEFAULT_PREVIEW_MODE);
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -418,6 +424,10 @@ function App() {
         // Set diff mode from server response if provided
         if (data.mode && !hasUserSetDiffModeRef.current) {
           setDiffMode(normalizeDiffViewMode(data.mode));
+        }
+
+        if (data.previewMode) {
+          setPreviewMode(data.previewMode);
         }
 
         // Lock files are now automatically marked as viewed by useViewedFiles hook
@@ -1038,6 +1048,7 @@ function App() {
                     expandAllBetweenChunks={expandAllBetweenChunks}
                     prefetchFileContent={prefetchFileContent}
                     isExpandLoading={isExpandLoading}
+                    previewMode={previewMode}
                   />
                 </div>
               );

@@ -38,6 +38,7 @@ export interface ParsedDiff {
 
 export type DiffViewMode = 'split' | 'unified';
 export type LegacyDiffViewMode = 'side-by-side' | 'inline';
+export type PreviewMode = 'diff' | 'diff-preview' | 'full-preview';
 export type DiffSide = 'old' | 'new';
 
 export interface DiffResponse {
@@ -52,6 +53,7 @@ export interface DiffResponse {
   requestedTargetCommitish?: string;
   clearComments?: boolean;
   repositoryId?: string;
+  previewMode?: PreviewMode;
 }
 
 export type LineNumber = number | [number, number];

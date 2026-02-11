@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 import { type DiffMode } from '../types/watch.js';
 import { formatCommentsOutput } from '../utils/commentFormatting.js';
-import { normalizeDiffViewMode } from '../utils/diffMode.js';
+import { normalizeDiffViewMode, normalizePreviewMode } from '../utils/diffMode.js';
 import { resolveEditorOption } from '../utils/editorOptions.js';
 import { getFileExtension } from '../utils/fileUtils.js';
 
@@ -27,6 +27,7 @@ interface ServerOptions {
   host?: string;
   openBrowser?: boolean;
   mode?: string;
+  previewMode?: string;
   ignoreWhitespace?: boolean;
   clearComments?: boolean;
   diffMode?: DiffMode;
@@ -43,6 +44,7 @@ export async function startServer(
   let diffDataCache: DiffResponse | null = null;
   let currentIgnoreWhitespace = options.ignoreWhitespace || false;
   const diffMode = normalizeDiffViewMode(options.mode);
+  const previewMode = normalizePreviewMode(options.previewMode);
 
   app.use(express.json());
   app.use(express.text()); // For sendBeacon text/plain requests
@@ -153,6 +155,7 @@ export async function startServer(
       requestedTargetCommitish,
       clearComments: options.clearComments,
       repositoryId,
+      previewMode,
     });
   });
 

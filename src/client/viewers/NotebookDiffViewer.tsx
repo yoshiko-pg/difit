@@ -4,15 +4,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import type { DiffLine } from '../../types/diff';
+import type { DiffLine, PreviewMode } from '../../types/diff';
 import { EnhancedPrismSyntaxHighlighter } from '../components/EnhancedPrismSyntaxHighlighter';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
 import { TextDiffViewer } from './TextDiffViewer';
 import type { DiffViewerBodyProps } from './types';
-
-type PreviewMode = 'diff' | 'diff-preview' | 'full-preview';
 
 type PreviewLineType = 'add' | 'delete' | 'context';
 
@@ -961,7 +959,7 @@ const NotebookFullPreview = ({
 
 export function NotebookDiffViewer(props: DiffViewerBodyProps) {
   const { file, baseCommitish, targetCommitish } = props;
-  const [mode, setMode] = useState<PreviewMode>('diff-preview');
+  const [mode, setMode] = useState<PreviewMode>(props.previewMode);
   const fallbackPreview = useMemo(
     () => buildNotebookCellsFromDiff(props.mergedChunks),
     [props.mergedChunks],

@@ -3,7 +3,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { DiffMode } from '../types/watch.js';
-import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
+import {
+  DEFAULT_DIFF_VIEW_MODE,
+  DEFAULT_PREVIEW_MODE,
+  normalizeDiffViewMode,
+  normalizePreviewMode,
+} from '../utils/diffMode.js';
 
 // Mock all external dependencies
 vi.mock('simple-git');
@@ -842,6 +847,80 @@ describe('CLI index.ts', () => {
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: 'split',
+        }),
+      );
+    });
+  });
+
+  describe('Server preview-mode option handling', () => {
+    it('passes previewMode option to startServer', async () => {
+      mockFindUntrackedFiles.mockResolvedValue([]);
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--preview-mode <mode>', 'preview-mode', normalizePreviewMode, DEFAULT_PREVIEW_MODE)
+        .option('--tui', 'tui')
+        .option('--pr <url>', 'pr')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          await startServer({
+            targetCommitish: commitish,
+            baseCommitish: commitish + '^',
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            previewMode: options.previewMode,
+          });
+        });
+
+      await program.parseAsync(['--preview-mode', 'diff'], { from: 'user' });
+
+      expect(mockStartServer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previewMode: 'diff',
+        }),
+      );
+    });
+
+    it('uses default preview-mode when not specified', async () => {
+      mockFindUntrackedFiles.mockResolvedValue([]);
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--preview-mode <mode>', 'preview-mode', normalizePreviewMode, DEFAULT_PREVIEW_MODE)
+        .option('--tui', 'tui')
+        .option('--pr <url>', 'pr')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          await startServer({
+            targetCommitish: commitish,
+            baseCommitish: commitish + '^',
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            previewMode: options.previewMode,
+          });
+        });
+
+      await program.parseAsync([], { from: 'user' });
+
+      expect(mockStartServer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previewMode: 'diff-preview',
         }),
       );
     });

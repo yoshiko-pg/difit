@@ -101,18 +101,19 @@ git diff -- /dev/null path/to/file | difit
 
 ## ⚙️ CLIオプション
 
-| フラグ                | デフォルト | 説明                                                                              |
-| --------------------- | ---------- | --------------------------------------------------------------------------------- |
-| `<target>`            | HEAD       | コミットハッシュ、タグ、HEAD~n、ブランチ、または特別な引数                        |
-| `[compare-with]`      | -          | 比較対象の2番目のコミット（2つの間のdiffを表示）                                  |
-| `--pr <url>`          | -          | レビューするGitHub PRのURL（例：https://github.com/owner/repo/pull/123）          |
-| `--port`              | 4966       | 優先ポート。使用中の場合は+1にフォールバック                                      |
-| `--host`              | 127.0.0.1  | サーバーをバインドするホストアドレス（外部からアクセスしたい場合は0.0.0.0を指定） |
-| `--no-open`           | false      | ブラウザを自動的に開かない                                                        |
-| `--mode`              | split      | 表示モード。`unified`または`split`                                                |
-| `--tui`               | false      | WebUIの代わりにターミナルUIを使用                                                 |
-| `--clean`             | false      | 起動時に既存コメントと閲覧済みファイルをすべてクリア                              |
-| `--include-untracked` | false      | diffにuntrackedファイルを自動的に含める（`.`または`working`のみ有効）             |
+| フラグ | デフォルト | 説明 |
+| --- | --- | --- |
+| `<target>` | HEAD | コミットハッシュ、タグ、HEAD~n、ブランチ、または特別な引数 |
+| `[compare-with]` | - | 比較対象の2番目のコミット（2つの間のdiffを表示） |
+| `--pr <url>` | - | レビューするGitHub PRのURL（例：https://github.com/owner/repo/pull/123） |
+| `--port <port>` | 4966 | 優先ポート。使用中の場合は+1にフォールバック |
+| `--host <host>` | 127.0.0.1 | サーバーをバインドするホストアドレス（外部からアクセスしたい場合は0.0.0.0を指定） |
+| `--no-open` | false | ブラウザを自動的に開かない |
+| `--mode <mode>` | split | 表示モード。`unified`または`split` |
+| `--preview-mode <mode>` | diff-preview | Markdown/Notebookファイルのデフォルトプレビューモード: `diff`, `diff-preview`, `full-preview` |
+| `--tui` | false | WebUIの代わりにターミナルUIを使用 |
+| `--clean` | false | 起動時に既存コメントと閲覧済みファイルをすべてクリア |
+| `--include-untracked` | false | diffにuntrackedファイルを自動的に含める（`.`または`working`のみ有効） |
 
 ## 💬 コメントシステム
 

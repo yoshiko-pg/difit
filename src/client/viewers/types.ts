@@ -1,6 +1,13 @@
 import type { ComponentType } from 'react';
 
-import type { Comment, DiffFile, DiffSide, DiffViewMode, LineNumber } from '../../types/diff';
+import type {
+  Comment,
+  DiffFile,
+  DiffSide,
+  DiffViewMode,
+  LineNumber,
+  PreviewMode,
+} from '../../types/diff';
 import type { AppearanceSettings } from '../components/SettingsModal';
 import type { CursorPosition } from '../hooks/keyboardNavigation';
 import type { MergedChunk } from '../hooks/useExpandedLines';
@@ -45,6 +52,7 @@ export type DiffViewerBodyProps = {
   ) => void;
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
+  previewMode: PreviewMode;
 };
 
 export type DiffViewerRegistration = {

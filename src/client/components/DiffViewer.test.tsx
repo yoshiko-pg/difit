@@ -72,6 +72,7 @@ describe('DiffViewer', () => {
     reviewedFiles: new Set<string>(),
     collapsedFiles: new Set<string>(),
     diffMode: 'split' as const,
+    previewMode: 'diff-preview' as const,
     onAddComment: mockOnAddComment,
     onGeneratePrompt: mockOnGeneratePrompt,
     onRemoveComment: mockOnRemoveComment,
