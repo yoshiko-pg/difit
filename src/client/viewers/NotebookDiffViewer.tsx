@@ -961,7 +961,7 @@ const NotebookFullPreview = ({
 
 export function NotebookDiffViewer(props: DiffViewerBodyProps) {
   const { file, baseCommitish, targetCommitish } = props;
-  const [mode, setMode] = useState<PreviewMode>('diff-preview');
+  const [mode, setMode] = useState<PreviewMode>('diff');
   const fallbackPreview = useMemo(
     () => buildNotebookCellsFromDiff(props.mergedChunks),
     [props.mergedChunks],

@@ -304,7 +304,7 @@ const MarkdownFullPreview = ({
 
 export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   const { file, baseCommitish, targetCommitish, mergedChunks, syntaxTheme } = props;
-  const [mode, setMode] = useState<PreviewMode>('diff-preview');
+  const [mode, setMode] = useState<PreviewMode>('diff');
   const [fullContent, setFullContent] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
