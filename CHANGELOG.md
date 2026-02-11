@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Update dependencies (#205 #206)
+- Update dependencies (#205 #206 #209)
 - Default markdown and notebook view to code diff
 
 ## [3.1.6] - 2026-02-09
