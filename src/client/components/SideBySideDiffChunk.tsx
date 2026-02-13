@@ -714,6 +714,8 @@ export function SideBySideDiffChunk({
                               onSubmit={handleSubmitComment}
                               onCancel={handleCancelComment}
                               selectedCode={getSelectedCodeContent()}
+                              syntaxTheme={syntaxTheme}
+                              filename={filename}
                             />
                           </div>
                         </div>
