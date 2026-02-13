@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.8] - 2026-02-13
+
+### Added
+
+- Add GitHub-style suggestion blocks and suggestion insertion button for code review comments (#199)
+- Add Codex environment and release skill
+
+### Changed
+
+- Update dependencies (#209)
+- Add knip cleanup tooling and integrate it into hooks (#202)
+- Add a quick diff preset for `HEAD` option and trim quick diff presets
+
+### Fixed
+
+- Align split-right comment card with comment form layout
+- Remove unused shell mode dependency from dev spawns and streamline development start flow
+
+### Thanks
+
+- [@takumi0706](https://github.com/takumi0706) for adding GitHub-style suggestion blocks for code review comments #199
+
 ## [3.1.7] - 2026-02-11
 
 ### Changed
@@ -856,7 +878,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.7...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.8...HEAD
+[3.1.8]: https://github.com/yoshiko-pg/difit/compare/v3.1.7...v3.1.8
 [3.1.7]: https://github.com/yoshiko-pg/difit/compare/v3.1.6...v3.1.7
 [3.1.6]: https://github.com/yoshiko-pg/difit/compare/v3.1.5...v3.1.6
 [3.1.5]: https://github.com/yoshiko-pg/difit/compare/v3.1.4...v3.1.5
