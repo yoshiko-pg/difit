@@ -54,7 +54,6 @@ for (let i = 0; i < rawArgs.length; i += 1) {
 const cliProcess = spawn('pnpm', cliArgs, {
   // For stdin mode, pipe stdin; otherwise inherit
   stdio: [shouldReadStdin ? 'pipe' : 'inherit', 'pipe', 'inherit'],
-  shell: true,
 });
 
 // If reading from stdin, pipe it to the CLI process
@@ -77,7 +76,6 @@ cliProcess.stdout.on('data', (data) => {
     console.log('🎨 Starting Vite dev server...');
     viteProcess = spawn('pnpm', ['exec', 'vite', '--open'], {
       stdio: 'inherit',
-      shell: true,
     });
   }
 });
