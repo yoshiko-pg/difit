@@ -28,9 +28,12 @@ function CopyBtn({ text, className = '' }: { text: string; className?: string })
 /* ── Prompt line — the $ prefix that ties everything ────── */
 function Prompt({ children, dim }: { children?: React.ReactNode; dim?: boolean }) {
   return (
-    <div className={`flex items-start gap-3 ${dim ? 'opacity-50' : ''}`}>
+    <div className={`flex items-start gap-0 ${dim ? 'opacity-50' : ''}`}>
       <span className="text-green-400 shrink-0 select-none">$</span>
-      <span className="flex-1">{children}</span>
+      <span className="flex-1">
+        {'\u00A0'}
+        {children}
+      </span>
     </div>
   );
 }
@@ -47,7 +50,7 @@ function Comment({ children }: { children: React.ReactNode }) {
 
 /* ── Stdout block — indented output ─────────────────────── */
 function Stdout({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`pl-6 ${className}`}>{children}</div>;
+  return <div className={className}>{children}</div>;
 }
 
 /* ── Typewriter for the hero line ───────────────────────── */
@@ -81,7 +84,7 @@ function Feature({ label, desc }: { label: string; desc: string }) {
   return (
     <div className="flex items-baseline gap-2">
       <span className="text-cyan-400 shrink-0">{label}</span>
-      <span className="text-github-text-muted">—</span>
+      <span className="text-github-text-muted">-</span>
       <span className="text-github-text-secondary">{desc}</span>
     </div>
   );
@@ -92,7 +95,7 @@ function formatRevisionLabel(revision: StaticDiffDataset['revisions'][number]) {
   const trimmedMessage = oneLineMessage.trim();
   const preview = trimmedMessage.length > 52 ? `${trimmedMessage.slice(0, 52)}...` : trimmedMessage;
 
-  return `${revision.baseShortHash}...${revision.targetShortHash} (${revision.authorName}) ${preview}`;
+  return `[${revision.targetShortHash}] ${preview}`;
 }
 
 const LANDING_ASCII = [
@@ -102,6 +105,21 @@ const LANDING_ASCII = [
   '| (_| | |  _| | |_',
   ' \\__,_|_|_| |_|\\__|',
 ] as const;
+
+function renderUsageCommand(cmd: string) {
+  return (
+    <span>
+      {cmd.split(' ').map((part, index, array) => (
+        <span key={`${part}-${index}`}>
+          {part === 'difit' ?
+            <span className="text-[#f1e927]">{part}</span>
+          : part}
+          {index < array.length - 1 ? ' ' : ''}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════
    Main page — one continuous terminal session
@@ -172,9 +190,7 @@ function SitePage() {
       <section className="w-[90vw] max-w-[1000px] mx-auto pt-10 space-y-2">
         <Prompt>
           <span className="text-github-text-primary">find</span>{' '}
-          <span className="text-github-text-secondary">
-            &quot;the best terminal diff viewer&quot;
-          </span>
+          <span className="text-github-text-secondary">&quot;the best local review tool&quot;</span>
         </Prompt>
         <div>
           <pre className="text-green-400 text-xs sm:text-sm leading-tight whitespace-pre select-none landing-ascii">
@@ -188,9 +204,9 @@ function SitePage() {
         </div>
         <div className="mt-2">
           <p className="text-github-text-secondary">
-            GitHub-style diff viewer for local git. Review code, add comments,
+            GitHub-style diff viewer for local git.
             <br />
-            copy AI prompts — all from one command.
+            Review code, add comments, copy AI prompts — all from one command.
           </p>
         </div>
       </section>
@@ -208,14 +224,15 @@ function SitePage() {
         </div>
         <div className="flex items-center gap-2">
           <Prompt>
-            <span className="text-github-text-primary">npx</span>{' '}
-            <span className="text-github-text-primary">difit</span>
+            <span className="text-[#f1e927]">npx</span>{' '}
+            <span className="text-[#f1e927]">difit</span>
           </Prompt>
           <CopyBtn text="npx difit" />
         </div>
-        <Stdout>
+        <Stdout className="pl-0">
           <span className="text-github-text-muted">
-            Opening diff viewer on <span className="text-cyan-400">http://localhost:4966</span> ...
+            {'\u00A0\u00A0'}Opening diff viewer on{' '}
+            <span className="text-cyan-400">http://localhost:4966</span> ...
           </span>
         </Stdout>
       </section>
@@ -229,24 +246,24 @@ function SitePage() {
       <div className="w-[90vw] mx-auto mt-3 relative group/demo">
         <div className="rounded-xl overflow-hidden border border-[#d1d5db] shadow-lg">
           {/* Browser chrome — light theme */}
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-[#f0f0f0] border-b border-[#d1d5db]">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-[#d5d7db] border-b border-[#bfc3c8]">
             <div className="flex gap-1.5">
               <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
               <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
               <div className="w-3 h-3 rounded-full bg-[#28c840]" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="ml-1 px-4 py-1 rounded-md bg-white text-[11px] text-[#6b7280] font-mono border border-[#e5e7eb]">
+              <div className="ml-1 px-4 py-1 rounded-md bg-white text-[11px] text-[#9ca3af] font-mono border border-[#e5e7eb]">
                 {browserAddress}
               </div>
             </div>
             {hasRevisionSelector && (
-              <label className="ml-6 flex items-center gap-3 text-[11px] text-[#6b7280] whitespace-nowrap">
+              <label className="ml-6 flex items-center gap-2 text-[11px] text-[#6b7280] whitespace-nowrap">
                 Revision:
                 <select
                   value={selectedRevisionId}
                   onChange={handleRevisionChange}
-                  className="max-w-[340px] border border-[#d1d5db] bg-white rounded text-[11px] text-[#111827] px-2 py-1"
+                  className="max-w-[340px] border border-[#d1d5db] bg-white rounded text-[11px] text-[#6b7280] px-2 py-1"
                   aria-label="Revision"
                 >
                   {revisions.map((revision) => (
@@ -276,15 +293,34 @@ function SitePage() {
 
       <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
 
+      {/* ── Install ──────────────────────────────────── */}
+      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
+        <Comment>Or install globally</Comment>
+        <div className="flex items-center gap-2">
+          <Prompt>
+            <span className="text-github-text-primary">npm</span> install -g{' '}
+            <span className="text-[#f1e927]">difit</span>
+          </Prompt>
+          <CopyBtn text="npm install -g difit" />
+        </div>
+        <Stdout>
+          <span className="text-github-text-muted">
+            added 1 package in 3s
+            <br />
+            Requires <span className="text-github-text-secondary">Node.js ≥ 21</span> and{' '}
+            <span className="text-github-text-secondary">git</span>
+          </span>
+        </Stdout>
+      </section>
+
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
+
       {/* ── Features as --help output ────────────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
-        <Prompt>
-          difit <span className="text-yellow-300">--help</span>
-        </Prompt>
+        <Comment>Features</Comment>
         <Stdout>
           <div className="space-y-4 mt-1">
-            <p className="text-github-text-primary font-bold">FEATURES</p>
-            <div className="space-y-2 pl-2">
+            <div className="space-y-2">
               <Feature
                 label="split & unified"
                 desc="GitHub-style diff views with 30+ language syntax highlighting"
@@ -321,21 +357,24 @@ function SitePage() {
         <Comment>Usage examples</Comment>
         <div className="space-y-3 mt-1">
           {[
-            { cmd: 'difit', comment: 'latest commit' },
-            { cmd: 'difit @ main', comment: 'compare with main branch' },
-            { cmd: 'difit .', comment: 'all uncommitted changes' },
-            { cmd: 'difit staged', comment: 'staging area only' },
+            { cmd: 'difit', comment: 'latest commit', align: true },
+            { cmd: 'difit .', comment: 'all uncommitted changes', align: true },
+            { cmd: 'difit staged', comment: 'staging area only', align: true },
+            { cmd: 'difit HEAD main', comment: 'compare with main branch', align: true },
             {
               cmd: 'difit --pr https://github.com/org/repo/pull/42',
               comment: 'review a PR locally',
+              align: false,
             },
-            { cmd: 'cat changes.patch | difit', comment: 'pipe in any diff' },
-          ].map(({ cmd, comment }) => (
+            { cmd: 'cat changes.patch | difit', comment: 'pipe in any diff', align: false },
+          ].map(({ cmd, comment, align }) => (
             <div key={cmd} className="flex items-center gap-3">
               <Prompt>
-                {cmd}
-                <span className="text-github-text-muted/50 ml-3">
-                  {'  '}# {comment}
+                {align ?
+                  <span className="inline-block w-[18ch]">{renderUsageCommand(cmd)}</span>
+                : <span>{renderUsageCommand(cmd)}</span>}
+                <span className="text-github-text-secondary">
+                  {align ? '' : '\u00A0\u00A0'}# {comment}
                 </span>
               </Prompt>
             </div>
@@ -345,50 +384,22 @@ function SitePage() {
 
       <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
 
-      {/* ── Install ──────────────────────────────────── */}
-      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
-        <Comment>Or install globally</Comment>
-        <div className="flex items-center gap-2">
-          <Prompt>
-            <span className="text-green-400">npm</span> install -g difit
-          </Prompt>
-          <CopyBtn text="npm install -g difit" />
-        </div>
-        <Stdout>
-          <span className="text-github-text-muted">
-            added 1 package in 3s
-            <br />
-            Requires <span className="text-github-text-secondary">Node.js ≥ 21</span> and{' '}
-            <span className="text-github-text-secondary">git</span>
-          </span>
-        </Stdout>
-      </section>
-
-      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
-
       {/* ── Links / footer ───────────────────────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
-        <Prompt dim>
-          <span className="text-yellow-300">echo</span>{' '}
+        <Prompt>
+          <span className="text-github-text-primary">echo</span>{' '}
           <span className="text-github-text-secondary">&quot;MIT License&quot;</span>
         </Prompt>
-        <Stdout>
-          <div className="flex items-center gap-6 text-github-text-muted">
-            <a
-              href="https://github.com/because-and/difit"
-              className="hover:text-github-text-secondary transition-colors"
-            >
-              GitHub
-            </a>
-            <a
-              href="https://www.npmjs.com/package/difit"
-              className="hover:text-github-text-secondary transition-colors"
-            >
-              npm
-            </a>
-            <span>MIT License</span>
-          </div>
-        </Stdout>
+        <Prompt>
+          <span className="text-github-text-primary">open</span>{' '}
+          <a
+            href="https://github.com/yoshiko-pg/difit"
+            className="text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            https://github.com/yoshiko-pg/difit
+          </a>
+          <span className="text-github-text-muted ml-3"># Star on GitHub</span>
+        </Prompt>
       </section>
 
       {/* Blinking cursor at the end */}
