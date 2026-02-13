@@ -50,6 +50,7 @@ function SuggestionLines({
             line={createSuggestionLine(type, line)}
             filename={filename}
             syntaxTheme={syntaxTheme}
+            showPrefixBorder={false}
           />
         </div>
       ))}

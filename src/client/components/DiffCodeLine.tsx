@@ -10,6 +10,7 @@ interface DiffCodeLineProps {
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   filename?: string;
   diffSegments?: DiffSegment[];
+  showPrefixBorder?: boolean;
 }
 
 const getLinePrefix = (type: DiffLine['type']) => {
@@ -34,11 +35,17 @@ const getPrefixClass = (type: DiffLine['type']) => {
   }
 };
 
-export function DiffCodeLine({ line, syntaxTheme, filename, diffSegments }: DiffCodeLineProps) {
+export function DiffCodeLine({
+  line,
+  syntaxTheme,
+  filename,
+  diffSegments,
+  showPrefixBorder = true,
+}: DiffCodeLineProps) {
   return (
     <div className="flex items-center relative min-h-[16px]">
       <span
-        className={`w-5 text-center flex-shrink-0 border-r border-github-border ${getPrefixClass(
+        className={`w-5 text-center flex-shrink-0 ${showPrefixBorder ? 'border-r border-github-border' : ''} ${getPrefixClass(
           line.type,
         )}`}
       >
