@@ -227,27 +227,33 @@ td.keyboard-cursor::before {
 
 /* ---- Landing page styles ---- */
 
-.landing-gradient-text {
-  background: linear-gradient(135deg, #3fb950 0%, #22d3ee 50%, #a78bfa 100%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: landing-gradient-shift 6s ease infinite;
-}
-
-@keyframes landing-gradient-shift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
 .landing-demo-glow {
   box-shadow:
     0 0 40px rgba(63, 185, 80, 0.08),
     0 0 80px rgba(34, 211, 238, 0.04);
+}
+
+/* Terminal cursor */
+.landing-cursor {
+  color: #3fb950;
+  font-weight: bold;
+}
+
+.landing-cursor-blink {
+  animation: landing-blink 1s step-end infinite;
+}
+
+@keyframes landing-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ASCII art — prevent wrapping, keep alignment */
+.landing-ascii {
+  overflow-x: auto;
 }

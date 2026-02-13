@@ -1,149 +1,160 @@
-import {
-  Terminal,
-  MessageSquare,
-  GitCompare,
-  Copy,
-  Sparkles,
-  Eye,
-  Keyboard,
-  Github,
-  Check,
-  ArrowRight,
-} from 'lucide-react';
-import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
-function CopyButton({ text, className = '' }: { text: string; className?: string }) {
+/* ── Clipboard helper ───────────────────────────────────── */
+function CopyBtn({ text, className = '' }: { text: string; className?: string }) {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = () => {
     void navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
   return (
     <button
       onClick={handleCopy}
-      className={`text-github-text-muted hover:text-github-text-primary transition-colors ${className}`}
-      title="Copy to clipboard"
+      className={`text-github-text-muted hover:text-green-400 transition-colors ${className}`}
+      title="Copy"
     >
       {copied ?
-        <Check size={14} className="text-green-400" />
-      : <Copy size={14} />}
+        <Check size={13} className="text-green-400" />
+      : <Copy size={13} />}
     </button>
   );
 }
 
-/* ── Bento cell wrapper ─────────────────────────────────── */
-function Cell({
-  children,
-  className = '',
-  accent,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  accent?: 'green' | 'cyan' | 'purple';
-}) {
-  const accentGradient = {
-    green: 'from-green-500/8 to-transparent',
-    cyan: 'from-cyan-500/8 to-transparent',
-    purple: 'from-purple-500/8 to-transparent',
-  };
-
+/* ── Prompt line — the $ prefix that ties everything ────── */
+function Prompt({ children, dim }: { children?: React.ReactNode; dim?: boolean }) {
   return (
-    <div
-      className={`relative rounded-2xl border border-github-border bg-github-bg-secondary/40 overflow-hidden ${className}`}
-    >
-      {accent && (
-        <div
-          className={`absolute inset-0 bg-gradient-to-br ${accentGradient[accent]} pointer-events-none`}
-        />
-      )}
-      <div className="relative h-full">{children}</div>
+    <div className={`flex items-start gap-3 ${dim ? 'opacity-50' : ''}`}>
+      <span className="text-green-400 shrink-0 select-none">$</span>
+      <span className="flex-1">{children}</span>
     </div>
   );
 }
 
-/* ── Main page ──────────────────────────────────────────── */
+/* ── Comment block — like a shell comment ───────────────── */
+function Comment({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-github-text-muted">
+      <span className="text-github-text-muted/60 select-none"># </span>
+      {children}
+    </p>
+  );
+}
+
+/* ── Stdout block — indented output ─────────────────────── */
+function Stdout({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`pl-6 ${className}`}>{children}</div>;
+}
+
+/* ── Typewriter for the hero line ───────────────────────── */
+function Typewriter({ text, speed = 60 }: { text: string; speed?: number }) {
+  const [displayed, setDisplayed] = useState('');
+  const [done, setDone] = useState(false);
+  const idx = useRef(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      idx.current++;
+      setDisplayed(text.slice(0, idx.current));
+      if (idx.current >= text.length) {
+        clearInterval(timer);
+        setDone(true);
+      }
+    }, speed);
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return (
+    <span>
+      {displayed}
+      <span className={`landing-cursor ${done ? 'landing-cursor-blink' : ''}`}>_</span>
+    </span>
+  );
+}
+
+/* ── Feature line — compact single-line feature ─────────── */
+function Feature({ label, desc }: { label: string; desc: string }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="text-cyan-400 shrink-0">{label}</span>
+      <span className="text-github-text-muted">—</span>
+      <span className="text-github-text-secondary">{desc}</span>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Main page — one continuous terminal session
+   ═══════════════════════════════════════════════════════════ */
 function SitePage() {
   return (
-    <div className="min-h-screen bg-github-bg-primary text-github-text-primary">
-      {/* Subtle ambient glow */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-green-500/6 via-cyan-500/3 to-transparent rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative w-[90vw] max-w-[1400px] mx-auto py-6 space-y-3">
-        {/* ── Row 1: Hero headline + CTA + GitHub ────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-3">
-          {/* Headline */}
-          <Cell className="p-8 lg:p-10 flex items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-green-500/30 bg-green-500/10 text-green-400 text-[11px] font-medium tracking-wide uppercase mb-5">
-                <Sparkles size={11} />
-                Code review for the AI era
-              </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08]">
-                <span className="landing-gradient-text">Beautiful diffs.</span>
-                <br />
-                Right in your terminal.
-              </h1>
-              <p className="mt-4 text-github-text-secondary text-base max-w-lg leading-relaxed">
-                GitHub-style diff viewer for local git. Review code, add comments, copy AI
-                prompts&nbsp;&mdash; all from one command.
-              </p>
-            </div>
-          </Cell>
-
-          {/* npx CTA */}
-          <Cell
-            className="p-6 flex flex-col items-center justify-center min-w-[220px]"
-            accent="green"
-          >
-            <span className="text-[11px] text-github-text-muted uppercase tracking-wider mb-3">
-              Try it now
-            </span>
-            <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-cyan-500 rounded-xl opacity-50 group-hover:opacity-100 blur-sm transition-opacity" />
-              <div className="relative flex items-center gap-3 px-5 py-3 rounded-xl bg-github-bg-primary font-mono text-lg">
-                <span className="text-green-400">$</span>
-                <span>npx difit</span>
-                <CopyButton text="npx difit" className="ml-1" />
-              </div>
-            </div>
-            <span className="text-[11px] text-github-text-muted mt-3">No install required</span>
-          </Cell>
-
-          {/* GitHub link card */}
-          <a href="https://github.com/because-and/difit" className="group">
-            <Cell className="p-6 flex flex-col items-center justify-center h-full min-w-[140px] hover:border-github-text-muted transition-colors">
-              <Github
-                size={28}
-                className="text-github-text-secondary group-hover:text-github-text-primary transition-colors mb-2"
-              />
-              <span className="text-xs text-github-text-muted group-hover:text-github-text-secondary transition-colors">
-                Star on GitHub
-              </span>
-              <ArrowRight
-                size={14}
-                className="mt-2 text-github-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
-              />
-            </Cell>
-          </a>
+    <div className="min-h-screen bg-github-bg-primary font-mono text-sm leading-relaxed text-github-text-primary">
+      {/* narrow = terminal text sections, wide = iframe demo */}
+      {/* ── ASCII logo / intro ─────────────────────────── */}
+      <section className="w-[90vw] max-w-[1000px] mx-auto pt-10 space-y-2">
+        <Prompt>
+          <span className="text-yellow-300">cd</span> /your/project
+        </Prompt>
+        <div>
+          <pre className="text-green-400 text-xs sm:text-sm leading-tight whitespace-pre select-none landing-ascii">
+            {`     _ _  __ _ _
+  __| (_)/ _(_) |_
+ / _\` | | |_| | __|
+| (_| | |  _| | |_
+ \\__,_|_|_| |_|\\__|`}
+          </pre>
         </div>
+        <div>
+          <p className="text-lg sm:text-xl text-github-text-primary mt-4">
+            <Typewriter text="Beautiful diffs. Right in your terminal." speed={45} />
+          </p>
+        </div>
+        <div className="mt-2">
+          <p className="text-github-text-secondary">
+            GitHub-style diff viewer for local git. Review code, add comments,
+            <br />
+            copy AI prompts — all from one command.
+          </p>
+        </div>
+      </section>
 
-        {/* ── Row 2: Live Demo (full width, hero element) ── */}
-        <Cell className="landing-demo-glow">
-          {/* Browser chrome */}
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-github-bg-secondary/60 border-b border-github-border">
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
+
+      {/* ── Quick start ──────────────────────────────── */}
+      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
+        <Comment>Try it now — no install required</Comment>
+        <div className="flex items-center gap-2">
+          <Prompt>
+            <span className="text-green-400">npx</span> difit
+          </Prompt>
+          <CopyBtn text="npx difit" />
+        </div>
+        <Stdout>
+          <span className="text-github-text-muted">
+            Opening diff viewer on <span className="text-cyan-400">http://localhost:4966</span> ...
+          </span>
+        </Stdout>
+      </section>
+
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
+
+      {/* ── Live demo ────────────────────────────────── */}
+      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
+        <Comment>Here&apos;s what you&apos;ll see ↓</Comment>
+      </section>
+      <div className="w-[90vw] mx-auto mt-3">
+        <div className="rounded-xl overflow-hidden border border-[#d1d5db] shadow-lg">
+          {/* Browser chrome — light theme */}
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-[#f0f0f0] border-b border-[#d1d5db]">
             <div className="flex gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
               <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
               <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
             </div>
             <div className="flex-1 flex justify-center">
-              <div className="px-3 py-0.5 rounded-md bg-github-bg-primary/60 text-[11px] text-github-text-muted font-mono">
-                localhost:4966
+              <div className="px-4 py-1 rounded-md bg-white text-[11px] text-[#6b7280] font-mono border border-[#e5e7eb]">
+                http://localhost:4966
               </div>
             </div>
           </div>
@@ -151,151 +162,133 @@ function SitePage() {
             title="difit live preview"
             src="/preview"
             loading="eager"
-            className="w-full bg-github-bg-primary"
+            className="w-full bg-white"
             style={{ height: '70vh', minHeight: '500px' }}
           />
-        </Cell>
-
-        {/* ── Row 3: Feature bento tiles ─────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* GitHub Diffs - tall */}
-          <Cell className="p-6 md:row-span-2" accent="green">
-            <GitCompare size={20} className="text-green-400 mb-4" />
-            <h3 className="text-lg font-bold mb-2">GitHub-Style Diffs</h3>
-            <p className="text-sm text-github-text-secondary leading-relaxed mb-4">
-              Split &amp; unified views with syntax highlighting for 30+ languages.
-            </p>
-            <div className="mt-auto space-y-1.5 font-mono text-xs text-github-text-muted">
-              <div className="flex gap-2">
-                <span className="text-green-400">+</span>
-                <span className="text-green-400/70">const result = compute();</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="text-red-400">-</span>
-                <span className="text-red-400/70">const result = oldFunc();</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="text-github-text-muted">&nbsp;</span>
-                <span>return result;</span>
-              </div>
-            </div>
-          </Cell>
-
-          {/* Review Comments */}
-          <Cell className="p-6" accent="cyan">
-            <MessageSquare size={20} className="text-cyan-400 mb-4" />
-            <h3 className="text-lg font-bold mb-2">Review Comments</h3>
-            <p className="text-sm text-github-text-secondary leading-relaxed">
-              Click any line to comment. Drag to select ranges. Persistent in your browser.
-            </p>
-          </Cell>
-
-          {/* Commands - tall, spans 2 rows */}
-          <Cell className="p-6 md:row-span-2 lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <Terminal size={18} className="text-github-text-muted" />
-              <span className="text-[11px] text-github-text-muted uppercase tracking-wider font-medium">
-                Flexible diff targets
-              </span>
-            </div>
-            <div className="space-y-2.5 font-mono text-sm">
-              {[
-                { cmd: 'difit', desc: 'Latest commit' },
-                { cmd: 'difit @ main', desc: 'Compare with main' },
-                { cmd: 'difit .', desc: 'Uncommitted changes' },
-                { cmd: 'difit staged', desc: 'Staging area' },
-                { cmd: 'difit --pr <url>', desc: 'GitHub PR review' },
-                { cmd: 'cat patch | difit', desc: 'Pipe any diff' },
-              ].map(({ cmd, desc }) => (
-                <div
-                  key={cmd}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-github-bg-primary/50 group"
-                >
-                  <span className="text-green-400 shrink-0">$</span>
-                  <span className="text-github-text-primary">{cmd}</span>
-                  <span className="ml-auto text-xs text-github-text-muted hidden sm:block">
-                    {desc}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Cell>
-
-          {/* AI Prompt */}
-          <Cell className="p-6" accent="purple">
-            <Sparkles size={20} className="text-purple-400 mb-4" />
-            <h3 className="text-lg font-bold mb-2">AI Prompt Copy</h3>
-            <p className="text-sm text-github-text-secondary leading-relaxed">
-              Comments become structured prompts. One click to Claude, GPT, or any AI agent.
-            </p>
-          </Cell>
         </div>
+      </div>
 
-        {/* ── Row 4: Bottom tiles ────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* PR Review */}
-          <Cell className="p-6">
-            <Eye size={18} className="text-github-text-muted mb-3" />
-            <h3 className="font-bold mb-1">PR Review</h3>
-            <p className="text-sm text-github-text-secondary">
-              Review GitHub PRs locally. Enterprise Server supported.
-            </p>
-          </Cell>
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
 
-          {/* Keyboard */}
-          <Cell className="p-6">
-            <Keyboard size={18} className="text-github-text-muted mb-3" />
-            <h3 className="font-bold mb-1">Keyboard-First</h3>
-            <p className="text-sm text-github-text-secondary">
-              Full vim-style navigation.{' '}
-              <kbd className="px-1.5 py-0.5 rounded bg-github-bg-tertiary text-xs font-mono">j</kbd>{' '}
-              <kbd className="px-1.5 py-0.5 rounded bg-github-bg-tertiary text-xs font-mono">k</kbd>{' '}
-              to move,{' '}
-              <kbd className="px-1.5 py-0.5 rounded bg-github-bg-tertiary text-xs font-mono">c</kbd>{' '}
-              to comment.
-            </p>
-          </Cell>
-
-          {/* Install */}
-          <Cell className="p-6" accent="green">
-            <span className="text-[11px] text-github-text-muted uppercase tracking-wider font-medium">
-              Install globally
-            </span>
-            <div className="relative mt-3">
-              <pre className="px-4 py-3 rounded-xl bg-github-bg-primary/60 font-mono text-sm pr-10">
-                <span className="text-github-text-muted">$ </span>
-                <span className="text-green-400">npm</span> install -g difit
-              </pre>
-              <CopyButton
-                text="npm install -g difit"
-                className="absolute right-3 top-1/2 -translate-y-1/2"
+      {/* ── Features as --help output ────────────────── */}
+      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
+        <Prompt>
+          difit <span className="text-yellow-300">--help</span>
+        </Prompt>
+        <Stdout>
+          <div className="space-y-4 mt-1">
+            <p className="text-github-text-primary font-bold">FEATURES</p>
+            <div className="space-y-2 pl-2">
+              <Feature
+                label="split & unified"
+                desc="GitHub-style diff views with 30+ language syntax highlighting"
+              />
+              <Feature
+                label="review comments"
+                desc="Click any line to comment. Drag to select ranges. Saved in browser"
+              />
+              <Feature
+                label="AI prompt copy"
+                desc="One-click copy as structured prompts for Claude, GPT, or any agent"
+              />
+              <Feature
+                label="PR review"
+                desc="Pass a GitHub PR URL, review locally. Enterprise Server supported"
+              />
+              <Feature
+                label="keyboard-first"
+                desc="Vim-style j/k navigation. c to comment, ? for all shortcuts"
+              />
+              <Feature
+                label="zero config"
+                desc="No setup, no config files. Works in any git repo"
               />
             </div>
-            <p className="text-xs text-github-text-muted mt-3">Requires Node.js 21+ &amp; git</p>
-          </Cell>
-        </div>
-
-        {/* ── Footer ─────────────────────────────────── */}
-        <footer className="flex items-center justify-between pt-4 pb-2 text-xs text-github-text-muted">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="difit" className="h-4 invert opacity-40" />
-            <span>MIT License</span>
           </div>
-          <div className="flex items-center gap-4">
-            <a
-              href="https://www.npmjs.com/package/difit"
-              className="hover:text-github-text-secondary transition-colors"
-            >
-              npm
-            </a>
+        </Stdout>
+      </section>
+
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
+
+      {/* ── Usage examples as actual commands ────────── */}
+      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
+        <Comment>Usage examples</Comment>
+        <div className="space-y-3 mt-1">
+          {[
+            { cmd: 'difit', comment: 'latest commit' },
+            { cmd: 'difit @ main', comment: 'compare with main branch' },
+            { cmd: 'difit .', comment: 'all uncommitted changes' },
+            { cmd: 'difit staged', comment: 'staging area only' },
+            {
+              cmd: 'difit --pr https://github.com/org/repo/pull/42',
+              comment: 'review a PR locally',
+            },
+            { cmd: 'cat changes.patch | difit', comment: 'pipe in any diff' },
+          ].map(({ cmd, comment }) => (
+            <div key={cmd} className="flex items-center gap-3">
+              <Prompt>
+                {cmd}
+                <span className="text-github-text-muted/50 ml-3">
+                  {'  '}# {comment}
+                </span>
+              </Prompt>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
+
+      {/* ── Install ──────────────────────────────────── */}
+      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
+        <Comment>Or install globally</Comment>
+        <div className="flex items-center gap-2">
+          <Prompt>
+            <span className="text-green-400">npm</span> install -g difit
+          </Prompt>
+          <CopyBtn text="npm install -g difit" />
+        </div>
+        <Stdout>
+          <span className="text-github-text-muted">
+            added 1 package in 3s
+            <br />
+            Requires <span className="text-github-text-secondary">Node.js ≥ 21</span> and{' '}
+            <span className="text-github-text-secondary">git</span>
+          </span>
+        </Stdout>
+      </section>
+
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
+
+      {/* ── Links / footer ───────────────────────────── */}
+      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
+        <Prompt dim>
+          <span className="text-yellow-300">echo</span>{' '}
+          <span className="text-github-text-secondary">&quot;MIT License&quot;</span>
+        </Prompt>
+        <Stdout>
+          <div className="flex items-center gap-6 text-github-text-muted">
             <a
               href="https://github.com/because-and/difit"
               className="hover:text-github-text-secondary transition-colors"
             >
               GitHub
             </a>
+            <a
+              href="https://www.npmjs.com/package/difit"
+              className="hover:text-github-text-secondary transition-colors"
+            >
+              npm
+            </a>
+            <span>MIT License</span>
           </div>
-        </footer>
+        </Stdout>
+      </section>
+
+      {/* Blinking cursor at the end */}
+      <div className="w-[90vw] max-w-[1000px] mx-auto flex items-center gap-3 pt-4 pb-10">
+        <span className="text-green-400">$</span>
+        <span className="landing-cursor landing-cursor-blink">_</span>
       </div>
     </div>
   );
