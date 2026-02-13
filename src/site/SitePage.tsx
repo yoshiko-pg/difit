@@ -199,7 +199,7 @@ function SitePage() {
         </div>
         <div>
           <p className="text-lg sm:text-xl text-github-text-primary mt-4">
-            <Typewriter text="Beautiful diffs. Right in your terminal." speed={45} />
+            <Typewriter text="Beautiful diffs. Right in your terminal" speed={45} />
           </p>
         </div>
         <div className="mt-2">
@@ -232,7 +232,15 @@ function SitePage() {
         <Stdout className="pl-0">
           <span className="text-github-text-muted">
             {'\u00A0\u00A0'}Opening diff viewer on{' '}
-            <span className="text-cyan-400">http://localhost:4966</span> ...
+            <a
+              href="/preview"
+              target="_blank"
+              rel="noreferrer"
+              className="text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              {browserAddress}
+            </a>{' '}
+            ...
           </span>
         </Stdout>
       </section>
