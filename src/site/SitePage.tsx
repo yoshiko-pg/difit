@@ -151,6 +151,7 @@ function SitePage() {
   const previewUrl =
     selectedRevisionId ? `/preview?snapshot=${encodeURIComponent(selectedRevisionId)}` : '/preview';
   const hasRevisionSelector = revisions.length > 0 && !datasetError && !loadingRevisions;
+  const browserAddress = 'http://localhost:4966';
 
   const handleRevisionChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setSelectedRevisionId(event.target.value);
@@ -222,11 +223,11 @@ function SitePage() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="px-4 py-1 rounded-md bg-white text-[11px] text-[#6b7280] font-mono border border-[#e5e7eb]">
-                {previewUrl}
+                {browserAddress}
               </div>
             </div>
             {hasRevisionSelector && (
-              <label className="flex items-center gap-1.5 text-[11px] text-[#6b7280] whitespace-nowrap">
+              <label className="flex items-center gap-3 text-[11px] text-[#6b7280] whitespace-nowrap">
                 Revision:
                 <select
                   value={selectedRevisionId}
