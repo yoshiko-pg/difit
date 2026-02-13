@@ -95,6 +95,14 @@ function formatRevisionLabel(revision: StaticDiffDataset['revisions'][number]) {
   return `${revision.baseShortHash}...${revision.targetShortHash} (${revision.authorName}) ${preview}`;
 }
 
+const LANDING_ASCII = [
+  '     _ _  __ _ _',
+  '  __| (_)/ _(_) |_',
+  ' / _` | | |_| | __|',
+  '| (_| | |  _| | |_',
+  ' \\__,_|_|_| |_|\\__|',
+] as const;
+
 /* ═══════════════════════════════════════════════════════════
    Main page — one continuous terminal session
    ═══════════════════════════════════════════════════════════ */
@@ -163,15 +171,14 @@ function SitePage() {
       {/* ── ASCII logo / intro ─────────────────────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto pt-10 space-y-2">
         <Prompt>
-          <span className="text-yellow-300">cd</span> /your/project
+          <span className="text-github-text-primary">find</span>{' '}
+          <span className="text-github-text-secondary">
+            &quot;the best terminal diff viewer&quot;
+          </span>
         </Prompt>
         <div>
           <pre className="text-green-400 text-xs sm:text-sm leading-tight whitespace-pre select-none landing-ascii">
-            {`     _ _  __ _ _
-  __| (_)/ _(_) |_
- / _\` | | |_| | __|
-| (_| | |  _| | |_
- \\__,_|_|_| |_|\\__|`}
+            {LANDING_ASCII.join('\n')}
           </pre>
         </div>
         <div>
@@ -195,7 +202,14 @@ function SitePage() {
         <Comment>Try it now — no install required</Comment>
         <div className="flex items-center gap-2">
           <Prompt>
-            <span className="text-green-400">npx</span> difit
+            <span className="text-github-text-primary">cd</span>{' '}
+            <span className="text-github-text-secondary">/your/project</span>
+          </Prompt>
+        </div>
+        <div className="flex items-center gap-2">
+          <Prompt>
+            <span className="text-github-text-primary">npx</span>{' '}
+            <span className="text-github-text-primary">difit</span>
           </Prompt>
           <CopyBtn text="npx difit" />
         </div>
@@ -217,17 +231,17 @@ function SitePage() {
           {/* Browser chrome — light theme */}
           <div className="flex items-center gap-2 px-4 py-2.5 bg-[#f0f0f0] border-b border-[#d1d5db]">
             <div className="flex gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+              <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+              <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+              <div className="w-3 h-3 rounded-full bg-[#28c840]" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="px-4 py-1 rounded-md bg-white text-[11px] text-[#6b7280] font-mono border border-[#e5e7eb]">
+              <div className="ml-1 px-4 py-1 rounded-md bg-white text-[11px] text-[#6b7280] font-mono border border-[#e5e7eb]">
                 {browserAddress}
               </div>
             </div>
             {hasRevisionSelector && (
-              <label className="flex items-center gap-3 text-[11px] text-[#6b7280] whitespace-nowrap">
+              <label className="ml-6 flex items-center gap-3 text-[11px] text-[#6b7280] whitespace-nowrap">
                 Revision:
                 <select
                   value={selectedRevisionId}
