@@ -184,19 +184,14 @@ function SitePage() {
   const browserAddress = 'http://localhost:4966';
   const usageExamples: UsageExample[] = [
     { type: 'heading', title: '## Basic Usage' },
-    { type: 'command', cmd: 'difit <target>', comment: 'view single commit diff', align: false },
+    { type: 'command', cmd: 'difit <target>', comment: 'view single commit diff', align: true },
     {
       type: 'command',
       cmd: 'difit <target> [compare-with]',
       comment: 'compare two commits/branches',
       align: false,
     },
-    {
-      type: 'command',
-      cmd: 'difit --pr <github-pr-url>',
-      comment: 'review a GitHub pull request',
-      align: false,
-    },
+
     { type: 'heading', title: '## Single commit review' },
     { type: 'command', cmd: 'difit', comment: 'HEAD (latest) commit', align: true },
     { type: 'command', cmd: 'difit 6f4a9b7', comment: 'specific commit', align: true },
@@ -204,34 +199,36 @@ function SitePage() {
       type: 'command',
       cmd: 'difit feature',
       comment: 'latest commit on feature branch',
-      align: false,
+      align: true,
     },
+
     { type: 'heading', title: '## Compare two commits' },
     { type: 'command', cmd: 'difit @ main', comment: 'compare with main branch', align: true },
-    { type: 'command', cmd: 'difit feature main', comment: 'compare branches', align: true },
+    { type: 'command', cmd: 'difit foobar main', comment: 'compare branches', align: true },
     {
       type: 'command',
       cmd: 'difit . origin/main',
       comment: 'compare working directory with remote main',
       align: false,
     },
+
     { type: 'heading', title: '## Special Arguments' },
     {
       type: 'command',
       cmd: 'difit .',
       comment: 'all uncommitted changes (staging area + unstaged)',
-      align: false,
+      align: true,
     },
     { type: 'command', cmd: 'difit staged', comment: 'staging area changes', align: true },
     { type: 'command', cmd: 'difit working', comment: 'unstaged changes only', align: true },
-    { type: 'heading', title: '## GitHub PR' },
+
+    { type: 'heading', title: '## Others' },
     {
       type: 'command',
       cmd: 'difit --pr https://github.com/owner/repo/pull/123',
       comment: 'review GitHub pull request URL',
       align: false,
     },
-    { type: 'heading', title: '## Stdin' },
     {
       type: 'command',
       cmd: 'diff -u file1.txt file2.txt | difit',
@@ -242,18 +239,6 @@ function SitePage() {
       type: 'command',
       cmd: 'cat changes.patch | difit',
       comment: 'review saved patches',
-      align: false,
-    },
-    {
-      type: 'command',
-      cmd: 'git diff --merge-base main feature | difit',
-      comment: 'compare against merge base',
-      align: false,
-    },
-    {
-      type: 'command',
-      cmd: 'git diff -- /dev/null path/to/file | difit',
-      comment: 'review an existing file as newly added',
       align: false,
     },
   ];
@@ -478,7 +463,7 @@ function SitePage() {
           >
             https://github.com/yoshiko-pg/difit
           </a>
-          <span className="text-github-text-muted ml-3"># Star on GitHub</span>
+          <span className="text-github-text-muted ml-3"># Star on GitHub ⭐️</span>
         </Prompt>
       </section>
 
