@@ -110,17 +110,6 @@ function SuggestionBlockRenderer({
         // Suggestion block with diff view
         return (
           <div key={index} className="my-2 border border-github-border rounded-md overflow-hidden">
-            <div className="bg-github-bg-tertiary px-3 py-1 text-xs text-github-text-secondary border-b border-github-border flex items-center gap-2">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-              Suggested change
-            </div>
             <div className="font-mono text-sm border-l-4 border-transparent">
               {part.original && (
                 <SuggestionLines

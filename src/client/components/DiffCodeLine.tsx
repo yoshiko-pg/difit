@@ -30,7 +30,7 @@ const getPrefixClass = (type: DiffLine['type']) => {
     case 'delete':
       return 'text-github-danger bg-diff-deletion-bg';
     default:
-      return '';
+      return 'text-github-text-muted bg-github-bg-secondary';
   }
 };
 
@@ -38,7 +38,7 @@ export function DiffCodeLine({ line, syntaxTheme, filename, diffSegments }: Diff
   return (
     <div className="flex items-center relative min-h-[16px]">
       <span
-        className={`w-5 text-center text-github-text-muted flex-shrink-0 bg-github-bg-secondary border-r border-github-border ${getPrefixClass(
+        className={`w-5 text-center flex-shrink-0 border-r border-github-border ${getPrefixClass(
           line.type,
         )}`}
       >
