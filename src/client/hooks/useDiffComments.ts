@@ -142,6 +142,7 @@ export function useDiffComments(
         : ([comment.position.line.start, comment.position.line.end] as [number, number]),
       body: comment.body,
       timestamp: comment.createdAt,
+      codeContent: comment.codeSnapshot?.content,
     }));
 
     return formatAllCommentsPrompt(transformedComments);

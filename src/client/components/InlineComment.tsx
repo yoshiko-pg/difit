@@ -1,11 +1,14 @@
 import { Check, Edit2 } from 'lucide-react';
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { type Comment } from '../../types/diff';
-import { hasSuggestionBlock, parseSuggestionBlocks } from '../../utils/suggestionUtils';
 
-import { SuggestionDiffLine } from './SuggestionDiffLine';
+import { CommentBodyRenderer, hasSuggestionInBody } from './CommentBodyRenderer';
+import type { AppearanceSettings } from './SettingsModal';
+import { SuggestionTemplateButton } from './SuggestionTemplateButton';
+
+type CommentEditMode = 'edit' | 'preview';
 
 interface InlineCommentProps {
   comment: Comment;
@@ -13,94 +16,7 @@ interface InlineCommentProps {
   onRemoveComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, newBody: string) => void;
   onClick?: (e: React.MouseEvent) => void;
-}
-
-// Component to render suggestion blocks with GitHub-style diff view
-function SuggestionBlockRenderer({ body, originalCode }: { body: string; originalCode?: string }) {
-  const parts = useMemo(() => {
-    const suggestions = parseSuggestionBlocks(body);
-    if (suggestions.length === 0) {
-      return [{ type: 'text' as const, content: body }];
-    }
-
-    const result: Array<
-      { type: 'text'; content: string } | { type: 'suggestion'; code: string; original: string }
-    > = [];
-    let lastIndex = 0;
-
-    for (const suggestion of suggestions) {
-      // Add text before the suggestion
-      if (suggestion.startIndex > lastIndex) {
-        result.push({
-          type: 'text',
-          content: body.slice(lastIndex, suggestion.startIndex),
-        });
-      }
-      // Add the suggestion block with original code from caller context
-      result.push({
-        type: 'suggestion',
-        code: suggestion.suggestedCode,
-        original: originalCode || '',
-      });
-      lastIndex = suggestion.endIndex;
-    }
-
-    // Add remaining text after the last suggestion
-    if (lastIndex < body.length) {
-      result.push({
-        type: 'text',
-        content: body.slice(lastIndex),
-      });
-    }
-
-    return result;
-  }, [body, originalCode]);
-
-  return (
-    <div className="text-github-text-primary text-sm leading-6">
-      {parts.map((part, index) => {
-        if (part.type === 'text') {
-          return (
-            <span key={index} className="whitespace-pre-wrap">
-              {part.content}
-            </span>
-          );
-        }
-        // Suggestion block with diff view
-        return (
-          <div key={index} className="my-2 border border-github-border rounded-md overflow-hidden">
-            <div className="bg-github-bg-tertiary px-3 py-1 text-xs text-github-text-secondary border-b border-github-border flex items-center gap-2">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-              Suggested change
-            </div>
-            <div className="font-mono text-sm">
-              {/* Original code (red/deletion) */}
-              {part.original && (
-                <div className="border-l-4 border-red-500">
-                  {part.original.split('\n').map((line, lineIndex) => (
-                    <SuggestionDiffLine key={`orig-${lineIndex}`} line={line} type="delete" />
-                  ))}
-                </div>
-              )}
-              {/* Suggested code (green/addition) */}
-              <div className="border-l-4 border-green-500">
-                {part.code.split('\n').map((line, lineIndex) => (
-                  <SuggestionDiffLine key={`sugg-${lineIndex}`} line={line} type="add" />
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+  syntaxTheme?: AppearanceSettings['syntaxTheme'];
 }
 
 export function InlineComment({
@@ -109,10 +25,16 @@ export function InlineComment({
   onRemoveComment,
   onUpdateComment,
   onClick,
+  syntaxTheme,
 }: InlineCommentProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBody, setEditedBody] = useState(comment.body);
+  const [editMode, setEditMode] = useState<CommentEditMode>('edit');
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const hasSuggestionInEditedBody = hasSuggestionInBody(editedBody);
+  const effectiveEditMode: CommentEditMode = hasSuggestionInEditedBody ? editMode : 'edit';
 
   const handleCopyPrompt = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -129,11 +51,13 @@ export function InlineComment({
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditing(true);
+    setEditMode('edit');
     setEditedBody(comment.body);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
+    setEditMode('edit');
     setEditedBody(comment.body);
   };
 
@@ -143,6 +67,7 @@ export function InlineComment({
       onUpdateComment(comment.id, editedBody.trim());
     }
     setIsEditing(false);
+    setEditMode('edit');
   };
 
   const handleRemove = (e: React.MouseEvent) => {
@@ -206,8 +131,45 @@ export function InlineComment({
         </div>
 
         <div className="flex items-center gap-2">
-          {!isEditing && (
-            <>
+          {isEditing ?
+            hasSuggestionInEditedBody ?
+              <div
+                className="flex items-center bg-github-bg-tertiary border border-github-border rounded p-0.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setEditMode('edit')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                    effectiveEditMode === 'edit' ?
+                      'bg-github-bg-primary text-github-text-primary shadow-sm'
+                    : 'text-github-text-secondary hover:text-github-text-primary'
+                  }`}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditMode('preview')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                    effectiveEditMode === 'preview' ?
+                      'bg-github-bg-primary text-github-text-primary shadow-sm'
+                    : 'text-github-text-secondary hover:text-github-text-primary'
+                  }`}
+                >
+                  Preview
+                </button>
+              </div>
+            : <div onClick={(e) => e.stopPropagation()}>
+                <SuggestionTemplateButton
+                  selectedCode={comment.codeContent}
+                  value={editedBody}
+                  onChange={setEditedBody}
+                  textareaRef={editTextareaRef}
+                />
+              </div>
+
+          : <>
               <button
                 onClick={handleCopyPrompt}
                 className="text-xs px-2 py-1 rounded transition-all whitespace-nowrap"
@@ -243,32 +205,43 @@ export function InlineComment({
                 <Check size={12} />
               </button>
             </>
-          )}
+          }
         </div>
       </div>
 
       {!isEditing ?
-        hasSuggestionBlock(comment.body) ?
-          <SuggestionBlockRenderer body={comment.body} originalCode={comment.codeContent} />
-        : <div className="text-github-text-primary text-sm leading-6 whitespace-pre-wrap">
-            {comment.body}
-          </div>
-
+        <CommentBodyRenderer
+          body={comment.body}
+          originalCode={comment.codeContent}
+          filename={comment.file}
+          syntaxTheme={syntaxTheme}
+        />
       : <div>
-          <textarea
-            value={editedBody}
-            onChange={(e) => setEditedBody(e.target.value)}
-            className="w-full text-github-text-primary text-sm leading-6 bg-github-bg-secondary border border-github-border rounded px-2 py-1 resize-none focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30"
-            rows={Math.max(2, editedBody.split('\n').length)}
-            placeholder="Edit your comment..."
-            autoFocus
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              // Stop propagation to prevent triggering parent keyboard handlers
-              e.stopPropagation();
-              handleKeyDown(e);
-            }}
-          />
+          {hasSuggestionInEditedBody && effectiveEditMode === 'preview' ?
+            <CommentBodyRenderer
+              body={editedBody}
+              originalCode={comment.codeContent}
+              filename={comment.file}
+              syntaxTheme={syntaxTheme}
+            />
+          : <>
+              <textarea
+                ref={editTextareaRef}
+                value={editedBody}
+                onChange={(e) => setEditedBody(e.target.value)}
+                className="w-full text-github-text-primary text-sm leading-6 bg-github-bg-secondary border border-github-border rounded px-2 py-1 resize-none focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30"
+                rows={Math.max(2, editedBody.split('\n').length)}
+                placeholder="Edit your comment..."
+                autoFocus
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  // Stop propagation to prevent triggering parent keyboard handlers
+                  e.stopPropagation();
+                  handleKeyDown(e);
+                }}
+              />
+            </>
+          }
           <div className="flex gap-2 justify-end mt-2">
             <button
               type="button"

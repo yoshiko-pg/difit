@@ -5,6 +5,7 @@ import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook';
 import type { Comment } from '../../types/diff';
 
 import { InlineComment } from './InlineComment';
+import type { AppearanceSettings } from './SettingsModal';
 
 interface CommentsListModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface CommentsListModalProps {
   onRemoveComment: (commentId: string) => void;
   onGeneratePrompt: (comment: Comment) => string;
   onUpdateComment: (commentId: string, newBody: string) => void;
+  syntaxTheme?: AppearanceSettings['syntaxTheme'];
 }
 
 export function CommentsListModal({
@@ -24,6 +26,7 @@ export function CommentsListModal({
   onRemoveComment,
   onGeneratePrompt,
   onUpdateComment,
+  syntaxTheme,
 }: CommentsListModalProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const commentRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -173,6 +176,7 @@ export function CommentsListModal({
                         onGeneratePrompt={onGeneratePrompt}
                         onRemoveComment={onRemoveComment}
                         onUpdateComment={onUpdateComment}
+                        syntaxTheme={syntaxTheme}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedIndex(index);

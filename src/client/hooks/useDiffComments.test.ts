@@ -155,6 +155,33 @@ Server comment`;
 
       expect(prompt).toBe(expected);
     });
+
+    it('should include ORIGINAL section for suggestion comments with code snapshot', () => {
+      const { result } = renderHook(() => useDiffComments('main', 'feature-branch', 'abc123'));
+
+      act(() => {
+        result.current.addComment({
+          filePath: 'src/client/components/Button.tsx',
+          body: `Please apply this:\n\`\`\`suggestion
+const next = true;
+\`\`\``,
+          side: 'new',
+          line: 12,
+          codeSnapshot: {
+            content: 'const prev = false;',
+            language: 'typescript',
+          },
+        });
+      });
+
+      const prompt = result.current.generateAllCommentsPrompt();
+
+      expect(prompt).toContain('src/client/components/Button.tsx:L12');
+      expect(prompt).toContain('ORIGINAL:');
+      expect(prompt).toContain('const prev = false;');
+      expect(prompt).toContain('SUGGESTED:');
+      expect(prompt).toContain('const next = true;');
+    });
   });
 
   describe('comment CRUD operations', () => {

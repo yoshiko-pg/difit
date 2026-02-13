@@ -1086,6 +1086,7 @@ function App() {
           onRemoveComment={removeComment}
           onGeneratePrompt={(comment) => generatePrompt(comment.id)}
           onUpdateComment={updateComment}
+          syntaxTheme={settings.syntaxTheme}
         />
       </div>
     </WordHighlightProvider>

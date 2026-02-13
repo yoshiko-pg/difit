@@ -1,18 +1,32 @@
-import { Code } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 
-import { createSuggestionTemplate } from '../../utils/suggestionUtils';
+import { CommentBodyRenderer, hasSuggestionInBody } from './CommentBodyRenderer';
+import type { AppearanceSettings } from './SettingsModal';
+import { SuggestionTemplateButton } from './SuggestionTemplateButton';
 
 interface CommentFormProps {
   onSubmit: (body: string) => Promise<void>;
   onCancel: () => void;
   selectedCode?: string;
+  syntaxTheme?: AppearanceSettings['syntaxTheme'];
+  filename?: string;
 }
 
-export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormProps) {
+type CommentFormMode = 'edit' | 'preview';
+
+export function CommentForm({
+  onSubmit,
+  onCancel,
+  selectedCode,
+  syntaxTheme,
+  filename,
+}: CommentFormProps) {
   const [body, setBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mode, setMode] = useState<CommentFormMode>('edit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasSuggestion = hasSuggestionInBody(body);
+  const effectiveMode: CommentFormMode = hasSuggestion ? mode : 'edit';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +37,7 @@ export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormPro
     try {
       await onSubmit(body.trim());
       setBody('');
+      setMode('edit');
     } catch (error) {
       console.error('Failed to submit comment:', error);
     } finally {
@@ -38,41 +53,6 @@ export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormPro
     }
   };
 
-  const handleAddSuggestion = () => {
-    if (!selectedCode) return;
-
-    const template = createSuggestionTemplate(selectedCode);
-    const textarea = textareaRef.current;
-
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const before = body.slice(0, start);
-      const after = body.slice(end);
-      const newBody =
-        before +
-        (before && !before.endsWith('\n') ? '\n' : '') +
-        template +
-        (after && !after.startsWith('\n') ? '\n' : '') +
-        after;
-      setBody(newBody);
-
-      // Move cursor to the suggested code for editing
-      const cursorStart =
-        before.length + (before && !before.endsWith('\n') ? 1 : 0) + '```suggestion\n'.length;
-      const cursorEnd = cursorStart + selectedCode.length;
-      setTimeout(() => {
-        textarea.setSelectionRange(cursorStart, cursorEnd);
-        textarea.focus();
-      }, 0);
-    } else {
-      // Fallback if ref is not available
-      setBody((prev) => (prev ? prev + '\n' : '') + template);
-    }
-  };
-
-  const modifierKey = /Macintosh|Mac OS X/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl';
-
   return (
     <form
       className="m-2 mx-3 p-3 bg-github-bg-tertiary border border-yellow-600/50 rounded-md border-l-4 border-l-yellow-400"
@@ -83,36 +63,61 @@ export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormPro
         <span className="text-sm font-medium" style={{ color: 'var(--color-yellow-path-text)' }}>
           Add a comment
         </span>
-        <span className="text-xs text-github-text-muted">
-          {modifierKey}+Enter to submit • Escape to cancel
-        </span>
+        {hasSuggestion ?
+          <div className="flex items-center border border-github-border rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setMode('edit')}
+              className={`text-xs px-2.5 py-1.5 ${
+                effectiveMode === 'edit' ?
+                  'bg-github-bg-tertiary text-github-text-primary'
+                : 'bg-github-bg-secondary text-github-text-secondary'
+              } transition-colors`}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('preview')}
+              className={`text-xs px-2.5 py-1.5 border-l border-github-border ${
+                effectiveMode === 'preview' ?
+                  'bg-github-bg-tertiary text-github-text-primary'
+                : 'bg-github-bg-secondary text-github-text-secondary'
+              } transition-colors`}
+            >
+              Preview
+            </button>
+          </div>
+        : <SuggestionTemplateButton
+            selectedCode={selectedCode}
+            value={body}
+            onChange={setBody}
+            textareaRef={textareaRef}
+          />
+        }
       </div>
 
-      {selectedCode && (
-        <div className="flex items-center gap-2 mb-2">
-          <button
-            type="button"
-            onClick={handleAddSuggestion}
-            className="text-xs px-2 py-1 bg-github-bg-tertiary text-github-text-secondary border border-github-border rounded hover:bg-github-bg-primary hover:text-github-text-primary transition-colors flex items-center gap-1"
-            title="Add code suggestion"
-          >
-            <Code size={12} />
-            Add suggestion
-          </button>
+      {hasSuggestion && effectiveMode === 'preview' ?
+        <div className="min-h-[60px] mb-2 bg-github-bg-secondary border border-github-border rounded px-3 py-2">
+          <CommentBodyRenderer
+            body={body}
+            originalCode={selectedCode}
+            filename={filename}
+            syntaxTheme={syntaxTheme}
+          />
         </div>
-      )}
-
-      <textarea
-        ref={textareaRef}
-        className="w-full min-h-[60px] mb-2 resize-y bg-github-bg-secondary border border-github-border rounded px-3 py-2 text-github-text-primary text-sm leading-6 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/30 focus:min-h-[80px] disabled:opacity-50"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Leave a comment..."
-        rows={3}
-        autoFocus
-        disabled={isSubmitting}
-      />
+      : <textarea
+          ref={textareaRef}
+          className="w-full min-h-[60px] mb-2 resize-y bg-github-bg-secondary border border-github-border rounded px-3 py-2 text-github-text-primary text-sm leading-6 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/30 focus:min-h-[80px] disabled:opacity-50"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Leave a comment..."
+          rows={Math.max(3, body.split('\n').length)}
+          autoFocus
+          disabled={isSubmitting}
+        />
+      }
 
       <div className="flex gap-2 justify-end">
         <button

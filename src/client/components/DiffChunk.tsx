@@ -445,6 +445,7 @@ export const DiffChunk = memo(function DiffChunk({
                               onGeneratePrompt={onGeneratePrompt}
                               onRemoveComment={onRemoveComment}
                               onUpdateComment={onUpdateComment}
+                              syntaxTheme={syntaxTheme}
                             />
                           </div>
                         </div>
@@ -472,6 +473,8 @@ export const DiffChunk = memo(function DiffChunk({
                               onSubmit={handleSubmitComment}
                               onCancel={handleCancelComment}
                               selectedCode={getSelectedCodeContent()}
+                              syntaxTheme={syntaxTheme}
+                              filename={filename}
                             />
                           </div>
                         </div>

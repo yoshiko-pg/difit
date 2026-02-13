@@ -679,6 +679,7 @@ export function SideBySideDiffChunk({
                                 onGeneratePrompt={onGeneratePrompt}
                                 onRemoveComment={onRemoveComment}
                                 onUpdateComment={onUpdateComment}
+                                syntaxTheme={syntaxTheme}
                               />
                             </div>
                           </div>
@@ -713,6 +714,8 @@ export function SideBySideDiffChunk({
                               onSubmit={handleSubmitComment}
                               onCancel={handleCancelComment}
                               selectedCode={getSelectedCodeContent()}
+                              syntaxTheme={syntaxTheme}
+                              filename={filename}
                             />
                           </div>
                         </div>
