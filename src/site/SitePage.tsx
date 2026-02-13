@@ -1,5 +1,8 @@
 import { Copy, Check } from 'lucide-react';
+import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
+
+import type { StaticDiffDataset } from './types/staticDiff';
 
 /* ── Clipboard helper ───────────────────────────────────── */
 function CopyBtn({ text, className = '' }: { text: string; className?: string }) {
@@ -84,10 +87,75 @@ function Feature({ label, desc }: { label: string; desc: string }) {
   );
 }
 
+function formatRevisionLabel(revision: StaticDiffDataset['revisions'][number]) {
+  const oneLineMessage = revision.message.split('\n')[0] ?? '';
+  const trimmedMessage = oneLineMessage.trim();
+  const preview = trimmedMessage.length > 52 ? `${trimmedMessage.slice(0, 52)}...` : trimmedMessage;
+
+  return `${revision.baseShortHash}...${revision.targetShortHash} (${revision.authorName}) ${preview}`;
+}
+
 /* ═══════════════════════════════════════════════════════════
    Main page — one continuous terminal session
    ═══════════════════════════════════════════════════════════ */
 function SitePage() {
+  const [revisions, setRevisions] = useState<StaticDiffDataset['revisions']>([]);
+  const [selectedRevisionId, setSelectedRevisionId] = useState('');
+  const [datasetError, setDatasetError] = useState(false);
+  const [loadingRevisions, setLoadingRevisions] = useState(true);
+
+  useEffect(() => {
+    let canceled = false;
+
+    const loadRevisions = async () => {
+      try {
+        const response = await fetch('/site-data/diffs.json');
+        if (!response.ok) {
+          throw new Error(`Failed to load revisions (${response.status})`);
+        }
+
+        const dataset = (await response.json()) as StaticDiffDataset;
+        if (canceled) return;
+
+        setRevisions(dataset.revisions);
+
+        const queryRevision = new URLSearchParams(window.location.search).get('snapshot');
+        const defaultRevisionId =
+          dataset.revisions.find((revision) => revision.id === queryRevision)?.id ??
+          dataset.initialRevisionId ??
+          dataset.revisions[0]?.id ??
+          '';
+
+        setSelectedRevisionId(defaultRevisionId);
+      } catch (error) {
+        if (!canceled) {
+          setDatasetError(true);
+          setRevisions([]);
+          setSelectedRevisionId('');
+          console.error('Failed to load static diff dataset:', error);
+        }
+      } finally {
+        if (!canceled) {
+          setLoadingRevisions(false);
+        }
+      }
+    };
+
+    void loadRevisions();
+
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
+  const previewUrl =
+    selectedRevisionId ? `/preview?snapshot=${encodeURIComponent(selectedRevisionId)}` : '/preview';
+  const hasRevisionSelector = revisions.length > 0 && !datasetError && !loadingRevisions;
+
+  const handleRevisionChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedRevisionId(event.target.value);
+  };
+
   return (
     <div className="min-h-screen bg-github-bg-primary font-mono text-sm leading-relaxed text-github-text-primary">
       {/* narrow = terminal text sections, wide = iframe demo */}
@@ -152,15 +220,32 @@ function SitePage() {
               <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
               <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
             </div>
-            <div className="flex-1 flex justify-center">
+            <div className="min-w-0 flex-1">
               <div className="px-4 py-1 rounded-md bg-white text-[11px] text-[#6b7280] font-mono border border-[#e5e7eb]">
-                http://localhost:4966
+                {previewUrl}
               </div>
             </div>
+            {hasRevisionSelector && (
+              <label className="flex items-center gap-1.5 text-[11px] text-[#6b7280] whitespace-nowrap">
+                Revision:
+                <select
+                  value={selectedRevisionId}
+                  onChange={handleRevisionChange}
+                  className="max-w-[340px] border border-[#d1d5db] bg-white rounded text-[11px] text-[#111827] px-2 py-1"
+                  aria-label="Revision"
+                >
+                  {revisions.map((revision) => (
+                    <option key={revision.id} value={revision.id}>
+                      {formatRevisionLabel(revision)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           <iframe
             title="difit live preview"
-            src="/preview"
+            src={previewUrl}
             loading="eager"
             className="w-full bg-white"
             style={{ height: '70vh', minHeight: '500px' }}
