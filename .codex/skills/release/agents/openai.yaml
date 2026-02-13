@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Release'
+  short_description: 'Run difit changelog-to-release workflow.'
+  default_prompt: 'Use $release to execute the repository release workflow end-to-end.'
