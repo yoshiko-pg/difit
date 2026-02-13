@@ -113,7 +113,7 @@ export function CommentForm({
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Leave a comment..."
-          rows={3}
+          rows={Math.max(3, body.split('\n').length)}
           autoFocus
           disabled={isSubmitting}
         />

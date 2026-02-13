@@ -28,7 +28,8 @@ export function SuggestionTemplateButton({
     const textarea = textareaRef?.current;
 
     if (!textarea) {
-      onChange(value ? `${value}\n${template}` : template);
+      const prefix = value ? '\n\n' : '';
+      onChange(`${value}${prefix}${template}\n\n`);
       return;
     }
 
@@ -36,23 +37,18 @@ export function SuggestionTemplateButton({
     const end = textarea.selectionEnd;
     const before = value.slice(0, start);
     const after = value.slice(end);
-    const newBody =
-      before +
-      (before && !before.endsWith('\n') ? '\n' : '') +
-      template +
-      (after && !after.startsWith('\n') ? '\n' : '') +
-      after;
+    const prefix = before ? '\n\n' : '';
+    const insertion = `${prefix}${template}\n\n`;
+    const newBody = before + insertion + after;
 
     onChange(newBody);
 
-    // Move cursor to the suggested code for editing
-    const cursorStart =
-      before.length + (before && !before.endsWith('\n') ? 1 : 0) + '```suggestion\n'.length;
-    const cursorEnd = cursorStart + selectedCode.length;
+    // Place cursor after the inserted suggestion block
+    const cursorPosition = before.length + insertion.length;
 
     requestAnimationFrame(() => {
       textarea.focus();
-      textarea.setSelectionRange(cursorStart, cursorEnd);
+      textarea.setSelectionRange(cursorPosition, cursorPosition);
     });
   };
 
