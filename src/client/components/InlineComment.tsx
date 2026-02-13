@@ -210,17 +210,12 @@ export function InlineComment({
       </div>
 
       {!isEditing ?
-        hasSuggestionInBody(comment.body) ?
-          <CommentBodyRenderer
-            body={comment.body}
-            originalCode={comment.codeContent}
-            filename={comment.file}
-            syntaxTheme={syntaxTheme}
-          />
-        : <div className="text-github-text-primary text-sm leading-6 whitespace-pre-wrap">
-            {comment.body}
-          </div>
-
+        <CommentBodyRenderer
+          body={comment.body}
+          originalCode={comment.codeContent}
+          filename={comment.file}
+          syntaxTheme={syntaxTheme}
+        />
       : <div>
           {hasSuggestionInEditedBody && effectiveEditMode === 'preview' ?
             <CommentBodyRenderer
