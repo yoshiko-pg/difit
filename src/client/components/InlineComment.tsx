@@ -6,6 +6,7 @@ import { type Comment, type DiffLine } from '../../types/diff';
 import { hasSuggestionBlock, parseSuggestionBlocks } from '../../utils/suggestionUtils';
 
 import { DiffCodeLine } from './DiffCodeLine';
+import type { AppearanceSettings } from './SettingsModal';
 import { SuggestionTemplateButton } from './SuggestionTemplateButton';
 
 interface InlineCommentProps {
@@ -14,6 +15,7 @@ interface InlineCommentProps {
   onRemoveComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, newBody: string) => void;
   onClick?: (e: React.MouseEvent) => void;
+  syntaxTheme?: AppearanceSettings['syntaxTheme'];
 }
 
 const getSuggestionLineTypeClass = (type: 'add' | 'delete') =>
@@ -32,17 +34,23 @@ function SuggestionLines({
   type,
   filename,
   keyPrefix,
+  syntaxTheme,
 }: {
   code: string;
   type: 'add' | 'delete';
   filename?: string;
   keyPrefix: string;
+  syntaxTheme?: AppearanceSettings['syntaxTheme'];
 }) {
   return (
     <>
       {code.split('\n').map((line, index) => (
         <div key={`${keyPrefix}-${index}`} className={getSuggestionLineTypeClass(type)}>
-          <DiffCodeLine line={createSuggestionLine(type, line)} filename={filename} />
+          <DiffCodeLine
+            line={createSuggestionLine(type, line)}
+            filename={filename}
+            syntaxTheme={syntaxTheme}
+          />
         </div>
       ))}
     </>
@@ -54,10 +62,12 @@ function SuggestionBlockRenderer({
   body,
   originalCode,
   filename,
+  syntaxTheme,
 }: {
   body: string;
   originalCode?: string;
   filename?: string;
+  syntaxTheme?: AppearanceSettings['syntaxTheme'];
 }) {
   const parts = useMemo(() => {
     const suggestions = parseSuggestionBlocks(body);
@@ -118,6 +128,7 @@ function SuggestionBlockRenderer({
                   type="delete"
                   filename={filename}
                   keyPrefix={`orig-${index}`}
+                  syntaxTheme={syntaxTheme}
                 />
               )}
               <SuggestionLines
@@ -125,6 +136,7 @@ function SuggestionBlockRenderer({
                 type="add"
                 filename={filename}
                 keyPrefix={`sugg-${index}`}
+                syntaxTheme={syntaxTheme}
               />
             </div>
           </div>
@@ -140,6 +152,7 @@ export function InlineComment({
   onRemoveComment,
   onUpdateComment,
   onClick,
+  syntaxTheme,
 }: InlineCommentProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -293,6 +306,7 @@ export function InlineComment({
             body={comment.body}
             originalCode={comment.codeContent}
             filename={comment.file}
+            syntaxTheme={syntaxTheme}
           />
         : <div className="text-github-text-primary text-sm leading-6 whitespace-pre-wrap">
             {comment.body}

@@ -679,6 +679,7 @@ export function SideBySideDiffChunk({
                                 onGeneratePrompt={onGeneratePrompt}
                                 onRemoveComment={onRemoveComment}
                                 onUpdateComment={onUpdateComment}
+                                syntaxTheme={syntaxTheme}
                               />
                             </div>
                           </div>
