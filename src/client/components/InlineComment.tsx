@@ -238,8 +238,16 @@ export function InlineComment({
         </div>
 
         <div className="flex items-center gap-2">
-          {!isEditing && (
-            <>
+          {isEditing ?
+            <div onClick={(e) => e.stopPropagation()}>
+              <SuggestionTemplateButton
+                selectedCode={comment.codeContent}
+                value={editedBody}
+                onChange={setEditedBody}
+                textareaRef={editTextareaRef}
+              />
+            </div>
+          : <>
               <button
                 onClick={handleCopyPrompt}
                 className="text-xs px-2 py-1 rounded transition-all whitespace-nowrap"
@@ -275,7 +283,7 @@ export function InlineComment({
                 <Check size={12} />
               </button>
             </>
-          )}
+          }
         </div>
       </div>
 
@@ -291,14 +299,6 @@ export function InlineComment({
           </div>
 
       : <div>
-          <div className="flex items-center justify-end mb-2">
-            <SuggestionTemplateButton
-              selectedCode={comment.codeContent}
-              value={editedBody}
-              onChange={setEditedBody}
-              textareaRef={editTextareaRef}
-            />
-          </div>
           <textarea
             ref={editTextareaRef}
             value={editedBody}
