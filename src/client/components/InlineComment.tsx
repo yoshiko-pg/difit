@@ -2,10 +2,10 @@ import { Check, Edit2 } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
-import { type Comment } from '../../types/diff';
+import { type Comment, type DiffLine } from '../../types/diff';
 import { hasSuggestionBlock, parseSuggestionBlocks } from '../../utils/suggestionUtils';
 
-import { SuggestionDiffLine } from './SuggestionDiffLine';
+import { DiffCodeLine } from './DiffCodeLine';
 
 interface InlineCommentProps {
   comment: Comment;
@@ -15,8 +15,49 @@ interface InlineCommentProps {
   onClick?: (e: React.MouseEvent) => void;
 }
 
+const getSuggestionLineTypeClass = (type: 'add' | 'delete') =>
+  type === 'add' ? 'bg-diff-addition-bg' : 'bg-diff-deletion-bg';
+
+const createSuggestionLine = (
+  type: 'add' | 'delete',
+  content: string,
+): Pick<DiffLine, 'type' | 'content'> => ({
+  type,
+  content,
+});
+
+function SuggestionLines({
+  code,
+  type,
+  filename,
+  keyPrefix,
+}: {
+  code: string;
+  type: 'add' | 'delete';
+  filename?: string;
+  keyPrefix: string;
+}) {
+  return (
+    <>
+      {code.split('\n').map((line, index) => (
+        <div key={`${keyPrefix}-${index}`} className={getSuggestionLineTypeClass(type)}>
+          <DiffCodeLine line={createSuggestionLine(type, line)} filename={filename} />
+        </div>
+      ))}
+    </>
+  );
+}
+
 // Component to render suggestion blocks with GitHub-style diff view
-function SuggestionBlockRenderer({ body, originalCode }: { body: string; originalCode?: string }) {
+function SuggestionBlockRenderer({
+  body,
+  originalCode,
+  filename,
+}: {
+  body: string;
+  originalCode?: string;
+  filename?: string;
+}) {
   const parts = useMemo(() => {
     const suggestions = parseSuggestionBlocks(body);
     if (suggestions.length === 0) {
@@ -80,21 +121,21 @@ function SuggestionBlockRenderer({ body, originalCode }: { body: string; origina
               </svg>
               Suggested change
             </div>
-            <div className="font-mono text-sm">
-              {/* Original code (red/deletion) */}
+            <div className="font-mono text-sm border-l-4 border-transparent">
               {part.original && (
-                <div className="border-l-4 border-red-500">
-                  {part.original.split('\n').map((line, lineIndex) => (
-                    <SuggestionDiffLine key={`orig-${lineIndex}`} line={line} type="delete" />
-                  ))}
-                </div>
+                <SuggestionLines
+                  code={part.original}
+                  type="delete"
+                  filename={filename}
+                  keyPrefix={`orig-${index}`}
+                />
               )}
-              {/* Suggested code (green/addition) */}
-              <div className="border-l-4 border-green-500">
-                {part.code.split('\n').map((line, lineIndex) => (
-                  <SuggestionDiffLine key={`sugg-${lineIndex}`} line={line} type="add" />
-                ))}
-              </div>
+              <SuggestionLines
+                code={part.code}
+                type="add"
+                filename={filename}
+                keyPrefix={`sugg-${index}`}
+              />
             </div>
           </div>
         );
@@ -249,7 +290,11 @@ export function InlineComment({
 
       {!isEditing ?
         hasSuggestionBlock(comment.body) ?
-          <SuggestionBlockRenderer body={comment.body} originalCode={comment.codeContent} />
+          <SuggestionBlockRenderer
+            body={comment.body}
+            originalCode={comment.codeContent}
+            filename={comment.file}
+          />
         : <div className="text-github-text-primary text-sm leading-6 whitespace-pre-wrap">
             {comment.body}
           </div>
