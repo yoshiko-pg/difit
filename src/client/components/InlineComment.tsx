@@ -122,7 +122,7 @@ function SuggestionBlockRenderer({
         // Suggestion block with diff view
         return (
           <div key={index} className="my-2 border border-github-border rounded-md overflow-hidden">
-            <div className="font-mono text-sm border-l-4 border-transparent">
+            <div className="font-mono text-sm">
               {part.original && (
                 <SuggestionLines
                   code={part.original}
