@@ -16,18 +16,4 @@ export const DARK_THEMES = [
   { id: 'okaidia', label: 'Okaidia' },
 ];
 
-export const ALL_THEMES = [...LIGHT_THEMES, ...DARK_THEMES];
-
 // Built-in themes don't require CSS management
-
-export function isLightTheme(themeId: string): boolean {
-  return LIGHT_THEMES.some((theme) => theme.id === themeId);
-}
-
-export function isDarkTheme(themeId: string): boolean {
-  return DARK_THEMES.some((theme) => theme.id === themeId);
-}
-
-export function getThemesForBackgroundColor(backgroundColor: 'light' | 'dark') {
-  return backgroundColor === 'light' ? LIGHT_THEMES : DARK_THEMES;
-}

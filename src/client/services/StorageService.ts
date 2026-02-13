@@ -1,6 +1,6 @@
 import { type DiffComment, type ViewedFileRecord, type DiffContextStorage } from '../../types/diff';
 
-export const STORAGE_KEY_PREFIX = 'difit-storage-v1';
+const STORAGE_KEY_PREFIX = 'difit-storage-v1';
 
 export class StorageService {
   /**

@@ -20,7 +20,7 @@ export function getStartPosition(cursor: CursorPosition | null): CursorPosition 
 /**
  * Check if we've wrapped around to the starting position
  */
-export function hasWrappedAround(
+function hasWrappedAround(
   current: CursorPosition,
   start: CursorPosition,
   started: boolean,
@@ -36,7 +36,7 @@ export function hasWrappedAround(
 /**
  * Advance to the next position in the given direction
  */
-export function advancePosition(
+function advancePosition(
   pos: CursorPosition,
   direction: NavigationDirection,
   files: DiffFile[],

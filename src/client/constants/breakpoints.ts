@@ -1,4 +1,4 @@
-export const BREAKPOINTS = {
+const BREAKPOINTS = {
   mobileMax: 767,
   desktopMin: 1024,
 } as const;

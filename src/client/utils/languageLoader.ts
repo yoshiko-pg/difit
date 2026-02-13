@@ -49,10 +49,3 @@ export function loadPrismLanguage(lang: string): Promise<void> {
   }
   return loaded[lang];
 }
-
-/**
- * Check if a language is already loaded
- */
-export function isLanguageLoaded(lang: string): boolean {
-  return lang in loaded;
-}

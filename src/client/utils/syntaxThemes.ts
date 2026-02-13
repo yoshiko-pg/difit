@@ -1,7 +1,5 @@
 import { type PrismTheme, themes } from 'prism-react-renderer';
 
-import { LIGHT_THEMES, DARK_THEMES } from './themeLoader';
-
 // Helper function to remove background colors from theme
 function removeBackgrounds(theme: PrismTheme) {
   return {
@@ -60,16 +58,4 @@ export function getSyntaxTheme(syntaxTheme: string) {
   }
 
   return removeBackgrounds(baseTheme);
-}
-
-export function getThemesForBackgroundColor(backgroundColor: 'light' | 'dark') {
-  return backgroundColor === 'light' ? LIGHT_THEMES : DARK_THEMES;
-}
-
-export function isValidThemeForBackground(
-  themeId: string,
-  backgroundColor: 'light' | 'dark',
-): boolean {
-  const availableThemes = getThemesForBackgroundColor(backgroundColor);
-  return availableThemes.some((theme) => theme.id === themeId);
 }
