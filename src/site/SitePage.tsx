@@ -143,7 +143,7 @@ function SitePage() {
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
         <Comment>Here&apos;s what you&apos;ll see ↓</Comment>
       </section>
-      <div className="w-[90vw] mx-auto mt-3">
+      <div className="w-[90vw] mx-auto mt-3 relative group/demo">
         <div className="rounded-xl overflow-hidden border border-[#d1d5db] shadow-lg">
           {/* Browser chrome — light theme */}
           <div className="flex items-center gap-2 px-4 py-2.5 bg-[#f0f0f0] border-b border-[#d1d5db]">
@@ -165,6 +165,12 @@ function SitePage() {
             className="w-full bg-white"
             style={{ height: '70vh', minHeight: '500px' }}
           />
+        </div>
+        {/* Hover tooltip — outside top-right */}
+        <div className="absolute -top-12 right-4 opacity-0 group-hover/demo:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+          <div className="landing-bubble-down px-4 py-2.5 rounded-xl bg-green-500 text-white text-sm font-bold shadow-lg whitespace-nowrap">
+            Try leaving a comment!
+          </div>
         </div>
       </div>
 
