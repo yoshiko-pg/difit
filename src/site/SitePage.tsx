@@ -132,7 +132,7 @@ function SitePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg opacity-60 group-hover:opacity-100 blur-sm transition-opacity" />
-              <div className="relative flex items-center gap-3 px-6 py-3 rounded-lg bg-github-bg-primary font-mono text-lg">
+              <div className="relative flex items-center gap-3 px-6 py-3 pr-12 rounded-lg bg-github-bg-primary font-mono text-lg">
                 <span className="text-green-400">$</span>
                 <span className="text-github-text-primary">npx difit</span>
                 <CopyButton text="npx difit" />
@@ -145,7 +145,7 @@ function SitePage() {
         </section>
 
         {/* Live Demo */}
-        <section className="px-6 py-16 max-w-7xl mx-auto">
+        <section className="py-16 mx-auto" style={{ width: '90vw', maxWidth: '90vw' }}>
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 text-sm text-github-text-muted mb-3">
               <Zap size={14} className="text-yellow-400" />
@@ -303,7 +303,7 @@ function SitePage() {
               </p>
               <div className="relative inline-block group">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg opacity-60 group-hover:opacity-100 blur-sm transition-opacity" />
-                <div className="relative flex items-center gap-3 px-8 py-4 rounded-lg bg-github-bg-primary font-mono text-xl">
+                <div className="relative flex items-center gap-3 px-8 py-4 pr-14 rounded-lg bg-github-bg-primary font-mono text-xl">
                   <span className="text-green-400">$</span>
                   <span>npx difit</span>
                   <CopyButton text="npx difit" />
