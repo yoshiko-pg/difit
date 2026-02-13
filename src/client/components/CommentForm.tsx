@@ -85,7 +85,7 @@ export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormPro
           <button
             type="button"
             onClick={handleAddSuggestion}
-            className="text-xs px-2.5 py-1.5 bg-amber-500 text-amber-950 border border-amber-400 rounded hover:bg-amber-400 hover:border-amber-300 transition-colors flex items-center gap-1 font-semibold shadow-sm"
+            className="text-xs px-3 py-1.5 bg-github-bg-tertiary text-github-text-primary border border-github-border rounded hover:opacity-80 transition-all flex items-center gap-1"
             title="Add code suggestion"
           >
             <Code size={12} />
