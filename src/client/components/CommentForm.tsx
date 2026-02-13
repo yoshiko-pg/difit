@@ -71,8 +71,6 @@ export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormPro
     }
   };
 
-  const modifierKey = /Macintosh|Mac OS X/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl';
-
   return (
     <form
       className="m-2 mx-3 p-3 bg-github-bg-tertiary border border-yellow-600/50 rounded-md border-l-4 border-l-yellow-400"
@@ -83,24 +81,18 @@ export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormPro
         <span className="text-sm font-medium" style={{ color: 'var(--color-yellow-path-text)' }}>
           Add a comment
         </span>
-        <span className="text-xs text-github-text-muted">
-          {modifierKey}+Enter to submit • Escape to cancel
-        </span>
-      </div>
-
-      {selectedCode && (
-        <div className="flex items-center gap-2 mb-2">
+        {selectedCode && (
           <button
             type="button"
             onClick={handleAddSuggestion}
-            className="text-xs px-2 py-1 bg-github-bg-tertiary text-github-text-secondary border border-github-border rounded hover:bg-github-bg-primary hover:text-github-text-primary transition-colors flex items-center gap-1"
+            className="text-xs px-2.5 py-1.5 bg-amber-500 text-amber-950 border border-amber-400 rounded hover:bg-amber-400 hover:border-amber-300 transition-colors flex items-center gap-1 font-semibold shadow-sm"
             title="Add code suggestion"
           >
             <Code size={12} />
             Add suggestion
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <textarea
         ref={textareaRef}
