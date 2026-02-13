@@ -191,6 +191,7 @@ export function DiffQuickMenu({
   );
 
   const hasMainBranch = Boolean(mainBranch);
+  const headPreset = useMemo(() => ({ base: 'HEAD^', target: 'HEAD' }), []);
   const previousCommitPreset = useMemo(
     () => getPreviousCommitPreset(targetRevision),
     [targetRevision],
@@ -286,18 +287,6 @@ export function DiffQuickMenu({
               >
                 HEAD...Uncommitted
               </button>
-              <button
-                onClick={() => handleSelect('HEAD', 'staged')}
-                className={getItemClasses(isPresetActive('HEAD', 'staged'), false)}
-              >
-                HEAD...Staging
-              </button>
-              <button
-                onClick={() => handleSelect('staged', 'working')}
-                className={getItemClasses(isPresetActive('staged', 'working'), false)}
-              >
-                Staging...Working
-              </button>
               {hasMainBranch && mainBranch && (
                 <>
                   <button
@@ -306,14 +295,17 @@ export function DiffQuickMenu({
                   >
                     {mainBranch.name}...Uncommitted
                   </button>
-                  <button
-                    onClick={() => handleSelect(mainBranch.name, 'HEAD')}
-                    className={getItemClasses(isPresetActive(mainBranch.name, 'HEAD'), false)}
-                  >
-                    {mainBranch.name}...HEAD
-                  </button>
                 </>
               )}
+              <button
+                onClick={() => handleSelect(headPreset.base, headPreset.target)}
+                className={getItemClasses(
+                  isPresetActive(headPreset.base, headPreset.target),
+                  false,
+                )}
+              >
+                HEAD
+              </button>
             </div>
 
             <div className="border-b border-github-border">
