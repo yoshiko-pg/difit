@@ -1,11 +1,12 @@
 import { Check, Edit2 } from 'lucide-react';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { type Comment, type DiffLine } from '../../types/diff';
 import { hasSuggestionBlock, parseSuggestionBlocks } from '../../utils/suggestionUtils';
 
 import { DiffCodeLine } from './DiffCodeLine';
+import { SuggestionTemplateButton } from './SuggestionTemplateButton';
 
 interface InlineCommentProps {
   comment: Comment;
@@ -143,6 +144,7 @@ export function InlineComment({
   const [isCopied, setIsCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBody, setEditedBody] = useState(comment.body);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleCopyPrompt = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -289,7 +291,16 @@ export function InlineComment({
           </div>
 
       : <div>
+          <div className="flex items-center justify-end mb-2">
+            <SuggestionTemplateButton
+              selectedCode={comment.codeContent}
+              value={editedBody}
+              onChange={setEditedBody}
+              textareaRef={editTextareaRef}
+            />
+          </div>
           <textarea
+            ref={editTextareaRef}
             value={editedBody}
             onChange={(e) => setEditedBody(e.target.value)}
             className="w-full text-github-text-primary text-sm leading-6 bg-github-bg-secondary border border-github-border rounded px-2 py-1 resize-none focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30"

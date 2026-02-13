@@ -1,7 +1,6 @@
-import { Code } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 
-import { createSuggestionTemplate } from '../../utils/suggestionUtils';
+import { SuggestionTemplateButton } from './SuggestionTemplateButton';
 
 interface CommentFormProps {
   onSubmit: (body: string) => Promise<void>;
@@ -38,39 +37,6 @@ export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormPro
     }
   };
 
-  const handleAddSuggestion = () => {
-    if (!selectedCode) return;
-
-    const template = createSuggestionTemplate(selectedCode);
-    const textarea = textareaRef.current;
-
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const before = body.slice(0, start);
-      const after = body.slice(end);
-      const newBody =
-        before +
-        (before && !before.endsWith('\n') ? '\n' : '') +
-        template +
-        (after && !after.startsWith('\n') ? '\n' : '') +
-        after;
-      setBody(newBody);
-
-      // Move cursor to the suggested code for editing
-      const cursorStart =
-        before.length + (before && !before.endsWith('\n') ? 1 : 0) + '```suggestion\n'.length;
-      const cursorEnd = cursorStart + selectedCode.length;
-      setTimeout(() => {
-        textarea.setSelectionRange(cursorStart, cursorEnd);
-        textarea.focus();
-      }, 0);
-    } else {
-      // Fallback if ref is not available
-      setBody((prev) => (prev ? prev + '\n' : '') + template);
-    }
-  };
-
   return (
     <form
       className="m-2 mx-3 p-3 bg-github-bg-tertiary border border-yellow-600/50 rounded-md border-l-4 border-l-yellow-400"
@@ -81,17 +47,12 @@ export function CommentForm({ onSubmit, onCancel, selectedCode }: CommentFormPro
         <span className="text-sm font-medium" style={{ color: 'var(--color-yellow-path-text)' }}>
           Add a comment
         </span>
-        {selectedCode && (
-          <button
-            type="button"
-            onClick={handleAddSuggestion}
-            className="text-xs px-3 py-1.5 bg-github-bg-tertiary text-github-text-primary border border-github-border rounded hover:opacity-80 transition-all flex items-center gap-1"
-            title="Add code suggestion"
-          >
-            <Code size={12} />
-            Add suggestion
-          </button>
-        )}
+        <SuggestionTemplateButton
+          selectedCode={selectedCode}
+          value={body}
+          onChange={setBody}
+          textareaRef={textareaRef}
+        />
       </div>
 
       <textarea
