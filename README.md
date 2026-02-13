@@ -96,7 +96,16 @@ git diff --merge-base main feature | difit
 
 # Review an entire existing file as newly added
 git diff -- /dev/null path/to/file | difit
+
+# Explicit stdin mode
+git diff --cached | difit -
 ```
+
+Stdin mode is selected with intent-first rules:
+
+- `-` explicitly enables stdin mode
+- If positional arguments (`<target>` / `[compare-with]`), `--pr`, or `--tui` are provided, difit treats the command as Git/PR/TUI mode and does not auto-read stdin
+- Auto stdin detection applies only when no explicit mode is selected and stdin is a pipe/file/socket
 
 ## ⚙️ CLI Options
 

@@ -1,8 +1,50 @@
 import { execSync } from 'child_process';
+import { fstatSync, type Stats } from 'node:fs';
 import { createInterface } from 'readline/promises';
 
 import { Octokit } from '@octokit/rest';
 import type { SimpleGit } from 'simple-git';
+
+type StdinStat = Pick<Stats, 'isFIFO' | 'isFile' | 'isSocket'>;
+
+export type StdinSource = 'pipe' | 'file' | 'socket' | 'tty';
+
+export function detectStdinSource(stdinStat: StdinStat = fstatSync(0)): StdinSource {
+  if (stdinStat.isFIFO()) {
+    return 'pipe';
+  }
+
+  if (stdinStat.isFile()) {
+    return 'file';
+  }
+
+  if (stdinStat.isSocket()) {
+    return 'socket';
+  }
+
+  return 'tty';
+}
+
+export interface ShouldReadStdinOptions {
+  commitish: string;
+  hasPositionalArgs: boolean;
+  hasPrOption: boolean;
+  hasTuiOption: boolean;
+  stdinSource?: StdinSource;
+}
+
+export function shouldReadStdin(options: ShouldReadStdinOptions): boolean {
+  if (options.commitish === '-') {
+    return true;
+  }
+
+  if (options.hasPositionalArgs || options.hasPrOption || options.hasTuiOption) {
+    return false;
+  }
+
+  const stdinSource = options.stdinSource ?? detectStdinSource();
+  return stdinSource === 'pipe' || stdinSource === 'file' || stdinSource === 'socket';
+}
 
 export function getGitRoot(): string {
   try {

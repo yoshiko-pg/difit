@@ -1,8 +1,149 @@
 import { describe, it, expect } from 'vitest';
 
-import { validateCommitish, validateDiffArguments, shortHash, parseGitHubPrUrl } from './utils';
+import {
+  detectStdinSource,
+  parseGitHubPrUrl,
+  shortHash,
+  shouldReadStdin,
+  validateCommitish,
+  validateDiffArguments,
+} from './utils';
 
 describe('CLI Utils', () => {
+  describe('stdin detection', () => {
+    it('detects pipe from stdin stat', () => {
+      expect(
+        detectStdinSource({
+          isFIFO: () => true,
+          isFile: () => false,
+          isSocket: () => false,
+        }),
+      ).toBe('pipe');
+    });
+
+    it('detects file from stdin stat', () => {
+      expect(
+        detectStdinSource({
+          isFIFO: () => false,
+          isFile: () => true,
+          isSocket: () => false,
+        }),
+      ).toBe('file');
+    });
+
+    it('detects socket from stdin stat', () => {
+      expect(
+        detectStdinSource({
+          isFIFO: () => false,
+          isFile: () => false,
+          isSocket: () => true,
+        }),
+      ).toBe('socket');
+    });
+
+    it('detects tty for character device stdin stat', () => {
+      expect(
+        detectStdinSource({
+          isFIFO: () => false,
+          isFile: () => false,
+          isSocket: () => false,
+        }),
+      ).toBe('tty');
+    });
+
+    it('reads stdin when commitish is explicit stdin marker', () => {
+      expect(
+        shouldReadStdin({
+          commitish: '-',
+          hasPositionalArgs: true,
+          hasPrOption: true,
+          hasTuiOption: true,
+          stdinSource: 'tty',
+        }),
+      ).toBe(true);
+    });
+
+    it('does not read stdin when positional args are explicitly passed', () => {
+      expect(
+        shouldReadStdin({
+          commitish: '.',
+          hasPositionalArgs: true,
+          hasPrOption: false,
+          hasTuiOption: false,
+          stdinSource: 'pipe',
+        }),
+      ).toBe(false);
+    });
+
+    it('does not read stdin when --pr is specified', () => {
+      expect(
+        shouldReadStdin({
+          commitish: 'HEAD',
+          hasPositionalArgs: false,
+          hasPrOption: true,
+          hasTuiOption: false,
+          stdinSource: 'pipe',
+        }),
+      ).toBe(false);
+    });
+
+    it('does not read stdin when --tui is specified', () => {
+      expect(
+        shouldReadStdin({
+          commitish: 'HEAD',
+          hasPositionalArgs: false,
+          hasPrOption: false,
+          hasTuiOption: true,
+          stdinSource: 'pipe',
+        }),
+      ).toBe(false);
+    });
+
+    it('auto-detects stdin for pipe/file/socket only when no explicit git mode is selected', () => {
+      expect(
+        shouldReadStdin({
+          commitish: 'HEAD',
+          hasPositionalArgs: false,
+          hasPrOption: false,
+          hasTuiOption: false,
+          stdinSource: 'pipe',
+        }),
+      ).toBe(true);
+
+      expect(
+        shouldReadStdin({
+          commitish: 'HEAD',
+          hasPositionalArgs: false,
+          hasPrOption: false,
+          hasTuiOption: false,
+          stdinSource: 'file',
+        }),
+      ).toBe(true);
+
+      expect(
+        shouldReadStdin({
+          commitish: 'HEAD',
+          hasPositionalArgs: false,
+          hasPrOption: false,
+          hasTuiOption: false,
+          stdinSource: 'socket',
+        }),
+      ).toBe(true);
+    });
+
+    it('does not auto-read stdin for tty source', () => {
+      expect(
+        shouldReadStdin({
+          commitish: 'HEAD',
+          hasPositionalArgs: false,
+          hasPrOption: false,
+          hasTuiOption: false,
+          stdinSource: 'tty',
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe('validateCommitish', () => {
     it('should validate full SHA hashes', () => {
       expect(validateCommitish('a1b2c3d4e5f6789012345678901234567890abcd')).toBe(true);

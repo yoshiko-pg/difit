@@ -96,7 +96,16 @@ git diff --merge-base main feature | difit
 
 # 기존 파일 전체를 신규 추가처럼 검토
 git diff -- /dev/null path/to/file | difit
+
+# 명시적 표준 입력 모드
+git diff --cached | difit -
 ```
+
+표준 입력 모드는 의도 우선 규칙으로 선택됩니다:
+
+- `-`를 지정하면 표준 입력 모드가 명시적으로 활성화됩니다
+- positional 인수(`<target>` / `[compare-with]`), `--pr`, `--tui` 중 하나라도 지정되면 Git/PR/TUI 모드로 처리하고 stdin 자동 읽기를 하지 않습니다
+- 명시적 모드 지정이 없고 stdin이 pipe/file/socket 인 경우에만 자동으로 표준 입력 모드가 됩니다
 
 ## ⚙️ CLI 옵션
 

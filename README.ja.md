@@ -96,7 +96,16 @@ git diff --merge-base main feature | difit
 
 # 既存ファイル全体を新規追加として確認
 git diff -- /dev/null path/to/file | difit
+
+# 明示的に標準入力モードを使う
+git diff --cached | difit -
 ```
+
+標準入力モードは、意図を優先して次のルールで選択されます。
+
+- `-` を指定した場合は常に標準入力モード
+- positional 引数（`<target>` / `[compare-with]`）、`--pr`、`--tui` のいずれかがある場合は Git/PR/TUI モードとして扱い、標準入力を自動読み取りしない
+- 明示モード指定がない場合のみ、stdin が pipe/file/socket のときに自動で標準入力モードになる
 
 ## ⚙️ CLIオプション
 

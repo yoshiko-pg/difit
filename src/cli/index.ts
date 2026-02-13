@@ -11,6 +11,7 @@ import { DiffMode } from '../types/watch.js';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 
 import {
+  shouldReadStdin,
   findUntrackedFiles,
   markFilesIntentToAdd,
   promptUser,
@@ -89,9 +90,14 @@ program
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
       // Check if we should read from stdin
-      const shouldReadStdin = !process.stdin.isTTY || commitish === '-';
+      const readFromStdin = shouldReadStdin({
+        commitish,
+        hasPositionalArgs: program.args.length > 0,
+        hasPrOption: Boolean(options.pr),
+        hasTuiOption: Boolean(options.tui),
+      });
 
-      if (shouldReadStdin) {
+      if (readFromStdin) {
         // Read unified diff from stdin
         const diffContent = await readStdin();
         if (!diffContent.trim()) {

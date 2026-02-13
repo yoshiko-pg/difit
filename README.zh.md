@@ -96,7 +96,16 @@ git diff --merge-base main feature | difit
 
 # 将整个现有文件视为新添加进行审查
 git diff -- /dev/null path/to/file | difit
+
+# 显式标准输入模式
+git diff --cached | difit -
 ```
+
+标准输入模式按“意图优先”规则选择：
+
+- `-` 会显式启用标准输入模式
+- 当提供 positional 参数（`<target>` / `[compare-with]`）、`--pr` 或 `--tui` 时，difit 会按 Git/PR/TUI 模式处理，不会自动读取 stdin
+- 只有在未显式选择模式且 stdin 为 pipe/file/socket 时，才会自动进入标准输入模式
 
 ## ⚙️ CLI 选项
 
