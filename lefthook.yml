@@ -33,6 +33,7 @@ pre-commit:
     knip:
       glob:
         - 'src/**/*.{ts,tsx,js,jsx,json,css}'
+        - 'scripts/*.{js,mjs,cjs}'
         - 'scripts/**/*.{js,mjs,cjs}'
         - 'package.json'
         - 'pnpm-lock.yaml'
