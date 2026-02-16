@@ -1,4 +1,4 @@
-import { diffWords } from 'diff';
+import { diffWords, diffWordsWithSpace } from 'diff';
 
 export interface DiffSegment {
   value: string;
@@ -15,7 +15,7 @@ export interface WordLevelDiffResult {
  * Returns segments for both old and new lines, each marked as unchanged, added, or removed.
  */
 export function computeWordLevelDiff(oldContent: string, newContent: string): WordLevelDiffResult {
-  const changes = diffWords(oldContent, newContent);
+  const changes = diffWordsWithSpace(oldContent, newContent);
 
   const oldSegments: DiffSegment[] = [];
   const newSegments: DiffSegment[] = [];
