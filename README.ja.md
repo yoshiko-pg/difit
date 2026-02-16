@@ -32,7 +32,6 @@ difit  # 最新コミットのdiffをWebUIで表示
 ```bash
 difit <target>                    # 単一コミットのdiffを表示
 difit <target> [compare-with]     # 2つのコミット/ブランチを比較
-difit --pr <github-pr-url>        # GitHubプルリクエストをレビュー
 ```
 
 ### 単一コミットのレビュー

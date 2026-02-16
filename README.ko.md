@@ -32,7 +32,6 @@ difit  # WebUI에서 최신 커밋 diff 보기
 ```bash
 difit <target>                    # 단일 커밋 diff 보기
 difit <target> [compare-with]     # 두 커밋/브랜치 비교
-difit --pr <github-pr-url>        # GitHub 풀 리퀘스트 검토
 ```
 
 ### 단일 커밋 검토

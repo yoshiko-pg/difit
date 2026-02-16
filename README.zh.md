@@ -32,7 +32,6 @@ difit  # 在 WebUI 中查看最新提交的差异
 ```bash
 difit <target>                    # 查看单个提交差异
 difit <target> [compare-with]     # 比较两个提交/分支
-difit --pr <github-pr-url>        # 审查 GitHub 拉取请求
 ```
 
 ### 单个提交审查

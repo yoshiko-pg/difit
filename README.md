@@ -32,7 +32,6 @@ difit  # View the latest commit diff in WebUI
 ```bash
 difit <target>                    # View single commit diff
 difit <target> [compare-with]     # Compare two commits/branches
-difit --pr <github-pr-url>        # Review GitHub pull request
 ```
 
 ### Single commit review
