@@ -40,7 +40,7 @@ const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
 const SIDEBAR_WIDTH_STORAGE_KEY = 'difit.sidebarWidth';
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
-const SIDEBAR_DEFAULT_WIDTH = 320;
+const SIDEBAR_DEFAULT_WIDTH = 280;
 
 const getInitialSidebarWidth = () => {
   if (typeof window === 'undefined') {
