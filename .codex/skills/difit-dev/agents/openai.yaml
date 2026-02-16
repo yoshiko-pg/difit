@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Difit Dev Review'
+  short_description: 'Request user code review via difit dev command.'
+  default_prompt: 'Use $difit-dev after implementation to request code review with pnpm run dev.'
