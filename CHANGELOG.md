@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.9] - 2026-02-16
+
+### Added
+
+- Add difit skill example file
+- Create difit-dev skill and agent config
+
+### Changed
+
+- Improve sidebar default width
+- Simplify README example
+
+### Fixed
+
+- Preserve leading whitespace in word-level diff (#212)
+- Make stdin detection intent-aware in non-tty
+- Delegate stdin and arg parsing to CLI
+- Fix pre-commit knip glob
+
+### Thanks
+
+- [@matsuyoshi30](https://github.com/matsuyoshi30) for fixing leading whitespace in word-level diff (#212)
+
 ## [3.1.8] - 2026-02-13
 
 ### Added
@@ -878,7 +901,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.8...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.9...HEAD
+[3.1.9]: https://github.com/yoshiko-pg/difit/compare/v3.1.8...v3.1.9
 [3.1.8]: https://github.com/yoshiko-pg/difit/compare/v3.1.7...v3.1.8
 [3.1.7]: https://github.com/yoshiko-pg/difit/compare/v3.1.6...v3.1.7
 [3.1.6]: https://github.com/yoshiko-pg/difit/compare/v3.1.5...v3.1.6
