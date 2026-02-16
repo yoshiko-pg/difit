@@ -146,6 +146,14 @@ src/components/Button.tsx:L42-L48   # この行が自動的に追加されます
 この部分は不要です
 ```
 
+## 🤖 エージェントからの呼び出し
+
+difitを利用してユーザーにレビューを依頼するSkillを以下でインストールできます
+
+```sh
+npx skills add yoshiko-pg/difit
+```
+
 ## 🎨 シンタックスハイライト対応言語
 
 - **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`

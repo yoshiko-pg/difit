@@ -146,6 +146,14 @@ src/components/Button.tsx:L42-L48   # This line is automatically added
 This section is unnecessary
 ```
 
+## 🤖 Calling from Agents
+
+You can install the following Skill to request reviews from users with difit:
+
+```sh
+npx skills add yoshiko-pg/difit
+```
+
 ## 🎨 Syntax Highlighting Languages
 
 - **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`

@@ -146,6 +146,14 @@ src/components/Button.tsx:L42-L48   # 이 줄은 자동으로 추가됩니다
 이 부분은 불필요합니다
 ```
 
+## 🤖 에이전트에서 호출
+
+difit을 사용해 사용자에게 리뷰를 요청하는 Skill은 아래 명령으로 설치할 수 있습니다:
+
+```sh
+npx skills add yoshiko-pg/difit
+```
+
 ## 🎨 구문 강조 언어
 
 - **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`
