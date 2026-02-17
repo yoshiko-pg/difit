@@ -1,0 +1,66 @@
+{
+  "name": "difit-vscode",
+  "displayName": "difit",
+  "description": "Launch difit and open it in a VS Code tab.",
+  "version": "0.1.0",
+  "publisher": "yoshiko-pg",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yoshiko-pg/difit.git"
+  },
+  "homepage": "https://github.com/yoshiko-pg/difit",
+  "bugs": {
+    "url": "https://github.com/yoshiko-pg/difit/issues"
+  },
+  "engines": {
+    "vscode": "^1.98.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:difit.openReview",
+    "onCommand:difit.stopReview"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "difit.openReview",
+        "title": "difit: Open Review"
+      },
+      {
+        "command": "difit.stopReview",
+        "title": "difit: Stop Review"
+      }
+    ],
+    "configuration": {
+      "title": "difit",
+      "properties": {
+        "difit.executablePath": {
+          "type": "string",
+          "default": "difit",
+          "description": "Path to the difit executable."
+        },
+        "difit.installCommand": {
+          "type": "string",
+          "default": "npm install -g difit",
+          "description": "Command sent to an integrated terminal when difit is not installed."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "lint": "tsc -p . --noEmit",
+    "package": "pnpm run build && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.8",
+    "@types/vscode": "^1.98.0",
+    "@vscode/vsce": "^3.6.2",
+    "typescript": "^5.8.3"
+  }
+}
