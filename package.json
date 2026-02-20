@@ -27,7 +27,6 @@
     "check": "oxlint . --type-aware --type-check --deny-warnings",
     "check:fix": "oxlint . --type-aware --type-check --deny-warnings --fix",
     "format": "biome format .",
-    "format:check": "pnpm run format",
     "format:fix": "biome format . --write",
     "knip": "knip --use-tsconfig-files",
     "test": "vitest run",

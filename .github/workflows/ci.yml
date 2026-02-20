@@ -29,7 +29,7 @@ jobs:
         run: pnpm run check
 
       - name: Run formatting check
-        run: pnpm run format:check
+        run: pnpm run format
 
       - name: Run knip
         run: pnpm run knip
