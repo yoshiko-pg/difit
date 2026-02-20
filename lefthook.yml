@@ -20,7 +20,7 @@ pre-commit:
         - '*.{ts,tsx,js,jsx,json,css}'
         - 'src/**/*.{ts,tsx,js,jsx,json,css}'
         - 'biome.json'
-      run: pnpm run format
+      run: pnpm run format:fix
       stage_fixed: true
       fail_text: 'Biome formatting failed. Please check the issues and try again.'
 
