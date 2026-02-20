@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.10] - 2026-02-20
+
+### Added
+
+- Add `--keep-alive` flag to prevent auto-shutdown on disconnect (#217)
+- Replace prettier/eslint to biome/oxlint (#218)
+- docs(readme): add agent invocation section
+
+### Changed
+
+- Use gh pr diff --patch for PR review input (#219)
+- chore(deps): update dependencies (#213, #214, #215, #216)
+
+### Thanks
+
+- [@dschatzle](https://github.com/dschatzle) for `--keep-alive` flag for PR #217
+
 ## [3.1.9] - 2026-02-16
 
 ### Added
@@ -901,7 +918,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.9...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.10...HEAD
+[3.1.10]: https://github.com/yoshiko-pg/difit/compare/v3.1.9...v3.1.10
 [3.1.9]: https://github.com/yoshiko-pg/difit/compare/v3.1.8...v3.1.9
 [3.1.8]: https://github.com/yoshiko-pg/difit/compare/v3.1.7...v3.1.8
 [3.1.7]: https://github.com/yoshiko-pg/difit/compare/v3.1.6...v3.1.7
