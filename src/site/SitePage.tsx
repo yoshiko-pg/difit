@@ -443,12 +443,10 @@ function SitePage() {
         </Stdout>
       </section>
 
-      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
-
       {/* ── Features as --help output ────────────────── */}
-      <section className="w-[92vw] md:w-[70vw] max-w-[1100px] mx-auto space-y-2">
+      <section className="w-[92vw] md:w-[70vw] max-w-[1100px] mx-auto my-6 space-y-2">
         <Stdout>
-          <div className="mt-1 border-x border-github-border/70 bg-github-bg-secondary/30 px-2 sm:px-3">
+          <div className="mt-1 border border-github-border/70 rounded-md bg-github-bg-secondary/30 px-2 sm:px-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {featureHighlights.map((feature, index) => (
                 <div
@@ -472,8 +470,6 @@ function SitePage() {
           </div>
         </Stdout>
       </section>
-
-      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
 
       {/* ── Usage examples as actual commands ────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
