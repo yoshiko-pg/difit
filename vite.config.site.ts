@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-const normalizeDevRoute = (url) => {
+const normalizeDevRoute = (url: string): string | null => {
   const [pathname, query = ''] = url.split('?', 2);
   const suffix = query ? `?${query}` : '';
 

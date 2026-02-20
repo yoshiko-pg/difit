@@ -264,7 +264,7 @@ td.keyboard-cursor::before {
 }
 
 .landing-bubble-down::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -6px;
   right: 16px;

@@ -18,9 +18,7 @@ function CopyBtn({ text, className = '' }: { text: string; className?: string })
       className={`text-github-text-muted hover:text-green-400 transition-colors ${className}`}
       title="Copy"
     >
-      {copied ?
-        <Check size={13} className="text-green-400" />
-      : <Copy size={13} />}
+      {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
     </button>
   );
 }
@@ -111,9 +109,7 @@ function renderUsageCommand(cmd: string) {
     <span>
       {cmd.split(' ').map((part, index, array) => (
         <span key={`${part}-${index}`}>
-          {part === 'difit' ?
-            <span className="text-[#f1e927]">{part}</span>
-          : part}
+          {part === 'difit' ? <span className="text-[#f1e927]">{part}</span> : part}
           {index < array.length - 1 ? ' ' : ''}
         </span>
       ))}
@@ -178,8 +174,9 @@ function SitePage() {
     };
   }, []);
 
-  const previewUrl =
-    selectedRevisionId ? `/preview?snapshot=${encodeURIComponent(selectedRevisionId)}` : '/preview';
+  const previewUrl = selectedRevisionId
+    ? `/preview?snapshot=${encodeURIComponent(selectedRevisionId)}`
+    : '/preview';
   const hasRevisionSelector = revisions.length > 0 && !datasetError && !loadingRevisions;
   const browserAddress = 'http://localhost:4966';
   const usageExamples: UsageExample[] = [
@@ -429,20 +426,24 @@ function SitePage() {
         <Comment>Usage examples</Comment>
         <div className="space-y-3 mt-1">
           {usageExamples.map((entry) =>
-            entry.type === 'heading' ?
+            entry.type === 'heading' ? (
               <p key={entry.title} className="text-github-text-muted">
                 {entry.title}
               </p>
-            : <div key={entry.cmd} className="flex items-center gap-3">
+            ) : (
+              <div key={entry.cmd} className="flex items-center gap-3">
                 <Prompt>
-                  {entry.align ?
+                  {entry.align ? (
                     <span className="inline-block w-[18ch]">{renderUsageCommand(entry.cmd)}</span>
-                  : <span>{renderUsageCommand(entry.cmd)}</span>}
+                  ) : (
+                    <span>{renderUsageCommand(entry.cmd)}</span>
+                  )}
                   <span className="text-github-text-secondary">
                     {entry.align ? '' : '\u00A0\u00A0'}# {entry.comment}
                   </span>
                 </Prompt>
-              </div>,
+              </div>
+            ),
           )}
         </div>
       </section>
