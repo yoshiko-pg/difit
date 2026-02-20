@@ -473,7 +473,7 @@ function SitePage() {
       </section>
 
       {/* ── Features as --help output ────────────────── */}
-      <section className="w-[92vw] md:w-[70vw] max-w-[1100px] mx-auto my-6 space-y-2">
+      <section className="w-full max-w-[92vw] md:max-w-[clamp(0px,70vw,1100px)] mx-auto my-6 space-y-2">
         <Stdout>
           <div className="mt-1 border border-github-border rounded-md bg-github-bg-secondary/30 overflow-hidden">
             <div className="border-b border-github-border bg-[#343a42]/70">
