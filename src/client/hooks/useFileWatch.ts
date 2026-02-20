@@ -58,7 +58,7 @@ export function useFileWatch(onReload?: () => Promise<void>): FileWatchHook {
 
       eventSource.onmessage = (event) => {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          // oxlint-disable-next-line typescript/no-unsafe-assignment
           const data: WatchEvent = JSON.parse(event.data as string);
 
           switch (data.type) {

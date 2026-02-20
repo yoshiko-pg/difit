@@ -40,8 +40,9 @@ const App: React.FC<AppProps> = ({ targetCommitish, baseCommitish, mode, repoPat
   };
 
   useEffect(() => {
+    // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: trigger initial diff load when revisions change
     void loadDiff();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react/exhaustive-deps
   }, [targetCommitish, baseCommitish]);
 
   useInput(

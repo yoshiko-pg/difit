@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* oxlint-disable typescript/no-explicit-any */
 /// <reference types="@testing-library/jest-dom" />
 
 import '@testing-library/jest-dom';

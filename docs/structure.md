@@ -142,7 +142,7 @@ difit [commit-ish] [compare-with]
 
 - **vitest**: Testing framework
 - **typescript**: Type safety
-- **eslint/prettier**: Code quality
+- **oxlint/biome**: Code quality
 - **lefthook**: Git hooks
 - **vite**: Build tool for client
 

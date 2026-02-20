@@ -29,8 +29,7 @@
     "vite.config.ts",
     "vitest.config.ts",
     "vitest.setup.ts",
-    "tailwind.config.ts",
-    "eslint.config.ts"
+    "tailwind.config.ts"
   ],
   "rules": {
     "no-control-regex": "off",

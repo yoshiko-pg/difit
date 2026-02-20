@@ -84,7 +84,7 @@ export function useViewedFiles(
     };
 
     void processAutoCollapsedFiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react/exhaustive-deps
   }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]); // initialFiles intentionally omitted to run only on mount
 
   // Save viewed files to storage
