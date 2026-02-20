@@ -645,6 +645,98 @@ describe('Server Integration Tests', () => {
     });
   });
 
+  describe('Keep-alive option', () => {
+    it('accepts keepAlive option without error', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        keepAlive: true,
+      });
+      servers.push(server);
+
+      expect(port).toBeGreaterThanOrEqual(4966);
+    });
+
+    it('starts normally without keepAlive option', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+      });
+      servers.push(server);
+
+      expect(port).toBeGreaterThanOrEqual(4966);
+    });
+
+    it('does not call process.exit on client disconnect when keepAlive is true', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        keepAlive: true,
+        preferredPort: 9070,
+      });
+      servers.push(server);
+
+      // Connect to heartbeat SSE endpoint and then abort
+      const controller = new AbortController();
+      const responsePromise = fetch(`http://localhost:${port}/api/heartbeat`, {
+        signal: controller.signal,
+      });
+
+      // Wait for the connection to be established
+      const response = await responsePromise.catch(() => null);
+      if (response) {
+        // Start reading the stream to ensure connection is established
+        const reader = response.body?.getReader();
+        if (reader) {
+          await reader.read(); // Read the initial "connected" message
+        }
+      }
+
+      // Disconnect by aborting
+      controller.abort();
+
+      // Wait for the server's close handler + setTimeout(100ms) to run
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // With keepAlive, process.exit should NOT have been called
+      expect(process.exit).not.toHaveBeenCalled();
+    });
+
+    it('calls process.exit on client disconnect when keepAlive is false', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        keepAlive: false,
+        preferredPort: 9080,
+      });
+      servers.push(server);
+
+      // Connect to heartbeat SSE endpoint and then abort
+      const controller = new AbortController();
+      const responsePromise = fetch(`http://localhost:${port}/api/heartbeat`, {
+        signal: controller.signal,
+      });
+
+      // Wait for the connection to be established
+      const response = await responsePromise.catch(() => null);
+      if (response) {
+        const reader = response.body?.getReader();
+        if (reader) {
+          await reader.read(); // Read the initial "connected" message
+        }
+      }
+
+      // Disconnect by aborting
+      controller.abort();
+
+      // Wait for the server's close handler + setTimeout(100ms) to run
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Without keepAlive, process.exit SHOULD have been called
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+  });
+
   describe('Clear Comments functionality', () => {
     it('includes clearComments flag in diff response when provided', async () => {
       const { port, server } = await startServer({

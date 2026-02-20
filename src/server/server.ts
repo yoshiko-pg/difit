@@ -29,6 +29,7 @@ interface ServerOptions {
   mode?: string;
   ignoreWhitespace?: boolean;
   clearComments?: boolean;
+  keepAlive?: boolean;
   diffMode?: DiffMode;
   repoPath?: string;
 }
@@ -424,16 +425,21 @@ export async function startServer(
     // When client disconnects (tab closed, navigation, etc.)
     req.on('close', () => {
       clearInterval(heartbeatInterval);
-      // Add a small delay to ensure any pending sendBeacon requests are processed
-      setTimeout(async () => {
-        console.log('Client disconnected, shutting down server...');
+      if (options.keepAlive) {
+        console.log('Client disconnected, but server is staying alive (--keep-alive)');
+        console.log('Press Ctrl+C to stop the server');
+      } else {
+        // Add a small delay to ensure any pending sendBeacon requests are processed
+        setTimeout(async () => {
+          console.log('Client disconnected, shutting down server...');
 
-        // Stop file watcher
-        await fileWatcher.stop();
+          // Stop file watcher
+          await fileWatcher.stop();
 
-        outputFinalComments();
-        process.exit(0);
-      }, 100);
+          outputFinalComments();
+          process.exit(0);
+        }, 100);
+      }
     });
   });
 

@@ -57,6 +57,7 @@ interface CliOptions {
   pr?: string;
   clean?: boolean;
   includeUntracked?: boolean;
+  keepAlive?: boolean;
 }
 
 const program = new Command();
@@ -87,6 +88,7 @@ program
   .option('--pr <url>', 'GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)')
   .option('--clean', 'start with a clean slate by clearing all existing comments')
   .option('--include-untracked', 'automatically include untracked files in diff')
+  .option('--keep-alive', 'keep server running even after browser disconnects')
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
       // Check if we should read from stdin
@@ -113,10 +115,14 @@ program
           openBrowser: options.open,
           mode: options.mode,
           clearComments: options.clean,
+          keepAlive: options.keepAlive,
         });
 
         console.log(`\n🚀 difit server started on ${url}`);
         console.log(`📋 Reviewing: diff from stdin`);
+        if (options.keepAlive) {
+          console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
+        }
         console.log('\nPress Ctrl+C to stop the server');
         return;
       }
@@ -217,12 +223,17 @@ program
         openBrowser: options.open,
         mode: options.mode,
         clearComments: options.clean,
+        keepAlive: options.keepAlive,
         diffMode,
         repoPath,
       });
 
       console.log(`\n🚀 difit server started on ${url}`);
       console.log(`📋 Reviewing: ${targetCommitish}`);
+
+      if (options.keepAlive) {
+        console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
+      }
 
       if (options.clean) {
         console.log('🧹 Starting with a clean slate - all existing comments will be cleared');
