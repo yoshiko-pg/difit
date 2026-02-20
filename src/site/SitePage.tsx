@@ -77,13 +77,47 @@ function Typewriter({ text, speed = 60 }: { text: string; speed?: number }) {
   );
 }
 
-/* ── Feature line — compact single-line feature ─────────── */
+/* ── Feature pane — terminal-like block ─────────────────── */
+function wrapFeatureDescription(desc: string, maxChars = 36) {
+  const words = desc.split(' ');
+  const lines: string[] = [];
+  let current = '';
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxChars) {
+      current = candidate;
+      continue;
+    }
+
+    if (current) {
+      lines.push(current);
+      current = word;
+      continue;
+    }
+
+    lines.push(word);
+    current = '';
+  }
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines;
+}
+
 function Feature({ label, desc }: { label: string; desc: string }) {
+  const lines = wrapFeatureDescription(desc);
+
   return (
-    <div className="flex items-baseline gap-2">
-      <span className="text-cyan-400 shrink-0">{label}</span>
-      <span className="text-github-text-muted">-</span>
-      <span className="text-github-text-secondary">{desc}</span>
+    <div className="space-y-1">
+      <p className="text-cyan-400">&gt; {label}</p>
+      {lines.map((line) => (
+        <p key={line} className="text-github-text-secondary">
+          ... {line}
+        </p>
+      ))}
     </div>
   );
 }
@@ -413,15 +447,20 @@ function SitePage() {
 
       {/* ── Features as --help output ────────────────── */}
       <section className="w-[92vw] md:w-[70vw] max-w-[1100px] mx-auto space-y-2">
-        <Comment>Features</Comment>
         <Stdout>
-          <div className="mt-1 border border-github-border bg-github-bg-secondary/30 rounded-md p-2 sm:p-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y divide-x divide-github-border/70">
+          <div className="mt-1 border-x border-github-border/70 bg-github-bg-secondary/30 px-2 sm:px-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {featureHighlights.map((feature, index) => (
                 <div
                   key={feature.label}
-                  className="px-3 py-2"
-                  style={index === 3 || index === 4 ? { borderTop: '0' } : undefined}
+                  className={[
+                    'px-3 py-2.5 border-github-border/70',
+                    index > 0 ? 'border-t' : '',
+                    index >= 2 ? 'sm:border-t' : 'sm:border-t-0',
+                    index % 2 === 1 ? 'sm:border-l' : 'sm:border-l-0',
+                    index >= 3 ? 'lg:border-t' : 'lg:border-t-0',
+                    index % 3 === 0 ? 'lg:border-l-0' : 'lg:border-l',
+                  ].join(' ')}
                 >
                   <p className="text-github-text-muted/80 text-[11px] mb-1">
                     {`[${String(index + 1).padStart(2, '0')}]`}
