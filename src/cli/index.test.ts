@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { DiffMode } from '../types/watch.js';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
+import pkg from '../../package.json' with { type: 'json' };
 
 // Mock all external dependencies
 vi.mock('simple-git');
@@ -265,6 +266,40 @@ describe('CLI index.ts', () => {
       };
 
       expect(mockStartServer).toHaveBeenCalledWith(expectedCall);
+    });
+  });
+
+  describe('Version option', () => {
+    it('supports --version flag', async () => {
+      const program = new Command();
+      const stdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+      program.version(pkg.version, '-v, --version', 'output the version number').exitOverride();
+
+      try {
+        await program.parseAsync(['--version'], { from: 'user' });
+      } catch {
+        // commander exits after printing version
+      }
+
+      expect(stdoutWrite).toHaveBeenCalledWith(`${pkg.version}\n`);
+      stdoutWrite.mockRestore();
+    });
+
+    it('supports -v flag', async () => {
+      const program = new Command();
+      const stdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+      program.version(pkg.version, '-v, --version', 'output the version number').exitOverride();
+
+      try {
+        await program.parseAsync(['-v'], { from: 'user' });
+      } catch {
+        // commander exits after printing version
+      }
+
+      expect(stdoutWrite).toHaveBeenCalledWith(`${pkg.version}\n`);
+      stdoutWrite.mockRestore();
     });
   });
 

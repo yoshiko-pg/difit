@@ -65,7 +65,7 @@ const program = new Command();
 program
   .name('difit')
   .description('A lightweight Git diff viewer with GitHub-like interface')
-  .version(pkg.version)
+  .version(pkg.version, '-v, --version', 'output the version number')
   .argument(
     '[commit-ish]',
     'Git commit, tag, branch, HEAD~n reference, or "working"/"staged"/"."',
