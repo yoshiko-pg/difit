@@ -3,4 +3,7 @@ version = 1
 name = "difit"
 
 [setup]
-script = "pnpm install"
+script = '''
+mise trust
+pnpm install
+'''
