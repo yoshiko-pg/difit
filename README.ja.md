@@ -121,6 +121,7 @@ git diff --cached | difit -
 | `--tui`               | false      | WebUIの代わりにターミナルUIを使用                                                 |
 | `--clean`             | false      | 起動時に既存コメントと閲覧済みファイルをすべてクリア                              |
 | `--include-untracked` | false      | diffにuntrackedファイルを自動的に含める（`.`または`working`のみ有効）             |
+| `--keep-alive`        | false      | ブラウザ切断後もサーバーを終了せず起動したままにする（Ctrl+Cで手動停止）           |
 
 ## 💬 コメントシステム
 

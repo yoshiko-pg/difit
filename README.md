@@ -121,6 +121,7 @@ Stdin mode is selected with intent-first rules:
 | `--tui`               | false     | Use terminal UI mode instead of WebUI                                      |
 | `--clean`             | false     | Clear all existing comments and viewed files on startup                    |
 | `--include-untracked` | false     | Automatically include untracked files in diff (only with `.` or `working`) |
+| `--keep-alive`        | false     | Keep server running after browser disconnects (stop manually with Ctrl+C)  |
 
 ## 💬 Comment System
 
