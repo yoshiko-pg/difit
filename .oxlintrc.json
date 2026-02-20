@@ -3,7 +3,7 @@
   "plugins": ["typescript", "react", "import"],
   "jsPlugins": [{ "name": "react-hooks-js", "specifier": "eslint-plugin-react-hooks" }],
   "categories": {
-    "correctness": "off",
+    "correctness": "error",
     "suspicious": "off",
     "pedantic": "off",
     "perf": "off",
