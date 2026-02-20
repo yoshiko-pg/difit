@@ -5,6 +5,7 @@ pre-commit:
       glob:
         - '*.{ts,tsx}'
         - 'src/**/*.{ts,tsx}'
+        - 'packages/vscode/**/*.{ts,tsx}'
         - 'package.json'
         - 'pnpm-lock.yaml'
         - 'tsconfig.json'
