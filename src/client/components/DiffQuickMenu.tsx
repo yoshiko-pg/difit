@@ -210,13 +210,11 @@ export function DiffQuickMenu({
   };
 
   const getItemClasses = (highlighted: boolean, disabled: boolean) => {
-    const highlightClasses =
-      highlighted ?
-        'bg-diff-selected-bg border-l-4 border-l-diff-selected-border font-semibold pl-2'
+    const highlightClasses = highlighted
+      ? 'bg-diff-selected-bg border-l-4 border-l-diff-selected-border font-semibold pl-2'
       : '';
-    const hoverClasses =
-      highlighted ?
-        'hover:bg-diff-selected-bg focus:bg-diff-selected-bg'
+    const hoverClasses = highlighted
+      ? 'hover:bg-diff-selected-bg focus:bg-diff-selected-bg'
       : 'hover:bg-github-bg-tertiary focus:bg-github-bg-tertiary';
     const cursorClasses = disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
 
@@ -251,7 +249,7 @@ export function DiffQuickMenu({
         title={currentLabel}
         {...getReferenceProps()}
       >
-        {isCompact ?
+        {isCompact ? (
           <div className="flex items-center gap-1.5 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
             <GitBranch size={14} className="text-github-text-secondary" />
             <ChevronDown
@@ -259,14 +257,15 @@ export function DiffQuickMenu({
               className="text-github-text-secondary group-hover:text-github-text-primary transition-colors"
             />
           </div>
-        : <div className="flex items-center gap-1 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
+        ) : (
+          <div className="flex items-center gap-1 px-2 py-1 bg-github-bg-tertiary border border-github-border rounded hover:border-github-text-secondary transition-colors">
             <code className="text-xs text-github-text-primary">{currentLabel}</code>
             <ChevronDown
               size={12}
               className="text-github-text-secondary group-hover:text-github-text-primary transition-colors"
             />
           </div>
-        }
+        )}
       </button>
 
       {isOpen && (

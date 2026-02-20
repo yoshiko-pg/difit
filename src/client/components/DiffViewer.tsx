@@ -79,9 +79,8 @@ const normalizeCommentRanges = (comments: Comment[]): Record<DiffSide, LineRange
 
   comments.forEach((comment) => {
     const side = comment.side ?? 'new';
-    const [start, end] =
-      Array.isArray(comment.line) ?
-        [comment.line[0], comment.line[1]]
+    const [start, end] = Array.isArray(comment.line)
+      ? [comment.line[0], comment.line[1]]
       : [comment.line, comment.line];
 
     if (start <= 0 || end <= 0) return;

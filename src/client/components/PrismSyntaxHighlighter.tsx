@@ -49,9 +49,11 @@ export const PrismSyntaxHighlighter = React.memo(function PrismSyntaxHighlighter
         {tokens.map((line, i) => (
           <span key={i} {...getLineProps({ line })}>
             {line.map((token, key) =>
-              renderToken ?
+              renderToken ? (
                 renderToken(token, key, getTokenProps)
-              : <span key={key} {...getTokenProps({ token })} />,
+              ) : (
+                <span key={key} {...getTokenProps({ token })} />
+              ),
             )}
           </span>
         ))}

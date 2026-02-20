@@ -220,13 +220,11 @@ export const DiffChunk = memo(function DiffChunk({
 
     // Show selection for existing comment
     if (commentingLine && commentingLine.side === side) {
-      const start =
-        Array.isArray(commentingLine.lineNumber) ?
-          commentingLine.lineNumber[0]
+      const start = Array.isArray(commentingLine.lineNumber)
+        ? commentingLine.lineNumber[0]
         : commentingLine.lineNumber;
-      const end =
-        Array.isArray(commentingLine.lineNumber) ?
-          commentingLine.lineNumber[1]
+      const end = Array.isArray(commentingLine.lineNumber)
+        ? commentingLine.lineNumber[1]
         : commentingLine.lineNumber;
       if (lineNumber >= start && lineNumber <= end) {
         return 'after:bg-diff-selected-bg after:absolute after:inset-0 after:border-l-5 after:border-l-diff-selected-border after:pointer-events-none';
@@ -326,10 +324,9 @@ export const DiffChunk = memo(function DiffChunk({
           {chunk.lines.map((line, index) => {
             const currentLineNumber = line.newLineNumber || line.oldLineNumber || 0;
             const currentLineSide: DiffSide = line.type === 'delete' ? 'old' : 'new';
-            const formTargetLineNumber =
-              commentingLine ?
-                Array.isArray(commentingLine.lineNumber) ?
-                  commentingLine.lineNumber[1]
+            const formTargetLineNumber = commentingLine
+              ? Array.isArray(commentingLine.lineNumber)
+                ? commentingLine.lineNumber[1]
                 : commentingLine.lineNumber
               : null;
 
@@ -339,8 +336,9 @@ export const DiffChunk = memo(function DiffChunk({
             const commentLineNumber =
               line.type === 'delete' ? line.oldLineNumber : line.newLineNumber;
             const commentSide: DiffSide = line.type === 'delete' ? 'old' : 'new';
-            const lineComments =
-              commentLineNumber ? getCommentsForLine(commentLineNumber, commentSide) : [];
+            const lineComments = commentLineNumber
+              ? getCommentsForLine(commentLineNumber, commentSide)
+              : [];
             // Generate ID for all lines to match the format used in useKeyboardNavigation
             const lineId = `file-${fileIndex}-chunk-${chunkIndex}-line-${index}`;
             const isCurrentLine =
@@ -404,18 +402,16 @@ export const DiffChunk = memo(function DiffChunk({
                     setEndLine(null);
                   }}
                   onOpenInEditor={
-                    (
-                      onOpenInEditor &&
-                      line.type !== 'delete' &&
-                      (line.newLineNumber || line.oldLineNumber)
-                    ) ?
-                      () => {
-                        const lineNumber = line.newLineNumber || line.oldLineNumber;
-                        if (!lineNumber) return;
-                        if (!filename) return;
-                        onOpenInEditor(filename, lineNumber);
-                      }
-                    : undefined
+                    onOpenInEditor &&
+                    line.type !== 'delete' &&
+                    (line.newLineNumber || line.oldLineNumber)
+                      ? () => {
+                          const lineNumber = line.newLineNumber || line.oldLineNumber;
+                          if (!lineNumber) return;
+                          if (!filename) return;
+                          onOpenInEditor(filename, lineNumber);
+                        }
+                      : undefined
                   }
                   syntaxTheme={syntaxTheme}
                   filename={filename}
@@ -434,9 +430,11 @@ export const DiffChunk = memo(function DiffChunk({
                       <td colSpan={3} className="p-0 border-t border-github-border">
                         <div
                           className={`flex ${
-                            layout === 'left' ? 'justify-start'
-                            : layout === 'right' ? 'justify-end'
-                            : 'justify-center'
+                            layout === 'left'
+                              ? 'justify-start'
+                              : layout === 'right'
+                                ? 'justify-end'
+                                : 'justify-center'
                           }`}
                         >
                           <div className={`${layout === 'full' ? 'w-full' : 'w-1/2'} m-2 mx-4`}>
@@ -461,9 +459,11 @@ export const DiffChunk = memo(function DiffChunk({
                       <td colSpan={3} className="p-0">
                         <div
                           className={`flex ${
-                            getCommentLayout(line) === 'left' ? 'justify-start'
-                            : getCommentLayout(line) === 'right' ? 'justify-end'
-                            : 'justify-center'
+                            getCommentLayout(line) === 'left'
+                              ? 'justify-start'
+                              : getCommentLayout(line) === 'right'
+                                ? 'justify-end'
+                                : 'justify-center'
                           }`}
                         >
                           <div

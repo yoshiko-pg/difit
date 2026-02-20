@@ -67,9 +67,7 @@ function generateMarkdownTable(comparison) {
   lines.push(`Current:  ${formatMilliseconds(currentAvg)}`);
   lines.push(
     `Change:   ${
-      avgChange.improved ? '🟢'
-      : avgChange.percent > 5 ? '🔴'
-      : '🟡'
+      avgChange.improved ? '🟢' : avgChange.percent > 5 ? '🔴' : '🟡'
     } ${avgChange.absolute.toFixed(2)}ms (${avgChange.percent > 0 ? '+' : ''}${avgChange.percent.toFixed(1)}%)`,
   );
   lines.push('```\n');

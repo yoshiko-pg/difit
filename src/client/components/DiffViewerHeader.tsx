@@ -59,14 +59,12 @@ export const DiffViewerHeader = ({
           }}
           className="text-github-text-muted hover:text-github-text-primary transition-colors cursor-pointer"
           title={
-            isCollapsed ?
-              'Expand file (Alt+Click to expand all)'
-            : 'Collapse file (Alt+Click to collapse all)'
+            isCollapsed
+              ? 'Expand file (Alt+Click to expand all)'
+              : 'Collapse file (Alt+Click to collapse all)'
           }
         >
-          {isCollapsed ?
-            <ChevronRight size={16} />
-          : <ChevronDown size={16} />}
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
         </button>
         {getFileIcon(file.status)}
         <h2 className="text-sm font-mono text-github-text-primary m-0 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -74,9 +72,9 @@ export const DiffViewerHeader = ({
         </h2>
         <button
           className={`bg-transparent border-none cursor-pointer px-1.5 py-1 rounded text-sm transition-all hover:bg-github-bg-tertiary ${
-            isCopied ? 'text-github-accent' : (
-              'text-github-text-secondary hover:text-github-text-primary'
-            )
+            isCopied
+              ? 'text-github-accent'
+              : 'text-github-text-secondary hover:text-github-text-primary'
           }`}
           onClick={() => {
             navigator.clipboard
@@ -92,9 +90,7 @@ export const DiffViewerHeader = ({
           }}
           title="Copy file path"
         >
-          {isCopied ?
-            <Check size={14} />
-          : <Copy size={14} />}
+          {isCopied ? <Check size={14} /> : <Copy size={14} />}
         </button>
         {file.oldPath && file.oldPath !== file.path && (
           <span className="text-xs text-github-text-muted italic">
@@ -115,15 +111,13 @@ export const DiffViewerHeader = ({
         <button
           onClick={() => onToggleReviewed(file.path)}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
-            isReviewed ?
-              'bg-github-accent text-white'
-            : 'dark:bg-slate-600 dark:text-white dark:border-slate-500 dark:hover:bg-slate-500 dark:hover:border-slate-400 bg-github-bg-secondary text-github-text-primary border border-github-border hover:bg-github-bg-tertiary hover:border-github-text-muted'
+            isReviewed
+              ? 'bg-github-accent text-white'
+              : 'dark:bg-slate-600 dark:text-white dark:border-slate-500 dark:hover:bg-slate-500 dark:hover:border-slate-400 bg-github-bg-secondary text-github-text-primary border border-github-border hover:bg-github-bg-tertiary hover:border-github-text-muted'
           }`}
           title={isReviewed ? 'Mark as not reviewed' : 'Mark as reviewed'}
         >
-          {isReviewed ?
-            <Check size={14} />
-          : <Square size={14} />}
+          {isReviewed ? <Check size={14} /> : <Square size={14} />}
           Viewed
         </button>
       </div>

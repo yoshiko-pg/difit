@@ -9,9 +9,7 @@ export function formatCommentPrompt(
   codeContent?: string,
 ): string {
   const lineInfo =
-    typeof line === 'number' ? `L${line}`
-    : Array.isArray(line) ? `L${line[0]}-L${line[1]}`
-    : '';
+    typeof line === 'number' ? `L${line}` : Array.isArray(line) ? `L${line[0]}-L${line[1]}` : '';
 
   // Handle undefined or null file paths
   const filePath = file || '<unknown file>';

@@ -3,7 +3,6 @@
   "trailingComma": "all",
   "singleQuote": true,
   "printWidth": 100,
-  "experimentalTernaries": true,
   "tabWidth": 2,
   "useTabs": false,
   "plugins": ["@prettier/plugin-oxc"]

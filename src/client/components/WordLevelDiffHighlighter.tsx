@@ -18,9 +18,11 @@ export const WordLevelDiffHighlighter = React.memo(function WordLevelDiffHighlig
   const renderedContent = useMemo(() => {
     return segments.map((segment, index) => {
       const diffClass =
-        segment.type === 'added' ? 'word-diff-added'
-        : segment.type === 'removed' ? 'word-diff-removed'
-        : '';
+        segment.type === 'added'
+          ? 'word-diff-added'
+          : segment.type === 'removed'
+            ? 'word-diff-removed'
+            : '';
 
       return (
         <span key={index} className={diffClass}>

@@ -13,11 +13,13 @@ vi.mock('./PrismSyntaxHighlighter', () => ({
     const tokens = [{ content: code, types: ['test-token'] }];
     return (
       <span className={className} onMouseOver={onMouseOver} onMouseOut={onMouseOut}>
-        {renderToken ?
+        {renderToken ? (
           tokens.map((token: any, idx: number) =>
             renderToken(token, idx, () => ({ className: 'token' })),
           )
-        : <span>{code}</span>}
+        ) : (
+          <span>{code}</span>
+        )}
       </span>
     );
   },

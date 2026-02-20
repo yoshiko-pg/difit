@@ -110,9 +110,9 @@ export function TextDiffViewer({
                 fileIndex={fileIndex}
                 onLineClick={onLineClick}
                 commentTrigger={
-                  commentTrigger && commentTrigger.chunkIndex === mergedIndex ?
-                    commentTrigger
-                  : null
+                  commentTrigger && commentTrigger.chunkIndex === mergedIndex
+                    ? commentTrigger
+                    : null
                 }
                 onCommentTriggerHandled={onCommentTriggerHandled}
                 filename={file.path}

@@ -159,9 +159,10 @@ export function CommentsListModal({
 
         <div className="overflow-y-auto max-h-[calc(80vh-120px)]">
           <div className="p-6">
-            {sortedComments.length === 0 ?
+            {sortedComments.length === 0 ? (
               <p className="text-github-text-secondary text-center">No comments yet</p>
-            : <>
+            ) : (
+              <>
                 <div className="space-y-2">
                   {sortedComments.map((comment, index) => (
                     <div
@@ -192,7 +193,7 @@ export function CommentsListModal({
                   </div>
                 )}
               </>
-            }
+            )}
           </div>
         </div>
       </div>

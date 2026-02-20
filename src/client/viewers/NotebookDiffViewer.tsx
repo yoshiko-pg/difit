@@ -184,10 +184,7 @@ const buildNotebookCellsFromDiff = (chunks: MergedChunk[]): NotebookPreviewData 
     if (!current) return;
 
     current.status =
-      hasAdd && hasDelete ? 'change'
-      : hasAdd ? 'add'
-      : hasDelete ? 'delete'
-      : 'context';
+      hasAdd && hasDelete ? 'change' : hasAdd ? 'add' : hasDelete ? 'delete' : 'context';
     cells.push(current);
     current = null;
     hasAdd = false;
@@ -359,10 +356,13 @@ const normalizeNotebookCell = (cell: unknown): NotebookCellContent => {
   const id = typeof cellObject.id === 'string' ? cellObject.id : undefined;
   const executionCountValue = cellObject.execution_count;
   const executionCount =
-    executionCountValue === null ? null
-    : typeof executionCountValue === 'number' ? String(executionCountValue)
-    : typeof executionCountValue === 'string' ? executionCountValue
-    : undefined;
+    executionCountValue === null
+      ? null
+      : typeof executionCountValue === 'number'
+        ? String(executionCountValue)
+        : typeof executionCountValue === 'string'
+          ? executionCountValue
+          : undefined;
 
   const sourceText = normalizeSourceText(cellObject.source);
 
@@ -516,10 +516,7 @@ const buildDiffLines = (beforeText: string, afterText: string): NotebookDiffLine
   }
 
   return diffLines(beforeText, afterText).flatMap((change) => {
-    const type: PreviewLineType =
-      change.added ? 'add'
-      : change.removed ? 'delete'
-      : 'context';
+    const type: PreviewLineType = change.added ? 'add' : change.removed ? 'delete' : 'context';
 
     return splitDiffValue(change.value).map((line) => ({
       type,
@@ -853,14 +850,13 @@ const NotebookDiffPreview = ({
     {cells.map((cell, index) => {
       const sections = buildSectionsForCell(cell);
       const executionLabel =
-        cell.cellType === 'code' && cell.executionCount !== undefined ?
-          `In[${cell.executionCount ?? ' '}]`
-        : null;
+        cell.cellType === 'code' && cell.executionCount !== undefined
+          ? `In[${cell.executionCount ?? ' '}]`
+          : null;
 
       const isCodeCell = cell.cellType === 'code';
-      const diffLines =
-        isCodeCell ?
-          buildDiffLines(
+      const diffLines = isCodeCell
+        ? buildDiffLines(
             buildSourceText(cell.sourceLines, ['context', 'delete']),
             buildSourceText(cell.sourceLines, ['context', 'add']),
           ).filter((line) => line.type !== 'context')
@@ -894,7 +890,7 @@ const NotebookDiffPreview = ({
           </div>
 
           <div className="space-y-3">
-            {isCodeCell ?
+            {isCodeCell ? (
               <div
                 className={`px-4 py-3 ${getSectionClass(
                   cell.status === 'delete' ? 'before' : 'after',
@@ -902,7 +898,8 @@ const NotebookDiffPreview = ({
               >
                 <NotebookCodeDiff lines={diffLines} syntaxTheme={syntaxTheme} language={language} />
               </div>
-            : sections.map((section, sectionIndex) => (
+            ) : (
+              sections.map((section, sectionIndex) => (
                 <div
                   key={`notebook-cell-${index}-section-${sectionIndex}`}
                   className={`px-4 py-3 ${getSectionClass(section.tone)}`}
@@ -912,7 +909,7 @@ const NotebookDiffPreview = ({
                   </div>
                 </div>
               ))
-            }
+            )}
           </div>
         </div>
       );
@@ -932,9 +929,9 @@ const NotebookFullPreview = ({
   <div className="space-y-4">
     {cells.map((cell, index) => {
       const executionLabel =
-        cell.cellType === 'code' && cell.executionCount !== undefined ?
-          `In[${cell.executionCount ?? ' '}]`
-        : null;
+        cell.cellType === 'code' && cell.executionCount !== undefined
+          ? `In[${cell.executionCount ?? ' '}]`
+          : null;
 
       return (
         <div
@@ -1173,9 +1170,9 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
           <button
             onClick={() => setMode('diff')}
             className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'diff' ?
-                'text-github-text-primary'
-              : 'text-github-text-secondary hover:text-github-text-primary'
+              mode === 'diff'
+                ? 'text-github-text-primary'
+                : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
             title="Code Diff"
           >
@@ -1185,9 +1182,9 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
           <button
             onClick={() => setMode('diff-preview')}
             className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'diff-preview' ?
-                'text-github-text-primary'
-              : 'text-github-text-secondary hover:text-github-text-primary'
+              mode === 'diff-preview'
+                ? 'text-github-text-primary'
+                : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
             title="Diff Preview"
           >
@@ -1197,9 +1194,9 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
           <button
             onClick={() => setMode('full-preview')}
             className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'full-preview' ?
-                'text-github-text-primary'
-              : 'text-github-text-secondary hover:text-github-text-primary'
+              mode === 'full-preview'
+                ? 'text-github-text-primary'
+                : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
             title="Full Preview"
           >
@@ -1219,19 +1216,20 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
           {previewState.message && (
             <div className="text-xs text-github-text-muted mb-3">{previewState.message}</div>
           )}
-          {diffPreviewCells.length === 0 ?
+          {diffPreviewCells.length === 0 ? (
             <div>
               <div className="text-xs text-github-text-muted mb-3">
                 No changed notebook cells were found. Showing raw diff instead.
               </div>
               <TextDiffViewer {...props} />
             </div>
-          : <NotebookDiffPreview
+          ) : (
+            <NotebookDiffPreview
               cells={diffPreviewCells}
               syntaxTheme={props.syntaxTheme}
               language={previewState.language}
             />
-          }
+          )}
         </div>
       )}
 

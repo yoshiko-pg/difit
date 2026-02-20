@@ -131,8 +131,8 @@ export function InlineComment({
         </div>
 
         <div className="flex items-center gap-2">
-          {isEditing ?
-            hasSuggestionInEditedBody ?
+          {isEditing ? (
+            hasSuggestionInEditedBody ? (
               <div
                 className="flex items-center bg-github-bg-tertiary border border-github-border rounded p-0.5"
                 onClick={(e) => e.stopPropagation()}
@@ -141,9 +141,9 @@ export function InlineComment({
                   type="button"
                   onClick={() => setEditMode('edit')}
                   className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    effectiveEditMode === 'edit' ?
-                      'bg-github-bg-primary text-github-text-primary shadow-sm'
-                    : 'text-github-text-secondary hover:text-github-text-primary'
+                    effectiveEditMode === 'edit'
+                      ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
+                      : 'text-github-text-secondary hover:text-github-text-primary'
                   }`}
                 >
                   Edit
@@ -152,15 +152,16 @@ export function InlineComment({
                   type="button"
                   onClick={() => setEditMode('preview')}
                   className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    effectiveEditMode === 'preview' ?
-                      'bg-github-bg-primary text-github-text-primary shadow-sm'
-                    : 'text-github-text-secondary hover:text-github-text-primary'
+                    effectiveEditMode === 'preview'
+                      ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
+                      : 'text-github-text-secondary hover:text-github-text-primary'
                   }`}
                 >
                   Preview
                 </button>
               </div>
-            : <div onClick={(e) => e.stopPropagation()}>
+            ) : (
+              <div onClick={(e) => e.stopPropagation()}>
                 <SuggestionTemplateButton
                   selectedCode={comment.codeContent}
                   value={editedBody}
@@ -168,8 +169,9 @@ export function InlineComment({
                   textareaRef={editTextareaRef}
                 />
               </div>
-
-          : <>
+            )
+          ) : (
+            <>
               <button
                 onClick={handleCopyPrompt}
                 className="text-xs px-2 py-1 rounded transition-all whitespace-nowrap"
@@ -205,26 +207,28 @@ export function InlineComment({
                 <Check size={12} />
               </button>
             </>
-          }
+          )}
         </div>
       </div>
 
-      {!isEditing ?
+      {!isEditing ? (
         <CommentBodyRenderer
           body={comment.body}
           originalCode={comment.codeContent}
           filename={comment.file}
           syntaxTheme={syntaxTheme}
         />
-      : <div>
-          {hasSuggestionInEditedBody && effectiveEditMode === 'preview' ?
+      ) : (
+        <div>
+          {hasSuggestionInEditedBody && effectiveEditMode === 'preview' ? (
             <CommentBodyRenderer
               body={editedBody}
               originalCode={comment.codeContent}
               filename={comment.file}
               syntaxTheme={syntaxTheme}
             />
-          : <>
+          ) : (
+            <>
               <textarea
                 ref={editTextareaRef}
                 value={editedBody}
@@ -241,7 +245,7 @@ export function InlineComment({
                 }}
               />
             </>
-          }
+          )}
           <div className="flex gap-2 justify-end mt-2">
             <button
               type="button"
@@ -273,7 +277,7 @@ export function InlineComment({
             </button>
           </div>
         </div>
-      }
+      )}
     </div>
   );
 }

@@ -69,13 +69,14 @@ export const ExpandButton = memo(function ExpandButton({
       className={`grid w-full border-l border-r border-github-border bg-github-bg-tertiary  text-sm ${gridClass}`}
     >
       <div className="flex flex-col items-stretch justify-center gap-0.5 border-r border-github-border">
-        {isLoading ?
+        {isLoading ? (
           <Loader2
             size={14}
             className="animate-spin text-github-text-muted self-center"
             aria-hidden="true"
           />
-        : actions.map((action) => (
+        ) : (
+          actions.map((action) => (
             <button
               key={action.key}
               type="button"
@@ -88,7 +89,7 @@ export const ExpandButton = memo(function ExpandButton({
               {action.icon}
             </button>
           ))
-        }
+        )}
       </div>
       <div className="flex items-center justify-start px-3 py-1.5 font-mono text-github-text-muted select-none">
         {lineLabel}

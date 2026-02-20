@@ -280,12 +280,12 @@ export function FileList({
               }}
               onClick={(event) => handleDirectoryClick(event, node.path)}
             >
-              {isExpanded ?
-                <ChevronDown size={16} />
-              : <ChevronRight size={16} />}
-              {isExpanded ?
+              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              {isExpanded ? (
                 <FolderOpen size={16} className="text-github-text-secondary" />
-              : <Folder size={16} className="text-github-text-secondary" />}
+              ) : (
+                <Folder size={16} className="text-github-text-secondary" />
+              )}
               <span
                 className="text-sm text-github-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
                 title={node.name}
@@ -359,9 +359,11 @@ export function FileList({
             className="p-1 hover:bg-github-bg-primary rounded transition-colors"
             title={isAllExpanded ? 'Collapse all' : 'Expand all'}
           >
-            {isAllExpanded ?
+            {isAllExpanded ? (
               <ChevronsDownUp size={16} className="text-github-text-secondary" />
-            : <ChevronsUpDown size={16} className="text-github-text-secondary" />}
+            ) : (
+              <ChevronsUpDown size={16} className="text-github-text-secondary" />
+            )}
           </button>
         </div>
         <div className="relative">

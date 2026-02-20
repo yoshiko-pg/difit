@@ -261,18 +261,19 @@ const MarkdownDiffPreview = ({
         const renderAsPlain = isPlainPreviewBlock(block.lines);
         return (
           <div key={`preview-block-${index}`} className={`px-4 ${getBlockStyle(block.type)}`}>
-            {renderAsPlain ?
+            {renderAsPlain ? (
               <pre className="whitespace-pre-wrap text-sm text-github-text-primary font-mono">
                 {trimmedContent}
               </pre>
-            : <ReactMarkdown
+            ) : (
+              <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 urlTransform={(url) => (isSafeUrl(url) ? url : '')}
                 components={components}
               >
                 {trimmedContent}
               </ReactMarkdown>
-            }
+            )}
           </div>
         );
       })}
@@ -403,9 +404,9 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
           <button
             onClick={() => setMode('diff')}
             className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'diff' ?
-                'text-github-text-primary'
-              : 'text-github-text-secondary hover:text-github-text-primary'
+              mode === 'diff'
+                ? 'text-github-text-primary'
+                : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
             title="Code Diff"
           >
@@ -415,9 +416,9 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
           <button
             onClick={() => setMode('diff-preview')}
             className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'diff-preview' ?
-                'text-github-text-primary'
-              : 'text-github-text-secondary hover:text-github-text-primary'
+              mode === 'diff-preview'
+                ? 'text-github-text-primary'
+                : 'text-github-text-secondary hover:text-github-text-primary'
             }`}
             title="Diff Preview"
           >
@@ -428,9 +429,9 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             <button
               onClick={() => setMode('full-preview')}
               className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-                mode === 'full-preview' ?
-                  'text-github-text-primary'
-                : 'text-github-text-secondary hover:text-github-text-primary'
+                mode === 'full-preview'
+                  ? 'text-github-text-primary'
+                  : 'text-github-text-secondary hover:text-github-text-primary'
               }`}
               title="Full Preview"
             >

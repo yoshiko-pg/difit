@@ -417,10 +417,7 @@ export class GitDiffParser {
         currentChunk &&
         (line.startsWith('+') || line.startsWith('-') || line.startsWith(' '))
       ) {
-        const type =
-          line.startsWith('+') ? 'add'
-          : line.startsWith('-') ? 'delete'
-          : 'normal';
+        const type = line.startsWith('+') ? 'add' : line.startsWith('-') ? 'delete' : 'normal';
 
         const diffLine: DiffLine = {
           type,
@@ -478,8 +475,9 @@ export class GitDiffParser {
       if (ref === 'working' || ref === '.') {
         const fs = await import('fs');
         const path = await import('path');
-        const absolutePath =
-          path.isAbsolute(filepath) ? filepath : path.resolve(this.repoPath, filepath);
+        const absolutePath = path.isAbsolute(filepath)
+          ? filepath
+          : path.resolve(this.repoPath, filepath);
         return fs.readFileSync(absolutePath);
       }
 

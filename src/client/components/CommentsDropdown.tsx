@@ -51,12 +51,13 @@ export function CommentsDropdown({
     setIsOpen(false);
   };
 
-  const copyLabel =
-    isCompact ?
-      isCopiedAll ? 'Copied'
+  const copyLabel = isCompact
+    ? isCopiedAll
+      ? 'Copied'
       : `Copy All (${commentsCount})`
-    : isCopiedAll ? 'Copied All!'
-    : `Copy All Prompt (${commentsCount})`;
+    : isCopiedAll
+      ? 'Copied All!'
+      : `Copy All Prompt (${commentsCount})`;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -82,9 +83,7 @@ export function CommentsDropdown({
           }}
           title={`Copy all ${commentsCount} comments to AI coding agent`}
         >
-          {isCopiedAll ?
-            <Check size={12} />
-          : <Copy size={12} />}
+          {isCopiedAll ? <Check size={12} /> : <Copy size={12} />}
           {copyLabel}
         </button>
         <button

@@ -111,9 +111,9 @@ function App() {
         id: comment.id,
         file: comment.filePath,
         line:
-          typeof comment.position.line === 'number' ?
-            comment.position.line
-          : ([comment.position.line.start, comment.position.line.end] as [number, number]),
+          typeof comment.position.line === 'number'
+            ? comment.position.line
+            : ([comment.position.line.start, comment.position.line.end] as [number, number]),
         body: comment.body,
         timestamp: comment.createdAt,
         codeContent: comment.codeSnapshot?.content,
@@ -521,9 +521,9 @@ function App() {
         id: c.id,
         file: c.filePath,
         line:
-          typeof c.position.line === 'number' ?
-            c.position.line
-          : [c.position.line.start, c.position.line.end],
+          typeof c.position.line === 'number'
+            ? c.position.line
+            : [c.position.line.start, c.position.line.end],
         body: c.body,
         timestamp: c.createdAt,
         side: c.position.side,
@@ -546,9 +546,9 @@ function App() {
           id: c.id,
           file: c.filePath,
           line:
-            typeof c.position.line === 'number' ?
-              c.position.line
-            : [c.position.line.start, c.position.line.end],
+            typeof c.position.line === 'number'
+              ? c.position.line
+              : [c.position.line.start, c.position.line.end],
           body: c.body,
           timestamp: c.createdAt,
           side: c.position.side,
@@ -598,9 +598,8 @@ function App() {
         body,
         side: side || 'new',
         line: typeof line === 'number' ? line : { start: line[0], end: line[1] },
-        codeSnapshot:
-          codeContent ?
-            {
+        codeSnapshot: codeContent
+          ? {
               content: codeContent,
               language: undefined,
             }
@@ -725,18 +724,9 @@ function App() {
               isMobile ? 'px-3 py-2 gap-3' : 'px-4 py-3 gap-4 w-auto'
             } ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
             style={{
-              width:
-                isMobile ? '100%'
-                : isFileTreeOpen ? `${sidebarWidth}px`
-                : 'auto',
-              minWidth:
-                isMobile ? '0px'
-                : isFileTreeOpen ? '200px'
-                : 'auto',
-              maxWidth:
-                isMobile ? 'none'
-                : isFileTreeOpen ? '600px'
-                : 'none',
+              width: isMobile ? '100%' : isFileTreeOpen ? `${sidebarWidth}px` : 'auto',
+              minWidth: isMobile ? '0px' : isFileTreeOpen ? '200px' : 'auto',
+              maxWidth: isMobile ? 'none' : isFileTreeOpen ? '600px' : 'none',
             }}
           >
             <h1>
@@ -751,9 +741,7 @@ function App() {
                 aria-controls="file-tree-panel"
                 aria-label="Toggle file tree panel"
               >
-                {isFileTreeOpen ?
-                  <PanelLeftClose size={18} />
-                : <PanelLeft size={18} />}
+                {isFileTreeOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
               </button>
               <button
                 onClick={() => setIsSettingsOpen(true)}
@@ -786,9 +774,9 @@ function App() {
                   <button
                     onClick={() => handleDiffModeChange('split')}
                     className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                      diffMode === 'split' ?
-                        'bg-github-bg-primary text-github-text-primary shadow-sm'
-                      : 'text-github-text-secondary hover:text-github-text-primary'
+                      diffMode === 'split'
+                        ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
+                        : 'text-github-text-secondary hover:text-github-text-primary'
                     }`}
                   >
                     <Columns size={14} />
@@ -797,9 +785,9 @@ function App() {
                   <button
                     onClick={() => handleDiffModeChange('unified')}
                     className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                      diffMode === 'unified' ?
-                        'bg-github-bg-primary text-github-text-primary shadow-sm'
-                      : 'text-github-text-secondary hover:text-github-text-primary'
+                      diffMode === 'unified'
+                        ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
+                        : 'text-github-text-secondary hover:text-github-text-primary'
                     }`}
                   >
                     <AlignLeft size={14} />
@@ -838,9 +826,9 @@ function App() {
               )}
               <div className="flex flex-col gap-1 items-center">
                 <div className="text-xs relative">
-                  {viewedFiles.size === diffData.files.length ?
-                    'All diffs difit-ed!'
-                  : `${viewedFiles.size} / ${diffData.files.length} files viewed`}
+                  {viewedFiles.size === diffData.files.length
+                    ? 'All diffs difit-ed!'
+                    : `${viewedFiles.size} / ${diffData.files.length} files viewed`}
                   <SparkleAnimation isActive={showSparkles} />
                 </div>
                 <div
@@ -866,7 +854,7 @@ function App() {
                   />
                 </div>
               </div>
-              {revisionOptions ?
+              {revisionOptions ? (
                 <DiffQuickMenu
                   options={revisionOptions}
                   baseRevision={baseRevision}
@@ -877,20 +865,23 @@ function App() {
                   onOpenAdvanced={() => setIsRevisionModalOpen(true)}
                   compact={!isDesktop}
                 />
-              : <span className="text-xs">
+              ) : (
+                <span className="text-xs">
                   Reviewing:{' '}
                   <code className="bg-github-bg-tertiary px-1.5 py-0.5 rounded text-xs text-github-text-primary">
-                    {diffData.commit.includes('...') ?
+                    {diffData.commit.includes('...') ? (
                       <>
                         <span className="text-github-text-secondary font-medium">
                           {diffData.commit.split('...')[0]}...
                         </span>
                         <span className="font-medium">{diffData.commit.split('...')[1]}</span>
                       </>
-                    : diffData.commit}
+                    ) : (
+                      diffData.commit
+                    )}
                   </code>
                 </span>
-              }
+              )}
             </div>
           </div>
         </header>
@@ -921,27 +912,24 @@ function App() {
           <div
             className={`relative overflow-hidden ${!isDragging ? '!transition-all !duration-300 !ease-in-out' : ''}`}
             style={{
-              width:
-                isMobile ? '0px'
-                : isFileTreeOpen ? `${sidebarWidth}px`
-                : '0px',
+              width: isMobile ? '0px' : isFileTreeOpen ? `${sidebarWidth}px` : '0px',
             }}
           >
             <aside
               id="file-tree-panel"
               className={`bg-github-bg-secondary border-r border-github-border overflow-y-auto flex flex-col ${
-                isMobile ?
-                  'fixed inset-y-0 left-0 z-40 w-[min(85vw,360px)] transition-transform duration-300 ease-out'
-                : 'relative'
+                isMobile
+                  ? 'fixed inset-y-0 left-0 z-40 w-[min(85vw,360px)] transition-transform duration-300 ease-out'
+                  : 'relative'
               }`}
               style={{
                 width: isMobile ? 'min(85vw, 360px)' : `${sidebarWidth}px`,
                 minWidth: isMobile ? '0px' : '200px',
                 maxWidth: isMobile ? 'none' : '600px',
                 height: '100%',
-                transform:
-                  isMobile ?
-                    isFileTreeOpen ? 'translateX(0)'
+                transform: isMobile
+                  ? isFileTreeOpen
+                    ? 'translateX(0)'
                     : 'translateX(-100%)'
                   : undefined,
               }}
@@ -954,9 +942,9 @@ function App() {
                     id: c.id,
                     file: c.filePath,
                     line:
-                      typeof c.position.line === 'number' ?
-                        c.position.line
-                      : [c.position.line.start, c.position.line.end],
+                      typeof c.position.line === 'number'
+                        ? c.position.line
+                        : [c.position.line.start, c.position.line.end],
                     body: c.body,
                     timestamp: c.createdAt,
                     codeContent: c.codeSnapshot?.content,
@@ -1076,9 +1064,9 @@ function App() {
             id: c.id,
             file: c.filePath,
             line:
-              typeof c.position.line === 'number' ?
-                c.position.line
-              : [c.position.line.start, c.position.line.end],
+              typeof c.position.line === 'number'
+                ? c.position.line
+                : [c.position.line.start, c.position.line.end],
             body: c.body,
             timestamp: c.createdAt,
             codeContent: c.codeSnapshot?.content,

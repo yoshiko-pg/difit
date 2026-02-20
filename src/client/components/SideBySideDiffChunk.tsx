@@ -252,9 +252,8 @@ export function SideBySideDiffChunk({
 
     // Show selection for existing comment
     if (commentingLine && commentingLine.side === side) {
-      const lineNumberRange =
-        Array.isArray(commentingLine.lineNumber) ?
-          commentingLine.lineNumber
+      const lineNumberRange = Array.isArray(commentingLine.lineNumber)
+        ? commentingLine.lineNumber
         : [commentingLine.lineNumber, commentingLine.lineNumber];
       const start = lineNumberRange[0];
       const end = lineNumberRange[1];
@@ -370,10 +369,12 @@ export function SideBySideDiffChunk({
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
             // Fetch comments separately for each side to prevent duplication
-            const oldComments =
-              sideLine.oldLineNumber ? getCommentsForLine(sideLine.oldLineNumber, 'old') : [];
-            const newComments =
-              sideLine.newLineNumber ? getCommentsForLine(sideLine.newLineNumber, 'new') : [];
+            const oldComments = sideLine.oldLineNumber
+              ? getCommentsForLine(sideLine.oldLineNumber, 'old')
+              : [];
+            const newComments = sideLine.newLineNumber
+              ? getCommentsForLine(sideLine.newLineNumber, 'new')
+              : [];
             const allComments = [...oldComments, ...newComments];
 
             // Use the stored original indices
@@ -400,13 +401,13 @@ export function SideBySideDiffChunk({
 
             // Generate IDs for navigation with side suffix
             const oldLineNavId =
-              oldLineOriginalIndex >= 0 ?
-                `file-${fileIndex}-chunk-${chunkIndex}-line-${oldLineOriginalIndex}-left`
-              : undefined;
+              oldLineOriginalIndex >= 0
+                ? `file-${fileIndex}-chunk-${chunkIndex}-line-${oldLineOriginalIndex}-left`
+                : undefined;
             const newLineNavId =
-              newLineOriginalIndex >= 0 ?
-                `file-${fileIndex}-chunk-${chunkIndex}-line-${newLineOriginalIndex}-right`
-              : undefined;
+              newLineOriginalIndex >= 0
+                ? `file-${fileIndex}-chunk-${chunkIndex}-line-${newLineOriginalIndex}-right`
+                : undefined;
 
             // Determine which cell to highlight
             const highlightOldCell = isHighlighted && cursor?.side === 'left';
@@ -523,9 +524,9 @@ export function SideBySideDiffChunk({
                               }
 
                               const actualEndLine =
-                                endLine && endLine.side === 'old' ?
-                                  endLine.lineNumber
-                                : sideLine.oldLineNumber;
+                                endLine && endLine.side === 'old'
+                                  ? endLine.lineNumber
+                                  : sideLine.oldLineNumber;
                               if (
                                 startLine.side !== 'old' ||
                                 startLine.lineNumber === actualEndLine
@@ -550,18 +551,19 @@ export function SideBySideDiffChunk({
                   >
                     {sideLine.oldLine && (
                       <div className="flex items-center relative min-h-[20px] px-3">
-                        {sideLine.wordLevelDiff ?
+                        {sideLine.wordLevelDiff ? (
                           <WordLevelDiffHighlighter
                             segments={sideLine.wordLevelDiff.oldSegments}
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text"
                           />
-                        : <EnhancedPrismSyntaxHighlighter
+                        ) : (
+                          <EnhancedPrismSyntaxHighlighter
                             code={sideLine.oldLine.content}
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
                             syntaxTheme={syntaxTheme}
                             filename={filename}
                           />
-                        }
+                        )}
                       </div>
                     )}
                   </td>
@@ -603,9 +605,9 @@ export function SideBySideDiffChunk({
                               }
 
                               const actualEndLine =
-                                endLine && endLine.side === 'new' ?
-                                  endLine.lineNumber
-                                : sideLine.newLineNumber;
+                                endLine && endLine.side === 'new'
+                                  ? endLine.lineNumber
+                                  : sideLine.newLineNumber;
                               if (
                                 startLine.side !== 'new' ||
                                 startLine.lineNumber === actualEndLine
@@ -630,18 +632,19 @@ export function SideBySideDiffChunk({
                   >
                     {sideLine.newLine && (
                       <div className="flex items-center relative min-h-[20px] px-3">
-                        {sideLine.wordLevelDiff ?
+                        {sideLine.wordLevelDiff ? (
                           <WordLevelDiffHighlighter
                             segments={sideLine.wordLevelDiff.newSegments}
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text"
                           />
-                        : <EnhancedPrismSyntaxHighlighter
+                        ) : (
+                          <EnhancedPrismSyntaxHighlighter
                             code={sideLine.newLine.content}
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
                             syntaxTheme={syntaxTheme}
                             filename={filename}
                           />
-                        }
+                        )}
                       </div>
                     )}
                   </td>
@@ -668,9 +671,11 @@ export function SideBySideDiffChunk({
                           <div
                             key={comment.id}
                             className={`flex ${
-                              layout === 'left' ? 'justify-start'
-                              : layout === 'right' ? 'justify-end'
-                              : 'justify-center'
+                              layout === 'left'
+                                ? 'justify-start'
+                                : layout === 'right'
+                                  ? 'justify-end'
+                                  : 'justify-center'
                             }`}
                           >
                             <div className={`${layout === 'full' ? 'w-full' : 'w-1/2'}`}>
@@ -706,9 +711,11 @@ export function SideBySideDiffChunk({
                       <td colSpan={4} className="p-0">
                         <div
                           className={`flex ${
-                            commentingLine.side === 'old' ? 'justify-start'
-                            : commentingLine.side === 'new' ? 'justify-end'
-                            : 'justify-center'
+                            commentingLine.side === 'old'
+                              ? 'justify-start'
+                              : commentingLine.side === 'new'
+                                ? 'justify-end'
+                                : 'justify-center'
                           }`}
                         >
                           <div className={`w-1/2`}>

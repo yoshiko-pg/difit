@@ -284,14 +284,14 @@ const SideBySideDiffViewer: React.FC<SideBySideDiffViewerProps> = ({
                 </Text>
                 <Text
                   color={
-                    line.type === 'remove' || line.type === 'modified' ?
-                      'red'
-                    : getLineColor(line.type)
+                    line.type === 'remove' || line.type === 'modified'
+                      ? 'red'
+                      : getLineColor(line.type)
                   }
                 >
-                  {line.old ?
-                    truncateLine(line.old, columnWidth - 10)
-                  : ' '.repeat(columnWidth - 10)}
+                  {line.old
+                    ? truncateLine(line.old, columnWidth - 10)
+                    : ' '.repeat(columnWidth - 10)}
                 </Text>
               </Box>
               <Text dimColor> ┃ </Text>
@@ -306,14 +306,14 @@ const SideBySideDiffViewer: React.FC<SideBySideDiffViewerProps> = ({
                 </Text>
                 <Text
                   color={
-                    line.type === 'add' || line.type === 'modified' ?
-                      'green'
-                    : getLineColor(line.type)
+                    line.type === 'add' || line.type === 'modified'
+                      ? 'green'
+                      : getLineColor(line.type)
                   }
                 >
-                  {line.new ?
-                    truncateLine(line.new, columnWidth - 10)
-                  : ' '.repeat(columnWidth - 10)}
+                  {line.new
+                    ? truncateLine(line.new, columnWidth - 10)
+                    : ' '.repeat(columnWidth - 10)}
                 </Text>
               </Box>
             </Box>

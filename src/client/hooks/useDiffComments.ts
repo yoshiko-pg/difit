@@ -118,9 +118,9 @@ export function useDiffComments(
       if (!comment) return '';
 
       const line =
-        typeof comment.position.line === 'number' ?
-          comment.position.line
-        : [comment.position.line.start, comment.position.line.end];
+        typeof comment.position.line === 'number'
+          ? comment.position.line
+          : [comment.position.line.start, comment.position.line.end];
 
       return formatCommentPrompt(
         comment.filePath,
@@ -137,9 +137,9 @@ export function useDiffComments(
       id: comment.id,
       file: comment.filePath,
       line:
-        typeof comment.position.line === 'number' ?
-          comment.position.line
-        : ([comment.position.line.start, comment.position.line.end] as [number, number]),
+        typeof comment.position.line === 'number'
+          ? comment.position.line
+          : ([comment.position.line.start, comment.position.line.end] as [number, number]),
       body: comment.body,
       timestamp: comment.createdAt,
       codeContent: comment.codeSnapshot?.content,

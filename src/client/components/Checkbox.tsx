@@ -34,9 +34,9 @@ export function Checkbox({ checked, onChange, label, className = '', title }: Ch
     >
       <div
         className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 cursor-pointer ${
-          checked ?
-            'bg-github-accent border-github-accent'
-          : 'bg-github-bg-tertiary border-github-text-muted hover:border-github-accent/50'
+          checked
+            ? 'bg-github-accent border-github-accent'
+            : 'bg-github-bg-tertiary border-github-text-muted hover:border-github-accent/50'
         }`}
       >
         {checked && <Check size={10} className="text-white" />}

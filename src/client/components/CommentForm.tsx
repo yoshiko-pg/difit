@@ -63,15 +63,15 @@ export function CommentForm({
         <span className="text-sm font-medium" style={{ color: 'var(--color-yellow-path-text)' }}>
           Add a comment
         </span>
-        {hasSuggestion ?
+        {hasSuggestion ? (
           <div className="flex items-center border border-github-border rounded-md overflow-hidden">
             <button
               type="button"
               onClick={() => setMode('edit')}
               className={`text-xs px-2.5 py-1.5 ${
-                effectiveMode === 'edit' ?
-                  'bg-github-bg-tertiary text-github-text-primary'
-                : 'bg-github-bg-secondary text-github-text-secondary'
+                effectiveMode === 'edit'
+                  ? 'bg-github-bg-tertiary text-github-text-primary'
+                  : 'bg-github-bg-secondary text-github-text-secondary'
               } transition-colors`}
             >
               Edit
@@ -80,24 +80,25 @@ export function CommentForm({
               type="button"
               onClick={() => setMode('preview')}
               className={`text-xs px-2.5 py-1.5 border-l border-github-border ${
-                effectiveMode === 'preview' ?
-                  'bg-github-bg-tertiary text-github-text-primary'
-                : 'bg-github-bg-secondary text-github-text-secondary'
+                effectiveMode === 'preview'
+                  ? 'bg-github-bg-tertiary text-github-text-primary'
+                  : 'bg-github-bg-secondary text-github-text-secondary'
               } transition-colors`}
             >
               Preview
             </button>
           </div>
-        : <SuggestionTemplateButton
+        ) : (
+          <SuggestionTemplateButton
             selectedCode={selectedCode}
             value={body}
             onChange={setBody}
             textareaRef={textareaRef}
           />
-        }
+        )}
       </div>
 
-      {hasSuggestion && effectiveMode === 'preview' ?
+      {hasSuggestion && effectiveMode === 'preview' ? (
         <div className="min-h-[60px] mb-2 bg-github-bg-secondary border border-github-border rounded px-3 py-2">
           <CommentBodyRenderer
             body={body}
@@ -106,7 +107,8 @@ export function CommentForm({
             syntaxTheme={syntaxTheme}
           />
         </div>
-      : <textarea
+      ) : (
+        <textarea
           ref={textareaRef}
           className="w-full min-h-[60px] mb-2 resize-y bg-github-bg-secondary border border-github-border rounded px-3 py-2 text-github-text-primary text-sm leading-6 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/30 focus:min-h-[80px] disabled:opacity-50"
           value={body}
@@ -117,7 +119,7 @@ export function CommentForm({
           autoFocus
           disabled={isSubmitting}
         />
-      }
+      )}
 
       <div className="flex gap-2 justify-end">
         <button

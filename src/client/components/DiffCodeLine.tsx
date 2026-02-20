@@ -51,18 +51,19 @@ export function DiffCodeLine({
       >
         {getLinePrefix(line.type)}
       </span>
-      {diffSegments ?
+      {diffSegments ? (
         <WordLevelDiffHighlighter
           segments={diffSegments}
           className="flex-1 px-3 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text"
         />
-      : <EnhancedPrismSyntaxHighlighter
+      ) : (
+        <EnhancedPrismSyntaxHighlighter
           code={line.content}
           className="flex-1 px-3 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
           syntaxTheme={syntaxTheme}
           filename={filename}
         />
-      }
+      )}
     </div>
   );
 }

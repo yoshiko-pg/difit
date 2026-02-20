@@ -274,9 +274,9 @@ export async function startServer(
   // Parse comments from request body (handles both JSON and text/plain)
   function parseCommentsPayload(body: unknown): Comment[] {
     const payload =
-      typeof body === 'string' ?
-        (JSON.parse(body) as { comments?: Comment[] })
-      : (body as { comments?: Comment[] });
+      typeof body === 'string'
+        ? (JSON.parse(body) as { comments?: Comment[] })
+        : (body as { comments?: Comment[] });
 
     return payload.comments || [];
   }

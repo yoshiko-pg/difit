@@ -393,8 +393,9 @@ async function main() {
   const options = {
     headless: !args.includes('--headed'),
     devtools: args.includes('--devtools'),
-    iterations:
-      args.includes('--iterations') ? parseInt(args[args.indexOf('--iterations') + 1]) : undefined,
+    iterations: args.includes('--iterations')
+      ? parseInt(args[args.indexOf('--iterations') + 1])
+      : undefined,
     difitPath,
   };
 

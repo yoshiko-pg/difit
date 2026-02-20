@@ -90,11 +90,11 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
     // Determine the effective theme
     const effectiveTheme =
-      theme === 'auto' ?
-        window.matchMedia('(prefers-color-scheme: dark)').matches ?
-          'dark'
-        : 'light'
-      : theme;
+      theme === 'auto'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
+        : theme;
 
     // Check if current syntax theme is valid for the new theme
     const availableThemes = effectiveTheme === 'light' ? LIGHT_THEMES : DARK_THEMES;
@@ -184,9 +184,9 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                   key={theme}
                   onClick={() => handleThemeChange(theme)}
                   className={`px-3 py-2 text-sm rounded border transition-colors ${
-                    localSettings.theme === theme ?
-                      'bg-github-accent text-white border-github-accent'
-                    : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
+                    localSettings.theme === theme
+                      ? 'bg-github-accent text-white border-github-accent'
+                      : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
                   }`}
                 >
                   {theme.charAt(0).toUpperCase() + theme.slice(1)}

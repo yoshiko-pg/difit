@@ -21,13 +21,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ commitish, totalFiles, currentMod
       </Box>
       <Box>
         <Text dimColor>
-          [
-          {currentMode === 'list' ?
-            'File List'
-          : currentMode === 'split' ?
-            'Split'
-          : 'Unified'}
-          ]
+          [{currentMode === 'list' ? 'File List' : currentMode === 'split' ? 'Split' : 'Unified'}]
         </Text>
       </Box>
     </Box>
