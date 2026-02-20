@@ -210,10 +210,9 @@ pnpm run build
 # 테스트 실행
 pnpm test
 
-# 린트 및 포맷
-pnpm run lint
+# 타입체크와 lint와 포맷
+pnpm run check
 pnpm run format
-pnpm run typecheck
 ```
 
 ### 개발 워크플로우
@@ -232,7 +231,7 @@ pnpm run typecheck
 - **스타일링**: GitHub과 유사한 다크 테마를 갖춘 Tailwind CSS v4
 - **구문 강조**: 동적 언어 로딩을 갖춘 Prism.js
 - **테스트**: 동일 위치에 배치된 테스트 파일을 사용하는 Vitest 단위 테스트
-- **품질**: ESLint, Prettier, lefthook 사전 커밋 훅
+- **품질**: Oxlint, Biome, lefthook 사전 커밋 훅
 
 ## 📋 요구 사항
 

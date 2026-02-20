@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/refs */
+/* oxlint-disable react-hooks-js/refs */
 // @floating-ui/react uses callback refs which trigger false positives in react-hooks/refs rule
 import {
   useFloating,

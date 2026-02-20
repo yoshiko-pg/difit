@@ -210,10 +210,9 @@ pnpm run build
 # テストの実行
 pnpm test
 
-# リントとフォーマット
-pnpm run lint
+# 型チェックとlintとフォーマット
+pnpm run check
 pnpm run format
-pnpm run typecheck
 ```
 
 ### 開発ワークフロー
@@ -232,7 +231,7 @@ pnpm run typecheck
 - **スタイリング**：GitHubライクなダークテーマを備えたTailwind CSS v4
 - **シンタックスハイライト**：動的言語ロードを備えたPrism.js
 - **テスト**：同じ場所に配置されたテストファイルを使用したVitestユニットテスト
-- **品質**：ESLint、Prettier、lefthookプリコミットフック
+- **品質**：Oxlint、Biome、lefthookプリコミットフック
 
 ## 📋 要件
 

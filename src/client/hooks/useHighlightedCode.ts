@@ -46,7 +46,7 @@ export function useHighlightedCode(_code: string, lang: string) {
 
     // If it's a default language, it should be ready
     if (DEFAULT_LANGUAGES.includes(lang)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync state with Prism language availability
+      // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: sync state with Prism language availability
       setReady(true);
       return;
     }

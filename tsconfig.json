@@ -16,10 +16,9 @@
     "noPropertyAccessFromIndexSignature": false,
     "jsx": "react-jsx",
     "incremental": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/types/*": ["src/types/*"]
+      "@/*": ["./src/*"],
+      "@/types/*": ["./src/types/*"]
     }
   },
   "include": ["src/**/*"],

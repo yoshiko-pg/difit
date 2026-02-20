@@ -210,10 +210,9 @@ pnpm run build
 # Run tests
 pnpm test
 
-# Lint and format
-pnpm run lint
+# Run typecheck, lint, and format
+pnpm run check
 pnpm run format
-pnpm run typecheck
 ```
 
 ### Development Workflow
@@ -232,7 +231,7 @@ pnpm run typecheck
 - **Styling**: Tailwind CSS v4 with GitHub-like dark theme
 - **Syntax Highlighting**: Prism.js with dynamic language loading
 - **Testing**: Vitest for unit tests with co-located test files
-- **Quality**: ESLint, Prettier, lefthook pre-commit hooks
+- **Quality**: Oxlint, Biome, lefthook pre-commit hooks
 
 ## 📋 Requirements
 
