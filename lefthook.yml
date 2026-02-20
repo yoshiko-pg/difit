@@ -6,8 +6,9 @@ pre-commit:
         - '*.{ts,tsx}'
         - 'src/**/*.{ts,tsx}'
         - 'package.json'
-        - 'eslint.config.mjs'
-      run: npm run lint:fix
+        - '.oxlintrc.json'
+        - 'biome.json'
+      run: pnpm run lint:fix
       stage_fixed: true
       fail_text: 'Linting failed. Please fix the issues and try again.'
 
@@ -15,10 +16,10 @@ pre-commit:
       glob:
         - '*.{ts,tsx,js,jsx,json,css}'
         - 'src/**/*.{ts,tsx,js,jsx,json,css}'
-        - '.prettierrc'
-      run: npm run format
+        - 'biome.json'
+      run: pnpm run format
       stage_fixed: true
-      fail_text: 'Code formatting failed. Please check the issues and try again.'
+      fail_text: 'Biome formatting failed. Please check the issues and try again.'
 
     typecheck:
       glob:
@@ -27,8 +28,9 @@ pre-commit:
         - 'package.json'
         - 'tsconfig.json'
         - 'tsconfig.*.json'
-      run: npm run typecheck
-      fail_text: 'TypeScript compilation failed. Please fix type errors and try again.'
+        - '.oxlintrc.json'
+      run: pnpm run typecheck
+      fail_text: 'Oxlint type-aware checks failed. Please fix type errors and try again.'
 
     knip:
       glob:
@@ -51,11 +53,11 @@ pre-commit:
         - 'src/**/*.{ts,tsx}'
         - 'package.json'
         - 'vitest.config.ts'
-      run: npm test
+      run: pnpm test
       fail_text: 'Tests failed. Please fix failing tests and try again.'
 
 pre-push:
   commands:
     build:
-      run: npm run build
+      run: pnpm run build
       fail_text: 'Build failed. Please fix build errors before pushing.'

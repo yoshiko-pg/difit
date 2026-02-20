@@ -160,19 +160,6 @@ export class GitDiffParser {
     }
 
     const bytes: number[] = [];
-    const escapeMap: Record<string, number> = {
-      t: 0x09,
-      n: 0x0a,
-      r: 0x0d,
-      b: 0x08,
-      f: 0x0c,
-      v: 0x0b,
-      a: 0x07,
-      '\\': 0x5c,
-      '"': 0x22,
-      ' ': 0x20,
-    };
-
     for (let i = 0; i < withoutPrefix.length; i++) {
       const char = withoutPrefix[i];
 
@@ -197,11 +184,40 @@ export class GitDiffParser {
           continue;
         }
 
-        const mapped = escapeMap[next];
-        if (mapped !== undefined) {
-          bytes.push(mapped);
-        } else {
-          bytes.push(next.charCodeAt(0));
+        switch (next) {
+          case 't':
+            bytes.push(0x09);
+            break;
+          case 'n':
+            bytes.push(0x0a);
+            break;
+          case 'r':
+            bytes.push(0x0d);
+            break;
+          case 'b':
+            bytes.push(0x08);
+            break;
+          case 'f':
+            bytes.push(0x0c);
+            break;
+          case 'v':
+            bytes.push(0x0b);
+            break;
+          case 'a':
+            bytes.push(0x07);
+            break;
+          case '\\':
+            bytes.push(0x5c);
+            break;
+          case '"':
+            bytes.push(0x22);
+            break;
+          case ' ':
+            bytes.push(0x20);
+            break;
+          default:
+            bytes.push(next.charCodeAt(0));
+            break;
         }
         i++; // Skip the escaped character
         continue;
