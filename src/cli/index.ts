@@ -91,44 +91,9 @@ program
   .option('--keep-alive', 'keep server running even after browser disconnects')
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
-      // Check if we should read from stdin
-      const readFromStdin = shouldReadStdin({
-        commitish,
-        hasPositionalArgs: program.args.length > 0,
-        hasPrOption: Boolean(options.pr),
-        hasTuiOption: Boolean(options.tui),
-      });
+      let stdinDiff: string | undefined;
+      let stdinReviewLabel = 'diff from stdin';
 
-      if (readFromStdin) {
-        // Read unified diff from stdin
-        const diffContent = await readStdin();
-        if (!diffContent.trim()) {
-          console.error('Error: No diff content received from stdin');
-          process.exit(1);
-        }
-
-        // Start server with stdin diff
-        const { url } = await startServer({
-          stdinDiff: diffContent,
-          preferredPort: options.port,
-          host: options.host,
-          openBrowser: options.open,
-          mode: options.mode,
-          clearComments: options.clean,
-          keepAlive: options.keepAlive,
-        });
-
-        console.log(`\n🚀 difit server started on ${url}`);
-        console.log(`📋 Reviewing: diff from stdin`);
-        if (options.keepAlive) {
-          console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
-        }
-        console.log('\nPress Ctrl+C to stop the server');
-        return;
-      }
-
-      // Handle PR URL option with gh patch output
-      let prPatch: string | undefined;
       if (options.pr) {
         if (commitish !== 'HEAD' || compareWith) {
           console.error('Error: --pr option cannot be used with positional arguments');
@@ -141,34 +106,71 @@ program
         }
 
         try {
-          prPatch = getPrPatch(options.pr);
+          stdinDiff = getPrPatch(options.pr);
+          stdinReviewLabel = options.pr;
         } catch (error) {
           console.error(
             `Error resolving PR: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
           process.exit(1);
         }
+      } else {
+        // Check if we should read from stdin
+        const readFromStdin = shouldReadStdin({
+          commitish,
+          hasPositionalArgs: program.args.length > 0,
+          hasPrOption: false,
+          hasTuiOption: Boolean(options.tui),
+        });
+
+        if (readFromStdin) {
+          // Read unified diff from stdin
+          stdinDiff = await readStdin();
+          if (!stdinDiff.trim()) {
+            console.error('Error: No diff content received from stdin');
+            process.exit(1);
+          }
+        }
       }
 
-      // Detect git root (not required for PR patch mode)
-      let repoPath: string | undefined;
-      if (!prPatch) {
-        try {
-          repoPath = getGitRoot();
-        } catch {
-          // If not in a git repository, fall back to process.cwd()
-          repoPath = undefined;
+      if (stdinDiff) {
+        // Start server with stdin diff (including --pr patch)
+        const { url } = await startServer({
+          stdinDiff,
+          preferredPort: options.port,
+          host: options.host,
+          openBrowser: options.open,
+          mode: options.mode,
+          clearComments: options.clean,
+          keepAlive: options.keepAlive,
+        });
+
+        console.log(`\n🚀 difit server started on ${url}`);
+        console.log(`📋 Reviewing: ${stdinReviewLabel}`);
+        if (options.keepAlive) {
+          console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
         }
+        console.log('\nPress Ctrl+C to stop the server');
+        return;
+      }
+
+      // Detect git root
+      let repoPath: string | undefined;
+      try {
+        repoPath = getGitRoot();
+      } catch {
+        // If not in a git repository, fall back to process.cwd()
+        repoPath = undefined;
       }
 
       // Determine target and base commitish
       let targetCommitish = commitish;
-      let baseCommitish: string | undefined;
+      let baseCommitish: string;
 
-      if (!prPatch && compareWith) {
+      if (compareWith) {
         // If compareWith is provided, use it as base
         baseCommitish = compareWith;
-      } else if (!prPatch) {
+      } else {
         // Handle special arguments
         if (commitish === 'working') {
           // working compares working directory with staging area
@@ -180,17 +182,12 @@ program
         }
       }
 
-      if (!prPatch && (commitish === 'working' || commitish === '.')) {
+      if (commitish === 'working' || commitish === '.') {
         const git = simpleGit(repoPath);
         await handleUntrackedFiles(git, options.includeUntracked);
       }
 
       if (options.tui) {
-        if (!baseCommitish) {
-          console.error('Error: --tui mode requires commit-ish comparison, not patch input.');
-          process.exit(1);
-        }
-
         // Check if we're in a TTY environment
         if (!process.stdin.isTTY) {
           console.error('Error: TUI mode requires an interactive terminal (TTY).');
@@ -213,39 +210,27 @@ program
         return;
       }
 
-      if (!prPatch) {
-        const validation = validateDiffArguments(targetCommitish, compareWith);
-        if (!validation.valid) {
-          console.error(`Error: ${validation.error}`);
-          process.exit(1);
-        }
+      const validation = validateDiffArguments(targetCommitish, compareWith);
+      if (!validation.valid) {
+        console.error(`Error: ${validation.error}`);
+        process.exit(1);
       }
 
-      const { url, port, isEmpty } = prPatch
-        ? await startServer({
-            stdinDiff: prPatch,
-            preferredPort: options.port,
-            host: options.host,
-            openBrowser: options.open,
-            mode: options.mode,
-            clearComments: options.clean,
-            keepAlive: options.keepAlive,
-          })
-        : await startServer({
-            targetCommitish,
-            baseCommitish: baseCommitish ?? `${targetCommitish}^`,
-            preferredPort: options.port,
-            host: options.host,
-            openBrowser: options.open,
-            mode: options.mode,
-            clearComments: options.clean,
-            keepAlive: options.keepAlive,
-            diffMode: determineDiffMode(targetCommitish, compareWith),
-            repoPath,
-          });
+      const { url, port, isEmpty } = await startServer({
+        targetCommitish,
+        baseCommitish,
+        preferredPort: options.port,
+        host: options.host,
+        openBrowser: options.open,
+        mode: options.mode,
+        clearComments: options.clean,
+        keepAlive: options.keepAlive,
+        diffMode: determineDiffMode(targetCommitish, compareWith),
+        repoPath,
+      });
 
       console.log(`\n🚀 difit server started on ${url}`);
-      console.log(`📋 Reviewing: ${options.pr ? options.pr : targetCommitish}`);
+      console.log(`📋 Reviewing: ${targetCommitish}`);
 
       if (options.keepAlive) {
         console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
