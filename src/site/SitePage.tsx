@@ -415,18 +415,17 @@ function SitePage() {
       <section className="w-[92vw] md:w-[70vw] max-w-[1100px] mx-auto space-y-2">
         <Comment>Features</Comment>
         <Stdout>
-          <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {featureHighlights.map((feature, index) => (
-              <div
-                key={feature.label}
-                className="rounded-md border border-github-border bg-github-bg-secondary/60 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-              >
-                <p className="text-github-text-muted/80 text-[11px] mb-1">
-                  {`[${String(index + 1).padStart(2, '0')}]`}
-                </p>
-                <Feature label={feature.label} desc={feature.desc} />
-              </div>
-            ))}
+          <div className="mt-1 border border-github-border bg-github-bg-secondary/30 rounded-md p-2 sm:p-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {featureHighlights.map((feature, index) => (
+                <div key={feature.label} className="px-3 py-2">
+                  <p className="text-github-text-muted/80 text-[11px] mb-1">
+                    {`[${String(index + 1).padStart(2, '0')}]`}
+                  </p>
+                  <Feature label={feature.label} desc={feature.desc} />
+                </div>
+              ))}
+            </div>
           </div>
         </Stdout>
       </section>
