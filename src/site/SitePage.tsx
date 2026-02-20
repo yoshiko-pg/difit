@@ -244,6 +244,33 @@ function SitePage() {
     setSelectedRevisionId(event.target.value);
   };
 
+  const featureHighlights = [
+    {
+      label: 'local + GitHub PR',
+      desc: 'Review local commits/branches and GitHub PR URLs in one workflow',
+    },
+    {
+      label: 'stdin friendly',
+      desc: 'Pipe unified diffs from any tool and inspect them with the same UI',
+    },
+    {
+      label: 'AI review prompts',
+      desc: 'Line/range comments with Copy Prompt and Copy All for coding agents',
+    },
+    {
+      label: 'special targets',
+      desc: 'Shortcuts for common review scopes: ., staged, and working',
+    },
+    {
+      label: 'focused diffs',
+      desc: 'Auto-collapse deleted/generated files so you can review signal first',
+    },
+    {
+      label: 'web + tui',
+      desc: 'Choose split/unified views in WebUI or run in terminal with --tui',
+    },
+  ] as const;
+
   return (
     <div className="min-h-screen bg-github-bg-primary font-mono text-sm leading-relaxed text-github-text-primary">
       {/* narrow = terminal text sections, wide = iframe demo */}
@@ -385,36 +412,21 @@ function SitePage() {
       <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
 
       {/* ── Features as --help output ────────────────── */}
-      <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
+      <section className="w-[92vw] md:w-[70vw] max-w-[1100px] mx-auto space-y-2">
         <Comment>Features</Comment>
         <Stdout>
-          <div className="space-y-4 mt-1">
-            <div className="space-y-2">
-              <Feature
-                label="local + GitHub PR"
-                desc="Review local commits/branches and GitHub PR URLs in one workflow"
-              />
-              <Feature
-                label="stdin friendly"
-                desc="Pipe unified diffs from any tool and inspect them with the same UI"
-              />
-              <Feature
-                label="AI review prompts"
-                desc="Line/range comments with Copy Prompt and Copy All for coding agents"
-              />
-              <Feature
-                label="special targets"
-                desc="Shortcuts for common review scopes: ., staged, and working"
-              />
-              <Feature
-                label="focused diffs"
-                desc="Auto-collapse deleted/generated files so you can review signal first"
-              />
-              <Feature
-                label="web + tui"
-                desc="Choose split/unified views in WebUI or run in terminal with --tui"
-              />
-            </div>
+          <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {featureHighlights.map((feature, index) => (
+              <div
+                key={feature.label}
+                className="rounded-md border border-github-border bg-github-bg-secondary/60 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+              >
+                <p className="text-github-text-muted/80 text-[11px] mb-1">
+                  {`[${String(index + 1).padStart(2, '0')}]`}
+                </p>
+                <Feature label={feature.label} desc={feature.desc} />
+              </div>
+            ))}
           </div>
         </Stdout>
       </section>
