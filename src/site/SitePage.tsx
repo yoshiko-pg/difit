@@ -467,20 +467,20 @@ function SitePage() {
       {/* ── Features as --help output ────────────────── */}
       <section className="w-[92vw] md:w-[70vw] max-w-[1100px] mx-auto my-6 space-y-2">
         <Stdout>
-          <div className="mt-1 border border-github-border/70 rounded-md bg-github-bg-secondary/30">
+          <div className="mt-1 border border-github-border rounded-md bg-github-bg-secondary/30">
             <div className="flex items-center gap-3 px-3 sm:px-4 py-2">
-              <span className="h-px flex-1 bg-github-border/70" aria-hidden />
+              <span className="h-px flex-1 bg-github-border" aria-hidden />
               <span className="text-[11px] tracking-[0.18em] uppercase text-github-text-muted/80">
                 {FEATURES_HEADING[language]}
               </span>
-              <span className="h-px flex-1 bg-github-border/70" aria-hidden />
+              <span className="h-px flex-1 bg-github-border" aria-hidden />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-2 sm:px-3 pb-1">
               {featureHighlights.map((feature, index) => (
                 <div
                   key={feature.label}
                   className={[
-                    'px-3 py-2.5 border-github-border/70',
+                    'px-3 py-2.5 border-github-border',
                     index > 0 ? 'border-t' : '',
                     index >= 2 ? 'sm:border-t' : 'sm:border-t-0',
                     index % 2 === 1 ? 'sm:border-l' : 'sm:border-l-0',
