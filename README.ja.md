@@ -66,19 +66,19 @@ difit working  # 未ステージ差分のみ
 difit --pr https://github.com/owner/repo/pull/123
 ```
 
-difitは以下の方法でGitHub認証を自動的に処理します：
+`--pr` モードでは、内部で `gh pr diff --patch` を実行してパッチを取得します。
 
-1. **GitHub CLI**（推奨）：`gh auth login`でログイン済みの場合、既存の認証情報を使用
-2. **環境変数**：`GITHUB_TOKEN`環境変数を設定
-3. **認証なし**：パブリックリポジトリは認証なしで動作（レート制限あり）
+認証は GitHub CLI が処理します：
+
+1. **一度ログイン**（推奨）：`gh auth login`
+2. **トークン認証**（CI/非対話環境）：`GH_TOKEN` または `GITHUB_TOKEN` を設定
 
 #### GitHub Enterprise Server
 
-Enterprise ServerのPRを表示する場合、あなたのEnterprise Serverインスタンスで生成されたトークンを設定する必要があります：
+Enterprise Server の PR を表示する場合は、GitHub CLI を Enterprise ホスト向けに認証してください：
 
-1. `https://YOUR-ENTERPRISE-SERVER/settings/tokens`にアクセス
-2. 適切なスコープでパーソナルアクセストークンを生成
-3. `GITHUB_TOKEN`環境変数として設定
+1. `gh auth login --hostname YOUR-ENTERPRISE-SERVER`
+2. または `GH_HOST=YOUR-ENTERPRISE-SERVER` と `GH_TOKEN` / `GITHUB_TOKEN` を設定
 
 ### 標準入力
 
@@ -226,7 +226,7 @@ pnpm run format
 
 - **CLI**：包括的なバリデーションを備えたCommander.jsでの引数解析
 - **バックエンド**：diff処理用のsimple-gitを備えたExpressサーバー
-- **GitHub統合**：自動認証（GitHub CLI + 環境変数）を備えたOctokitでのGitHub API
+- **GitHub統合**：GitHub CLI（`gh pr diff --patch`）によるPRパッチ取得
 - **フロントエンド**：React 18 + TypeScript + Vite
 - **スタイリング**：GitHubライクなダークテーマを備えたTailwind CSS v4
 - **シンタックスハイライト**：動的言語ロードを備えたPrism.js
@@ -237,6 +237,7 @@ pnpm run format
 
 - Node.js ≥ 21.0.0
 - レビューするコミットを含むGitリポジトリ
+- `--pr` モード利用時は GitHub CLI（`gh`）
 
 ## 📄 ライセンス
 

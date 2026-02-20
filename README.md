@@ -66,19 +66,19 @@ difit working  # Unstaged changes only
 difit --pr https://github.com/owner/repo/pull/123
 ```
 
-difit automatically handles GitHub authentication using:
+`--pr` mode fetches patches by running `gh pr diff --patch` under the hood.
 
-1. **GitHub CLI** (recommended): If you're logged in with `gh auth login`, difit uses your existing credentials
-2. **Environment Variable**: Set `GITHUB_TOKEN` environment variable
-3. **No Authentication**: Public repositories work without authentication (rate-limited)
+Authentication is handled by GitHub CLI:
+
+1. **Login once** (recommended): `gh auth login`
+2. **Token-based auth** (CI/non-interactive): set `GH_TOKEN` or `GITHUB_TOKEN`
 
 #### GitHub Enterprise Server
 
-For Enterprise Server PRs, you must set a token generated on YOUR Enterprise Server instance:
+For Enterprise Server PRs, authenticate GitHub CLI against your Enterprise host:
 
-1. Go to `https://YOUR-ENTERPRISE-SERVER/settings/tokens`
-2. Generate a personal access token with appropriate scopes
-3. Set it as `GITHUB_TOKEN` environment variable
+1. `gh auth login --hostname YOUR-ENTERPRISE-SERVER`
+2. Or set `GH_HOST=YOUR-ENTERPRISE-SERVER` with `GH_TOKEN`/`GITHUB_TOKEN`
 
 ### Stdin
 
@@ -226,7 +226,7 @@ pnpm run format
 
 - **CLI**: Commander.js for argument parsing with comprehensive validation
 - **Backend**: Express server with simple-git for diff processing
-- **GitHub Integration**: Octokit for GitHub API with automatic authentication (GitHub CLI + env vars)
+- **GitHub Integration**: GitHub CLI (`gh pr diff --patch`) for PR patch retrieval
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS v4 with GitHub-like dark theme
 - **Syntax Highlighting**: Prism.js with dynamic language loading
@@ -237,6 +237,7 @@ pnpm run format
 
 - Node.js ≥ 21.0.0
 - Git repository with commits to review
+- GitHub CLI (`gh`) for `--pr` mode
 
 ## 📄 License
 
