@@ -16,7 +16,7 @@ import {
   markFilesIntentToAdd,
   promptUser,
   validateDiffArguments,
-  resolvePrCommits,
+  getPrPatch,
   getGitRoot,
 } from './utils.js';
 
@@ -127,44 +127,48 @@ program
         return;
       }
 
-      // Detect git root
-      let repoPath: string | undefined;
-      try {
-        repoPath = getGitRoot();
-      } catch {
-        // If not in a git repository, fall back to process.cwd()
-        repoPath = undefined;
-      }
-
-      // Determine target and base commitish
-      let targetCommitish = commitish;
-      let baseCommitish: string;
-
-      // Handle PR URL option
+      // Handle PR URL option with gh patch output
+      let prPatch: string | undefined;
       if (options.pr) {
         if (commitish !== 'HEAD' || compareWith) {
           console.error('Error: --pr option cannot be used with positional arguments');
           process.exit(1);
         }
 
-        try {
-          const prCommits = await resolvePrCommits(options.pr);
-          targetCommitish = prCommits.targetCommitish;
-          baseCommitish = prCommits.baseCommitish;
+        if (options.tui) {
+          console.error('Error: --pr option cannot be used with --tui');
+          process.exit(1);
+        }
 
-          console.log(`📋 Reviewing PR: ${options.pr}`);
-          console.log(`🎯 Target commit: ${targetCommitish.substring(0, 7)}`);
-          console.log(`📍 Base commit: ${baseCommitish.substring(0, 7)}`);
+        try {
+          prPatch = getPrPatch(options.pr);
         } catch (error) {
           console.error(
             `Error resolving PR: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
           process.exit(1);
         }
-      } else if (compareWith) {
+      }
+
+      // Detect git root (not required for PR patch mode)
+      let repoPath: string | undefined;
+      if (!prPatch) {
+        try {
+          repoPath = getGitRoot();
+        } catch {
+          // If not in a git repository, fall back to process.cwd()
+          repoPath = undefined;
+        }
+      }
+
+      // Determine target and base commitish
+      let targetCommitish = commitish;
+      let baseCommitish: string | undefined;
+
+      if (!prPatch && compareWith) {
         // If compareWith is provided, use it as base
         baseCommitish = compareWith;
-      } else {
+      } else if (!prPatch) {
         // Handle special arguments
         if (commitish === 'working') {
           // working compares working directory with staging area
@@ -176,12 +180,17 @@ program
         }
       }
 
-      if (commitish === 'working' || commitish === '.') {
+      if (!prPatch && (commitish === 'working' || commitish === '.')) {
         const git = simpleGit(repoPath);
         await handleUntrackedFiles(git, options.includeUntracked);
       }
 
       if (options.tui) {
+        if (!baseCommitish) {
+          console.error('Error: --tui mode requires commit-ish comparison, not patch input.');
+          process.exit(1);
+        }
+
         // Check if we're in a TTY environment
         if (!process.stdin.isTTY) {
           console.error('Error: TUI mode requires an interactive terminal (TTY).');
@@ -204,8 +213,7 @@ program
         return;
       }
 
-      // Skip validation for PR URLs as they're already resolved to valid commits
-      if (!options.pr) {
+      if (!prPatch) {
         const validation = validateDiffArguments(targetCommitish, compareWith);
         if (!validation.valid) {
           console.error(`Error: ${validation.error}`);
@@ -213,23 +221,31 @@ program
         }
       }
 
-      const diffMode = determineDiffMode(targetCommitish, compareWith);
-
-      const { url, port, isEmpty } = await startServer({
-        targetCommitish,
-        baseCommitish,
-        preferredPort: options.port,
-        host: options.host,
-        openBrowser: options.open,
-        mode: options.mode,
-        clearComments: options.clean,
-        keepAlive: options.keepAlive,
-        diffMode,
-        repoPath,
-      });
+      const { url, port, isEmpty } = prPatch
+        ? await startServer({
+            stdinDiff: prPatch,
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            clearComments: options.clean,
+            keepAlive: options.keepAlive,
+          })
+        : await startServer({
+            targetCommitish,
+            baseCommitish: baseCommitish ?? `${targetCommitish}^`,
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            clearComments: options.clean,
+            keepAlive: options.keepAlive,
+            diffMode: determineDiffMode(targetCommitish, compareWith),
+            repoPath,
+          });
 
       console.log(`\n🚀 difit server started on ${url}`);
-      console.log(`📋 Reviewing: ${targetCommitish}`);
+      console.log(`📋 Reviewing: ${options.pr ? options.pr : targetCommitish}`);
 
       if (options.keepAlive) {
         console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');

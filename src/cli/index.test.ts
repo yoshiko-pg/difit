@@ -15,13 +15,13 @@ vi.mock('./utils.js', async () => {
     promptUser: vi.fn(),
     findUntrackedFiles: vi.fn(),
     markFilesIntentToAdd: vi.fn(),
-    resolvePrCommits: vi.fn(),
+    getPrPatch: vi.fn(),
   };
 });
 
 const { simpleGit } = await import('simple-git');
 const { startServer } = await import('../server/server.js');
-const { promptUser, findUntrackedFiles, markFilesIntentToAdd, resolvePrCommits } = await import(
+const { promptUser, findUntrackedFiles, markFilesIntentToAdd, getPrPatch } = await import(
   './utils.js'
 );
 
@@ -31,7 +31,7 @@ describe('CLI index.ts', () => {
   let mockPromptUser: any;
   let mockFindUntrackedFiles: any;
   let mockMarkFilesIntentToAdd: any;
-  let mockResolvePrCommits: any;
+  let mockGetPrPatch: any;
 
   // Store original console methods
   let originalConsoleLog: any;
@@ -56,7 +56,7 @@ describe('CLI index.ts', () => {
     mockPromptUser = vi.mocked(promptUser);
     mockFindUntrackedFiles = vi.mocked(findUntrackedFiles);
     mockMarkFilesIntentToAdd = vi.mocked(markFilesIntentToAdd);
-    mockResolvePrCommits = vi.mocked(resolvePrCommits);
+    mockGetPrPatch = vi.mocked(getPrPatch);
 
     // Mock console and process.exit
     originalConsoleLog = console.log;
@@ -430,14 +430,10 @@ describe('CLI index.ts', () => {
   });
 
   describe('GitHub PR integration', () => {
-    it('resolves PR commits correctly', async () => {
+    it('loads PR patch with gh and starts server with stdin diff', async () => {
       const prUrl = 'https://github.com/owner/repo/pull/123';
-      const prCommits = {
-        targetCommitish: 'abc123',
-        baseCommitish: 'def456',
-      };
-
-      mockResolvePrCommits.mockResolvedValue(prCommits);
+      const prPatch = 'diff --git a/file.ts b/file.ts\nindex 1111111..2222222 100644\n';
+      mockGetPrPatch.mockReturnValue(prPatch);
 
       const program = new Command();
 
@@ -451,25 +447,15 @@ describe('CLI index.ts', () => {
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          let targetCommitish = commitish;
-          let baseCommitish: string;
-
           if (options.pr) {
             if (commitish !== 'HEAD' || _compareWith) {
               console.error('Error: --pr option cannot be used with positional arguments');
               process.exit(1);
             }
-
-            const prCommits = await resolvePrCommits(options.pr);
-            targetCommitish = prCommits.targetCommitish;
-            baseCommitish = prCommits.baseCommitish;
-          } else {
-            baseCommitish = commitish + '^';
           }
 
           await startServer({
-            targetCommitish,
-            baseCommitish,
+            stdinDiff: getPrPatch(options.pr),
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -479,10 +465,9 @@ describe('CLI index.ts', () => {
 
       await program.parseAsync(['--pr', prUrl], { from: 'user' });
 
-      expect(mockResolvePrCommits).toHaveBeenCalledWith(prUrl);
+      expect(mockGetPrPatch).toHaveBeenCalledWith(prUrl);
       expect(mockStartServer).toHaveBeenCalledWith({
-        targetCommitish: 'abc123',
-        baseCommitish: 'def456',
+        stdinDiff: prPatch,
         preferredPort: undefined,
         host: '',
         openBrowser: true,
@@ -521,14 +506,8 @@ describe('CLI index.ts', () => {
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
-    it('resolves GitHub Enterprise PR commits correctly', async () => {
-      const prUrl = 'https://github.enterprise.com/owner/repo/pull/456';
-      const prCommits = {
-        targetCommitish: 'xyz789',
-        baseCommitish: 'uvw012',
-      };
-
-      mockResolvePrCommits.mockResolvedValue(prCommits);
+    it('rejects PR option with --tui', async () => {
+      const prUrl = 'https://github.com/owner/repo/pull/123';
 
       const program = new Command();
 
@@ -542,43 +521,23 @@ describe('CLI index.ts', () => {
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          let targetCommitish = commitish;
-          let baseCommitish: string;
-
           if (options.pr) {
             if (commitish !== 'HEAD' || _compareWith) {
               console.error('Error: --pr option cannot be used with positional arguments');
               process.exit(1);
             }
-
-            const prCommits = await resolvePrCommits(options.pr);
-            targetCommitish = prCommits.targetCommitish;
-            baseCommitish = prCommits.baseCommitish;
-          } else {
-            baseCommitish = commitish + '^';
+            if (options.tui) {
+              console.error('Error: --pr option cannot be used with --tui');
+              process.exit(1);
+            }
           }
-
-          await startServer({
-            targetCommitish,
-            baseCommitish,
-            preferredPort: options.port,
-            host: options.host,
-            openBrowser: options.open,
-            mode: options.mode,
-          });
         });
 
-      await program.parseAsync(['--pr', prUrl], { from: 'user' });
+      await program.parseAsync(['--pr', prUrl, '--tui'], { from: 'user' });
 
-      expect(mockResolvePrCommits).toHaveBeenCalledWith(prUrl);
-      expect(mockStartServer).toHaveBeenCalledWith({
-        targetCommitish: 'xyz789',
-        baseCommitish: 'uvw012',
-        preferredPort: undefined,
-        host: '',
-        openBrowser: true,
-        mode: 'split',
-      });
+      expect(console.error).toHaveBeenCalledWith('Error: --pr option cannot be used with --tui');
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockStartServer).not.toHaveBeenCalled();
     });
   });
 
