@@ -66,19 +66,19 @@ difit working  # 미스테이징 변경 사항만
 difit --pr https://github.com/owner/repo/pull/123
 ```
 
-difit은 다음 방법으로 GitHub 인증을 자동으로 처리합니다:
+`--pr` 모드는 내부적으로 `gh pr diff --patch`를 실행해 패치를 가져옵니다.
 
-1. **GitHub CLI** (권장): `gh auth login`으로 로그인한 경우 기존 자격 증명 사용
-2. **환경 변수**: `GITHUB_TOKEN` 환경 변수 설정
-3. **인증 없음**: 공개 저장소는 인증 없이 작동 (속도 제한 있음)
+인증은 GitHub CLI가 처리합니다:
+
+1. **한 번 로그인** (권장): `gh auth login`
+2. **토큰 인증** (CI/비대화형 환경): `GH_TOKEN` 또는 `GITHUB_TOKEN` 설정
 
 #### GitHub Enterprise Server
 
-Enterprise Server PR의 경우 귀하의 Enterprise Server 인스턴스에서 생성된 토큰을 설정해야 합니다:
+Enterprise Server PR의 경우 GitHub CLI를 Enterprise 호스트에 인증하세요:
 
-1. `https://YOUR-ENTERPRISE-SERVER/settings/tokens`로 이동
-2. 적절한 범위로 개인 액세스 토큰 생성
-3. `GITHUB_TOKEN` 환경 변수로 설정
+1. `gh auth login --hostname YOUR-ENTERPRISE-SERVER`
+2. 또는 `GH_HOST=YOUR-ENTERPRISE-SERVER`와 `GH_TOKEN`/`GITHUB_TOKEN` 설정
 
 ### 표준 입력
 
@@ -226,7 +226,7 @@ pnpm run format
 
 - **CLI**: 포괄적인 검증을 갖춘 Commander.js로 인수 구문 분석
 - **백엔드**: diff 처리를 위한 simple-git이 포함된 Express 서버
-- **GitHub 통합**: 자동 인증 (GitHub CLI + 환경 변수)을 갖춘 GitHub API용 Octokit
+- **GitHub 통합**: GitHub CLI(`gh pr diff --patch`) 기반 PR 패치 조회
 - **프론트엔드**: React 18 + TypeScript + Vite
 - **스타일링**: GitHub과 유사한 다크 테마를 갖춘 Tailwind CSS v4
 - **구문 강조**: 동적 언어 로딩을 갖춘 Prism.js
@@ -237,6 +237,7 @@ pnpm run format
 
 - Node.js ≥ 21.0.0
 - 검토할 커밋이 포함된 Git 저장소
+- `--pr` 모드 사용 시 GitHub CLI(`gh`)
 
 ## 📄 라이선스
 

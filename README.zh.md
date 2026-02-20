@@ -66,19 +66,19 @@ difit working  # 仅未暂存的更改
 difit --pr https://github.com/owner/repo/pull/123
 ```
 
-difit 使用以下方式自动处理 GitHub 认证：
+`--pr` 模式会在内部执行 `gh pr diff --patch` 来获取补丁。
 
-1. **GitHub CLI**（推荐）：如果您已使用 `gh auth login` 登录，difit 将使用您现有的凭据
-2. **环境变量**：设置 `GITHUB_TOKEN` 环境变量
-3. **无认证**：公共仓库无需认证即可工作（有速率限制）
+认证由 GitHub CLI 处理：
+
+1. **先登录一次**（推荐）：`gh auth login`
+2. **令牌认证**（CI/非交互环境）：设置 `GH_TOKEN` 或 `GITHUB_TOKEN`
 
 #### GitHub Enterprise Server
 
-对于 Enterprise Server PR，您必须设置在您的 Enterprise Server 实例上生成的令牌：
+对于 Enterprise Server PR，请先让 GitHub CLI 认证到 Enterprise 主机：
 
-1. 转到 `https://YOUR-ENTERPRISE-SERVER/settings/tokens`
-2. 生成具有适当范围的个人访问令牌
-3. 将其设置为 `GITHUB_TOKEN` 环境变量
+1. `gh auth login --hostname YOUR-ENTERPRISE-SERVER`
+2. 或设置 `GH_HOST=YOUR-ENTERPRISE-SERVER`，并配置 `GH_TOKEN` / `GITHUB_TOKEN`
 
 ### 标准输入
 
@@ -226,7 +226,7 @@ pnpm run format
 
 - **CLI**：使用 Commander.js 进行参数解析，具有全面的验证
 - **后端**：Express 服务器配合 simple-git 进行差异处理
-- **GitHub 集成**：Octokit 用于 GitHub API，具有自动认证（GitHub CLI + 环境变量）
+- **GitHub 集成**：使用 GitHub CLI（`gh pr diff --patch`）获取 PR 补丁
 - **前端**：React 18 + TypeScript + Vite
 - **样式**：Tailwind CSS v4，带有类似 GitHub 的深色主题
 - **语法高亮**：Prism.js 带动态语言加载
@@ -237,6 +237,7 @@ pnpm run format
 
 - Node.js ≥ 21.0.0
 - 包含要审查的提交的 Git 仓库
+- 使用 `--pr` 模式时需要 GitHub CLI（`gh`）
 
 ## 📄 许可证
 

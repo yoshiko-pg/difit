@@ -11,9 +11,6 @@ importers:
       '@floating-ui/react':
         specifier: ^0.27.16
         version: 0.27.17(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@octokit/rest':
-        specifier: ^22.0.0
-        version: 22.0.1
       '@parcel/watcher':
         specifier: ^2.5.1
         version: 2.5.6

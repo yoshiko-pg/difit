@@ -1,8 +1,7 @@
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import { fstatSync, type Stats } from 'node:fs';
 import { createInterface } from 'readline/promises';
 
-import { Octokit } from '@octokit/rest';
 import type { SimpleGit } from 'simple-git';
 
 type StdinStat = Pick<Stats, 'isFIFO' | 'isFile' | 'isSocket'>;
@@ -131,13 +130,6 @@ export interface PullRequestInfo {
   hostname: string;
 }
 
-interface PullRequestDetails {
-  baseSha: string;
-  headSha: string;
-  baseRef: string;
-  headRef: string;
-}
-
 export function parseGitHubPrUrl(url: string): PullRequestInfo | null {
   try {
     const urlObj = new URL(url);
@@ -164,120 +156,30 @@ export function parseGitHubPrUrl(url: string): PullRequestInfo | null {
   }
 }
 
-function getGitHubToken(): string | undefined {
-  // Try to get token from environment variable first
-  if (process.env.GITHUB_TOKEN) {
-    return process.env.GITHUB_TOKEN;
-  }
-
-  // Try to get token from GitHub CLI
+export function getPrPatch(prArg: string): string {
   try {
-    const result = execSync('gh auth token', { encoding: 'utf8', stdio: 'pipe' });
-    return result.trim();
-  } catch {
-    // GitHub CLI not available or not authenticated
-    return undefined;
-  }
-}
-
-async function fetchPrDetails(prInfo: PullRequestInfo): Promise<PullRequestDetails> {
-  const token = getGitHubToken();
-
-  const octokitOptions: ConstructorParameters<typeof Octokit>[0] = {
-    auth: token,
-  };
-
-  // For GitHub Enterprise, set the base URL
-  if (prInfo.hostname !== 'github.com') {
-    octokitOptions.baseUrl = `https://${prInfo.hostname}/api/v3`;
-  }
-
-  const octokit = new Octokit(octokitOptions);
-
-  try {
-    const { data: pr } = await octokit.rest.pulls.get({
-      owner: prInfo.owner,
-      repo: prInfo.repo,
-      pull_number: prInfo.pullNumber,
+    const patch = execFileSync('gh', ['pr', 'diff', prArg, '--patch'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    return {
-      baseSha: pr.base.sha,
-      headSha: pr.head.sha,
-      baseRef: pr.base.ref,
-      headRef: pr.head.ref,
-    };
+    if (!patch.trim()) {
+      throw new Error('No patch content returned from gh pr diff --patch');
+    }
+
+    return patch;
   } catch (error) {
-    if (error instanceof Error) {
-      let authHint = '';
-
-      // Provide more specific error messages for authentication issues
-      if (error.message.includes('Bad credentials')) {
-        if (prInfo.hostname !== 'github.com') {
-          authHint = `\n\nFor GitHub Enterprise Server (${prInfo.hostname}):
-1. Generate a token on YOUR Enterprise Server: https://${prInfo.hostname}/settings/tokens
-2. Set it as GITHUB_TOKEN environment variable
-3. Tokens from github.com will NOT work on Enterprise servers`;
-        } else {
-          authHint = '\n\nTry: gh auth login or set GITHUB_TOKEN environment variable';
-        }
-      } else if (!token) {
-        authHint = ' (Try: gh auth login or set GITHUB_TOKEN environment variable)';
-      }
-
-      throw new Error(`Failed to fetch PR details: ${error.message}${authHint}`);
-    }
-    throw new Error('Failed to fetch PR details: Unknown error');
+    const stderr = (error as { stderr?: Buffer | string }).stderr;
+    const stderrText =
+      typeof stderr === 'string'
+        ? stderr.trim()
+        : Buffer.isBuffer(stderr)
+          ? stderr.toString('utf8').trim()
+          : '';
+    const message =
+      stderrText || (error instanceof Error ? error.message : 'Unknown error while running gh');
+    throw new Error(`${message}\nTry: gh auth login`);
   }
-}
-
-function resolveCommitInLocalRepo(sha: string, context?: { owner: string; repo: string }): string {
-  try {
-    // Verify if the commit exists locally
-    execSync(`git cat-file -e ${sha}`, { stdio: 'ignore' });
-    return sha;
-  } catch {
-    // If commit doesn't exist, try to fetch from remote
-    try {
-      execSync('git fetch origin', { stdio: 'ignore' });
-      execSync(`git cat-file -e ${sha}`, { stdio: 'ignore' });
-      return sha;
-    } catch {
-      const errorMessage = [
-        `Commit ${sha} not found in local repository.`,
-        '',
-        'Common causes:',
-        '  • Are you running this command in the correct repository directory?',
-        context ? `    • Expected repository: ${context.owner}/${context.repo}` : '',
-        '  • Is this PR from a fork?',
-        '    • Try: git remote add upstream <original-repo-url> && git fetch upstream',
-        '    • Try: git fetch --all to fetch from all remotes',
-      ]
-        .filter(Boolean)
-        .join('\n');
-
-      throw new Error(errorMessage);
-    }
-  }
-}
-
-export async function resolvePrCommits(
-  prUrl: string,
-): Promise<{ targetCommitish: string; baseCommitish: string }> {
-  const prInfo = parseGitHubPrUrl(prUrl);
-  if (!prInfo) {
-    throw new Error(
-      'Invalid GitHub PR URL format. Expected: https://github.com/owner/repo/pull/123 or https://github.enterprise.com/owner/repo/pull/123',
-    );
-  }
-
-  const prDetails = await fetchPrDetails(prInfo);
-
-  const context = { owner: prInfo.owner, repo: prInfo.repo };
-  const targetCommitish = resolveCommitInLocalRepo(prDetails.headSha, context);
-  const baseCommitish = resolveCommitInLocalRepo(prDetails.baseSha, context);
-
-  return { targetCommitish, baseCommitish };
 }
 
 export function validateDiffArguments(

@@ -16,7 +16,7 @@ import {
   markFilesIntentToAdd,
   promptUser,
   validateDiffArguments,
-  resolvePrCommits,
+  getPrPatch,
   getGitRoot,
 } from './utils.js';
 
@@ -91,25 +91,52 @@ program
   .option('--keep-alive', 'keep server running even after browser disconnects')
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
-      // Check if we should read from stdin
-      const readFromStdin = shouldReadStdin({
-        commitish,
-        hasPositionalArgs: program.args.length > 0,
-        hasPrOption: Boolean(options.pr),
-        hasTuiOption: Boolean(options.tui),
-      });
+      let stdinDiff: string | undefined;
+      let stdinReviewLabel = 'diff from stdin';
 
-      if (readFromStdin) {
-        // Read unified diff from stdin
-        const diffContent = await readStdin();
-        if (!diffContent.trim()) {
-          console.error('Error: No diff content received from stdin');
+      if (options.pr) {
+        if (commitish !== 'HEAD' || compareWith) {
+          console.error('Error: --pr option cannot be used with positional arguments');
           process.exit(1);
         }
 
-        // Start server with stdin diff
+        if (options.tui) {
+          console.error('Error: --pr option cannot be used with --tui');
+          process.exit(1);
+        }
+
+        try {
+          stdinDiff = getPrPatch(options.pr);
+          stdinReviewLabel = options.pr;
+        } catch (error) {
+          console.error(
+            `Error resolving PR: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
+          process.exit(1);
+        }
+      } else {
+        // Check if we should read from stdin
+        const readFromStdin = shouldReadStdin({
+          commitish,
+          hasPositionalArgs: program.args.length > 0,
+          hasPrOption: false,
+          hasTuiOption: Boolean(options.tui),
+        });
+
+        if (readFromStdin) {
+          // Read unified diff from stdin
+          stdinDiff = await readStdin();
+          if (!stdinDiff.trim()) {
+            console.error('Error: No diff content received from stdin');
+            process.exit(1);
+          }
+        }
+      }
+
+      if (stdinDiff) {
+        // Start server with stdin diff (including --pr patch)
         const { url } = await startServer({
-          stdinDiff: diffContent,
+          stdinDiff,
           preferredPort: options.port,
           host: options.host,
           openBrowser: options.open,
@@ -119,7 +146,7 @@ program
         });
 
         console.log(`\n🚀 difit server started on ${url}`);
-        console.log(`📋 Reviewing: diff from stdin`);
+        console.log(`📋 Reviewing: ${stdinReviewLabel}`);
         if (options.keepAlive) {
           console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
         }
@@ -140,28 +167,7 @@ program
       let targetCommitish = commitish;
       let baseCommitish: string;
 
-      // Handle PR URL option
-      if (options.pr) {
-        if (commitish !== 'HEAD' || compareWith) {
-          console.error('Error: --pr option cannot be used with positional arguments');
-          process.exit(1);
-        }
-
-        try {
-          const prCommits = await resolvePrCommits(options.pr);
-          targetCommitish = prCommits.targetCommitish;
-          baseCommitish = prCommits.baseCommitish;
-
-          console.log(`📋 Reviewing PR: ${options.pr}`);
-          console.log(`🎯 Target commit: ${targetCommitish.substring(0, 7)}`);
-          console.log(`📍 Base commit: ${baseCommitish.substring(0, 7)}`);
-        } catch (error) {
-          console.error(
-            `Error resolving PR: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          );
-          process.exit(1);
-        }
-      } else if (compareWith) {
+      if (compareWith) {
         // If compareWith is provided, use it as base
         baseCommitish = compareWith;
       } else {
@@ -204,16 +210,11 @@ program
         return;
       }
 
-      // Skip validation for PR URLs as they're already resolved to valid commits
-      if (!options.pr) {
-        const validation = validateDiffArguments(targetCommitish, compareWith);
-        if (!validation.valid) {
-          console.error(`Error: ${validation.error}`);
-          process.exit(1);
-        }
+      const validation = validateDiffArguments(targetCommitish, compareWith);
+      if (!validation.valid) {
+        console.error(`Error: ${validation.error}`);
+        process.exit(1);
       }
-
-      const diffMode = determineDiffMode(targetCommitish, compareWith);
 
       const { url, port, isEmpty } = await startServer({
         targetCommitish,
@@ -224,7 +225,7 @@ program
         mode: options.mode,
         clearComments: options.clean,
         keepAlive: options.keepAlive,
-        diffMode,
+        diffMode: determineDiffMode(targetCommitish, compareWith),
         repoPath,
       });
 
