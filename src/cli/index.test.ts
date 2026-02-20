@@ -213,6 +213,11 @@ describe('CLI index.ts', () => {
         args: ['--clean'],
         expectedOptions: { clean: true },
       },
+      {
+        name: '--keep-alive option',
+        args: ['--keep-alive'],
+        expectedOptions: { keepAlive: true },
+      },
     ])('$name', async ({ args, expectedOptions }) => {
       mockFindUntrackedFiles.mockResolvedValue([]);
 
@@ -228,6 +233,7 @@ describe('CLI index.ts', () => {
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
+        .option('--keep-alive', 'keep server running even after browser disconnects')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           let targetCommitish = commitish;
           let baseCommitish = commitish + '^';
@@ -240,6 +246,7 @@ describe('CLI index.ts', () => {
             openBrowser: options.open,
             mode: options.mode,
             clearComments: options.clean,
+            keepAlive: options.keepAlive,
           });
         });
 
@@ -253,6 +260,7 @@ describe('CLI index.ts', () => {
         openBrowser: expectedOptions.open !== false,
         mode: expectedOptions.mode || 'split',
         clearComments: expectedOptions.clean,
+        keepAlive: expectedOptions.keepAlive,
       };
 
       expect(mockStartServer).toHaveBeenCalledWith(expectedCall);
@@ -673,6 +681,114 @@ describe('CLI index.ts', () => {
       );
       expect(console.log).not.toHaveBeenCalledWith(
         '🧹 Starting with a clean slate - all existing comments will be cleared',
+      );
+    });
+  });
+
+  describe('Keep-alive flag functionality', () => {
+    it('displays keep-alive message when flag is used', async () => {
+      mockFindUntrackedFiles.mockResolvedValue([]);
+      mockStartServer.mockResolvedValue({
+        port: 4966,
+        url: 'http://localhost:4966',
+        isEmpty: false,
+      });
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--tui', 'tui')
+        .option('--pr <url>', 'pr')
+        .option('--clean', 'start with a clean slate by clearing all existing comments')
+        .option('--keep-alive', 'keep server running even after browser disconnects')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          const { url } = await startServer({
+            targetCommitish: commitish,
+            baseCommitish: commitish + '^',
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            clearComments: options.clean,
+            keepAlive: options.keepAlive,
+          });
+
+          console.log(`\n🚀 difit server started on ${url}`);
+          console.log(`📋 Reviewing: ${commitish}`);
+
+          if (options.keepAlive) {
+            console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
+          }
+        });
+
+      await program.parseAsync(['--keep-alive'], { from: 'user' });
+
+      expect(mockStartServer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          keepAlive: true,
+        }),
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        '🔒 Keep-alive mode: server will stay running after browser disconnects',
+      );
+    });
+
+    it('does not display keep-alive message when flag is not used', async () => {
+      mockFindUntrackedFiles.mockResolvedValue([]);
+      mockStartServer.mockResolvedValue({
+        port: 4966,
+        url: 'http://localhost:4966',
+        isEmpty: false,
+      });
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--tui', 'tui')
+        .option('--pr <url>', 'pr')
+        .option('--clean', 'start with a clean slate by clearing all existing comments')
+        .option('--keep-alive', 'keep server running even after browser disconnects')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          const { url } = await startServer({
+            targetCommitish: commitish,
+            baseCommitish: commitish + '^',
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            clearComments: options.clean,
+            keepAlive: options.keepAlive,
+          });
+
+          console.log(`\n🚀 difit server started on ${url}`);
+          console.log(`📋 Reviewing: ${commitish}`);
+
+          if (options.keepAlive) {
+            console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
+          }
+        });
+
+      await program.parseAsync([], { from: 'user' });
+
+      expect(mockStartServer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          keepAlive: undefined,
+        }),
+      );
+      expect(console.log).not.toHaveBeenCalledWith(
+        '🔒 Keep-alive mode: server will stay running after browser disconnects',
       );
     });
   });
