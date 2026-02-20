@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @theme {
   --color-github-bg-primary: #0d1117;
@@ -29,7 +29,7 @@
 :root {
   --app-font-size: 14px;
   --app-font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
 }
 
 /* Global styles */
@@ -86,11 +86,11 @@ body,
 .bg-github-bg-primary,
 .bg-github-bg-secondary,
 .bg-github-bg-tertiary,
-[class*='bg-github'],
-[class*='text-github'],
-[class*='border-github'],
-[class*='bg-diff'],
-[class*='border-diff'] {
+[class*="bg-github"],
+[class*="text-github"],
+[class*="border-github"],
+[class*="bg-diff"],
+[class*="border-diff"] {
   transition:
     background-color 0.3s ease,
     color 0.3s ease,
@@ -104,7 +104,7 @@ tr.keyboard-cursor td {
 
 /* Keyboard navigation highlight overlay for unified mode table cells */
 tr.keyboard-cursor td::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background-color: rgba(255, 253, 84, 0.2);
@@ -142,7 +142,7 @@ td.keyboard-cursor {
 
 /* Keyboard navigation highlight overlay for split mode cells */
 td.keyboard-cursor::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background-color: rgba(255, 253, 84, 0.2);
@@ -164,21 +164,21 @@ td.keyboard-cursor::before {
 }
 
 /* Browser native UI color scheme (scrollbars, form elements, etc.) */
-[data-theme='dark'] {
+[data-theme="dark"] {
   color-scheme: dark;
 }
 
-[data-theme='light'] {
+[data-theme="light"] {
   color-scheme: light;
 }
 
 /* Dark theme word highlight */
-[data-theme='dark'] {
+[data-theme="dark"] {
   --word-highlight-color: rgba(255, 253, 84, 0.3);
 }
 
 /* Light theme word highlight */
-[data-theme='light'] {
+[data-theme="light"] {
   --word-highlight-color: #fffd54;
 }
 
@@ -197,13 +197,13 @@ td.keyboard-cursor::before {
 
 /* Dark theme word-level diff colors (GitHub-like) */
 :root,
-[data-theme='dark'] {
+[data-theme="dark"] {
   --word-diff-added-bg: rgba(63, 185, 80, 0.4);
   --word-diff-removed-bg: rgba(248, 81, 73, 0.4);
 }
 
 /* Light theme word-level diff colors */
-[data-theme='light'] {
+[data-theme="light"] {
   --word-diff-added-bg: rgba(63, 185, 80, 0.5);
   --word-diff-removed-bg: rgba(248, 81, 73, 0.5);
 }
