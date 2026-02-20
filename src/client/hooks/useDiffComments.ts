@@ -43,7 +43,7 @@ export function useDiffComments(
       branchToHash,
       repositoryId,
     );
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync state from external storage on prop change
+    // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: sync state from external storage on prop change
     setComments(loadedComments);
   }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]);
 

@@ -72,6 +72,7 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "happy-dom": "^20.0.0",
     "knip": "^5.83.0",
     "lefthook": "^2.0.0",
