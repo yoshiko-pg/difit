@@ -3,6 +3,7 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useMemo,
   useRef,
   useEffect,
   type ReactNode,
@@ -77,12 +78,15 @@ export function WordHighlightProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value: WordHighlightContextValue = {
-    highlightedWord,
-    handleMouseOver,
-    handleMouseOut,
-    isWordHighlighted,
-  };
+  const value = useMemo<WordHighlightContextValue>(
+    () => ({
+      highlightedWord,
+      handleMouseOver,
+      handleMouseOut,
+      isWordHighlighted,
+    }),
+    [highlightedWord, handleMouseOver, handleMouseOut, isWordHighlighted],
+  );
 
   return <WordHighlightContext.Provider value={value}>{children}</WordHighlightContext.Provider>;
 }

@@ -39,7 +39,6 @@
     "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "react/react-in-jsx-scope": "off",
     "react/no-array-index-key": "off",
-    "react/jsx-no-constructed-context-values": "off",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
     "react-hooks-js/refs": "error",
