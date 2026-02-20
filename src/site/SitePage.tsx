@@ -232,6 +232,13 @@ function SitePage() {
   const browserAddress = 'http://localhost:4966';
   const heroText = HERO_TEXT[language];
   const featureHighlights = FEATURE_KEYS.map((key) => FEATURE_TEXT[language][key]);
+  const featureTerminalTabs = [
+    { label: '1:zsh#', active: false },
+    { label: '2:node', active: false },
+    { label: '3:zsh', active: false },
+    { label: '4:zsh#', active: false },
+    { label: `5:${FEATURES_HEADING[language]}*`, active: true },
+  ];
   const usageCommentText = USAGE_COMMENT_TEXT[language];
 
   const usageExamples: UsageExample[] = [
@@ -467,13 +474,25 @@ function SitePage() {
       {/* ── Features as --help output ────────────────── */}
       <section className="w-[92vw] md:w-[70vw] max-w-[1100px] mx-auto my-6 space-y-2">
         <Stdout>
-          <div className="mt-1 border border-github-border rounded-md bg-github-bg-secondary/30">
-            <div className="flex items-center gap-3 px-3 sm:px-4 py-2">
-              <span className="h-px flex-1 bg-github-border" aria-hidden />
-              <span className="text-[11px] tracking-[0.18em] uppercase text-github-text-muted/80">
-                {FEATURES_HEADING[language]}
-              </span>
-              <span className="h-px flex-1 bg-github-border" aria-hidden />
+          <div className="mt-1 border border-github-border rounded-md bg-github-bg-secondary/30 overflow-hidden">
+            <div className="border-b border-github-border bg-[#343a42]/70">
+              <div className="overflow-x-auto">
+                <div className="flex min-w-max text-[11px] leading-none">
+                  {featureTerminalTabs.map((tab) => (
+                    <span
+                      key={tab.label}
+                      className={[
+                        'px-3 py-2 border-r border-github-border whitespace-nowrap',
+                        tab.active
+                          ? 'text-[#ff7b1a] bg-github-bg-secondary/40'
+                          : 'text-github-text-muted/75 bg-transparent',
+                      ].join(' ')}
+                    >
+                      {tab.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-2 sm:px-3 pb-1">
               {featureHighlights.map((feature, index) => (
