@@ -416,7 +416,7 @@ function SitePage() {
         <Comment>Features</Comment>
         <Stdout>
           <div className="mt-1 border border-github-border bg-github-bg-secondary/30 rounded-md p-2 sm:p-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y divide-x divide-github-border/70">
               {featureHighlights.map((feature, index) => (
                 <div key={feature.label} className="px-3 py-2">
                   <p className="text-github-text-muted/80 text-[11px] mb-1">
