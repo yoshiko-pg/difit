@@ -29,6 +29,8 @@ pre-commit:
         - 'src/**/*.{ts,tsx,js,jsx,json,css}'
         - 'scripts/*.{js,mjs,cjs}'
         - 'scripts/**/*.{js,mjs,cjs}'
+        - 'package.json'
+        - 'pnpm-lock.yaml'
         - 'tsconfig.json'
         - 'tsconfig.*.json'
         - 'vite.config.ts'
