@@ -418,7 +418,11 @@ function SitePage() {
           <div className="mt-1 border border-github-border bg-github-bg-secondary/30 rounded-md p-2 sm:p-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y divide-x divide-github-border/70">
               {featureHighlights.map((feature, index) => (
-                <div key={feature.label} className="px-3 py-2">
+                <div
+                  key={feature.label}
+                  className="px-3 py-2"
+                  style={index === 3 || index === 4 ? { borderTop: '0' } : undefined}
+                >
                   <p className="text-github-text-muted/80 text-[11px] mb-1">
                     {`[${String(index + 1).padStart(2, '0')}]`}
                   </p>
