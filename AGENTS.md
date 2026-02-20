@@ -10,7 +10,7 @@ The TypeScript sources live under `src`, split by runtime: `src/cli` handles com
 - `pnpm dev` — run the local development loop (boots the CLI server and UI with hot reload).
 - `pnpm build` — generate the CLI bundle and production web assets via TypeScript project references and Vite.
 - `pnpm test` / `pnpm test:watch` — execute the Vitest suite once or in watch mode.
-- `pnpm lint`, `pnpm lint:fix`, `pnpm format`, and `pnpm typecheck` — apply Oxlint type-aware checks, Biome formatting, and strict TS analysis before you commit.
+- `pnpm check`, `pnpm check:fix`, and `pnpm format` — apply Oxlint type-aware checks and Biome formatting before you commit.
 
 ## Coding Style & Naming Conventions
 
@@ -22,7 +22,7 @@ Vitest with the `happy-dom` environment drives unit and integration coverage, an
 
 ## Commit & Pull Request Guidelines
 
-Git history mixes lightweight descriptions with Conventional Commit prefixes—follow the pattern where it clarifies intent: `fix: guard empty diff (#123)` or `feat(cli): add --port flag`. Keep commits focused, include context in the body, and reference issues with `#id` when relevant. Before opening a PR, ensure `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` succeed locally; lefthook re-runs them on commit and push. PRs should outline motivation, implementation notes, manual verification steps, and UI changes (attach refreshed `docs/images` assets or screenshots for web/TUI updates).
+Git history mixes lightweight descriptions with Conventional Commit prefixes—follow the pattern where it clarifies intent: `fix: guard empty diff (#123)` or `feat(cli): add --port flag`. Keep commits focused, include context in the body, and reference issues with `#id` when relevant. Before opening a PR, ensure `pnpm check`, `pnpm test`, and `pnpm build` succeed locally; lefthook re-runs them on commit and push. PRs should outline motivation, implementation notes, manual verification steps, and UI changes (attach refreshed `docs/images` assets or screenshots for web/TUI updates).
 
 ## Tooling & Environment
 

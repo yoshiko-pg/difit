@@ -210,10 +210,9 @@ pnpm run build
 # 运行测试
 pnpm test
 
-# 代码检查和格式化
-pnpm run lint
+# 运行 typecheck、lint 和格式化
+pnpm run check
 pnpm run format
-pnpm run typecheck
 ```
 
 ### 开发工作流程

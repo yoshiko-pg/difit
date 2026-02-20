@@ -1,16 +1,19 @@
 pre-commit:
   parallel: true
   commands:
-    lint:
+    check:
       glob:
         - '*.{ts,tsx}'
         - 'src/**/*.{ts,tsx}'
         - 'package.json'
+        - 'pnpm-lock.yaml'
+        - 'tsconfig.json'
+        - 'tsconfig.*.json'
         - '.oxlintrc.json'
         - 'biome.json'
-      run: pnpm run lint:fix
+      run: pnpm run check:fix
       stage_fixed: true
-      fail_text: 'Linting failed. Please fix the issues and try again.'
+      fail_text: 'Static checks failed. Please fix the issues and try again.'
 
     format:
       glob:
@@ -21,24 +24,11 @@ pre-commit:
       stage_fixed: true
       fail_text: 'Biome formatting failed. Please check the issues and try again.'
 
-    typecheck:
-      glob:
-        - '*.{ts,tsx}'
-        - 'src/**/*.{ts,tsx}'
-        - 'package.json'
-        - 'tsconfig.json'
-        - 'tsconfig.*.json'
-        - '.oxlintrc.json'
-      run: pnpm run typecheck
-      fail_text: 'Oxlint type-aware checks failed. Please fix type errors and try again.'
-
     knip:
       glob:
         - 'src/**/*.{ts,tsx,js,jsx,json,css}'
         - 'scripts/*.{js,mjs,cjs}'
         - 'scripts/**/*.{js,mjs,cjs}'
-        - 'package.json'
-        - 'pnpm-lock.yaml'
         - 'tsconfig.json'
         - 'tsconfig.*.json'
         - 'vite.config.ts'

@@ -210,10 +210,9 @@ pnpm run build
 # 테스트 실행
 pnpm test
 
-# 린트 및 포맷
-pnpm run lint
+# 타입체크와 lint와 포맷
+pnpm run check
 pnpm run format
-pnpm run typecheck
 ```
 
 ### 개발 워크플로우

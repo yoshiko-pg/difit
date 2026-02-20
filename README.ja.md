@@ -210,10 +210,9 @@ pnpm run build
 # テストの実行
 pnpm test
 
-# リントとフォーマット
-pnpm run lint
+# 型チェックとlintとフォーマット
+pnpm run check
 pnpm run format
-pnpm run typecheck
 ```
 
 ### 開発ワークフロー

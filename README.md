@@ -210,10 +210,9 @@ pnpm run build
 # Run tests
 pnpm test
 
-# Lint and format
-pnpm run lint
+# Run typecheck, lint, and format
+pnpm run check
 pnpm run format
-pnpm run typecheck
 ```
 
 ### Development Workflow
