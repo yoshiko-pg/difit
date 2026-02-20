@@ -16,13 +16,7 @@ export type UsageCommentKey =
   | 'viewExternalDiffs'
   | 'reviewSavedPatches';
 
-type FeatureKey =
-  | 'localGithubPr'
-  | 'stdinFriendly'
-  | 'aiReviewPrompts'
-  | 'specialTargets'
-  | 'focusedDiffs'
-  | 'webTui';
+type FeatureKey = 'multiInput' | 'comments' | 'aiAgents' | 'responsive';
 
 export const LANGUAGE_OPTIONS: ReadonlyArray<{ code: SiteLanguage; label: string }> = [
   { code: 'en', label: 'EN' },
@@ -73,120 +67,102 @@ export const FEATURES_HEADING: Record<SiteLanguage, string> = {
 };
 
 export const FEATURE_KEYS: readonly FeatureKey[] = [
-  'localGithubPr',
-  'stdinFriendly',
-  'aiReviewPrompts',
-  'specialTargets',
-  'focusedDiffs',
-  'webTui',
+  'multiInput',
+  'comments',
+  'aiAgents',
+  'responsive',
 ];
 
 export const FEATURE_TEXT: Record<
   SiteLanguage,
-  Record<FeatureKey, { label: string; desc: string }>
+  Record<FeatureKey, { tab: string; label: string; desc: string }>
 > = {
   en: {
-    localGithubPr: {
-      label: 'local + GitHub PR',
-      desc: 'Review local commits/branches and GitHub PR URLs in one workflow',
+    multiInput: {
+      tab: 'input',
+      label: 'multi-source input',
+      desc: 'Review local diffs, stdin patches, and GitHub PR URLs in one flow',
     },
-    stdinFriendly: {
-      label: 'stdin friendly',
-      desc: 'Pipe unified diffs from any tool and inspect them with the same UI',
+    comments: {
+      tab: 'notes',
+      label: 'comment workflow',
+      desc: 'Add line/range comments directly in the diff UI and keep review context',
     },
-    aiReviewPrompts: {
-      label: 'AI review prompts',
-      desc: 'Line/range comments with Copy Prompt and Copy All for coding agents',
+    aiAgents: {
+      tab: 'agents',
+      label: 'AI agent bridge',
+      desc: 'Use Copy Prompt / Copy All to pass review context to coding agents',
     },
-    specialTargets: {
-      label: 'special targets',
-      desc: 'Shortcuts for common review scopes: ., staged, and working',
-    },
-    focusedDiffs: {
-      label: 'focused diffs',
-      desc: 'Auto-collapse deleted/generated files so you can review signal first',
-    },
-    webTui: {
-      label: 'web + tui',
-      desc: 'Choose split/unified views in WebUI or run in terminal with --tui',
+    responsive: {
+      tab: 'mobile',
+      label: 'responsive UI',
+      desc: 'Stay readable across desktop and mobile with adaptive layouts',
     },
   },
   ja: {
-    localGithubPr: {
-      label: 'ローカル + GitHub PR',
-      desc: 'ローカルのコミット/ブランチとGitHub PR URLを1つのワークフローでレビュー',
+    multiInput: {
+      tab: '入力',
+      label: '多様な入力対応',
+      desc: 'ローカル diff・stdin・GitHub PR URL を1つのUIでレビュー',
     },
-    stdinFriendly: {
-      label: 'stdin対応',
-      desc: 'どのツールからでも unified diff をパイプして同じUIで確認',
+    comments: {
+      tab: 'コメ',
+      label: 'コメント機能',
+      desc: '行・範囲ごとにコメントを残しながらレビューの文脈を保持',
     },
-    aiReviewPrompts: {
-      label: 'AIレビュー用プロンプト',
-      desc: '行/範囲コメントから Copy Prompt / Copy All でコーディングエージェントへ',
+    aiAgents: {
+      tab: 'AI',
+      label: 'AIエージェント連携',
+      desc: 'Copy Prompt / Copy All でレビュー内容をコーディングエージェントへ連携',
     },
-    specialTargets: {
-      label: '特別ターゲット',
-      desc: 'よく使うレビュー範囲を短縮指定: ., staged, working',
-    },
-    focusedDiffs: {
-      label: '集中できる差分',
-      desc: '削除/自動生成ファイルを自動で折りたたみ、重要な変更を先に確認',
-    },
-    webTui: {
-      label: 'web + tui',
-      desc: 'WebUIのsplit/unified表示、または --tui でターミナル表示を選択',
+    responsive: {
+      tab: 'レスポン',
+      label: 'レスポンシブ対応',
+      desc: 'デスクトップとモバイルの両方で見やすいレイアウトを提供',
     },
   },
   ko: {
-    localGithubPr: {
-      label: '로컬 + GitHub PR',
-      desc: '로컬 커밋/브랜치와 GitHub PR URL을 하나의 흐름에서 리뷰',
+    multiInput: {
+      tab: '입력',
+      label: '다양한 입력 지원',
+      desc: '로컬 diff, stdin, GitHub PR URL을 하나의 UI에서 리뷰',
     },
-    stdinFriendly: {
-      label: 'stdin 친화적',
-      desc: '어떤 도구의 unified diff도 파이프로 받아 같은 UI에서 확인',
+    comments: {
+      tab: '코멘트',
+      label: '코멘트 기능',
+      desc: '라인/범위 코멘트를 남기며 리뷰 맥락을 유지',
     },
-    aiReviewPrompts: {
-      label: 'AI 리뷰 프롬프트',
-      desc: '줄/범위 코멘트에서 Copy Prompt, Copy All로 코딩 에이전트에 전달',
+    aiAgents: {
+      tab: 'AI',
+      label: 'AI 에이전트 연동',
+      desc: 'Copy Prompt / Copy All로 리뷰 맥락을 코딩 에이전트에 전달',
     },
-    specialTargets: {
-      label: '특수 타깃',
-      desc: '자주 쓰는 리뷰 범위를 축약: ., staged, working',
-    },
-    focusedDiffs: {
-      label: '집중 diff',
-      desc: '삭제/생성 파일을 자동으로 접어 중요한 변경부터 확인',
-    },
-    webTui: {
-      label: 'web + tui',
-      desc: 'WebUI의 split/unified 보기 또는 --tui 터미널 보기 선택',
+    responsive: {
+      tab: '반응형',
+      label: '반응형 대응',
+      desc: '데스크톱과 모바일 모두에서 읽기 쉬운 레이아웃 제공',
     },
   },
   zh: {
-    localGithubPr: {
-      label: '本地 + GitHub PR',
-      desc: '在同一流程中审查本地提交/分支和 GitHub PR URL',
+    multiInput: {
+      tab: '输入',
+      label: '多样输入支持',
+      desc: '可在同一界面审查本地 diff、stdin 补丁与 GitHub PR URL',
     },
-    stdinFriendly: {
-      label: '支持 stdin',
-      desc: '可将任意工具输出的 unified diff 通过管道送入并在同一 UI 查看',
+    comments: {
+      tab: '评论',
+      label: '评论功能',
+      desc: '支持行/范围评论，持续保留评审上下文',
     },
-    aiReviewPrompts: {
-      label: 'AI 评审提示词',
-      desc: '行/范围评论可用 Copy Prompt、Copy All 发送给编码代理',
+    aiAgents: {
+      tab: 'AI',
+      label: 'AI 代理联动',
+      desc: '通过 Copy Prompt / Copy All 将评审上下文传给编码代理',
     },
-    specialTargets: {
-      label: '特殊目标',
-      desc: '常用评审范围快捷写法：., staged, working',
-    },
-    focusedDiffs: {
-      label: '聚焦差异',
-      desc: '自动折叠删除/生成文件，先看关键信号',
-    },
-    webTui: {
-      label: 'web + tui',
-      desc: '可在 WebUI 选择 split/unified，或用 --tui 在终端查看',
+    responsive: {
+      tab: '响应',
+      label: '响应式支持',
+      desc: '在桌面与移动端都保持易读布局',
     },
   },
 };

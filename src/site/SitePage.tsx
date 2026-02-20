@@ -180,6 +180,7 @@ function SitePage() {
   const [datasetError, setDatasetError] = useState(false);
   const [loadingRevisions, setLoadingRevisions] = useState(true);
   const [language, setLanguage] = useState<SiteLanguage>('en');
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
 
   useEffect(() => {
     let canceled = false;
@@ -232,13 +233,13 @@ function SitePage() {
   const browserAddress = 'http://localhost:4966';
   const heroText = HERO_TEXT[language];
   const featureHighlights = FEATURE_KEYS.map((key) => FEATURE_TEXT[language][key]);
-  const featureTerminalTabs = [
-    { label: '1:zsh#', active: false },
-    { label: '2:node', active: false },
-    { label: '3:zsh', active: false },
-    { label: '4:zsh#', active: false },
-    { label: `5:${FEATURES_HEADING[language]}*`, active: true },
-  ];
+  const resolvedFeatureIndex =
+    activeFeatureIndex < featureHighlights.length ? activeFeatureIndex : 0;
+  const activeFeature = featureHighlights[resolvedFeatureIndex] ?? {
+    tab: 'fallback',
+    label: '',
+    desc: '',
+  };
   const usageCommentText = USAGE_COMMENT_TEXT[language];
 
   const usageExamples: UsageExample[] = [
@@ -477,42 +478,43 @@ function SitePage() {
           <div className="mt-1 border border-github-border rounded-md bg-github-bg-secondary/30 overflow-hidden">
             <div className="border-b border-github-border bg-[#343a42]/70">
               <div className="overflow-x-auto">
-                <div className="flex min-w-max text-[11px] leading-none">
-                  {featureTerminalTabs.map((tab) => (
-                    <span
-                      key={tab.label}
+                <div
+                  className="flex min-w-max text-[11px] leading-none"
+                  role="tablist"
+                  aria-label={FEATURES_HEADING[language]}
+                >
+                  {featureHighlights.map((feature, index) => (
+                    <button
+                      key={feature.tab}
+                      type="button"
+                      role="tab"
+                      id={`feature-tab-${index}`}
+                      aria-selected={resolvedFeatureIndex === index}
+                      aria-controls={`feature-panel-${index}`}
+                      onClick={() => setActiveFeatureIndex(index)}
                       className={[
                         'px-3 py-2 border-r border-github-border whitespace-nowrap',
-                        tab.active
+                        resolvedFeatureIndex === index
                           ? 'text-[#ff7b1a] bg-github-bg-secondary/40'
                           : 'text-github-text-muted/75 bg-transparent',
                       ].join(' ')}
                     >
-                      {tab.label}
-                    </span>
+                      {`${index + 1}:${feature.tab}${resolvedFeatureIndex === index ? '*' : ''}`}
+                    </button>
                   ))}
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-2 sm:px-3 pb-1">
-              {featureHighlights.map((feature, index) => (
-                <div
-                  key={feature.label}
-                  className={[
-                    'px-3 py-2.5 border-github-border',
-                    index > 0 ? 'border-t' : '',
-                    index >= 2 ? 'sm:border-t' : 'sm:border-t-0',
-                    index % 2 === 1 ? 'sm:border-l' : 'sm:border-l-0',
-                    index >= 3 ? 'lg:border-t' : 'lg:border-t-0',
-                    index % 3 === 0 ? 'lg:border-l-0' : 'lg:border-l',
-                  ].join(' ')}
-                >
-                  <p className="text-github-text-muted/80 text-[11px] mb-1">
-                    {`[${String(index + 1).padStart(2, '0')}]`}
-                  </p>
-                  <Feature label={feature.label} desc={feature.desc} />
-                </div>
-              ))}
+            <div
+              id={`feature-panel-${resolvedFeatureIndex}`}
+              role="tabpanel"
+              aria-labelledby={`feature-tab-${resolvedFeatureIndex}`}
+              className="px-4 sm:px-5 py-3"
+            >
+              <p className="text-github-text-muted/80 text-[11px] mb-1">
+                {`[${String(resolvedFeatureIndex + 1).padStart(2, '0')}]`}
+              </p>
+              <Feature label={activeFeature.label} desc={activeFeature.desc} />
             </div>
           </div>
         </Stdout>

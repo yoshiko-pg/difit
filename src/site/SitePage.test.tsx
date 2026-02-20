@@ -65,13 +65,24 @@ describe('SitePage', () => {
     render(<SitePage />);
 
     expect(screen.getByText(/GitHub-style diff viewer for local git\./)).toBeInTheDocument();
-    expect(screen.getByText(/local \+ GitHub PR/)).toBeInTheDocument();
+    expect(screen.getByText(/multi-source input/)).toBeInTheDocument();
     expect(screen.getByText(/view single commit diff/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'JA' }));
 
     expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
-    expect(screen.getByText(/ローカル \+ GitHub PR/)).toBeInTheDocument();
+    expect(screen.getByText(/多様な入力対応/)).toBeInTheDocument();
     expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
+  });
+
+  it('switches feature content when a tab is clicked', () => {
+    render(<SitePage />);
+
+    expect(screen.getByText(/multi-source input/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: '3:agents' }));
+
+    expect(screen.getByText(/AI agent bridge/)).toBeInTheDocument();
+    expect(screen.queryByText(/multi-source input/)).not.toBeInTheDocument();
   });
 });
