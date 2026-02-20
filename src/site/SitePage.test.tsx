@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import SitePage from './SitePage';
@@ -59,5 +59,19 @@ describe('SitePage', () => {
     expect(frame).toHaveAttribute('src', '/preview?snapshot=abc1234...def5678');
 
     vi.restoreAllMocks();
+  });
+
+  it('switches language in place for hero, features, and usage comments', () => {
+    render(<SitePage />);
+
+    expect(screen.getByText(/GitHub-style diff viewer for local git\./)).toBeInTheDocument();
+    expect(screen.getByText(/local \+ GitHub PR/)).toBeInTheDocument();
+    expect(screen.getByText(/view single commit diff/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'JA' }));
+
+    expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
+    expect(screen.getByText(/ローカル \+ GitHub PR/)).toBeInTheDocument();
+    expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
   });
 });
