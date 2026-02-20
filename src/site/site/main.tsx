@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import '../../client/styles/global.css';
+import '../styles/global.css';
 import SitePage from '../SitePage';
 
 const rootElement = document.getElementById('root');
