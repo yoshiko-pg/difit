@@ -313,7 +313,7 @@ async function resolveDifitLaunchArgs(
   workspaceFolder: vscode.WorkspaceFolder,
 ): Promise<readonly string[]> {
   const hasUncommittedChanges = await detectUncommittedChanges(workspaceFolder);
-  return hasUncommittedChanges ? ['.', '--no-open'] : ['--no-open'];
+  return hasUncommittedChanges ? ['.', '--no-open'] : ['HEAD', '--no-open'];
 }
 
 async function detectUncommittedChanges(workspaceFolder: vscode.WorkspaceFolder): Promise<boolean> {
