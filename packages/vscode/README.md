@@ -2,6 +2,8 @@
 
 Launch `difit` with one click and render the local difit URL inside a VS Code tab via Simple Browser.
 
+difit: https://github.com/yoshiko-pg/difit
+
 ## Features
 
 - Top-right editor toolbar button (icon) to open review.
