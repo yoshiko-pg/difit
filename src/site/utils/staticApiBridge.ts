@@ -78,6 +78,7 @@ const resolveRequestedSnapshotId = (dataset: StaticDiffDataset): string | null =
 const buildDiffPayload = (diff: DiffResponse): DiffResponse => ({
   ...diff,
   clearComments: false,
+  openInEditorAvailable: false,
 });
 
 export const installStaticApiBridge = (dataset: StaticDiffDataset): StaticApiBridge => {

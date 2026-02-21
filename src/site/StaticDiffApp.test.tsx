@@ -135,4 +135,20 @@ describe('StaticDiffApp', () => {
       expect(screen.getByText('src/second.ts')).toBeInTheDocument();
     });
   });
+
+  it('disables open in editor in static snapshot mode', async () => {
+    render(
+      <HotkeysProvider initiallyActiveScopes={['navigation']}>
+        <StaticDiffApp />
+      </HotkeysProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('src/first.ts')).toBeInTheDocument();
+    });
+
+    const response = await fetch('/api/diff');
+    const data = (await response.json()) as { openInEditorAvailable?: boolean };
+    expect(data.openInEditorAvailable).toBe(false);
+  });
 });
