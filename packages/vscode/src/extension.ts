@@ -11,6 +11,7 @@ const INSTALL_ACTION_LABEL = 'Install';
 type DifitSession = {
   readonly process: ChildProcessWithoutNullStreams;
   readonly workspaceFolder: vscode.WorkspaceFolder;
+  readonly difitArgs: readonly string[];
   startupPromise: Promise<string>;
   url?: string;
 };
@@ -89,7 +90,8 @@ async function openReview(): Promise<void> {
     return;
   }
 
-  const session = createSession(workspaceFolder, executablePath);
+  const difitArgs = await resolveDifitLaunchArgs(workspaceFolder);
+  const session = createSession(workspaceFolder, executablePath, difitArgs);
   sessions.set(key, session);
 
   try {
@@ -143,21 +145,23 @@ function stopSession(session: DifitSession): void {
 function createSession(
   workspaceFolder: vscode.WorkspaceFolder,
   executablePath: string,
+  difitArgs: readonly string[],
 ): DifitSession {
   const channel = getOutputChannel();
 
-  const child = spawn(executablePath, ['.', '--no-open'], {
+  const child = spawn(executablePath, [...difitArgs], {
     cwd: workspaceFolder.uri.fsPath,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
   channel.appendLine(
-    `[${workspaceFolder.name}] starting: ${executablePath} . --no-open (cwd: ${workspaceFolder.uri.fsPath})`,
+    `[${workspaceFolder.name}] starting: ${executablePath} ${difitArgs.join(' ')} (cwd: ${workspaceFolder.uri.fsPath})`,
   );
 
   const session: DifitSession = {
     process: child,
     workspaceFolder,
+    difitArgs,
     startupPromise: Promise.resolve(''),
   };
 
@@ -304,6 +308,39 @@ async function openInSimpleBrowser(url: string): Promise<void> {
 }
 
 type ExecutableAvailability = 'available' | 'missing' | 'error';
+
+async function resolveDifitLaunchArgs(
+  workspaceFolder: vscode.WorkspaceFolder,
+): Promise<readonly string[]> {
+  const hasUncommittedChanges = await detectUncommittedChanges(workspaceFolder);
+  return hasUncommittedChanges ? ['.', '--no-open'] : ['--no-open'];
+}
+
+async function detectUncommittedChanges(workspaceFolder: vscode.WorkspaceFolder): Promise<boolean> {
+  return await new Promise<boolean>((resolve) => {
+    const gitStatus = spawn('git', ['status', '--porcelain'], {
+      cwd: workspaceFolder.uri.fsPath,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+
+    let output = '';
+    gitStatus.stdout.on('data', (data: Buffer) => {
+      output += data.toString();
+    });
+
+    gitStatus.once('error', () => {
+      resolve(false);
+    });
+
+    gitStatus.once('close', (code) => {
+      if (code !== 0) {
+        resolve(false);
+        return;
+      }
+      resolve(output.trim().length > 0);
+    });
+  });
+}
 
 async function checkDifitExecutable(executablePath: string): Promise<ExecutableAvailability> {
   return await new Promise<ExecutableAvailability>((resolve) => {
