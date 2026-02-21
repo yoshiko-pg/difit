@@ -58,7 +58,8 @@
   },
   "activationEvents": [
     "onCommand:difit.openReview",
-    "onCommand:difit.stopReview"
+    "onCommand:difit.stopReview",
+    "onStartupFinished"
   ],
   "engines": {
     "vscode": "^1.98.0"
