@@ -48,6 +48,22 @@ vi.mock('./git-diff.js', () => {
       stats: { additions: 10, deletions: 5 },
       isEmpty: false,
     });
+    parseStdinDiff = vi.fn().mockReturnValue({
+      targetCommit: 'stdin-target',
+      baseCommit: 'stdin-base',
+      targetMessage: 'stdin target',
+      baseMessage: 'stdin base',
+      files: [
+        {
+          path: 'stdin-test.js',
+          additions: 1,
+          deletions: 0,
+          chunks: [],
+        },
+      ],
+      stats: { additions: 1, deletions: 0 },
+      isEmpty: false,
+    });
     getBlobContent = vi.fn().mockResolvedValue(Buffer.from('mock image data'));
     getRevisionOptions = vi.fn().mockResolvedValue({
       branches: [{ name: 'main', current: true }],
@@ -259,6 +275,7 @@ describe('Server Integration Tests', () => {
       expect(data.files).toHaveLength(1);
       expect(data.files[0]).toHaveProperty('path', 'test.js');
       expect(data).toHaveProperty('ignoreWhitespace', false);
+      expect(data).toHaveProperty('openInEditorAvailable', true);
     });
 
     it('GET /api/diff?ignoreWhitespace=true handles whitespace ignore', async () => {
@@ -369,6 +386,20 @@ describe('Server Integration Tests', () => {
       // Skipped due to connection reset issues in test environment
       // SSE endpoint functionality is verified through manual testing
       expect(true).toBe(true);
+    });
+
+    it('GET /api/diff sets openInEditorAvailable=false for stdin diff', async () => {
+      const stdinServer = await startServer({
+        stdinDiff: 'diff --git a/stdin-test.js b/stdin-test.js',
+        preferredPort: 9035,
+      });
+      servers.push(stdinServer.server);
+
+      const response = await fetch(`http://localhost:${stdinServer.port}/api/diff`);
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data).toHaveProperty('openInEditorAvailable', false);
     });
   });
 

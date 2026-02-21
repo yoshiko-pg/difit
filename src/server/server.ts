@@ -148,6 +148,7 @@ export async function startServer(
       ...diffDataCache,
       ignoreWhitespace,
       mode: diffMode,
+      openInEditorAvailable: !options.stdinDiff,
       baseCommitish: resolvedBase,
       targetCommitish: resolvedTarget,
       requestedBaseCommitish,

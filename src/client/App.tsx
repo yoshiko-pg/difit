@@ -711,6 +711,8 @@ function App() {
     );
   }
 
+  const canOpenInEditor = settings.editor !== 'none' && diffData.openInEditorAvailable !== false;
+
   return (
     <WordHighlightProvider>
       <div className="h-screen flex flex-col" onClickCapture={handleGlobalClick}>
@@ -1012,7 +1014,7 @@ function App() {
                     onGeneratePrompt={handleGeneratePrompt}
                     onRemoveComment={removeComment}
                     onUpdateComment={updateComment}
-                    onOpenInEditor={settings.editor === 'none' ? undefined : handleOpenInEditor}
+                    onOpenInEditor={canOpenInEditor ? handleOpenInEditor : undefined}
                     syntaxTheme={settings.syntaxTheme}
                     baseCommitish={diffData.baseCommitish}
                     targetCommitish={diffData.targetCommitish}

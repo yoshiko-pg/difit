@@ -46,6 +46,7 @@ export interface DiffResponse {
   ignoreWhitespace?: boolean;
   isEmpty?: boolean;
   mode?: DiffViewMode | LegacyDiffViewMode;
+  openInEditorAvailable?: boolean;
   baseCommitish?: string;
   targetCommitish?: string;
   requestedBaseCommitish?: string;

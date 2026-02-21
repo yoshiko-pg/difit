@@ -403,6 +403,7 @@ export const DiffChunk = memo(function DiffChunk({
                   }}
                   onOpenInEditor={
                     onOpenInEditor &&
+                    filename &&
                     line.type !== 'delete' &&
                     (line.newLineNumber || line.oldLineNumber)
                       ? () => {

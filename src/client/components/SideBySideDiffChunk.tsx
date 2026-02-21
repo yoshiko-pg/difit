@@ -495,6 +495,7 @@ export function SideBySideDiffChunk({
                       hoveredLine?.lineNumber === sideLine.oldLineNumber && (
                         <>
                           {onOpenInEditor &&
+                            filename &&
                             sideLine.oldLine?.type !== 'delete' &&
                             sideLine.newLineNumber !== undefined && (
                               <OpenInEditorButton
@@ -577,7 +578,7 @@ export function SideBySideDiffChunk({
                     {hoveredLine?.side === 'new' &&
                       hoveredLine?.lineNumber === sideLine.newLineNumber && (
                         <>
-                          {onOpenInEditor && (
+                          {onOpenInEditor && filename && sideLine.newLineNumber !== undefined && (
                             <OpenInEditorButton
                               onClick={() => {
                                 const lineNumber = sideLine.newLineNumber;
