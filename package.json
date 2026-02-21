@@ -2,21 +2,38 @@
   "name": "difit",
   "version": "3.1.10",
   "description": "A lightweight command-line tool that spins up a local web server to display Git commit diffs in a GitHub-like Files changed view",
-  "type": "module",
-  "engines": {
-    "node": ">=21.0.0"
-  },
-  "bin": {
-    "difit": "./dist/cli/index.js"
-  },
-  "main": "./dist/cli/index.js",
+  "keywords": [
+    "cli",
+    "code-review",
+    "diff",
+    "diff-viewer",
+    "git",
+    "github",
+    "react",
+    "review",
+    "tailwind"
+  ],
   "homepage": "https://github.com/yoshiko-pg/difit",
+  "bugs": {
+    "url": "https://github.com/yoshiko-pg/difit/issues"
+  },
+  "license": "MIT",
+  "author": "yoshiko-pg",
   "repository": {
     "type": "git",
     "url": "https://github.com/yoshiko-pg/difit.git"
   },
-  "bugs": {
-    "url": "https://github.com/yoshiko-pg/difit/issues"
+  "bin": {
+    "difit": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/cli/index.js",
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "node scripts/dev.js",
@@ -26,8 +43,8 @@
     "start": "pnpm run build && node dist/cli/index.js",
     "check": "oxlint . --type-aware --type-check --deny-warnings --report-unused-disable-directives",
     "check:fix": "oxlint . --type-aware --type-check --deny-warnings --report-unused-disable-directives --fix",
-    "format": "biome format .",
-    "format:fix": "biome format . --write",
+    "format": "oxfmt --check .",
+    "format:fix": "oxfmt --write .",
     "knip": "knip --use-tsconfig-files",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -59,7 +76,6 @@
     "simple-git": "^3.28.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.3",
     "@tailwindcss/postcss": "^4.1.11",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -75,6 +91,7 @@
     "happy-dom": "^20.0.0",
     "knip": "^5.83.0",
     "lefthook": "^2.0.0",
+    "oxfmt": "^0.34.0",
     "oxlint": "^1.49.0",
     "oxlint-tsgolint": "^0.14.1",
     "playwright": "^1.54.1",
@@ -85,25 +102,8 @@
     "vite": "^7.0.0",
     "vitest": "^4.0.6"
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "keywords": [
-    "git",
-    "diff",
-    "cli",
-    "review",
-    "github",
-    "code-review",
-    "tailwind",
-    "react",
-    "diff-viewer"
-  ],
-  "author": "yoshiko-pg",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
+  "engines": {
+    "node": ">=21.0.0"
   },
   "packageManager": "pnpm@10.28.2"
 }

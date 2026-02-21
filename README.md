@@ -231,7 +231,7 @@ pnpm run format
 - **Styling**: Tailwind CSS v4 with GitHub-like dark theme
 - **Syntax Highlighting**: Prism.js with dynamic language loading
 - **Testing**: Vitest for unit tests with co-located test files
-- **Quality**: Oxlint, Biome, lefthook pre-commit hooks
+- **Quality**: oxlint, oxfmt, lefthook pre-commit hooks
 
 ## 📋 Requirements
 

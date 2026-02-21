@@ -10,7 +10,7 @@ pre-commit:
         - 'tsconfig.json'
         - 'tsconfig.*.json'
         - '.oxlintrc.json'
-        - 'biome.json'
+        - '.oxfmtrc.json'
       run: pnpm run check:fix
       stage_fixed: true
       fail_text: 'Static checks failed. Please fix the issues and try again.'
@@ -19,10 +19,10 @@ pre-commit:
       glob:
         - '*.{ts,tsx,js,jsx,json,css}'
         - 'src/**/*.{ts,tsx,js,jsx,json,css}'
-        - 'biome.json'
+        - '.oxfmtrc.json'
       run: pnpm run format:fix
       stage_fixed: true
-      fail_text: 'Biome formatting failed. Please check the issues and try again.'
+      fail_text: 'Oxfmt formatting failed. Please check the issues and try again.'
 
     knip:
       glob:

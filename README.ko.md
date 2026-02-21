@@ -231,7 +231,7 @@ pnpm run format
 - **스타일링**: GitHub과 유사한 다크 테마를 갖춘 Tailwind CSS v4
 - **구문 강조**: 동적 언어 로딩을 갖춘 Prism.js
 - **테스트**: 동일 위치에 배치된 테스트 파일을 사용하는 Vitest 단위 테스트
-- **품질**: Oxlint, Biome, lefthook 사전 커밋 훅
+- **품질**: oxlint, oxfmt, lefthook 사전 커밋 훅
 
 ## 📋 요구 사항
 

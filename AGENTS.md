@@ -10,11 +10,11 @@ The TypeScript sources live under `src`, split by runtime: `src/cli` handles com
 - `pnpm dev` — run the local development loop (boots the CLI server and UI with hot reload).
 - `pnpm build` — generate the CLI bundle and production web assets via TypeScript project references and Vite.
 - `pnpm test` / `pnpm test:watch` — execute the Vitest suite once or in watch mode.
-- `pnpm check`, `pnpm check:fix`, and `pnpm format` — apply Oxlint type-aware checks and Biome formatting before you commit.
+- `pnpm check`, `pnpm check:fix`, and `pnpm format` — apply oxlint type-aware checks and oxfmt formatting before you commit.
 
 ## Coding Style & Naming Conventions
 
-The codebase uses strict TypeScript (`tsconfig.strictest`) and 2-space indentation; avoid `any` and prefer explicit types. Import types with `import type` and keep module order consistent; Oxlint enforces unused imports/variables and type-aware safety rules. React components live under `src/client` or `src/tui`; use PascalCase filenames for components, kebab-case for utilities, and co-locate UI-specific helpers when practical. Run `pnpm format` before submitting to apply Biome formatting.
+The codebase uses strict TypeScript (`tsconfig.strictest`) and 2-space indentation; avoid `any` and prefer explicit types. Import types with `import type` and keep module order consistent; oxlint enforces unused imports/variables and type-aware safety rules. React components live under `src/client` or `src/tui`; use PascalCase filenames for components, kebab-case for utilities, and co-locate UI-specific helpers when practical. Run `pnpm format` before submitting to apply oxfmt formatting.
 
 ## Testing Guidelines
 

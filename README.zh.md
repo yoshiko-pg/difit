@@ -231,7 +231,7 @@ pnpm run format
 - **样式**：Tailwind CSS v4，带有类似 GitHub 的深色主题
 - **语法高亮**：Prism.js 带动态语言加载
 - **测试**：Vitest 用于单元测试，测试文件与源代码放在一起
-- **质量**：Oxlint、Biome、lefthook 预提交钩子
+- **质量**：oxlint、oxfmt、lefthook 预提交钩子
 
 ## 📋 要求
 

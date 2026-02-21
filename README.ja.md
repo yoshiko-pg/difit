@@ -121,7 +121,7 @@ git diff --cached | difit -
 | `--tui`               | false      | WebUIの代わりにターミナルUIを使用                                                 |
 | `--clean`             | false      | 起動時に既存コメントと閲覧済みファイルをすべてクリア                              |
 | `--include-untracked` | false      | diffにuntrackedファイルを自動的に含める（`.`または`working`のみ有効）             |
-| `--keep-alive`        | false      | ブラウザ切断後もサーバーを終了せず起動したままにする（Ctrl+Cで手動停止）           |
+| `--keep-alive`        | false      | ブラウザ切断後もサーバーを終了せず起動したままにする（Ctrl+Cで手動停止）          |
 
 ## 💬 コメントシステム
 
@@ -231,7 +231,7 @@ pnpm run format
 - **スタイリング**：GitHubライクなダークテーマを備えたTailwind CSS v4
 - **シンタックスハイライト**：動的言語ロードを備えたPrism.js
 - **テスト**：同じ場所に配置されたテストファイルを使用したVitestユニットテスト
-- **品質**：Oxlint、Biome、lefthookプリコミットフック
+- **品質**：oxlint、oxfmt、lefthookプリコミットフック
 
 ## 📋 要件
 
