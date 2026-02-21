@@ -73,6 +73,7 @@
     "onCommand:difit.stopReview",
     "onStartupFinished"
   ],
+  "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.98.0"
   }
