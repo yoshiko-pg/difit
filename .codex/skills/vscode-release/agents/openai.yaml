@@ -1,0 +1,4 @@
+interface:
+  display_name: 'VSCode Release'
+  short_description: 'Run VS Code extension release with local VSIX verification.'
+  default_prompt: 'Use $vscode-release to verify local VSIX build, ask for explicit OK, and publish the VS Code extension.'
