@@ -33,13 +33,25 @@
     "commands": [
       {
         "command": "difit.openReview",
-        "title": "difit: Open Review"
+        "title": "difit: Open Review",
+        "icon": {
+          "light": "assets/favicon.svg",
+          "dark": "assets/favicon-white.svg"
+        }
       },
       {
         "command": "difit.stopReview",
         "title": "difit: Stop Review"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "difit.openReview",
+          "group": "navigation@100"
+        }
+      ]
+    },
     "configuration": {
       "title": "difit",
       "properties": {

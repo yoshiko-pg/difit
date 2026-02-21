@@ -4,6 +4,7 @@ Launch `difit` with one click and render the local difit URL inside a VS Code ta
 
 ## Features
 
+- Top-right editor toolbar button (icon) to open review.
 - Status bar button (`difit`) to open review.
 - Command palette entries:
   - `difit: Open Review`
