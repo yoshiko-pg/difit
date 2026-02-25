@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.11] - 2026-02-25
+
+### Added
+
+- Add `-v` as alias for `--version` in CLI
+
+### Changed
+
+- Update dependencies (#220, #221, #222, #223)
+- Replace biome with oxfmt
+- Improve development logs to show only Vite URL
+- clarify no-comment shutdown behavior in skill script
+
+### Fixed
+
+- Hide open-in-editor actions when unavailable and skip no-op row actions without filename
+
 ## [3.1.10] - 2026-02-20
 
 ### Added
@@ -918,7 +935,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.10...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.11...HEAD
+[3.1.11]: https://github.com/yoshiko-pg/difit/compare/v3.1.10...v3.1.11
 [3.1.10]: https://github.com/yoshiko-pg/difit/compare/v3.1.9...v3.1.10
 [3.1.9]: https://github.com/yoshiko-pg/difit/compare/v3.1.8...v3.1.9
 [3.1.8]: https://github.com/yoshiko-pg/difit/compare/v3.1.7...v3.1.8
