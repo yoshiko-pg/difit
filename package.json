@@ -40,6 +40,7 @@
     "dev:cli": "tsc --project tsconfig.cli.json && NODE_ENV=development node dist/cli/index.js",
     "build": "tsc -b && vite build",
     "build:cli": "tsc --project tsconfig.cli.json",
+    "package:vscode": "pnpm -C packages/vscode run package",
     "start": "pnpm run build && node dist/cli/index.js",
     "check": "oxlint . --type-aware --type-check --deny-warnings --report-unused-disable-directives",
     "check:fix": "oxlint . --type-aware --type-check --deny-warnings --report-unused-disable-directives --fix",

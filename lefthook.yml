@@ -5,6 +5,7 @@ pre-commit:
       glob:
         - '*.{ts,tsx}'
         - 'src/**/*.{ts,tsx}'
+        - 'packages/vscode/**'
         - 'package.json'
         - 'pnpm-lock.yaml'
         - 'tsconfig.json'
@@ -23,6 +24,7 @@ pre-commit:
     knip:
       glob:
         - 'src/**/*.{ts,tsx,js,jsx,json,css}'
+        - 'packages/vscode/**'
         - 'scripts/*.{js,mjs,cjs}'
         - 'scripts/**/*.{js,mjs,cjs}'
         - 'package.json'
@@ -39,6 +41,7 @@ pre-commit:
     test:
       glob:
         - 'src/**/*.{ts,tsx}'
+        - 'packages/vscode/**'
         - 'package.json'
         - 'vitest.config.ts'
       run: pnpm test

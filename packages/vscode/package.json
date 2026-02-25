@@ -1,0 +1,80 @@
+{
+  "name": "difit-vscode",
+  "displayName": "difit",
+  "version": "0.1.0",
+  "description": "Launch difit and open it in a VS Code tab.",
+  "categories": [
+    "Other"
+  ],
+  "homepage": "https://github.com/yoshiko-pg/difit",
+  "bugs": {
+    "url": "https://github.com/yoshiko-pg/difit/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yoshiko-pg/difit.git"
+  },
+  "publisher": "yoshiko-pg",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "lint": "tsc -p . --noEmit",
+    "package": "pnpm run build && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.8",
+    "@types/vscode": "^1.98.0",
+    "@vscode/vsce": "^3.6.2",
+    "typescript": "^5.8.3"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "difit.openReview",
+        "title": "difit: Open Review",
+        "icon": {
+          "light": "assets/favicon.svg",
+          "dark": "assets/favicon-white.svg"
+        }
+      },
+      {
+        "command": "difit.stopReview",
+        "title": "difit: Stop Review"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "difit.openReview",
+          "group": "navigation@100"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "difit",
+      "properties": {
+        "difit.executablePath": {
+          "type": "string",
+          "default": "difit",
+          "description": "Path to the difit executable."
+        },
+        "difit.installCommand": {
+          "type": "string",
+          "default": "npm install -g difit",
+          "description": "Command sent to an integrated terminal when difit is not installed."
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onCommand:difit.openReview",
+    "onCommand:difit.stopReview",
+    "onStartupFinished"
+  ],
+  "icon": "assets/logo.png",
+  "engines": {
+    "vscode": "^1.98.0"
+  }
+}
