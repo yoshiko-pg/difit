@@ -4,7 +4,7 @@ import { type ViewedFileRecord, type DiffFile } from '../../types/diff';
 import { storageService } from '../services/StorageService';
 import { generateDiffHash, getDiffContentForHashing } from '../utils/diffUtils';
 
-export interface UseViewedFilesReturn {
+interface UseViewedFilesReturn {
   viewedFiles: Set<string>; // Set of file paths
   toggleFileViewed: (filePath: string, diffFile: DiffFile) => Promise<void>;
   isFileContentChanged: (filePath: string, diffFile: DiffFile) => Promise<boolean>;

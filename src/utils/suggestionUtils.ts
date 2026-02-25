@@ -1,5 +1,5 @@
 // Suggestion block parsed from comment body (GitHub-style ```suggestion blocks)
-export interface SuggestionBlock {
+interface SuggestionBlock {
   suggestedCode: string; // The suggested replacement code
   startIndex: number; // Start position in the comment body
   endIndex: number; // End position in the comment body

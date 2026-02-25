@@ -1,4 +1,4 @@
-export interface GeneratedCheckResult {
+interface GeneratedCheckResult {
   isGenerated: boolean;
   reason?: 'path' | 'universal' | 'language-specific';
   matchedPattern?: string;

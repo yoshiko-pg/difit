@@ -1,4 +1,4 @@
-export interface WordMatch {
+interface WordMatch {
   word: string;
   start: number;
   end: number;
