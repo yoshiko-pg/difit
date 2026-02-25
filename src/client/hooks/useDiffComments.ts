@@ -5,7 +5,7 @@ import { formatCommentPrompt, formatAllCommentsPrompt } from '../../utils/commen
 import { storageService } from '../services/StorageService';
 import { getLanguageFromPath } from '../utils/diffUtils';
 
-export interface AddCommentParams {
+interface AddCommentParams {
   filePath: string;
   body: string;
   side: DiffSide;
@@ -13,7 +13,7 @@ export interface AddCommentParams {
   codeSnapshot?: DiffComment['codeSnapshot'];
 }
 
-export interface UseDiffCommentsReturn {
+interface UseDiffCommentsReturn {
   comments: DiffComment[];
   addComment: (params: AddCommentParams) => DiffComment;
   removeComment: (commentId: string) => void;

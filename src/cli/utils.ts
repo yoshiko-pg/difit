@@ -6,7 +6,7 @@ import type { SimpleGit } from 'simple-git';
 
 type StdinStat = Pick<Stats, 'isFIFO' | 'isFile' | 'isSocket'>;
 
-export type StdinSource = 'pipe' | 'file' | 'socket' | 'tty';
+type StdinSource = 'pipe' | 'file' | 'socket' | 'tty';
 
 export function detectStdinSource(stdinStat: StdinStat = fstatSync(0)): StdinSource {
   if (stdinStat.isFIFO()) {
@@ -24,7 +24,7 @@ export function detectStdinSource(stdinStat: StdinStat = fstatSync(0)): StdinSou
   return 'tty';
 }
 
-export interface ShouldReadStdinOptions {
+interface ShouldReadStdinOptions {
   commitish: string;
   hasPositionalArgs: boolean;
   hasPrOption: boolean;
@@ -123,7 +123,7 @@ export function createCommitRangeString(baseHash: string, targetHash: string): s
   return `${baseHash}...${targetHash}`;
 }
 
-export interface PullRequestInfo {
+interface PullRequestInfo {
   owner: string;
   repo: string;
   pullNumber: number;
