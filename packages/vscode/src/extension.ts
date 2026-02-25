@@ -367,8 +367,18 @@ async function checkDifitExecutable(executablePath: string): Promise<ExecutableA
       settle('error');
     });
 
-    probe.once('exit', (code) => {
-      settle(code === 0 ? 'available' : 'error');
+    probe.once('exit', (code, signal) => {
+      if (signal) {
+        settle('error');
+        return;
+      }
+
+      if (code !== 0) {
+        getOutputChannel().appendLine(
+          `[probe] '${executablePath} --version' exited with code ${String(code)}. Continuing launch.`,
+        );
+      }
+      settle('available');
     });
   });
 }
