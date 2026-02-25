@@ -7,17 +7,35 @@ const STOP_REVIEW_COMMAND = 'difit.stopReview';
 const SERVER_URL_PATTERN = /difit server started on (https?:\/\/\S+)/i;
 const STARTUP_TIMEOUT_MS = 20_000;
 const INSTALL_ACTION_LABEL = 'Install';
+const DEFAULT_LOGIN_SHELL = process.env.SHELL?.trim() || '/bin/zsh';
+
+type LaunchStrategy = 'direct' | 'login-shell';
 
 type DifitSession = {
   readonly process: ChildProcessWithoutNullStreams;
   readonly workspaceFolder: vscode.WorkspaceFolder;
   readonly difitArgs: readonly string[];
+  readonly launchStrategy: LaunchStrategy;
   startupPromise: Promise<string>;
   url?: string;
 };
 
 const sessions = new Map<string, DifitSession>();
 let outputChannel: vscode.OutputChannel | undefined;
+
+class StartupExitError extends Error {
+  readonly code: number | null;
+  readonly signal: NodeJS.Signals | null;
+
+  constructor(workspaceName: string, code: number | null, signal: NodeJS.Signals | null) {
+    super(
+      `difit exited before startup in ${workspaceName} (code: ${String(code)}, signal: ${String(signal)})`,
+    );
+    this.name = 'StartupExitError';
+    this.code = code;
+    this.signal = signal;
+  }
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   outputChannel = vscode.window.createOutputChannel('difit');
@@ -91,15 +109,34 @@ async function openReview(): Promise<void> {
   }
 
   const difitArgs = await resolveDifitLaunchArgs(workspaceFolder);
-  const session = createSession(workspaceFolder, executablePath, difitArgs);
+  let session = createSession(workspaceFolder, executablePath, difitArgs, 'direct');
   sessions.set(key, session);
 
   try {
     const url = await session.startupPromise;
     await openInSimpleBrowser(url);
   } catch (error) {
+    if (shouldRetryWithLoginShell(error)) {
+      sessions.delete(key);
+      getOutputChannel().appendLine(
+        `[${workspaceFolder.name}] direct launch exited with code 127. Retrying via login shell.`,
+      );
+      session = createSession(workspaceFolder, executablePath, difitArgs, 'login-shell');
+      sessions.set(key, session);
+
+      try {
+        const url = await session.startupPromise;
+        await openInSimpleBrowser(url);
+      } catch (retryError) {
+        sessions.delete(key);
+        const message = formatStartupError(retryError, executablePath);
+        void vscode.window.showErrorMessage(`difit: ${message}`);
+      }
+      return;
+    }
+
     sessions.delete(key);
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = formatStartupError(error, executablePath);
     void vscode.window.showErrorMessage(`difit: ${message}`);
   }
 }
@@ -146,22 +183,35 @@ function createSession(
   workspaceFolder: vscode.WorkspaceFolder,
   executablePath: string,
   difitArgs: readonly string[],
+  launchStrategy: LaunchStrategy,
 ): DifitSession {
   const channel = getOutputChannel();
+  const command = launchStrategy === 'direct' ? executablePath : DEFAULT_LOGIN_SHELL;
+  const commandArgs =
+    launchStrategy === 'direct'
+      ? [...difitArgs]
+      : ['-lc', buildShellCommand(executablePath, difitArgs)];
 
-  const child = spawn(executablePath, [...difitArgs], {
+  const child = spawn(command, commandArgs, {
     cwd: workspaceFolder.uri.fsPath,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
-  channel.appendLine(
-    `[${workspaceFolder.name}] starting: ${executablePath} ${difitArgs.join(' ')} (cwd: ${workspaceFolder.uri.fsPath})`,
-  );
+  if (launchStrategy === 'direct') {
+    channel.appendLine(
+      `[${workspaceFolder.name}] starting: ${executablePath} ${difitArgs.join(' ')} (cwd: ${workspaceFolder.uri.fsPath})`,
+    );
+  } else {
+    channel.appendLine(
+      `[${workspaceFolder.name}] starting via login shell: ${DEFAULT_LOGIN_SHELL} -lc ${buildShellCommand(executablePath, difitArgs)} (cwd: ${workspaceFolder.uri.fsPath})`,
+    );
+  }
 
   const session: DifitSession = {
     process: child,
     workspaceFolder,
     difitArgs,
+    launchStrategy,
     startupPromise: Promise.resolve(''),
   };
 
@@ -234,12 +284,7 @@ function createSession(
       }
 
       if (!settled) {
-        settleReject(
-          new Error(
-            `difit exited before startup in ${workspaceFolder.name} (code: ${String(code)}, signal: ${String(signal)})`,
-          ),
-          reject,
-        );
+        settleReject(new StartupExitError(workspaceFolder.name, code, signal), reject);
       }
     });
 
@@ -252,6 +297,26 @@ function createSession(
   });
 
   return session;
+}
+
+function buildShellCommand(executablePath: string, difitArgs: readonly string[]): string {
+  return [executablePath, ...difitArgs].map(shellQuote).join(' ');
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function shouldRetryWithLoginShell(error: unknown): boolean {
+  return error instanceof StartupExitError && error.code === 127;
+}
+
+function formatStartupError(error: unknown, executablePath: string): string {
+  if (shouldRetryWithLoginShell(error)) {
+    return `Launch failed with exit code 127. Check "${executablePath}" and ensure Node.js is available in VS Code PATH.`;
+  }
+
+  return error instanceof Error ? error.message : 'Unknown error';
 }
 
 function appendOutput(
