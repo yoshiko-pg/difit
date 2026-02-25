@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import path from 'node:path';
 
 import * as vscode from 'vscode';
 
@@ -9,6 +10,7 @@ const STARTUP_TIMEOUT_MS = 20_000;
 const INSTALL_ACTION_LABEL = 'Install';
 const DEFAULT_LOGIN_SHELL = process.env.SHELL?.trim() || '/bin/zsh';
 const LOGIN_SHELL_ARGS_PREFIX = ['-i', '-l', '-c'] as const;
+const EXTENSION_HOST_NODE_DIR = path.dirname(process.execPath);
 
 type LaunchStrategy = 'direct' | 'login-shell';
 
@@ -195,6 +197,7 @@ function createSession(
 
   const child = spawn(command, commandArgs, {
     cwd: workspaceFolder.uri.fsPath,
+    env: buildSpawnEnv(),
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
@@ -411,6 +414,7 @@ async function detectUncommittedChanges(workspaceFolder: vscode.WorkspaceFolder)
 async function checkDifitExecutable(executablePath: string): Promise<ExecutableAvailability> {
   return await new Promise<ExecutableAvailability>((resolve) => {
     const probe = spawn(executablePath, ['--version'], {
+      env: buildSpawnEnv(),
       stdio: 'ignore',
     });
 
@@ -447,6 +451,25 @@ async function checkDifitExecutable(executablePath: string): Promise<ExecutableA
       settle('available');
     });
   });
+}
+
+function buildSpawnEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  const pathKey = resolvePathKey(env);
+  const currentPath = env[pathKey] ?? '';
+  const entries = currentPath.split(path.delimiter).filter((entry) => entry.length > 0);
+
+  if (!entries.includes(EXTENSION_HOST_NODE_DIR)) {
+    entries.unshift(EXTENSION_HOST_NODE_DIR);
+  }
+
+  env[pathKey] = entries.join(path.delimiter);
+  return env;
+}
+
+function resolvePathKey(env: NodeJS.ProcessEnv): string {
+  const existing = Object.keys(env).find((key) => key.toLowerCase() === 'path');
+  return existing ?? 'PATH';
 }
 
 async function promptInstallFlow(installCommand: string): Promise<void> {
