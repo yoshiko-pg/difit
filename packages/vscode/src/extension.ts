@@ -8,6 +8,7 @@ const SERVER_URL_PATTERN = /difit server started on (https?:\/\/\S+)/i;
 const STARTUP_TIMEOUT_MS = 20_000;
 const INSTALL_ACTION_LABEL = 'Install';
 const DEFAULT_LOGIN_SHELL = process.env.SHELL?.trim() || '/bin/zsh';
+const LOGIN_SHELL_ARGS_PREFIX = ['-i', '-l', '-c'] as const;
 
 type LaunchStrategy = 'direct' | 'login-shell';
 
@@ -190,7 +191,7 @@ function createSession(
   const commandArgs =
     launchStrategy === 'direct'
       ? [...difitArgs]
-      : ['-lc', buildShellCommand(executablePath, difitArgs)];
+      : [...LOGIN_SHELL_ARGS_PREFIX, buildShellCommand(executablePath, difitArgs)];
 
   const child = spawn(command, commandArgs, {
     cwd: workspaceFolder.uri.fsPath,
@@ -203,7 +204,7 @@ function createSession(
     );
   } else {
     channel.appendLine(
-      `[${workspaceFolder.name}] starting via login shell: ${DEFAULT_LOGIN_SHELL} -lc ${buildShellCommand(executablePath, difitArgs)} (cwd: ${workspaceFolder.uri.fsPath})`,
+      `[${workspaceFolder.name}] starting via login shell: ${DEFAULT_LOGIN_SHELL} ${LOGIN_SHELL_ARGS_PREFIX.join(' ')} ${buildShellCommand(executablePath, difitArgs)} (cwd: ${workspaceFolder.uri.fsPath})`,
     );
   }
 
