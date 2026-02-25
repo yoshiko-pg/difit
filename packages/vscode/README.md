@@ -35,12 +35,6 @@ pnpm install
 pnpm run package:vscode
 ```
 
-Alternative (inside package directory):
-
-```bash
-pnpm run package
-```
-
 Generated file:
 
 - `packages/vscode/difit-vscode-<version>.vsix`
@@ -52,13 +46,3 @@ Generated file:
 3. Choose `Install from VSIX...`.
 4. Select `packages/vscode/difit-vscode-<version>.vsix`.
 5. Run `Developer: Reload Window`.
-
-## Troubleshooting
-
-- Error `code: 127` on startup:
-  - Usually means environment PATH mismatch for child processes.
-  - The extension retries with a login shell and injects extension-host Node path.
-  - If it still fails, check Output channel `difit`.
-- `difit` not found:
-  - Confirm `difit.executablePath`.
-  - Or install with `difit.installCommand`.
