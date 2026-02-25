@@ -19,11 +19,11 @@ let cliReady = false;
 let viteProcess = null;
 
 cliProcess.stdout.on('data', (data) => {
-  process.stdout.write(data);
   const output = data.toString();
 
   // Wait for CLI server before starting Vite to prevent proxy connection errors
-  // Uses stdout parsing to keep dev orchestration separate from main CLI logic
+  // Uses stdout parsing to keep dev orchestration separate from main CLI logic.
+  // Intentionally do not mirror CLI stdout to avoid showing internal API server URL.
   if (!cliReady && output.includes(CLI_SERVER_READY_MESSAGE)) {
     cliReady = true;
     console.log('🎨 Starting Vite dev server...');
