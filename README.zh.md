@@ -25,6 +25,12 @@ npm install -g difit
 difit  # 在 WebUI 中查看最新提交的差异
 ```
 
+使其可供 AI 代理使用
+
+```bash
+npx skills add yoshiko-pg/difit # 为代理添加 Skill
+```
+
 ## 🚀 使用方法
 
 ### 基本用法
@@ -154,6 +160,8 @@ src/components/Button.tsx:L42-L48   # 此行自动添加
 ```sh
 npx skills add yoshiko-pg/difit
 ```
+
+代理编辑代码后，将会启动 difit 服务器。
 
 ## 🎨 语法高亮语言
 

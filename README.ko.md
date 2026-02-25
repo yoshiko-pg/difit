@@ -25,6 +25,12 @@ npm install -g difit
 difit  # WebUI에서 최신 커밋 diff 보기
 ```
 
+AI 에이전트에서 사용할 수 있도록 설정
+
+```bash
+npx skills add yoshiko-pg/difit # 에이전트에 Skill 추가
+```
+
 ## 🚀 사용법
 
 ### 기본 사용법
@@ -154,6 +160,8 @@ difit을 사용해 사용자에게 리뷰를 요청하는 Skill은 아래 명령
 ```sh
 npx skills add yoshiko-pg/difit
 ```
+
+에이전트가 코드를 수정한 뒤에는 difit 서버를 실행합니다.
 
 ## 🎨 구문 강조 언어
 

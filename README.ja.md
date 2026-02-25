@@ -25,6 +25,12 @@ npm install -g difit
 difit  # 最新コミットのdiffをWebUIで表示
 ```
 
+AIエージェントから使えるようにする
+
+```bash
+npx skills add yoshiko-pg/difit # エージェントにスキルを追加
+```
+
 ## 🚀 使い方
 
 ### 基本的な使い方
@@ -149,11 +155,13 @@ src/components/Button.tsx:L42-L48   # この行が自動的に追加されます
 
 ## 🤖 エージェントからの呼び出し
 
-difitを利用してユーザーにレビューを依頼するSkillを以下でインストールできます
+difitを利用してユーザーにレビューを依頼するSkillを以下でインストールできます。
 
 ```sh
 npx skills add yoshiko-pg/difit
 ```
+
+エージェントがコードを編集したあと、difitサーバーを立ち上げるようになります。
 
 ## 🎨 シンタックスハイライト対応言語
 
