@@ -10,6 +10,9 @@ on:
       - 'package.json'
       - '.github/workflows/pr-vscode.yml'
 
+permissions:
+  contents: read
+
 jobs:
   vscode-package:
     runs-on: ubuntu-latest
