@@ -55,6 +55,13 @@ export interface DiffResponse {
   repositoryId?: string;
 }
 
+export interface GeneratedStatusResponse {
+  path: string;
+  ref: string;
+  isGenerated: boolean;
+  source: 'path' | 'content';
+}
+
 export type LineNumber = number | [number, number];
 
 export interface Comment {

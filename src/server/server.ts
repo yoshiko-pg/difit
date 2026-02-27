@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
+import { createHash } from 'crypto';
 import { type Server } from 'http';
-import { join, dirname, resolve, sep } from 'path';
+import { join, dirname, isAbsolute, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 
 import express, { type Express } from 'express';
@@ -17,7 +18,12 @@ import { getFileExtension } from '../utils/fileUtils.js';
 import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
 
-import { type Comment, type DiffResponse, type RevisionsResponse } from '@/types/diff.js';
+import {
+  type Comment,
+  type DiffResponse,
+  type GeneratedStatusResponse,
+  type RevisionsResponse,
+} from '@/types/diff.js';
 
 interface ServerOptions {
   targetCommitish?: string;
@@ -34,16 +40,43 @@ interface ServerOptions {
   repoPath?: string;
 }
 
+const GENERATED_STATUS_CACHE_TTL_MS = 60_000;
+
 export async function startServer(
   options: ServerOptions,
 ): Promise<{ port: number; url: string; isEmpty?: boolean; server?: Server }> {
   const app = express();
-  const parser = new GitDiffParser(options.repoPath);
+  const repositoryPath = resolve(options.repoPath ?? process.cwd());
+  const repositoryId = createHash('sha256').update(repositoryPath).digest('hex');
+  const parser = new GitDiffParser(repositoryPath);
   const fileWatcher = new FileWatcherService();
+  const generatedStatusCache = new Map<
+    string,
+    { value: GeneratedStatusResponse; expiresAt: number }
+  >();
 
   let diffDataCache: DiffResponse | null = null;
   let currentIgnoreWhitespace = options.ignoreWhitespace || false;
   const diffMode = normalizeDiffViewMode(options.mode);
+  const shouldLogPerf = process.env.NODE_ENV === 'development';
+
+  const parseDiffData = async (
+    targetCommitish: string,
+    baseCommitish: string,
+    ignoreWhitespace: boolean,
+  ) => {
+    const start = Date.now();
+    const diffData = await parser.parseDiff(targetCommitish, baseCommitish, ignoreWhitespace);
+
+    if (shouldLogPerf) {
+      const duration = Date.now() - start;
+      console.debug(
+        `[perf] parseDiff ${baseCommitish || '<empty>'}...${targetCommitish || '<empty>'} (ignoreWhitespace=${ignoreWhitespace}) completed in ${duration}ms`,
+      );
+    }
+
+    return diffData;
+  };
 
   app.use(express.json());
   app.use(express.text()); // For sendBeacon text/plain requests
@@ -68,7 +101,7 @@ export async function startServer(
     // Parse stdin diff directly
     diffDataCache = parser.parseStdinDiff(options.stdinDiff);
   } else {
-    diffDataCache = await parser.parseDiff(
+    diffDataCache = await parseDiffData(
       options.targetCommitish ?? '',
       options.baseCommitish ?? '',
       currentIgnoreWhitespace,
@@ -78,6 +111,8 @@ export async function startServer(
   // Function to invalidate cache when file changes are detected
   const invalidateCache = () => {
     diffDataCache = null;
+    generatedStatusCache.clear();
+    parser.clearCaches();
   };
 
   // Track current revisions for cache invalidation
@@ -99,18 +134,8 @@ export async function startServer(
       currentIgnoreWhitespace = ignoreWhitespace;
       currentBaseCommitish = requestedBase;
       currentTargetCommitish = requestedTarget;
-      diffDataCache = await parser.parseDiff(requestedTarget, requestedBase, ignoreWhitespace);
-    }
-
-    // Get repository identifier for storage isolation
-    // Uses repository path for simplicity and worktree support
-    let repositoryId: string | undefined;
-    try {
-      const repositoryPath = process.cwd();
-      const crypto = await import('crypto');
-      repositoryId = crypto.createHash('sha256').update(repositoryPath).digest('hex');
-    } catch {
-      // If we can't get repository path, leave undefined
+      diffDataCache = await parseDiffData(requestedTarget, requestedBase, ignoreWhitespace);
+      generatedStatusCache.clear();
     }
 
     // Resolve symbolic refs like HEAD/HEAD^ to actual hashes for the UI
@@ -156,6 +181,59 @@ export async function startServer(
       clearComments: options.clearComments,
       repositoryId,
     });
+  });
+
+  app.get(/^\/api\/generated-status\/(.*)$/, async (req, res) => {
+    if (options.stdinDiff) {
+      res.status(400).json({ error: 'Generated status is not available for stdin diff' });
+      return;
+    }
+
+    try {
+      const filepath = req.params[0];
+      if (typeof filepath !== 'string' || filepath.length === 0) {
+        res.status(400).json({ error: 'Invalid file path' });
+        return;
+      }
+
+      const normalizedFilepath = filepath.replace(/\\/g, '/');
+      const hasParentTraversal = normalizedFilepath.split('/').some((segment) => segment === '..');
+      if (isAbsolute(filepath) || normalizedFilepath.startsWith('/') || hasParentTraversal) {
+        res.status(400).json({ error: 'File path outside repository' });
+        return;
+      }
+
+      const resolvedPath = resolve(repositoryPath, normalizedFilepath);
+      if (resolvedPath !== repositoryPath && !resolvedPath.startsWith(`${repositoryPath}${sep}`)) {
+        res.status(400).json({ error: 'File path outside repository' });
+        return;
+      }
+
+      const ref = (req.query.ref as string) || currentTargetCommitish || 'HEAD';
+      const cacheKey = `${ref}:${normalizedFilepath}`;
+      const now = Date.now();
+      const cached = generatedStatusCache.get(cacheKey);
+      if (cached && cached.expiresAt > now) {
+        res.json(cached.value);
+        return;
+      }
+
+      const status = await parser.getGeneratedStatus(normalizedFilepath, ref);
+      const response: GeneratedStatusResponse = {
+        path: normalizedFilepath,
+        ref,
+        ...status,
+      };
+      generatedStatusCache.set(cacheKey, {
+        value: response,
+        expiresAt: now + GENERATED_STATUS_CACHE_TTL_MS,
+      });
+
+      res.json(response);
+    } catch (error) {
+      console.error('Error fetching generated status:', error);
+      res.status(500).json({ error: 'Failed to get generated status' });
+    }
   });
 
   // Get available revisions for revision selector
@@ -492,12 +570,7 @@ export async function startServer(
   // Start file watcher
   if (options.diffMode) {
     try {
-      await fileWatcher.start(
-        options.diffMode,
-        options.repoPath || process.cwd(),
-        300,
-        invalidateCache,
-      );
+      await fileWatcher.start(options.diffMode, repositoryPath, 300, invalidateCache);
     } catch (error) {
       console.warn('⚠️  File watcher failed to start:', error);
       console.warn('   Continuing without file watching...');

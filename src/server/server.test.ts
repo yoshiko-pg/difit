@@ -65,6 +65,11 @@ vi.mock('./git-diff.js', () => {
       isEmpty: false,
     });
     getBlobContent = vi.fn().mockResolvedValue(Buffer.from('mock image data'));
+    getGeneratedStatus = vi.fn().mockResolvedValue({
+      isGenerated: true,
+      source: 'content',
+    });
+    clearCaches = vi.fn();
     getRevisionOptions = vi.fn().mockResolvedValue({
       branches: [{ name: 'main', current: true }],
       commits: [{ hash: 'abc1234', shortHash: 'abc1234', message: 'Test commit' }],
@@ -286,6 +291,41 @@ describe('Server Integration Tests', () => {
       expect(data).toHaveProperty('ignoreWhitespace', true);
     });
 
+    it('GET /api/generated-status/* returns generated status', async () => {
+      const response = await fetch(
+        `http://localhost:${port}/api/generated-status/src/query.ts?ref=HEAD`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data).toEqual({
+        path: 'src/query.ts',
+        ref: 'HEAD',
+        isGenerated: true,
+        source: 'content',
+      });
+    });
+
+    it('GET /api/generated-status/* rejects paths outside repository', async () => {
+      const response = await fetch(
+        `http://localhost:${port}/api/generated-status/%2Ftmp%2Foutside.txt?ref=HEAD`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.status).toBe(400);
+      expect(data).toHaveProperty('error', 'File path outside repository');
+    });
+
+    it('GET /api/generated-status/* rejects parent traversal paths', async () => {
+      const response = await fetch(
+        `http://localhost:${port}/api/generated-status/..%2Foutside.txt?ref=HEAD`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.status).toBe(400);
+      expect(data).toHaveProperty('error', 'File path outside repository');
+    });
+
     it('POST /api/comments accepts comment data', async () => {
       const comments = [{ file: 'test.js', line: 10, body: 'This is a test comment' }];
 
@@ -400,6 +440,22 @@ describe('Server Integration Tests', () => {
 
       expect(response.ok).toBe(true);
       expect(data).toHaveProperty('openInEditorAvailable', false);
+    });
+
+    it('GET /api/generated-status/* returns 400 for stdin diff', async () => {
+      const stdinServer = await startServer({
+        stdinDiff: 'diff --git a/stdin-test.js b/stdin-test.js',
+        preferredPort: 9036,
+      });
+      servers.push(stdinServer.server);
+
+      const response = await fetch(
+        `http://localhost:${stdinServer.port}/api/generated-status/stdin-test.js?ref=HEAD`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.status).toBe(400);
+      expect(data).toHaveProperty('error', 'Generated status is not available for stdin diff');
     });
   });
 

@@ -1,7 +1,6 @@
 import {
   simpleGit,
   type SimpleGit,
-  type DiffResult,
   type DiffResultTextFile,
   type DiffResultBinaryFile,
   type DiffResultNameStatusFile,
@@ -15,6 +14,9 @@ import { isGeneratedFile } from './generated-file-check.js';
 export class GitDiffParser {
   private git: SimpleGit;
   private repoPath: string;
+  private readonly resolvedCommitCache = new Map<string, { value: string; expiresAt: number }>();
+  private static readonly RESOLVED_COMMIT_CACHE_TTL_MS = 5_000;
+  private static readonly GENERATED_HEADER_SCAN_BYTES = 4 * 1024;
 
   constructor(repoPath = process.cwd()) {
     this.repoPath = repoPath;
@@ -67,33 +69,9 @@ export class GitDiffParser {
       // https://github.com/yoshiko-pg/difit/issues/19
       diffArgs.push('--no-ext-diff', '--color=never');
 
-      // Add --color=never to ensure plain text output without ANSI escape sequences
-      const diffSummary = await this.git.diffSummary(diffArgs);
-      const diffRaw = await this.git.diff(['--color=never', ...diffArgs]);
-
-      const files = this.parseUnifiedDiff(diffRaw, diffSummary.files);
-
-      // Check generated status with content for files not yet identified
-      await Promise.all(
-        files.map(async (file) => {
-          if (file.isGenerated) return;
-          if (file.status === 'deleted') return;
-
-          try {
-            // For content-based checks, we read the first 20 lines of the file
-            // We use targetCommitish to get the version of the file we are looking at
-            const buffer = await this.getBlobContent(file.path, targetCommitish);
-            const content = buffer.toString('utf8');
-            const lines = content.split('\n').slice(0, 20);
-            const result = isGeneratedFile(file.path, () => lines);
-            if (result.isGenerated) {
-              file.isGenerated = true;
-            }
-          } catch {
-            // Ignore errors (e.g. file too large, file not found in target ref)
-          }
-        }),
-      );
+      // Single git invocation for better startup latency on large repositories.
+      const diffRaw = await this.git.diff(diffArgs);
+      const files = this.parseUnifiedDiff(diffRaw);
 
       return {
         commit: resolvedCommit,
@@ -107,13 +85,16 @@ export class GitDiffParser {
     }
   }
 
-  private parseUnifiedDiff(diffText: string, summary: DiffResult['files']): DiffFile[] {
+  private parseUnifiedDiff(
+    diffText: string,
+    summary?: Array<DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile>,
+  ): DiffFile[] {
     const files: DiffFile[] = [];
     const fileBlocks = diffText.split(/^diff --git /m).slice(1);
 
     for (let i = 0; i < fileBlocks.length; i++) {
       const block = `diff --git ${fileBlocks[i]}`;
-      const summaryItem = summary[i];
+      const summaryItem = summary?.[i];
 
       // For stdin diff, we don't have summary
       if (!summaryItem) {
@@ -471,12 +452,7 @@ export class GitDiffParser {
   }
 
   parseStdinDiff(diffContent: string): DiffResponse {
-    // For stdin diff, we pass an empty summary array
-    // parseUnifiedDiff will handle it by counting additions/deletions from the actual diff content
-    const emptySummary: DiffResult['files'] = [];
-
-    // Use the existing parseUnifiedDiff method
-    const files = this.parseUnifiedDiff(diffContent, emptySummary);
+    const files = this.parseUnifiedDiff(diffContent);
 
     return {
       commit: 'stdin diff',
@@ -553,9 +529,50 @@ export class GitDiffParser {
     return count;
   }
 
+  private extractHeaderLines(buffer: Buffer, maxLines = 20): string[] {
+    const headerSlice = buffer.subarray(0, GitDiffParser.GENERATED_HEADER_SCAN_BYTES);
+    return headerSlice.toString('utf8').split('\n').slice(0, maxLines);
+  }
+
+  async getGeneratedStatus(
+    filepath: string,
+    ref: string,
+  ): Promise<{ isGenerated: boolean; source: 'path' | 'content' }> {
+    const pathResult = isGeneratedFile(filepath);
+    if (pathResult.isGenerated) {
+      return { isGenerated: true, source: 'path' };
+    }
+
+    try {
+      const buffer = await this.getBlobContent(filepath, ref);
+      const lines = this.extractHeaderLines(buffer);
+      const result = isGeneratedFile(filepath, () => lines);
+      return { isGenerated: result.isGenerated, source: 'content' };
+    } catch {
+      return { isGenerated: false, source: 'path' };
+    }
+  }
+
   async resolveCommitish(commitish: string): Promise<string> {
+    const now = Date.now();
+    const cached = this.resolvedCommitCache.get(commitish);
+    if (cached && cached.expiresAt > now) {
+      return cached.value;
+    }
+
     const hash = await this.git.revparse([commitish]);
-    return hash.substring(0, 7);
+    const value = hash.substring(0, 7);
+
+    this.resolvedCommitCache.set(commitish, {
+      value,
+      expiresAt: now + GitDiffParser.RESOLVED_COMMIT_CACHE_TTL_MS,
+    });
+
+    return value;
+  }
+
+  clearCaches(): void {
+    this.resolvedCommitCache.clear();
   }
 
   async getDefaultBranch(): Promise<string | null> {
