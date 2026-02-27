@@ -1,15 +1,17 @@
-import {
-  simpleGit,
-  type SimpleGit,
-  type DiffResultTextFile,
-  type DiffResultBinaryFile,
-  type DiffResultNameStatusFile,
-} from 'simple-git';
+import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { validateDiffArguments, shortHash, createCommitRangeString } from '../cli/utils.js';
 import { type DiffFile, type DiffChunk, type DiffLine, type DiffResponse } from '../types/diff.js';
 
 import { isGeneratedFile } from './generated-file-check.js';
+
+interface ParsedDiffSummary {
+  file?: string;
+  from?: string;
+  insertions?: number;
+  deletions?: number;
+  binary?: boolean;
+}
 
 export class GitDiffParser {
   private git: SimpleGit;
@@ -85,27 +87,13 @@ export class GitDiffParser {
     }
   }
 
-  private parseUnifiedDiff(
-    diffText: string,
-    summary?: Array<DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile>,
-  ): DiffFile[] {
+  private parseUnifiedDiff(diffText: string): DiffFile[] {
     const files: DiffFile[] = [];
     const fileBlocks = diffText.split(/^diff --git /m).slice(1);
 
-    for (let i = 0; i < fileBlocks.length; i++) {
-      const block = `diff --git ${fileBlocks[i]}`;
-      const summaryItem = summary?.[i];
-
-      // For stdin diff, we don't have summary
-      if (!summaryItem) {
-        const file = this.parseFileBlock(block, null);
-        if (file) {
-          files.push(file);
-        }
-        continue;
-      }
-
-      const file = this.parseFileBlock(block, summaryItem);
+    for (const fileBlock of fileBlocks) {
+      const block = `diff --git ${fileBlock}`;
+      const file = this.parseFileBlock(block, null);
       if (file) {
         files.push(file);
       }
@@ -267,15 +255,12 @@ export class GitDiffParser {
   }
 
   private hasRenameInfo(
-    summary: DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile,
-  ): summary is DiffResultNameStatusFile {
+    summary: ParsedDiffSummary,
+  ): summary is ParsedDiffSummary & { from: string } {
     return 'from' in summary && typeof summary.from === 'string';
   }
 
-  private parseFileBlock(
-    block: string,
-    summary: DiffResultTextFile | DiffResultBinaryFile | DiffResultNameStatusFile | null,
-  ): DiffFile | null {
+  private parseFileBlock(block: string, summary: ParsedDiffSummary | null): DiffFile | null {
     const lines = block.split('\n');
     const headerLine = lines[0];
     const headerPaths = this.parseDiffHeaderPaths(headerLine);
@@ -356,8 +341,8 @@ export class GitDiffParser {
       // Text file with summary
       return {
         ...baseFile,
-        additions: summary.insertions,
-        deletions: summary.deletions,
+        additions: summary.insertions ?? 0,
+        deletions: summary.deletions ?? 0,
         chunks,
         isGenerated: isGeneratedFile(path).isGenerated,
       };
@@ -571,7 +556,7 @@ export class GitDiffParser {
     return value;
   }
 
-  clearCaches(): void {
+  clearResolvedCommitCache(): void {
     this.resolvedCommitCache.clear();
   }
 

@@ -177,7 +177,7 @@ function App() {
       return;
     }
 
-    const revisionKey = `${diffData.repositoryId ?? ''}:${diffData.requestedBaseCommitish ?? ''}:${diffData.requestedTargetCommitish ?? ''}`;
+    const revisionKey = `${diffData.requestedBaseCommitish ?? ''}:${diffData.requestedTargetCommitish ?? ''}`;
     if (renderedRevisionKeyRef.current === revisionKey) {
       return;
     }
@@ -521,7 +521,7 @@ function App() {
     if (!diffData || diffData.targetCommitish === 'stdin') return;
 
     const ref = diffData.targetCommitish || 'HEAD';
-    const revisionKey = `${diffData.requestedBaseCommitish ?? ''}...${diffData.requestedTargetCommitish ?? ''}`;
+    const generatedStatusRevisionKey = `${diffData.requestedBaseCommitish ?? ''}...${diffData.requestedTargetCommitish ?? ''}`;
 
     diffData.files.forEach((file) => {
       if (
@@ -532,7 +532,7 @@ function App() {
         return;
       }
 
-      const cacheKey = `${revisionKey}:${ref}:${file.path}`;
+      const cacheKey = `${generatedStatusRevisionKey}:${ref}:${file.path}`;
       if (generatedStatusCheckedRef.current.has(cacheKey)) {
         return;
       }

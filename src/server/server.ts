@@ -58,25 +58,6 @@ export async function startServer(
   let diffDataCache: DiffResponse | null = null;
   let currentIgnoreWhitespace = options.ignoreWhitespace || false;
   const diffMode = normalizeDiffViewMode(options.mode);
-  const shouldLogPerf = process.env.NODE_ENV === 'development';
-
-  const parseDiffData = async (
-    targetCommitish: string,
-    baseCommitish: string,
-    ignoreWhitespace: boolean,
-  ) => {
-    const start = Date.now();
-    const diffData = await parser.parseDiff(targetCommitish, baseCommitish, ignoreWhitespace);
-
-    if (shouldLogPerf) {
-      const duration = Date.now() - start;
-      console.debug(
-        `[perf] parseDiff ${baseCommitish || '<empty>'}...${targetCommitish || '<empty>'} (ignoreWhitespace=${ignoreWhitespace}) completed in ${duration}ms`,
-      );
-    }
-
-    return diffData;
-  };
 
   app.use(express.json());
   app.use(express.text()); // For sendBeacon text/plain requests
@@ -101,7 +82,7 @@ export async function startServer(
     // Parse stdin diff directly
     diffDataCache = parser.parseStdinDiff(options.stdinDiff);
   } else {
-    diffDataCache = await parseDiffData(
+    diffDataCache = await parser.parseDiff(
       options.targetCommitish ?? '',
       options.baseCommitish ?? '',
       currentIgnoreWhitespace,
@@ -112,7 +93,7 @@ export async function startServer(
   const invalidateCache = () => {
     diffDataCache = null;
     generatedStatusCache.clear();
-    parser.clearCaches();
+    parser.clearResolvedCommitCache();
   };
 
   // Track current revisions for cache invalidation
@@ -134,7 +115,7 @@ export async function startServer(
       currentIgnoreWhitespace = ignoreWhitespace;
       currentBaseCommitish = requestedBase;
       currentTargetCommitish = requestedTarget;
-      diffDataCache = await parseDiffData(requestedTarget, requestedBase, ignoreWhitespace);
+      diffDataCache = await parser.parseDiff(requestedTarget, requestedBase, ignoreWhitespace);
       generatedStatusCache.clear();
     }
 

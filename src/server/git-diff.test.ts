@@ -6,7 +6,6 @@ import { GitDiffParser } from './git-diff';
 vi.mock('simple-git', () => ({
   simpleGit: vi.fn(() => ({
     revparse: vi.fn(),
-    diffSummary: vi.fn(),
     diff: vi.fn(),
   })),
 }));
@@ -1078,27 +1077,10 @@ index abc123..def456 100644
         `-old`,
         `+new`,
       ];
-      const summary = {
-        file,
-        insertions: 1,
-        deletions: 1,
-        binary: false,
-      };
 
-      // Mock git.diff and git.diffSummary
+      // Mock git.diff
       const gitDiff = (parser as any).git.diff;
-      const gitDiffSummary = (parser as any).git.diffSummary;
-      // Check if revparse is already mocked by vi.mock('simple-git') structure, if not we add it.
-      // Actually (parser as any).git is the mock object returned by simpleGit().
-      // In line 8 of git-diff.test.ts: simpleGit: vi.fn(() => ({ revparse: vi.fn(), ... }))
-      // So revparse IS a mock.
-
       gitDiff.mockResolvedValue(diffLines.join('\n'));
-      gitDiffSummary.mockResolvedValue({
-        files: [summary],
-        insertions: 1,
-        deletions: 1,
-      });
       (parser as any).git.revparse.mockResolvedValue('abc1234567890abcdef1234567890abcdef12');
 
       const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
