@@ -5,14 +5,6 @@ import { type DiffFile, type DiffChunk, type DiffLine, type DiffResponse } from 
 
 import { isGeneratedFile } from './generated-file-check.js';
 
-interface ParsedDiffSummary {
-  file?: string;
-  from?: string;
-  insertions?: number;
-  deletions?: number;
-  binary?: boolean;
-}
-
 export class GitDiffParser {
   private git: SimpleGit;
   private repoPath: string;
@@ -93,7 +85,7 @@ export class GitDiffParser {
 
     for (const fileBlock of fileBlocks) {
       const block = `diff --git ${fileBlock}`;
-      const file = this.parseFileBlock(block, null);
+      const file = this.parseFileBlock(block);
       if (file) {
         files.push(file);
       }
@@ -254,13 +246,7 @@ export class GitDiffParser {
     };
   }
 
-  private hasRenameInfo(
-    summary: ParsedDiffSummary,
-  ): summary is ParsedDiffSummary & { from: string } {
-    return 'from' in summary && typeof summary.from === 'string';
-  }
-
-  private parseFileBlock(block: string, summary: ParsedDiffSummary | null): DiffFile | null {
+  private parseFileBlock(block: string): DiffFile | null {
     const lines = block.split('\n');
     const headerLine = lines[0];
     const headerPaths = this.parseDiffHeaderPaths(headerLine);
@@ -274,17 +260,8 @@ export class GitDiffParser {
     const minusPath = this.extractPathFromLine(minusLine, '--- ');
     const renameFromPath = this.extractPathFromLine(renameFromLine, 'rename from ');
     const renameToPath = this.extractPathFromLine(renameToLine, 'rename to ');
-    const summaryNewPath = this.decodeGitPath(summary?.file);
-
-    let summaryOldPath: string | undefined;
-    if (summary && this.hasRenameInfo(summary)) {
-      summaryOldPath = this.decodeGitPath(summary.from);
-    }
-
-    const newPath = renameToPath ?? plusPath ?? headerPaths?.newPath ?? summaryNewPath;
-
-    const oldPath =
-      renameFromPath ?? minusPath ?? headerPaths?.oldPath ?? summaryOldPath ?? newPath;
+    const newPath = renameToPath ?? plusPath ?? headerPaths?.newPath;
+    const oldPath = renameFromPath ?? minusPath ?? headerPaths?.oldPath ?? newPath;
 
     if (!newPath) {
       return null;
@@ -317,36 +294,14 @@ export class GitDiffParser {
     // Parse chunks
     const chunks = this.parseChunks(lines);
 
-    // Handle different summary types
-    if (!summary) {
-      // No summary - count additions/deletions from chunks
-      const { additions, deletions } = this.countLinesFromChunks(chunks);
-      return {
-        ...baseFile,
-        additions,
-        deletions,
-        chunks,
-        isGenerated: isGeneratedFile(path).isGenerated,
-      };
-    } else if ('binary' in summary && summary.binary) {
-      // Binary file
-      return {
-        ...baseFile,
-        additions: 0,
-        deletions: 0,
-        chunks: [], // No chunks for binary files
-        isGenerated: isGeneratedFile(path).isGenerated,
-      };
-    } else {
-      // Text file with summary
-      return {
-        ...baseFile,
-        additions: summary.insertions ?? 0,
-        deletions: summary.deletions ?? 0,
-        chunks,
-        isGenerated: isGeneratedFile(path).isGenerated,
-      };
-    }
+    const { additions, deletions } = this.countLinesFromChunks(chunks);
+    return {
+      ...baseFile,
+      additions,
+      deletions,
+      chunks,
+      isGenerated: isGeneratedFile(path).isGenerated,
+    };
   }
 
   private countLinesFromChunks(chunks: DiffChunk[]): {
