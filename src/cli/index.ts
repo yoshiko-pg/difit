@@ -106,6 +106,21 @@ program
             console.error('Error: Comments file must contain a "comments" array');
             process.exit(1);
           }
+          const isValidLine = (line: unknown): boolean =>
+            typeof line === 'number' ||
+            (Array.isArray(line) &&
+              line.length === 2 &&
+              typeof line[0] === 'number' &&
+              typeof line[1] === 'number');
+          const invalid = preloadedComments.filter(
+            (c) => typeof c.file !== 'string' || !isValidLine(c.line) || typeof c.body !== 'string',
+          );
+          if (invalid.length > 0) {
+            console.error(
+              `Error: ${invalid.length} comment(s) missing required fields (file, line, body)`,
+            );
+            process.exit(1);
+          }
         } catch (error) {
           if (error instanceof SyntaxError) {
             console.error('Error: Invalid JSON in comments file');

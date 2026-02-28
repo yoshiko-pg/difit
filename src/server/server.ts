@@ -285,7 +285,7 @@ export async function startServer(
       id: `preloaded-${index}-${Date.now()}`,
       file: pc.file,
       line: pc.line,
-      body: pc.body,
+      body: pc.author ? `[${pc.author}] ${pc.body}` : pc.body,
       timestamp: new Date().toISOString(),
       side: pc.side || 'new',
     }),
@@ -308,7 +308,13 @@ export async function startServer(
         ? (JSON.parse(body) as { comments?: Comment[] })
         : (body as { comments?: Comment[] });
 
-    return payload.comments || [];
+    return (payload.comments || []).map((c) => {
+      const author = (c as Comment & { author?: string }).author;
+      return {
+        ...c,
+        body: author ? `[${author}] ${c.body}` : c.body,
+      };
+    });
   }
 
   app.post('/api/comments', (req, res) => {
@@ -323,9 +329,20 @@ export async function startServer(
     }
   });
 
-  // GET endpoint to retrieve preloaded/server-held comments
+  // GET endpoint to retrieve server-held comments (preloaded + POST-ed)
+  // Preloaded comments are returned only once (after first fetch they live in localStorage).
+  // POST-ed comments are always included so that a late-connecting client doesn't miss them.
+  let preloadedCommentsConsumed = false;
   app.get('/api/comments', (_req, res) => {
-    res.json({ comments: preloadedCommentsAsComments });
+    const comments: Comment[] = [];
+    if (!preloadedCommentsConsumed) {
+      preloadedCommentsConsumed = true;
+      comments.push(...preloadedCommentsAsComments);
+    }
+    if (finalComments.length > 0) {
+      comments.push(...finalComments);
+    }
+    res.json({ comments });
   });
 
   // SSE endpoint for real-time comment updates
