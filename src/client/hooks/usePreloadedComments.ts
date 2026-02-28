@@ -37,13 +37,13 @@ function filterNewComments(
     // Normalize line before building key so the format matches local keys
     // (server sends [start,end] arrays, local stores {start,end} objects)
     const normalized = normalizeLineNumber(sc.line);
-    const side = sc.side || 'new';
+    const side = sc.side === 'old' || sc.side === 'new' ? sc.side : 'new';
     const key = `${sc.file}:${side}:${JSON.stringify(normalized)}:${sc.body}`;
     if (existingKeys.has(key)) continue;
     result.push({
       filePath: sc.file,
       body: sc.body,
-      side: sc.side || 'new',
+      side,
       line: normalized,
     });
   }

@@ -287,7 +287,7 @@ export async function startServer(
       line: pc.line,
       body: pc.author ? `[${pc.author}] ${pc.body}` : pc.body,
       timestamp: new Date().toISOString(),
-      side: pc.side || 'new',
+      side: pc.side === 'old' || pc.side === 'new' ? pc.side : 'new',
     }),
   );
 

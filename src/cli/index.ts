@@ -112,8 +112,14 @@ program
               line.length === 2 &&
               typeof line[0] === 'number' &&
               typeof line[1] === 'number');
+          const isValidSide = (side: unknown): boolean =>
+            side === undefined || side === 'old' || side === 'new';
           const invalid = preloadedComments.filter(
-            (c) => typeof c.file !== 'string' || !isValidLine(c.line) || typeof c.body !== 'string',
+            (c) =>
+              typeof c.file !== 'string' ||
+              !isValidLine(c.line) ||
+              typeof c.body !== 'string' ||
+              !isValidSide(c.side),
           );
           if (invalid.length > 0) {
             console.error(
