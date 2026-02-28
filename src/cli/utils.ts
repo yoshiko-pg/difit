@@ -47,7 +47,10 @@ export function shouldReadStdin(options: ShouldReadStdinOptions): boolean {
 
 export function getGitRoot(): string {
   try {
-    const result = execSync('git rev-parse --show-toplevel', { encoding: 'utf8', stdio: 'pipe' });
+    const result = execSync('git rev-parse --show-toplevel', {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
     return result.trim();
   } catch {
     throw new Error('Not a git repository (or any of the parent directories)');
@@ -158,13 +161,13 @@ export function parseGitHubPrUrl(url: string): PullRequestInfo | null {
 
 export function getPrPatch(prArg: string): string {
   try {
-    const patch = execFileSync('gh', ['pr', 'diff', prArg, '--patch'], {
+    const patch = execFileSync('gh', ['pr', 'diff', prArg], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     if (!patch.trim()) {
-      throw new Error('No patch content returned from gh pr diff --patch');
+      throw new Error('No diff content returned from gh pr diff');
     }
 
     return patch;
@@ -212,7 +215,10 @@ export function validateDiffArguments(
 
   // Cannot compare same values
   if (targetCommitish === baseCommitish) {
-    return { valid: false, error: `Cannot compare ${targetCommitish} with itself` };
+    return {
+      valid: false,
+      error: `Cannot compare ${targetCommitish} with itself`,
+    };
   }
 
   // "working" shows unstaged changes and can only be compared with staging area
