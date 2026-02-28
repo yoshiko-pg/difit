@@ -43,6 +43,8 @@ const SIDEBAR_MAX_WIDTH = 600;
 const SIDEBAR_DEFAULT_WIDTH = 280;
 const INITIAL_RENDERED_FILE_COUNT = 8;
 const LAZY_RENDER_ROOT_MARGIN = '1200px 0px';
+const SIDEBAR_SCROLL_MAX_ATTEMPTS = 60;
+const SIDEBAR_SCROLL_CORRECTION_DELAY_MS = 180;
 
 const getInitialSidebarWidth = () => {
   if (typeof window === 'undefined') {
@@ -84,6 +86,7 @@ function App() {
   const lazyFileNodesRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const generatedStatusCheckedRef = useRef<Set<string>>(new Set());
   const renderedRevisionKeyRef = useRef<string | null>(null);
+  const scrollRequestIdRef = useRef(0);
 
   // Revision selector state
   const [revisionOptions, setRevisionOptions] = useState<RevisionsResponse | null>(null);
@@ -311,7 +314,25 @@ function App() {
     (filePath: string) => {
       ensureFilesRenderedUpTo(filePath);
 
-      const tryScroll = () => {
+      const targetIndex = diffData?.files.findIndex((file) => file.path === filePath) ?? -1;
+      const requiredSectionIds =
+        diffData && targetIndex >= 0
+          ? diffData.files.slice(0, targetIndex + 1).map((file) => getFileElementId(file.path))
+          : [getFileElementId(filePath)];
+      const requestId = scrollRequestIdRef.current + 1;
+      scrollRequestIdRef.current = requestId;
+
+      const areRequiredSectionsReady = () => {
+        for (const sectionId of requiredSectionIds) {
+          const sectionNode = document.getElementById(sectionId);
+          if (!sectionNode || sectionNode.dataset.rendered !== 'true') {
+            return false;
+          }
+        }
+        return true;
+      };
+
+      const tryScroll = (behavior: ScrollBehavior) => {
         const scrollContainer = diffScrollContainerRef.current;
         const target = document.getElementById(getFileElementId(filePath));
         if (!scrollContainer || !target) {
@@ -324,7 +345,7 @@ function App() {
 
         scrollContainer.scrollTo({
           top: Math.max(0, targetScrollTop),
-          behavior: 'smooth',
+          behavior,
         });
         return true;
       };
@@ -332,15 +353,38 @@ function App() {
       let attempts = 0;
       const attemptScroll = () => {
         requestAnimationFrame(() => {
-          if (!tryScroll() && attempts < 10) {
-            attempts++;
-            attemptScroll();
+          if (scrollRequestIdRef.current !== requestId) {
+            return;
           }
+
+          if (!areRequiredSectionsReady()) {
+            if (attempts < SIDEBAR_SCROLL_MAX_ATTEMPTS) {
+              attempts++;
+              attemptScroll();
+            }
+            return;
+          }
+
+          if (!tryScroll('smooth')) {
+            if (attempts < SIDEBAR_SCROLL_MAX_ATTEMPTS) {
+              attempts++;
+              attemptScroll();
+            }
+            return;
+          }
+
+          window.setTimeout(() => {
+            if (scrollRequestIdRef.current !== requestId) {
+              return;
+            }
+            // Re-run smooth scroll after layout settles to absorb lazy-render shifts.
+            tryScroll('smooth');
+          }, SIDEBAR_SCROLL_CORRECTION_DELAY_MS);
         });
       };
       attemptScroll();
     },
-    [ensureFilesRenderedUpTo],
+    [diffData, ensureFilesRenderedUpTo],
   );
 
   const toggleFileReviewed = useCallback(
@@ -1265,6 +1309,7 @@ function App() {
                   key={file.path}
                   id={getFileElementId(file.path)}
                   data-file-path={file.path}
+                  data-rendered={isRendered ? 'true' : 'false'}
                   ref={(node) => registerLazyFileContainer(file.path, node)}
                   className="mb-6"
                 >
