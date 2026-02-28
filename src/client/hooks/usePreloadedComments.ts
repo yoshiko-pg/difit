@@ -21,7 +21,11 @@ function normalizeLineNumber(line: LineNumber): number | { start: number; end: n
 }
 
 function buildExistingKeys(comments: DiffComment[]): Set<string> {
-  return new Set(comments.map((c) => `${c.filePath}:${JSON.stringify(c.position.line)}:${c.body}`));
+  return new Set(
+    comments.map(
+      (c) => `${c.filePath}:${c.position.side}:${JSON.stringify(c.position.line)}:${c.body}`,
+    ),
+  );
 }
 
 function filterNewComments(
@@ -33,7 +37,8 @@ function filterNewComments(
     // Normalize line before building key so the format matches local keys
     // (server sends [start,end] arrays, local stores {start,end} objects)
     const normalized = normalizeLineNumber(sc.line);
-    const key = `${sc.file}:${JSON.stringify(normalized)}:${sc.body}`;
+    const side = sc.side || 'new';
+    const key = `${sc.file}:${side}:${JSON.stringify(normalized)}:${sc.body}`;
     if (existingKeys.has(key)) continue;
     result.push({
       filePath: sc.file,
