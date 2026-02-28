@@ -276,9 +276,40 @@ function App() {
     };
   }, [diffData]);
 
+  const ensureFilesRenderedUpTo = useCallback(
+    (filePath: string) => {
+      if (!diffData) return;
+      const targetIndex = diffData.files.findIndex((f) => f.path === filePath);
+      if (targetIndex < 0) return;
+
+      const observer = lazyFileObserverRef.current;
+
+      setRenderedFilePaths((prev) => {
+        let changed = false;
+        const next = new Set(prev);
+        for (let i = 0; i <= targetIndex; i++) {
+          const path = diffData.files[i]?.path;
+          if (path && !next.has(path)) {
+            next.add(path);
+            changed = true;
+            const node = lazyFileNodesRef.current.get(path);
+            if (node && observer) {
+              observer.unobserve(node);
+            }
+          }
+        }
+        if (changed) {
+          renderedFilePathsRef.current = next;
+        }
+        return changed ? next : prev;
+      });
+    },
+    [diffData],
+  );
+
   const scrollFileIntoDiffContainer = useCallback(
     (filePath: string) => {
-      ensureFileRendered(filePath);
+      ensureFilesRenderedUpTo(filePath);
 
       const tryScroll = () => {
         const scrollContainer = diffScrollContainerRef.current;
@@ -298,15 +329,18 @@ function App() {
         return true;
       };
 
-      requestAnimationFrame(() => {
-        if (!tryScroll()) {
-          requestAnimationFrame(() => {
-            tryScroll();
-          });
-        }
-      });
+      let attempts = 0;
+      const attemptScroll = () => {
+        requestAnimationFrame(() => {
+          if (!tryScroll() && attempts < 10) {
+            attempts++;
+            attemptScroll();
+          }
+        });
+      };
+      attemptScroll();
     },
-    [ensureFileRendered],
+    [ensureFilesRenderedUpTo],
   );
 
   const toggleFileReviewed = useCallback(
@@ -511,11 +545,11 @@ function App() {
     const filePath = diffData.files[cursor.fileIndex]?.path;
     if (!filePath || renderedFilePaths.has(filePath)) return;
 
-    ensureFileRendered(filePath);
+    ensureFilesRenderedUpTo(filePath);
     requestAnimationFrame(() => {
       setCursorPosition(cursor);
     });
-  }, [cursor, diffData, ensureFileRendered, renderedFilePaths, setCursorPosition]);
+  }, [cursor, diffData, ensureFilesRenderedUpTo, renderedFilePaths, setCursorPosition]);
 
   useEffect(() => {
     if (!diffData || diffData.targetCommitish === 'stdin') return;
