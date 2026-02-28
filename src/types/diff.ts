@@ -69,7 +69,7 @@ export interface Comment {
 
 export interface PreloadedComment {
   file: string;
-  line: number;
+  line: LineNumber;
   body: string;
   author?: string;
   side?: DiffSide;
