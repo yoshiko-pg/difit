@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.12] - 2026-02-28
+
+### Added
+
+- Add VS Code extension package
+
+### Changed
+
+- Improve diff startup performance and lazy rendering path (#225)
+- Run format hook on every commit
+
+### Fixed
+
+- Remove `--patch` from `gh pr diff` to restore correct files changed counts (#227)
+
+### Thanks
+
+- [@yasunogithub](https://github.com/yasunogithub) for diff startup and lazy rendering improvements (#225)
+- [@takumi12311123](https://github.com/takumi12311123) for fixing `gh pr diff` files changed counts (#227)
+
 ## [3.1.11] - 2026-02-25
 
 ### Added
@@ -935,7 +955,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.11...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.12...HEAD
+[3.1.12]: https://github.com/yoshiko-pg/difit/compare/v3.1.11...v3.1.12
 [3.1.11]: https://github.com/yoshiko-pg/difit/compare/v3.1.10...v3.1.11
 [3.1.10]: https://github.com/yoshiko-pg/difit/compare/v3.1.9...v3.1.10
 [3.1.9]: https://github.com/yoshiko-pg/difit/compare/v3.1.8...v3.1.9
