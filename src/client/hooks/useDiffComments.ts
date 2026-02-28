@@ -16,6 +16,7 @@ interface AddCommentParams {
 interface UseDiffCommentsReturn {
   comments: DiffComment[];
   addComment: (params: AddCommentParams) => DiffComment;
+  addCommentsBatch: (paramsList: AddCommentParams[]) => void;
   removeComment: (commentId: string) => void;
   updateComment: (commentId: string, newBody: string) => void;
   clearAllComments: () => void;
@@ -90,6 +91,44 @@ export function useDiffComments(
     [comments, saveComments],
   );
 
+  const addCommentsBatch = useCallback(
+    (paramsList: AddCommentParams[]) => {
+      // Use functional updater to always merge against the latest state,
+      // avoiding stale closure when called via ref (e.g. from SSE handler)
+      setComments((prev) => {
+        const newComments = paramsList.map((params) => ({
+          id: crypto.randomUUID(),
+          filePath: params.filePath,
+          body: params.body,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          position: {
+            side: params.side,
+            line: params.line,
+          },
+          codeSnapshot: params.codeSnapshot || {
+            content: '',
+            language: getLanguageFromPath(params.filePath),
+          },
+        }));
+
+        const merged = [...prev, ...newComments];
+        if (baseCommitish && targetCommitish) {
+          storageService.saveComments(
+            baseCommitish,
+            targetCommitish,
+            merged,
+            currentCommitHash,
+            branchToHash,
+            repositoryId,
+          );
+        }
+        return merged;
+      });
+    },
+    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId],
+  );
+
   const removeComment = useCallback(
     (commentId: string) => {
       const newComments = comments.filter((c) => c.id !== commentId);
@@ -151,6 +190,7 @@ export function useDiffComments(
   return {
     comments,
     addComment,
+    addCommentsBatch,
     removeComment,
     updateComment,
     clearAllComments,
