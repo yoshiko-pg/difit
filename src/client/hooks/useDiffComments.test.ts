@@ -184,6 +184,67 @@ const next = true;
     });
   });
 
+  describe('addCommentsBatch', () => {
+    it('should add multiple comments in a single batch', () => {
+      const { result } = renderHook(() => useDiffComments('main', 'feature-branch', 'abc123'));
+
+      act(() => {
+        result.current.addCommentsBatch([
+          { filePath: 'src/a.ts', body: 'Comment A', side: 'new', line: 1 },
+          { filePath: 'src/b.ts', body: 'Comment B', side: 'old', line: { start: 5, end: 10 } },
+        ]);
+      });
+
+      expect(result.current.comments).toHaveLength(2);
+      expect(result.current.comments[0]!.filePath).toBe('src/a.ts');
+      expect(result.current.comments[0]!.body).toBe('Comment A');
+      expect(result.current.comments[0]!.position.side).toBe('new');
+      expect(result.current.comments[0]!.position.line).toBe(1);
+      expect(result.current.comments[1]!.filePath).toBe('src/b.ts');
+      expect(result.current.comments[1]!.body).toBe('Comment B');
+      expect(result.current.comments[1]!.position.side).toBe('old');
+      expect(result.current.comments[1]!.position.line).toEqual({ start: 5, end: 10 });
+    });
+
+    it('should not affect existing comments when called with empty array', () => {
+      const { result } = renderHook(() => useDiffComments('main', 'feature-branch', 'abc123'));
+
+      act(() => {
+        result.current.addComment({
+          filePath: 'src/existing.ts',
+          body: 'Existing',
+          side: 'new',
+          line: 1,
+        });
+      });
+
+      expect(result.current.comments).toHaveLength(1);
+
+      act(() => {
+        result.current.addCommentsBatch([]);
+      });
+
+      expect(result.current.comments).toHaveLength(1);
+      expect(result.current.comments[0]!.body).toBe('Existing');
+    });
+
+    it('should save batch comments to storage', async () => {
+      const { storageService } = await import('../services/StorageService');
+
+      const { result } = renderHook(() => useDiffComments('main', 'feature-branch', 'abc123'));
+
+      vi.clearAllMocks();
+
+      act(() => {
+        result.current.addCommentsBatch([
+          { filePath: 'src/c.ts', body: 'Stored', side: 'new', line: 3 },
+        ]);
+      });
+
+      expect(storageService.saveComments).toHaveBeenCalled();
+    });
+  });
+
   describe('comment CRUD operations', () => {
     it('should add comment with code snapshot', () => {
       const { result } = renderHook(() => useDiffComments('main', 'feature-branch', 'abc123'));

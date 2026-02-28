@@ -768,6 +768,138 @@ describe('Server Integration Tests', () => {
     });
   });
 
+  describe('Preloaded Comments', () => {
+    it('returns preloaded comments via GET /api/comments', async () => {
+      const preloadedComments = [
+        { file: 'src/App.tsx', line: 10 as const, body: 'Fix this' },
+        { file: 'src/utils.ts', line: [5, 15] as [number, number], body: 'Refactor' },
+      ];
+
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preloadedComments,
+      });
+      servers.push(server);
+
+      const response = await fetch(`http://localhost:${port}/api/comments`);
+      const data = (await response.json()) as { comments: any[] };
+
+      expect(response.ok).toBe(true);
+      expect(data.comments).toHaveLength(2);
+      expect(data.comments[0]).toMatchObject({ file: 'src/App.tsx', line: 10, body: 'Fix this' });
+      expect(data.comments[1]).toMatchObject({
+        file: 'src/utils.ts',
+        line: [5, 15],
+        body: 'Refactor',
+      });
+    });
+
+    it('returns preloaded comments only once (consumed after first GET)', async () => {
+      const preloadedComments = [{ file: 'src/App.tsx', line: 1 as const, body: 'Once only' }];
+
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preloadedComments,
+      });
+      servers.push(server);
+
+      // First fetch returns preloaded
+      const response1 = await fetch(`http://localhost:${port}/api/comments`);
+      const data1 = (await response1.json()) as { comments: any[] };
+      expect(data1.comments).toHaveLength(1);
+
+      // Second fetch returns empty (preloaded consumed)
+      const response2 = await fetch(`http://localhost:${port}/api/comments`);
+      const data2 = (await response2.json()) as { comments: any[] };
+      expect(data2.comments).toHaveLength(0);
+    });
+
+    it('includes POST-ed comments in GET /api/comments after POST', async () => {
+      const preloadedComments = [{ file: 'src/App.tsx', line: 1 as const, body: 'Preloaded' }];
+
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preloadedComments,
+      });
+      servers.push(server);
+
+      // Consume preloaded comments
+      await fetch(`http://localhost:${port}/api/comments`);
+
+      // POST new comments
+      await fetch(`http://localhost:${port}/api/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comments: [{ file: 'src/b.ts', line: 5, body: 'Posted comment' }],
+        }),
+      });
+
+      // GET should return POSTed comments
+      const response = await fetch(`http://localhost:${port}/api/comments`);
+      const data = (await response.json()) as { comments: any[] };
+      expect(data.comments).toHaveLength(1);
+      expect(data.comments[0]).toMatchObject({ file: 'src/b.ts', body: 'Posted comment' });
+    });
+
+    it('prefixes body with [author] for preloaded comments with author', async () => {
+      const preloadedComments = [
+        { file: 'src/App.tsx', line: 1 as const, body: 'Nice code', author: 'alice' },
+      ];
+
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preloadedComments,
+      });
+      servers.push(server);
+
+      const response = await fetch(`http://localhost:${port}/api/comments`);
+      const data = (await response.json()) as { comments: any[] };
+      expect(data.comments[0]!.body).toBe('[alice] Nice code');
+    });
+
+    it('prefixes body with [author] for POST payload with author', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+      });
+      servers.push(server);
+
+      await fetch(`http://localhost:${port}/api/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comments: [{ file: 'a.ts', line: 1, body: 'Review note', author: 'bob' }],
+        }),
+      });
+
+      const response = await fetch(`http://localhost:${port}/api/comments`);
+      const data = (await response.json()) as { comments: any[] };
+      expect(data.comments[0]!.body).toBe('[bob] Review note');
+    });
+
+    it('SSE /api/comments-stream responds with text/event-stream header', async () => {
+      const { port, server } = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+      });
+      servers.push(server);
+
+      const controller = new AbortController();
+      const response = await fetch(`http://localhost:${port}/api/comments-stream`, {
+        signal: controller.signal,
+      });
+
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+
+      controller.abort();
+    });
+  });
+
   describe('Clear Comments functionality', () => {
     it('includes clearComments flag in diff response when provided', async () => {
       const { port, server } = await startServer({
