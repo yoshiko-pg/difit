@@ -35,6 +35,16 @@ interface TreeNode {
   file?: DiffFile;
 }
 
+function getAllDirectoryPaths(node: TreeNode): string[] {
+  if (!node.isDirectory || !node.children) return [];
+  const paths: string[] = [];
+  if (node.path) paths.push(node.path);
+  node.children.forEach((child) => {
+    paths.push(...getAllDirectoryPaths(child));
+  });
+  return paths;
+}
+
 function buildFileTree(files: DiffFile[]): TreeNode {
   const root: TreeNode = {
     name: '',
@@ -115,7 +125,7 @@ export function FileList({
   onToggleReviewed,
   selectedFileIndex,
 }: FileListProps) {
-  const fileTree = buildFileTree(files);
+  const fileTree = useMemo(() => buildFileTree(files), [files]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dirContainerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const stickyContainerStyle = {
@@ -123,29 +133,33 @@ export function FileList({
   } as CSSProperties;
 
   // Initialize with all directories expanded
-  const getAllDirectoryPaths = (node: TreeNode): string[] => {
-    if (!node.isDirectory || !node.children) return [];
-    const paths: string[] = [];
-    if (node.path) paths.push(node.path);
-    node.children.forEach((child) => {
-      paths.push(...getAllDirectoryPaths(child));
-    });
-    return paths;
-  };
-
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
     () => new Set(getAllDirectoryPaths(fileTree)),
   );
   const [filterText, setFilterText] = useState('');
 
-  const getCommentCount = (filePath: string) => {
-    return comments.filter((c) => c.file === filePath).length;
-  };
+  const commentCountMap = useMemo(() => {
+    const counts = new Map<string, number>();
+    comments.forEach((comment) => {
+      counts.set(comment.file, (counts.get(comment.file) ?? 0) + 1);
+    });
+    return counts;
+  }, [comments]);
+
+  const fileIndexMap = useMemo(() => {
+    const indices = new Map<string, number>();
+    files.forEach((file, index) => {
+      indices.set(file.path, index);
+    });
+    return indices;
+  }, [files]);
 
   // Filter the file tree based on search text
   const filteredFileTree = useMemo(() => {
+    const normalizedFilter = filterText.trim().toLowerCase();
+
     const filterTreeNode = (node: TreeNode): TreeNode | null => {
-      if (!filterText.trim()) return node;
+      if (!normalizedFilter) return node;
 
       if (node.isDirectory && node.children) {
         const filteredChildren = node.children
@@ -158,7 +172,7 @@ export function FileList({
         return null;
       } else if (node.file) {
         // Check if file name matches filter
-        if (node.file.path.toLowerCase().includes(filterText.toLowerCase())) {
+        if (node.file.path.toLowerCase().includes(normalizedFilter)) {
           return node;
         }
         return null;
@@ -200,7 +214,7 @@ export function FileList({
     });
   };
 
-  const allPaths = getAllDirectoryPaths(fileTree);
+  const allPaths = useMemo(() => getAllDirectoryPaths(fileTree), [fileTree]);
   const isAllExpanded = expandedDirs.size === allPaths.length && allPaths.length > 0;
 
   const toggleAllDirectories = () => {
@@ -300,9 +314,9 @@ export function FileList({
       );
     } else if (node.file) {
       const file = node.file;
-      const commentCount = getCommentCount(file.path);
+      const commentCount = commentCountMap.get(file.path) ?? 0;
       const isReviewed = reviewedFiles.has(file.path);
-      const fileIndex = files.findIndex((f) => f.path === file.path);
+      const fileIndex = fileIndexMap.get(file.path) ?? -1;
       const isSelected = selectedFileIndex !== null && selectedFileIndex === fileIndex;
 
       return (

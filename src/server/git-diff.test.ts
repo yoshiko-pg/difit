@@ -6,7 +6,6 @@ import { GitDiffParser } from './git-diff';
 vi.mock('simple-git', () => ({
   simpleGit: vi.fn(() => ({
     revparse: vi.fn(),
-    diffSummary: vi.fn(),
     diff: vi.fn(),
   })),
 }));
@@ -1067,7 +1066,7 @@ index abc123..def456 100644
       expect(result.isGenerated).toBe(true);
     });
 
-    it('detects generated files by content (integration)', async () => {
+    it('defers content-based generated detection until getGeneratedStatus is called', async () => {
       const file = 'src/query.ts';
       const diffLines = [
         `diff --git a/${file} b/${file}`,
@@ -1078,37 +1077,11 @@ index abc123..def456 100644
         `-old`,
         `+new`,
       ];
-      const summary = {
-        file,
-        insertions: 1,
-        deletions: 1,
-        binary: false,
-      };
 
-      // Mock git.diff and git.diffSummary
+      // Mock git.diff
       const gitDiff = (parser as any).git.diff;
-      const gitDiffSummary = (parser as any).git.diffSummary;
-      // Check if revparse is already mocked by vi.mock('simple-git') structure, if not we add it.
-      // Actually (parser as any).git is the mock object returned by simpleGit().
-      // In line 8 of git-diff.test.ts: simpleGit: vi.fn(() => ({ revparse: vi.fn(), ... }))
-      // So revparse IS a mock.
-
       gitDiff.mockResolvedValue(diffLines.join('\n'));
-      gitDiffSummary.mockResolvedValue({
-        files: [summary],
-        insertions: 1,
-        deletions: 1,
-      });
       (parser as any).git.revparse.mockResolvedValue('abc1234567890abcdef1234567890abcdef12');
-
-      // Mock getBlobContent to return generated content
-      // We need to spy on the prototype or the instance method?
-      // parser is instance.
-      // parser.getBlobContent is the method.
-      // But getBlobContent is on the class.
-      // modifying the instance method is easiest if it's not private (it is public-ish in TS but private in class def?)
-      // It is defined as `async getBlobContent(...)`.
-      // Since it's on the class, we can spy on it if we cast to any.
 
       const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
       getBlobContentSpy.mockResolvedValue(Buffer.from('// @generated\nconst x = 1;'));
@@ -1116,7 +1089,30 @@ index abc123..def456 100644
       const response = await parser.parseDiff('HEAD', 'HEAD~1');
 
       expect(response.files[0].path).toBe(file);
-      expect(response.files[0].isGenerated).toBe(true);
+      expect(response.files[0].isGenerated).toBe(false);
+      expect(getBlobContentSpy).not.toHaveBeenCalled();
+
+      const generatedStatus = await parser.getGeneratedStatus(file, 'HEAD');
+
+      expect(getBlobContentSpy).toHaveBeenCalledTimes(1);
+      expect(generatedStatus).toEqual({ isGenerated: true, source: 'content' });
+    });
+
+    it('returns source=path for path-based generated files without reading content', async () => {
+      const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
+      const generatedStatus = await parser.getGeneratedStatus('package-lock.json', 'HEAD');
+
+      expect(generatedStatus).toEqual({ isGenerated: true, source: 'path' });
+      expect(getBlobContentSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns false when content cannot be read for content-based generated detection', async () => {
+      const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
+      getBlobContentSpy.mockRejectedValue(new Error('missing blob'));
+
+      const generatedStatus = await parser.getGeneratedStatus('src/query.ts', 'HEAD');
+
+      expect(generatedStatus).toEqual({ isGenerated: false, source: 'path' });
     });
 
     it('detects minified files as generated', () => {
