@@ -28,6 +28,7 @@ import { WordHighlightProvider } from './contexts/WordHighlightContext';
 import { useAppearanceSettings } from './hooks/useAppearanceSettings';
 import { useDiffComments } from './hooks/useDiffComments';
 import { useExpandedLines, type MergedChunk } from './hooks/useExpandedLines';
+import { usePreloadedComments } from './hooks/usePreloadedComments';
 import { useFileWatch } from './hooks/useFileWatch';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { useViewedFiles } from './hooks/useViewedFiles';
@@ -104,6 +105,13 @@ function App() {
     undefined, // branchToHash map - could be populated from server data
     diffData?.repositoryId, // Repository identifier for storage isolation
   );
+
+  // Fetch and merge preloaded comments from server
+  usePreloadedComments({
+    addComment,
+    comments,
+    ready: diffData !== null,
+  });
 
   const normalizedComments = useMemo<Comment[]>(
     () =>

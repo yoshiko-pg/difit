@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'fs';
+
 import { Command } from 'commander';
 import React from 'react';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 import pkg from '../../package.json' with { type: 'json' };
 import { startServer } from '../server/server.js';
-import { type DiffViewMode } from '../types/diff.js';
+import { type DiffViewMode, type PreloadedComment } from '../types/diff.js';
 import { DiffMode } from '../types/watch.js';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 
@@ -58,6 +60,7 @@ interface CliOptions {
   clean?: boolean;
   includeUntracked?: boolean;
   keepAlive?: boolean;
+  comments?: string;
 }
 
 const program = new Command();
@@ -89,8 +92,34 @@ program
   .option('--clean', 'start with a clean slate by clearing all existing comments')
   .option('--include-untracked', 'automatically include untracked files in diff')
   .option('--keep-alive', 'keep server running even after browser disconnects')
+  .option('--comments <file>', 'JSON file with preloaded review comments')
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
+      // Load preloaded comments from JSON file if specified
+      let preloadedComments: PreloadedComment[] | undefined;
+      if (options.comments) {
+        try {
+          const content = readFileSync(options.comments, 'utf8');
+          const parsed = JSON.parse(content) as { comments?: PreloadedComment[] };
+          preloadedComments = parsed.comments;
+          if (!Array.isArray(preloadedComments)) {
+            console.error('Error: Comments file must contain a "comments" array');
+            process.exit(1);
+          }
+        } catch (error) {
+          if (error instanceof SyntaxError) {
+            console.error('Error: Invalid JSON in comments file');
+          } else if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            console.error(`Error: Comments file not found: ${options.comments}`);
+          } else {
+            console.error(
+              `Error reading comments file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            );
+          }
+          process.exit(1);
+        }
+      }
+
       let stdinDiff: string | undefined;
       let stdinReviewLabel = 'diff from stdin';
 
@@ -143,10 +172,14 @@ program
           mode: options.mode,
           clearComments: options.clean,
           keepAlive: options.keepAlive,
+          preloadedComments,
         });
 
         console.log(`\n🚀 difit server started on ${url}`);
         console.log(`📋 Reviewing: ${stdinReviewLabel}`);
+        if (preloadedComments?.length) {
+          console.log(`💬 Loaded ${preloadedComments.length} preloaded comment(s)`);
+        }
         if (options.keepAlive) {
           console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');
         }
@@ -227,10 +260,15 @@ program
         keepAlive: options.keepAlive,
         diffMode: determineDiffMode(targetCommitish, compareWith),
         repoPath,
+        preloadedComments,
       });
 
       console.log(`\n🚀 difit server started on ${url}`);
       console.log(`📋 Reviewing: ${targetCommitish}`);
+
+      if (preloadedComments?.length) {
+        console.log(`💬 Loaded ${preloadedComments.length} preloaded comment(s)`);
+      }
 
       if (options.keepAlive) {
         console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');

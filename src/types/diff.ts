@@ -67,6 +67,14 @@ export interface Comment {
   side?: DiffSide; // Which side the comment is on
 }
 
+export interface PreloadedComment {
+  file: string;
+  line: number;
+  body: string;
+  author?: string;
+  side?: DiffSide;
+}
+
 export interface LineSelection {
   side: DiffSide;
   lineNumber: number;

@@ -24,6 +24,11 @@ vi.mock('./hooks/useDiffComments', () => ({
   })),
 }));
 
+// Mock the usePreloadedComments hook
+vi.mock('./hooks/usePreloadedComments', () => ({
+  usePreloadedComments: vi.fn(),
+}));
+
 // Mock the useViewedFiles hook
 const mockClearViewedFiles = vi.fn();
 vi.mock('./hooks/useViewedFiles', () => ({

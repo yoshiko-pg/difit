@@ -17,7 +17,12 @@ import { getFileExtension } from '../utils/fileUtils.js';
 import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
 
-import { type Comment, type DiffResponse, type RevisionsResponse } from '@/types/diff.js';
+import {
+  type Comment,
+  type DiffResponse,
+  type PreloadedComment,
+  type RevisionsResponse,
+} from '@/types/diff.js';
 
 interface ServerOptions {
   targetCommitish?: string;
@@ -32,6 +37,7 @@ interface ServerOptions {
   keepAlive?: boolean;
   diffMode?: DiffMode;
   repoPath?: string;
+  preloadedComments?: PreloadedComment[];
 }
 
 export async function startServer(
@@ -273,6 +279,28 @@ export async function startServer(
   // Store comments for final output
   let finalComments: Comment[] = [];
 
+  // Convert preloaded comments to Comment format and seed the store
+  const preloadedCommentsAsComments: Comment[] = (options.preloadedComments || []).map(
+    (pc, index) => ({
+      id: `preloaded-${index}-${Date.now()}`,
+      file: pc.file,
+      line: pc.line,
+      body: pc.body,
+      timestamp: new Date().toISOString(),
+      side: pc.side || 'new',
+    }),
+  );
+
+  // SSE clients for comment stream
+  const commentStreamClients: Set<import('express').Response> = new Set();
+
+  function broadcastComments(comments: Comment[]) {
+    const data = JSON.stringify(comments);
+    for (const client of commentStreamClients) {
+      client.write(`data: ${data}\n\n`);
+    }
+  }
+
   // Parse comments from request body (handles both JSON and text/plain)
   function parseCommentsPayload(body: unknown): Comment[] {
     const payload =
@@ -286,11 +314,35 @@ export async function startServer(
   app.post('/api/comments', (req, res) => {
     try {
       finalComments = parseCommentsPayload(req.body);
+      // Broadcast to all SSE clients so the frontend picks up externally injected comments
+      broadcastComments(finalComments);
       res.json({ success: true });
     } catch (error) {
       console.error('Error parsing comments:', error);
       res.status(400).json({ error: 'Invalid comment data' });
     }
+  });
+
+  // GET endpoint to retrieve preloaded/server-held comments
+  app.get('/api/comments', (_req, res) => {
+    res.json({ comments: preloadedCommentsAsComments });
+  });
+
+  // SSE endpoint for real-time comment updates
+  app.get('/api/comments-stream', (req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    res.write('data: connected\n\n');
+    commentStreamClients.add(res);
+
+    req.on('close', () => {
+      commentStreamClients.delete(res);
+    });
   });
 
   app.get('/api/comments-output', (_req, res) => {
