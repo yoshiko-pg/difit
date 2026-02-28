@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+
 import { Command } from 'commander';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -7,6 +9,13 @@ import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode
 import pkg from '../../package.json' with { type: 'json' };
 
 // Mock all external dependencies
+vi.mock('fs', async () => {
+  const actual = await vi.importActual('fs');
+  return {
+    ...actual,
+    readFileSync: vi.fn(),
+  };
+});
 vi.mock('simple-git');
 vi.mock('../server/server.js');
 vi.mock('./utils.js', async () => {
@@ -1361,6 +1370,304 @@ describe('CLI index.ts', () => {
           baseCommitish: 'origin/main',
         }),
       );
+    });
+  });
+
+  describe('--comments option', () => {
+    const mockReadFileSync = vi.mocked(readFileSync);
+
+    it('passes preloadedComments to startServer with valid JSON file', async () => {
+      const commentsJson = JSON.stringify({
+        comments: [
+          { file: 'src/App.tsx', line: 10, body: 'Fix this' },
+          { file: 'src/utils.ts', line: [5, 15], body: 'Refactor' },
+        ],
+      });
+      mockReadFileSync.mockReturnValue(commentsJson);
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--comments <file>', 'JSON file with preloaded review comments')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          let preloadedComments;
+          if (options.comments) {
+            const content = readFileSync(options.comments, 'utf8');
+            const parsed = JSON.parse(content as string);
+            preloadedComments = parsed.comments;
+          }
+
+          await startServer({
+            targetCommitish: commitish,
+            baseCommitish: commitish + '^',
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            preloadedComments,
+          });
+        });
+
+      await program.parseAsync(['--comments', 'review.json'], { from: 'user' });
+
+      expect(mockReadFileSync).toHaveBeenCalledWith('review.json', 'utf8');
+      expect(mockStartServer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          preloadedComments: [
+            { file: 'src/App.tsx', line: 10, body: 'Fix this' },
+            { file: 'src/utils.ts', line: [5, 15], body: 'Refactor' },
+          ],
+        }),
+      );
+    });
+
+    it('logs preloaded comments count', async () => {
+      const commentsJson = JSON.stringify({
+        comments: [
+          { file: 'a.ts', line: 1, body: 'c1' },
+          { file: 'b.ts', line: 2, body: 'c2' },
+        ],
+      });
+      mockReadFileSync.mockReturnValue(commentsJson);
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--comments <file>', 'JSON file with preloaded review comments')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          let preloadedComments;
+          if (options.comments) {
+            const content = readFileSync(options.comments, 'utf8');
+            const parsed = JSON.parse(content as string);
+            preloadedComments = parsed.comments;
+          }
+
+          const { url } = await startServer({
+            targetCommitish: commitish,
+            baseCommitish: commitish + '^',
+            preloadedComments,
+          });
+
+          console.log(`\n🚀 difit server started on ${url}`);
+          if (preloadedComments?.length) {
+            console.log(`💬 Loaded ${preloadedComments.length} preloaded comment(s)`);
+          }
+        });
+
+      await program.parseAsync(['--comments', 'review.json'], { from: 'user' });
+
+      expect(console.log).toHaveBeenCalledWith('💬 Loaded 2 preloaded comment(s)');
+    });
+
+    it('exits with error for non-existent file', async () => {
+      const enoentError = new Error('ENOENT') as NodeJS.ErrnoException;
+      enoentError.code = 'ENOENT';
+      mockReadFileSync.mockImplementation(() => {
+        throw enoentError;
+      });
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--comments <file>', 'JSON file with preloaded review comments')
+        .action(async (_commitish: string, _compareWith: string | undefined, options: any) => {
+          if (options.comments) {
+            try {
+              readFileSync(options.comments, 'utf8');
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+                console.error(`Error: Comments file not found: ${options.comments}`);
+              }
+              process.exit(1);
+            }
+          }
+        });
+
+      await program.parseAsync(['--comments', 'missing.json'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith('Error: Comments file not found: missing.json');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('exits with error for invalid JSON', async () => {
+      mockReadFileSync.mockReturnValue('{ invalid json }}}');
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--comments <file>', 'JSON file with preloaded review comments')
+        .action(async (_commitish: string, _compareWith: string | undefined, options: any) => {
+          if (options.comments) {
+            try {
+              const content = readFileSync(options.comments, 'utf8');
+              JSON.parse(content as string);
+            } catch (error) {
+              if (error instanceof SyntaxError) {
+                console.error('Error: Invalid JSON in comments file');
+              }
+              process.exit(1);
+            }
+          }
+        });
+
+      await program.parseAsync(['--comments', 'bad.json'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith('Error: Invalid JSON in comments file');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('exits with error when comments is not an array', async () => {
+      mockReadFileSync.mockReturnValue(JSON.stringify({ comments: 'not-an-array' }));
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--comments <file>', 'JSON file with preloaded review comments')
+        .action(async (_commitish: string, _compareWith: string | undefined, options: any) => {
+          if (options.comments) {
+            const content = readFileSync(options.comments, 'utf8');
+            const parsed = JSON.parse(content as string);
+            if (!Array.isArray(parsed.comments)) {
+              console.error('Error: Comments file must contain a "comments" array');
+              process.exit(1);
+            }
+          }
+        });
+
+      await program.parseAsync(['--comments', 'obj.json'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: Comments file must contain a "comments" array',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('exits with error for invalid line value', async () => {
+      mockReadFileSync.mockReturnValue(
+        JSON.stringify({
+          comments: [{ file: 'a.ts', line: 'not-a-number', body: 'comment' }],
+        }),
+      );
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--comments <file>', 'JSON file with preloaded review comments')
+        .action(async (_commitish: string, _compareWith: string | undefined, options: any) => {
+          if (options.comments) {
+            const content = readFileSync(options.comments, 'utf8');
+            const parsed = JSON.parse(content as string);
+            const comments = parsed.comments;
+            if (!Array.isArray(comments)) {
+              console.error('Error: Comments file must contain a "comments" array');
+              process.exit(1);
+              return;
+            }
+            const isValidLine = (line: unknown): boolean =>
+              typeof line === 'number' ||
+              (Array.isArray(line) &&
+                line.length === 2 &&
+                typeof line[0] === 'number' &&
+                typeof line[1] === 'number');
+            const isValidSide = (side: unknown): boolean =>
+              side === undefined || side === 'old' || side === 'new';
+            const invalid = comments.filter(
+              (c: any) =>
+                typeof c.file !== 'string' ||
+                !isValidLine(c.line) ||
+                typeof c.body !== 'string' ||
+                !isValidSide(c.side),
+            );
+            if (invalid.length > 0) {
+              console.error(
+                `Error: ${invalid.length} comment(s) missing required fields (file, line, body)`,
+              );
+              process.exit(1);
+            }
+          }
+        });
+
+      await program.parseAsync(['--comments', 'bad-line.json'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: 1 comment(s) missing required fields (file, line, body)',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('exits with error for invalid side value', async () => {
+      mockReadFileSync.mockReturnValue(
+        JSON.stringify({
+          comments: [{ file: 'a.ts', line: 1, body: 'comment', side: 'left' }],
+        }),
+      );
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--comments <file>', 'JSON file with preloaded review comments')
+        .action(async (_commitish: string, _compareWith: string | undefined, options: any) => {
+          if (options.comments) {
+            const content = readFileSync(options.comments, 'utf8');
+            const parsed = JSON.parse(content as string);
+            const comments = parsed.comments;
+            if (!Array.isArray(comments)) {
+              console.error('Error: Comments file must contain a "comments" array');
+              process.exit(1);
+              return;
+            }
+            const isValidLine = (line: unknown): boolean =>
+              typeof line === 'number' ||
+              (Array.isArray(line) &&
+                line.length === 2 &&
+                typeof line[0] === 'number' &&
+                typeof line[1] === 'number');
+            const isValidSide = (side: unknown): boolean =>
+              side === undefined || side === 'old' || side === 'new';
+            const invalid = comments.filter(
+              (c: any) =>
+                typeof c.file !== 'string' ||
+                !isValidLine(c.line) ||
+                typeof c.body !== 'string' ||
+                !isValidSide(c.side),
+            );
+            if (invalid.length > 0) {
+              console.error(
+                `Error: ${invalid.length} comment(s) missing required fields (file, line, body)`,
+              );
+              process.exit(1);
+            }
+          }
+        });
+
+      await program.parseAsync(['--comments', 'bad-side.json'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: 1 comment(s) missing required fields (file, line, body)',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
 });
