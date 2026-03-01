@@ -953,10 +953,10 @@ function App() {
           >
             <aside
               id="file-tree-panel"
-              className={`bg-github-bg-secondary border-r border-github-border overflow-y-auto flex flex-col ${
+              className={`bg-github-bg-secondary overflow-y-auto flex flex-col ${
                 isMobile
-                  ? 'fixed inset-y-0 left-0 z-40 w-[min(85vw,360px)] transition-transform duration-300 ease-out'
-                  : 'relative'
+                  ? 'fixed inset-y-0 right-0 z-40 w-[min(85vw,360px)] border-l border-github-border transition-transform duration-300 ease-out'
+                  : 'relative border-r border-github-border'
               }`}
               style={{
                 width: isMobile ? 'min(85vw, 360px)' : `${sidebarWidth}px`,
@@ -966,7 +966,7 @@ function App() {
                 transform: isMobile
                   ? isFileTreeOpen
                     ? 'translateX(0)'
-                    : 'translateX(-100%)'
+                    : 'translateX(100%)'
                   : undefined,
               }}
             >
