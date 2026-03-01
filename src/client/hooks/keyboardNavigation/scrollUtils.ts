@@ -1,4 +1,5 @@
 import { NAVIGATION_SELECTORS } from '../../constants/navigation';
+import { scrollToVirtualRowById } from '../../utils/virtualScrollRegistry';
 
 import { SCROLL_CONSTANTS } from './types';
 
@@ -9,7 +10,10 @@ import { SCROLL_CONSTANTS } from './types';
 export function createScrollToElement() {
   return (elementId: string): void => {
     const element = document.getElementById(elementId);
-    if (!element) return;
+    if (!element) {
+      scrollToVirtualRowById(elementId);
+      return;
+    }
 
     // The main scrollable container is always the same in this app
     const scrollContainer = document.querySelector(
