@@ -61,6 +61,7 @@
   "dependencies": {
     "@floating-ui/react": "^0.27.16",
     "@parcel/watcher": "^2.5.1",
+    "@tanstack/react-virtual": "^3.13.19",
     "commander": "^14.0.0",
     "diff": "^8.0.2",
     "express": "^5.1.0",

@@ -25,6 +25,7 @@ interface DiffLineRowProps {
   onClick?: () => void;
   filename?: string;
   diffSegments?: DiffSegment[];
+  measureRef?: (node: HTMLTableRowElement | null) => void;
 }
 
 const getLineClass = (line: DiffLine | ExpandedLine) => {
@@ -60,6 +61,7 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
     onClick,
     filename,
     diffSegments,
+    measureRef,
   }) => {
     const lineNumber = line.newLineNumber || line.oldLineNumber;
     const showLineActions = hoveredLineIndex === index && lineNumber;
@@ -68,6 +70,7 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
 
     return (
       <tr
+        ref={measureRef}
         id={lineId}
         className={`group ${getLineClass(line)} relative ${selectedLineStyle} ${highlightClass} cursor-pointer`}
         onMouseEnter={onMouseEnter}

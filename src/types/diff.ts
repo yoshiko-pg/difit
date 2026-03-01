@@ -165,3 +165,14 @@ export interface ExpandedRange {
 export interface ExpandedLine extends DiffLine {
   isExpanded?: boolean;
 }
+
+export type VirtualDiffRowKind = 'line' | 'inlineComment' | 'commentForm' | 'expander';
+
+export interface VirtualDiffRow {
+  id: string;
+  kind: VirtualDiffRowKind;
+  filePath: string;
+  chunkIndex: number;
+  lineIndex: number;
+  estimatedHeight: number;
+}
