@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { HotkeysProvider } from 'react-hotkeys-hook';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom';
 
 import { mockFetch } from '../../vitest.setup';
@@ -10,6 +10,12 @@ import { DiffMode } from '../types/watch';
 import { normalizeDiffViewMode } from '../utils/diffMode';
 
 import App from './App';
+import { useViewport } from './hooks/useViewport';
+
+// Mock the useViewport hook
+vi.mock('./hooks/useViewport', () => ({
+  useViewport: vi.fn(() => ({ isMobile: false, isDesktop: true })),
+}));
 
 // Mock the useDiffComments hook
 vi.mock('./hooks/useDiffComments', () => ({
@@ -412,5 +418,36 @@ describe('DiffResponse clearComments property', () => {
     };
 
     expect(responseWithoutClearComments.clearComments).toBeUndefined();
+  });
+});
+
+describe('App Component - Mobile sidebar auto-close', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockConfirm.mockReturnValue(false);
+    vi.mocked(useViewport).mockReturnValue({ isMobile: true, isDesktop: false });
+  });
+
+  afterEach(() => {
+    vi.mocked(useViewport).mockReturnValue({ isMobile: false, isDesktop: true });
+  });
+
+  it('closes the sidebar when a file is selected on mobile', async () => {
+    mockFetch(mockDiffResponse);
+    renderApp();
+
+    // Sidebar toggle button
+    const toggleButton = await screen.findByRole('button', { name: /toggle file tree panel/i });
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+
+    // Wait for file list to render, then click the file row
+    const fileRow = await screen.findByTitle('test.ts');
+    fireEvent.click(fileRow.closest('[data-file-row]')!);
+
+    // Sidebar should now be closed on mobile
+    await waitFor(() => {
+      expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+    });
   });
 });
