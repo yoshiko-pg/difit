@@ -940,6 +940,7 @@ function App() {
                 <FileList
                   files={diffData.files}
                   onScrollToFile={scrollFileIntoDiffContainer}
+                  onFileSelected={isMobile ? () => setIsFileTreeOpen(false) : undefined}
                   comments={comments.map((c) => ({
                     id: c.id,
                     file: c.filePath,

@@ -21,6 +21,7 @@ import { Checkbox } from './Checkbox';
 interface FileListProps {
   files: DiffFile[];
   onScrollToFile: (path: string) => void;
+  onFileSelected?: () => void;
   comments: Comment[];
   reviewedFiles: Set<string>;
   onToggleReviewed: (path: string) => void;
@@ -110,6 +111,7 @@ function buildFileTree(files: DiffFile[]): TreeNode {
 export function FileList({
   files,
   onScrollToFile,
+  onFileSelected,
   comments,
   reviewedFiles,
   onToggleReviewed,
@@ -315,7 +317,10 @@ export function FileList({
           data-tree-row="true"
           data-depth={depth}
           style={{ paddingLeft: `${depth * 16 + 16}px` }}
-          onClick={() => onScrollToFile(file.path)}
+          onClick={() => {
+            onScrollToFile(file.path);
+            onFileSelected?.();
+          }}
         >
           <Checkbox
             checked={isReviewed}
