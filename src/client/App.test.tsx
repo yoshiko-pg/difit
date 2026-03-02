@@ -110,6 +110,10 @@ const renderApp = () => {
   );
 };
 
+beforeEach(() => {
+  window.localStorage.clear();
+});
+
 const mockDiffResponse: DiffResponse = {
   commit: 'abc123',
   files: [
@@ -418,6 +422,41 @@ describe('DiffResponse clearComments property', () => {
     };
 
     expect(responseWithoutClearComments.clearComments).toBeUndefined();
+  });
+});
+
+describe('App Component - Sidebar persistence', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockConfirm.mockReturnValue(false);
+    vi.mocked(useViewport).mockReturnValue({ isMobile: false, isDesktop: true });
+    mockFetch(mockDiffResponse);
+  });
+
+  it('restores file tree open state from localStorage', async () => {
+    window.localStorage.setItem('difit.sidebarOpen', 'false');
+
+    renderApp();
+
+    const toggleButton = await screen.findByRole('button', { name: /toggle file tree panel/i });
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('persists file tree open state when toggled', async () => {
+    renderApp();
+
+    const toggleButton = await screen.findByRole('button', { name: /toggle file tree panel/i });
+
+    fireEvent.click(toggleButton);
+    await waitFor(() => {
+      expect(window.localStorage.getItem('difit.sidebarOpen')).toBe('false');
+    });
+
+    fireEvent.click(toggleButton);
+    await waitFor(() => {
+      expect(window.localStorage.getItem('difit.sidebarOpen')).toBe('true');
+    });
   });
 });
 

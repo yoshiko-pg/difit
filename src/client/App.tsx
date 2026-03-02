@@ -39,6 +39,7 @@ import { findCommentPosition } from './utils/navigation/positionHelpers';
 const EMPTY_COMMENTS: Comment[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
 const SIDEBAR_WIDTH_STORAGE_KEY = 'difit.sidebarWidth';
+const SIDEBAR_OPEN_STORAGE_KEY = 'difit.sidebarOpen';
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
 const SIDEBAR_DEFAULT_WIDTH = 280;
@@ -58,6 +59,23 @@ const getInitialSidebarWidth = () => {
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, parsed));
 };
 
+const getInitialFileTreeOpen = () => {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+  const stored = window.localStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY);
+  if (stored === null) {
+    return true;
+  }
+  if (stored === 'true') {
+    return true;
+  }
+  if (stored === 'false') {
+    return false;
+  }
+  return true;
+};
+
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
   const [diffMode, setDiffMode] = useState<DiffViewMode>(DEFAULT_DIFF_VIEW_MODE);
@@ -68,7 +86,7 @@ function App() {
   const [isCopiedAll, setIsCopiedAll] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(getInitialSidebarWidth);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
+  const [isFileTreeOpen, setIsFileTreeOpen] = useState(getInitialFileTreeOpen);
   const [isDragging, setIsDragging] = useState(false);
   const [showSparkles, setShowSparkles] = useState(false);
   const [hasTriggeredSparkles, setHasTriggeredSparkles] = useState(false);
@@ -481,6 +499,14 @@ function App() {
       // Ignore localStorage errors (e.g. disabled storage).
     }
   }, [sidebarWidth]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, String(isFileTreeOpen));
+    } catch {
+      // Ignore localStorage errors (e.g. disabled storage).
+    }
+  }, [isFileTreeOpen]);
 
   // Fetch revision options on mount
   useEffect(() => {
