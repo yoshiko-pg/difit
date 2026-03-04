@@ -403,7 +403,12 @@ export async function startServer(
       if (!resolvedEditor.cliCommand) return false;
       const args: string[] = [...resolvedEditor.cliArgs];
       if (lineNumber !== null) {
-        args.push('-g', `${resolvedPath}:${lineNumber}`);
+        const fileWithLine = `${resolvedPath}:${lineNumber}`;
+        if (resolvedEditor.lineFormat === 'goto-flag') {
+          args.push('-g', fileWithLine);
+        } else {
+          args.push(fileWithLine);
+        }
       } else {
         args.push(resolvedPath);
       }

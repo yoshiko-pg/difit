@@ -5,6 +5,7 @@ export const EDITOR_OPTIONS = [
     protocol: 'vscode',
     cliCommand: 'code',
     cliArgs: [],
+    lineFormat: 'goto-flag',
     aliases: ['vscode', 'code'],
   },
   {
@@ -13,7 +14,17 @@ export const EDITOR_OPTIONS = [
     protocol: 'cursor',
     cliCommand: 'cursor',
     cliArgs: [],
+    lineFormat: 'goto-flag',
     aliases: ['cursor'],
+  },
+  {
+    id: 'zed',
+    label: 'Zed',
+    protocol: 'zed',
+    cliCommand: 'zed',
+    cliArgs: [],
+    lineFormat: 'path-suffix',
+    aliases: ['zed'],
   },
   {
     id: 'none',
@@ -21,6 +32,7 @@ export const EDITOR_OPTIONS = [
     protocol: null,
     cliCommand: null,
     cliArgs: [],
+    lineFormat: 'goto-flag',
     aliases: ['none', 'disabled', 'off'],
   },
 ] as const;
