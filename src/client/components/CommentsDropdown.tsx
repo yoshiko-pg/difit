@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 
 interface CommentsDropdownProps {
   commentsCount: number;
+  deletableCommentsCount?: number;
   isCopiedAll: boolean;
   onCopyAll: () => void;
   onDeleteAll: () => void;
@@ -13,6 +14,7 @@ interface CommentsDropdownProps {
 
 export function CommentsDropdown({
   commentsCount,
+  deletableCommentsCount = commentsCount,
   isCopiedAll,
   onCopyAll,
   onDeleteAll,
@@ -24,6 +26,7 @@ export function CommentsDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isCompact = compact;
   const isUp = direction === 'up';
+  const canDelete = deletableCommentsCount > 0;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -136,7 +139,8 @@ export function CommentsDropdown({
           )}
           <button
             onClick={handleDeleteAll}
-            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 text-github-text-primary hover:bg-github-bg-tertiary transition-colors"
+            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 text-github-text-primary hover:bg-github-bg-tertiary transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+            disabled={!canDelete}
           >
             <Eraser size={12} />
             Cleanup All Prompt

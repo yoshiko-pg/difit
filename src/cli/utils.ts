@@ -3,6 +3,7 @@ import { fstatSync, type Stats } from 'node:fs';
 import { createInterface } from 'readline/promises';
 
 import type { SimpleGit } from 'simple-git';
+import { type Comment, type DiffSide } from '../types/diff.js';
 
 type StdinStat = Pick<Stats, 'isFIFO' | 'isFile' | 'isSocket'>;
 
@@ -133,6 +134,106 @@ interface PullRequestInfo {
   hostname: string;
 }
 
+interface GitHubPullRequestResponse {
+  user?: {
+    login?: string;
+  };
+}
+
+interface GitHubReviewCommentResponse {
+  id: number;
+  path?: string;
+  body?: string;
+  created_at?: string;
+  updated_at?: string;
+  html_url?: string;
+  line?: number | null;
+  start_line?: number | null;
+  original_line?: number | null;
+  original_start_line?: number | null;
+  side?: 'LEFT' | 'RIGHT' | null;
+  start_side?: 'LEFT' | 'RIGHT' | null;
+  subject_type?: 'line' | 'file';
+  user?: {
+    login?: string;
+  };
+}
+
+function buildGhArgs(hostname: string, args: string[]): string[] {
+  if (hostname === 'github.com' || args[0] !== 'api') {
+    return args;
+  }
+
+  return [args[0], '--hostname', hostname, ...args.slice(1)];
+}
+
+function runGhJsonCommand<T>(hostname: string, args: string[]): T {
+  const response = execFileSync('gh', buildGhArgs(hostname, args), {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  return JSON.parse(response) as T;
+}
+
+function mapGitHubCommentSide(
+  side: GitHubReviewCommentResponse['side'] | GitHubReviewCommentResponse['start_side'],
+): DiffSide {
+  return side === 'LEFT' ? 'old' : 'new';
+}
+
+function normalizeGitHubReviewCommentLine(
+  comment: GitHubReviewCommentResponse,
+): number | [number, number] | null {
+  const endLine = comment.line ?? comment.original_line;
+  if (!endLine || endLine <= 0) {
+    return null;
+  }
+
+  const startLine = comment.start_line ?? comment.original_start_line ?? endLine;
+  if (startLine <= 0) {
+    return endLine;
+  }
+
+  if (startLine === endLine) {
+    return endLine;
+  }
+
+  return [Math.min(startLine, endLine), Math.max(startLine, endLine)];
+}
+
+function normalizeGitHubReviewComment(
+  comment: GitHubReviewCommentResponse,
+  prAuthorLogin: string,
+): Comment | null {
+  if (!comment.path || !comment.body || comment.subject_type === 'file') {
+    return null;
+  }
+
+  const author = comment.user?.login;
+  if (!author || author === prAuthorLogin) {
+    return null;
+  }
+
+  const line = normalizeGitHubReviewCommentLine(comment);
+  if (!line) {
+    return null;
+  }
+
+  return {
+    id: `github-pr-review:${comment.id}`,
+    file: comment.path,
+    line,
+    body: comment.body,
+    timestamp: comment.created_at ?? new Date(0).toISOString(),
+    side: mapGitHubCommentSide(comment.side ?? comment.start_side ?? 'RIGHT'),
+    source: 'github-pr-review',
+    author,
+    readOnly: true,
+    url: comment.html_url,
+  };
+}
+
 export function parseGitHubPrUrl(url: string): PullRequestInfo | null {
   try {
     const urlObj = new URL(url);
@@ -183,6 +284,36 @@ export function getPrPatch(prArg: string): string {
       stderrText || (error instanceof Error ? error.message : 'Unknown error while running gh');
     throw new Error(`${message}\nTry: gh auth login`);
   }
+}
+
+export function getPrReviewComments(prArg: string): Comment[] {
+  const prInfo = parseGitHubPrUrl(prArg);
+  if (!prInfo) {
+    throw new Error('Invalid GitHub PR URL');
+  }
+
+  const pullRequest = runGhJsonCommand<GitHubPullRequestResponse>(prInfo.hostname, [
+    'api',
+    `repos/${prInfo.owner}/${prInfo.repo}/pulls/${prInfo.pullNumber}`,
+  ]);
+  const prAuthorLogin = pullRequest.user?.login;
+
+  if (!prAuthorLogin) {
+    throw new Error('Unable to determine PR author');
+  }
+
+  const comments = runGhJsonCommand<GitHubReviewCommentResponse[][]>(prInfo.hostname, [
+    'api',
+    '--paginate',
+    '--slurp',
+    `repos/${prInfo.owner}/${prInfo.repo}/pulls/${prInfo.pullNumber}/comments`,
+  ]);
+
+  return comments
+    .flat()
+    .map((comment) => normalizeGitHubReviewComment(comment, prAuthorLogin))
+    .filter((comment): comment is Comment => comment !== null)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
 export function validateDiffArguments(

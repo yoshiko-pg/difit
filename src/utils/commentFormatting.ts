@@ -1,24 +1,42 @@
-import type { Comment } from '../types/diff';
+import type { Comment, CommentSource } from '../types/diff';
 
 import { hasSuggestionBlock, parseSuggestionBlocks } from './suggestionUtils.js';
+
+interface CommentPromptOptions {
+  source?: CommentSource;
+  author?: string;
+}
+
+function getCommentMetadataLine(options?: CommentPromptOptions): string | null {
+  if (options?.source !== 'github-pr-review') {
+    return null;
+  }
+
+  return options.author ? `[GitHub review by @${options.author}]` : '[GitHub review]';
+}
 
 export function formatCommentPrompt(
   file: string,
   line: number | number[],
   body: string,
   codeContent?: string,
+  options?: CommentPromptOptions,
 ): string {
   const lineInfo =
     typeof line === 'number' ? `L${line}` : Array.isArray(line) ? `L${line[0]}-L${line[1]}` : '';
 
   // Handle undefined or null file paths
   const filePath = file || '<unknown file>';
+  const metadataLine = getCommentMetadataLine(options);
 
   // Check if body contains suggestion blocks
   if (hasSuggestionBlock(body)) {
     const suggestions = parseSuggestionBlocks(body);
     if (suggestions.length > 0) {
       let result = `${filePath}:${lineInfo}`;
+      if (metadataLine) {
+        result += `\n${metadataLine}`;
+      }
 
       // Walk through body preserving text between suggestion blocks
       let lastIndex = 0;
@@ -49,14 +67,22 @@ export function formatCommentPrompt(
   }
 
   // Regular comment without suggestion
-  return `${filePath}:${lineInfo}\n${body}`;
+  const parts = [`${filePath}:${lineInfo}`];
+  if (metadataLine) {
+    parts.push(metadataLine);
+  }
+  parts.push(body);
+  return parts.join('\n');
 }
 
 export function formatAllCommentsPrompt(comments: Comment[]): string {
   if (comments.length === 0) return '';
 
   const prompts = comments.map((comment) =>
-    formatCommentPrompt(comment.file, comment.line, comment.body, comment.codeContent),
+    formatCommentPrompt(comment.file, comment.line, comment.body, comment.codeContent, {
+      source: comment.source,
+      author: comment.author,
+    }),
   );
 
   return prompts.join('\n=====\n');

@@ -17,12 +17,13 @@ vi.mock('./utils.js', async () => {
     findUntrackedFiles: vi.fn(),
     markFilesIntentToAdd: vi.fn(),
     getPrPatch: vi.fn(),
+    getPrReviewComments: vi.fn(),
   };
 });
 
 const { simpleGit } = await import('simple-git');
 const { startServer } = await import('../server/server.js');
-const { promptUser, findUntrackedFiles, markFilesIntentToAdd, getPrPatch } =
+const { promptUser, findUntrackedFiles, markFilesIntentToAdd, getPrPatch, getPrReviewComments } =
   await import('./utils.js');
 
 describe('CLI index.ts', () => {
@@ -32,6 +33,7 @@ describe('CLI index.ts', () => {
   let mockFindUntrackedFiles: any;
   let mockMarkFilesIntentToAdd: any;
   let mockGetPrPatch: any;
+  let mockGetPrReviewComments: any;
 
   // Store original console methods
   let originalConsoleLog: any;
@@ -57,6 +59,7 @@ describe('CLI index.ts', () => {
     mockFindUntrackedFiles = vi.mocked(findUntrackedFiles);
     mockMarkFilesIntentToAdd = vi.mocked(markFilesIntentToAdd);
     mockGetPrPatch = vi.mocked(getPrPatch);
+    mockGetPrReviewComments = vi.mocked(getPrReviewComments);
 
     // Mock console and process.exit
     originalConsoleLog = console.log;
@@ -467,7 +470,21 @@ describe('CLI index.ts', () => {
     it('loads PR patch with gh and starts server with stdin diff', async () => {
       const prUrl = 'https://github.com/owner/repo/pull/123';
       const prPatch = 'diff --git a/file.ts b/file.ts\nindex 1111111..2222222 100644\n';
+      const prComments = [
+        {
+          id: 'github-pr-review:1',
+          file: 'file.ts',
+          line: 12,
+          body: 'Imported review comment',
+          timestamp: '2024-01-01T00:00:00Z',
+          side: 'new',
+          source: 'github-pr-review',
+          author: 'reviewer',
+          readOnly: true,
+        },
+      ];
       mockGetPrPatch.mockReturnValue(prPatch);
+      mockGetPrReviewComments.mockReturnValue(prComments);
 
       const program = new Command();
 
@@ -490,6 +507,7 @@ describe('CLI index.ts', () => {
 
           await startServer({
             stdinDiff: getPrPatch(options.pr),
+            prComments: getPrReviewComments(options.pr),
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -500,8 +518,10 @@ describe('CLI index.ts', () => {
       await program.parseAsync(['--pr', prUrl], { from: 'user' });
 
       expect(mockGetPrPatch).toHaveBeenCalledWith(prUrl);
+      expect(mockGetPrReviewComments).toHaveBeenCalledWith(prUrl);
       expect(mockStartServer).toHaveBeenCalledWith({
         stdinDiff: prPatch,
+        prComments,
         preferredPort: undefined,
         host: '',
         openBrowser: true,

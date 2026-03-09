@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { type DiffComment, type DiffSide } from '../../types/diff';
 import { formatCommentPrompt, formatAllCommentsPrompt } from '../../utils/commentFormatting';
@@ -15,6 +15,7 @@ interface AddCommentParams {
 
 interface UseDiffCommentsReturn {
   comments: DiffComment[];
+  localComments: DiffComment[];
   addComment: (params: AddCommentParams) => DiffComment;
   removeComment: (commentId: string) => void;
   updateComment: (commentId: string, newBody: string) => void;
@@ -29,8 +30,9 @@ export function useDiffComments(
   currentCommitHash?: string,
   branchToHash?: Map<string, string>,
   repositoryId?: string,
+  importedComments: DiffComment[] = [],
 ): UseDiffCommentsReturn {
-  const [comments, setComments] = useState<DiffComment[]>([]);
+  const [localComments, setLocalComments] = useState<DiffComment[]>([]);
 
   // Load comments from storage when commitish changes
   useEffect(() => {
@@ -44,7 +46,7 @@ export function useDiffComments(
       repositoryId,
     );
     // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: sync state from external storage on prop change
-    setComments(loadedComments);
+    setLocalComments(loadedComments);
   }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]);
 
   // Save comments to storage
@@ -60,9 +62,24 @@ export function useDiffComments(
         branchToHash,
         repositoryId,
       );
-      setComments(newComments);
+      setLocalComments(newComments);
     },
     [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId],
+  );
+
+  const normalizedImportedComments = useMemo(
+    () =>
+      importedComments.map((comment) => ({
+        ...comment,
+        source: comment.source ?? 'github-pr-review',
+        readOnly: comment.readOnly ?? true,
+      })),
+    [importedComments],
+  );
+
+  const comments = useMemo(
+    () => [...normalizedImportedComments, ...localComments],
+    [normalizedImportedComments, localComments],
   );
 
   const addComment = useCallback(
@@ -81,31 +98,33 @@ export function useDiffComments(
           content: '',
           language: getLanguageFromPath(params.filePath),
         },
+        source: 'local',
+        readOnly: false,
       };
 
-      const newComments = [...comments, newComment];
+      const newComments = [...localComments, newComment];
       saveComments(newComments);
       return newComment;
     },
-    [comments, saveComments],
+    [localComments, saveComments],
   );
 
   const removeComment = useCallback(
     (commentId: string) => {
-      const newComments = comments.filter((c) => c.id !== commentId);
+      const newComments = localComments.filter((c) => c.id !== commentId);
       saveComments(newComments);
     },
-    [comments, saveComments],
+    [localComments, saveComments],
   );
 
   const updateComment = useCallback(
     (commentId: string, newBody: string) => {
-      const newComments = comments.map((c) =>
+      const newComments = localComments.map((c) =>
         c.id === commentId ? { ...c, body: newBody, updatedAt: new Date().toISOString() } : c,
       );
       saveComments(newComments);
     },
-    [comments, saveComments],
+    [localComments, saveComments],
   );
 
   const clearAllComments = useCallback(() => {
@@ -127,6 +146,10 @@ export function useDiffComments(
         line,
         comment.body,
         comment.codeSnapshot?.content,
+        {
+          source: comment.source,
+          author: comment.author,
+        },
       );
     },
     [comments],
@@ -143,6 +166,10 @@ export function useDiffComments(
       body: comment.body,
       timestamp: comment.createdAt,
       codeContent: comment.codeSnapshot?.content,
+      source: comment.source,
+      author: comment.author,
+      readOnly: comment.readOnly,
+      url: comment.url,
     }));
 
     return formatAllCommentsPrompt(transformedComments);
@@ -150,6 +177,7 @@ export function useDiffComments(
 
   return {
     comments,
+    localComments,
     addComment,
     removeComment,
     updateComment,

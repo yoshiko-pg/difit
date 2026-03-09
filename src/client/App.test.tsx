@@ -21,6 +21,7 @@ vi.mock('./hooks/useViewport', () => ({
 vi.mock('./hooks/useDiffComments', () => ({
   useDiffComments: vi.fn(() => ({
     comments: mockComments,
+    localComments: mockComments.filter((comment) => comment.readOnly !== true),
     addComment: vi.fn(),
     removeComment: vi.fn(),
     updateComment: vi.fn(),
@@ -98,6 +99,25 @@ Object.defineProperty(window, 'EventSource', {
   value: MockEventSource,
 });
 
+const localStorageStore = new Map<string, string>();
+const localStorageMock = {
+  getItem: vi.fn((key: string) => localStorageStore.get(key) ?? null),
+  setItem: vi.fn((key: string, value: string) => {
+    localStorageStore.set(key, value);
+  }),
+  removeItem: vi.fn((key: string) => {
+    localStorageStore.delete(key);
+  }),
+  clear: vi.fn(() => {
+    localStorageStore.clear();
+  }),
+};
+
+Object.defineProperty(window, 'localStorage', {
+  writable: true,
+  value: localStorageMock,
+});
+
 let mockComments: any[] = [];
 const mockClearAllComments = vi.fn();
 
@@ -111,6 +131,7 @@ const renderApp = () => {
 };
 
 beforeEach(() => {
+  localStorageStore.clear();
   window.localStorage.clear();
 });
 

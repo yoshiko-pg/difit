@@ -1,7 +1,22 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const { execFileSyncMock, execSyncMock } = vi.hoisted(() => ({
+  execFileSyncMock: vi.fn(),
+  execSyncMock: vi.fn(),
+}));
+
+vi.mock('child_process', () => ({
+  execFileSync: execFileSyncMock,
+  execSync: execSyncMock,
+  default: {
+    execFileSync: execFileSyncMock,
+    execSync: execSyncMock,
+  },
+}));
 
 import {
   detectStdinSource,
+  getPrReviewComments,
   parseGitHubPrUrl,
   shortHash,
   shouldReadStdin,
@@ -9,7 +24,15 @@ import {
   validateDiffArguments,
 } from './utils';
 
+const { execFileSync } = await import('child_process');
+
+const mockExecFileSync = vi.mocked(execFileSync);
+
 describe('CLI Utils', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('stdin detection', () => {
     it('detects pipe from stdin stat', () => {
       expect(
@@ -469,6 +492,121 @@ describe('CLI Utils', () => {
       expect(parseGitHubPrUrl('https://github.com')).toBe(null);
       expect(parseGitHubPrUrl('https://github.com/owner')).toBe(null);
       expect(parseGitHubPrUrl('https://github.com/owner/repo/pull')).toBe(null);
+    });
+  });
+
+  describe('getPrReviewComments', () => {
+    it('fetches and normalizes non-author review comments', () => {
+      mockExecFileSync
+        .mockReturnValueOnce(JSON.stringify({ user: { login: 'author' } }) as never)
+        .mockReturnValueOnce(
+          JSON.stringify([
+            [
+              {
+                id: 10,
+                path: 'src/file.ts',
+                body: 'Looks good overall',
+                created_at: '2024-01-01T00:00:00Z',
+                html_url: 'https://github.com/owner/repo/pull/123#discussion_r10',
+                line: 42,
+                side: 'RIGHT',
+                user: { login: 'reviewer-a' },
+              },
+              {
+                id: 11,
+                path: 'src/file.ts',
+                body: 'Author self-review',
+                created_at: '2024-01-01T00:01:00Z',
+                line: 45,
+                side: 'RIGHT',
+                user: { login: 'author' },
+              },
+            ],
+            [
+              {
+                id: 12,
+                path: 'src/file.ts',
+                body: 'Range comment',
+                created_at: '2024-01-01T00:02:00Z',
+                start_line: 10,
+                line: 12,
+                start_side: 'LEFT',
+                side: 'LEFT',
+                user: { login: 'reviewer-b' },
+              },
+            ],
+          ]) as never,
+        );
+
+      const result = getPrReviewComments('https://github.com/owner/repo/pull/123');
+
+      expect(result).toEqual([
+        {
+          id: 'github-pr-review:10',
+          file: 'src/file.ts',
+          line: 42,
+          body: 'Looks good overall',
+          timestamp: '2024-01-01T00:00:00Z',
+          side: 'new',
+          source: 'github-pr-review',
+          author: 'reviewer-a',
+          readOnly: true,
+          url: 'https://github.com/owner/repo/pull/123#discussion_r10',
+        },
+        {
+          id: 'github-pr-review:12',
+          file: 'src/file.ts',
+          line: [10, 12],
+          body: 'Range comment',
+          timestamp: '2024-01-01T00:02:00Z',
+          side: 'old',
+          source: 'github-pr-review',
+          author: 'reviewer-b',
+          readOnly: true,
+          url: undefined,
+        },
+      ]);
+
+      expect(mockExecFileSync).toHaveBeenNthCalledWith(
+        1,
+        'gh',
+        ['api', 'repos/owner/repo/pulls/123'],
+        expect.objectContaining({ encoding: 'utf8' }),
+      );
+      expect(mockExecFileSync).toHaveBeenNthCalledWith(
+        2,
+        'gh',
+        ['api', '--paginate', '--slurp', 'repos/owner/repo/pulls/123/comments'],
+        expect.objectContaining({ encoding: 'utf8' }),
+      );
+    });
+
+    it('uses --hostname for GitHub Enterprise URLs', () => {
+      mockExecFileSync
+        .mockReturnValueOnce(JSON.stringify({ user: { login: 'author' } }) as never)
+        .mockReturnValueOnce(JSON.stringify([[]]) as never);
+
+      getPrReviewComments('https://git.company.io/team/project/pull/456');
+
+      expect(mockExecFileSync).toHaveBeenNthCalledWith(
+        1,
+        'gh',
+        ['api', '--hostname', 'git.company.io', 'repos/team/project/pulls/456'],
+        expect.objectContaining({ encoding: 'utf8' }),
+      );
+      expect(mockExecFileSync).toHaveBeenNthCalledWith(
+        2,
+        'gh',
+        [
+          'api',
+          '--hostname',
+          'git.company.io',
+          '--paginate',
+          '--slurp',
+          'repos/team/project/pulls/456/comments',
+        ],
+        expect.objectContaining({ encoding: 'utf8' }),
+      );
     });
   });
 });

@@ -54,6 +54,9 @@ export function CommentsListModal({
 
   const handleDeleteComment = useCallback(
     (comment: Comment) => {
+      if (comment.readOnly) {
+        return;
+      }
       if (confirm(`Delete this comment?\n\n"${comment.body}"`)) {
         onRemoveComment(comment.id);
         // Adjust selected index if needed

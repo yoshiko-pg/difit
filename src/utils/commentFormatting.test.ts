@@ -87,6 +87,15 @@ const newCode = 42;
       expect(result).toContain('SUGGESTED:');
       expect(result).toContain('const newCode = 42;');
     });
+
+    it('should include GitHub review attribution when formatting imported comments', () => {
+      const result = formatCommentPrompt('src/file.ts', 10, 'Please rename this', undefined, {
+        source: 'github-pr-review',
+        author: 'reviewer',
+      });
+
+      expect(result).toBe('src/file.ts:L10\n[GitHub review by @reviewer]\nPlease rename this');
+    });
   });
 
   describe('formatAllCommentsPrompt', () => {

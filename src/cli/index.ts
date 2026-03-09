@@ -6,7 +6,7 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 
 import pkg from '../../package.json' with { type: 'json' };
 import { startServer } from '../server/server.js';
-import { type DiffViewMode } from '../types/diff.js';
+import { type Comment, type DiffViewMode } from '../types/diff.js';
 import { DiffMode } from '../types/watch.js';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 
@@ -17,6 +17,7 @@ import {
   promptUser,
   validateDiffArguments,
   getPrPatch,
+  getPrReviewComments,
   getGitRoot,
 } from './utils.js';
 
@@ -93,6 +94,7 @@ program
     try {
       let stdinDiff: string | undefined;
       let stdinReviewLabel = 'diff from stdin';
+      let prComments: Comment[] = [];
 
       if (options.pr) {
         if (commitish !== 'HEAD' || compareWith) {
@@ -107,6 +109,7 @@ program
 
         try {
           stdinDiff = getPrPatch(options.pr);
+          prComments = getPrReviewComments(options.pr);
           stdinReviewLabel = options.pr;
         } catch (error) {
           console.error(
@@ -137,6 +140,7 @@ program
         // Start server with stdin diff (including --pr patch)
         const { url } = await startServer({
           stdinDiff,
+          prComments,
           preferredPort: options.port,
           host: options.host,
           openBrowser: options.open,

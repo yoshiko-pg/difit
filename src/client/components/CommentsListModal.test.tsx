@@ -181,6 +181,37 @@ describe('CommentsListModal', () => {
     expect(mockRemoveComment).toHaveBeenCalledWith('1');
   });
 
+  it('does not show resolve controls for read-only imported comments', () => {
+    const onClose = vi.fn();
+    const onNavigate = vi.fn();
+
+    render(
+      <CommentsListModal
+        isOpen={true}
+        onClose={onClose}
+        onNavigate={onNavigate}
+        comments={[
+          {
+            id: 'github-pr-review:1',
+            file: 'src/file1.ts',
+            line: 99,
+            body: 'Imported',
+            timestamp: '2024-01-01T00:00:00Z',
+            readOnly: true,
+            source: 'github-pr-review',
+            author: 'reviewer',
+          },
+        ]}
+        onRemoveComment={mockRemoveComment}
+        onGeneratePrompt={mockGeneratePrompt}
+        onUpdateComment={mockUpdateComment}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.queryByTitle('Resolve')).not.toBeInTheDocument();
+  });
+
   it('should show empty state when no comments', () => {
     const onClose = vi.fn();
     const onNavigate = vi.fn();

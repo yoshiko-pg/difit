@@ -39,10 +39,12 @@ export interface ParsedDiff {
 export type DiffViewMode = 'split' | 'unified';
 export type LegacyDiffViewMode = 'side-by-side' | 'inline';
 export type DiffSide = 'old' | 'new';
+export type CommentSource = 'local' | 'github-pr-review';
 
 export interface DiffResponse {
   commit: string;
   files: DiffFile[];
+  comments?: Comment[];
   ignoreWhitespace?: boolean;
   isEmpty?: boolean;
   mode?: DiffViewMode | LegacyDiffViewMode;
@@ -72,6 +74,10 @@ export interface Comment {
   timestamp: string;
   codeContent?: string; // The actual code content for this line
   side?: DiffSide; // Which side the comment is on
+  source?: CommentSource;
+  author?: string;
+  readOnly?: boolean;
+  url?: string;
 }
 
 export interface LineSelection {
@@ -87,6 +93,10 @@ export interface DiffComment {
   body: string;
   createdAt: string; // ISO 8601 format
   updatedAt: string; // ISO 8601 format
+  source?: CommentSource;
+  author?: string;
+  readOnly?: boolean;
+  url?: string;
 
   // Comment position
   position: {

@@ -442,6 +442,41 @@ describe('Server Integration Tests', () => {
       expect(data).toHaveProperty('openInEditorAvailable', false);
     });
 
+    it('GET /api/diff includes imported PR comments for stdin diff', async () => {
+      const stdinServer = await startServer({
+        stdinDiff: 'diff --git a/stdin-test.js b/stdin-test.js',
+        prComments: [
+          {
+            id: 'github-pr-review:1',
+            file: 'stdin-test.js',
+            line: 7,
+            body: 'Imported PR comment',
+            timestamp: '2024-01-01T00:00:00Z',
+            side: 'new',
+            source: 'github-pr-review',
+            author: 'reviewer',
+            readOnly: true,
+          },
+        ],
+        preferredPort: 9037,
+      });
+      servers.push(stdinServer.server);
+
+      const response = await fetch(`http://localhost:${stdinServer.port}/api/diff`);
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data.comments).toEqual([
+        expect.objectContaining({
+          id: 'github-pr-review:1',
+          file: 'stdin-test.js',
+          body: 'Imported PR comment',
+          author: 'reviewer',
+          readOnly: true,
+        }),
+      ]);
+    });
+
     it('GET /api/generated-status/* returns 400 for stdin diff', async () => {
       const stdinServer = await startServer({
         stdinDiff: 'diff --git a/stdin-test.js b/stdin-test.js',

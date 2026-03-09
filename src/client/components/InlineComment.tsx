@@ -27,6 +27,7 @@ export function InlineComment({
   onClick,
   syntaxTheme,
 }: InlineCommentProps) {
+  const isReadOnly = comment.readOnly === true;
   const [isCopied, setIsCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBody, setEditedBody] = useState(comment.body);
@@ -50,6 +51,9 @@ export function InlineComment({
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isReadOnly) {
+      return;
+    }
     setIsEditing(true);
     setEditMode('edit');
     setEditedBody(comment.body);
@@ -72,6 +76,9 @@ export function InlineComment({
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isReadOnly) {
+      return;
+    }
     onRemoveComment(comment.id);
   };
 
@@ -118,6 +125,16 @@ export function InlineComment({
     >
       <div className="flex items-center justify-between mb-2 gap-3">
         <div className="flex items-center gap-2 text-xs text-github-text-secondary flex-1 min-w-0">
+          {comment.author && (
+            <span className="font-medium text-github-text-primary whitespace-nowrap">
+              @{comment.author}
+            </span>
+          )}
+          {comment.source === 'github-pr-review' && (
+            <span className="px-1 py-0.5 rounded bg-github-bg-secondary border border-github-border whitespace-nowrap">
+              GitHub Review
+            </span>
+          )}
           <span
             className="font-mono px-1 py-0.5 rounded overflow-hidden text-ellipsis whitespace-nowrap"
             style={{
@@ -192,20 +209,24 @@ export function InlineComment({
               >
                 {isCopied ? 'Copied!' : 'Copy Prompt'}
               </button>
-              <button
-                onClick={handleStartEdit}
-                className="text-xs p-1.5 bg-github-bg-tertiary text-github-text-secondary border border-github-border rounded hover:text-github-text-primary hover:bg-github-bg-primary transition-all"
-                title="Edit"
-              >
-                <Edit2 size={12} />
-              </button>
-              <button
-                onClick={handleRemove}
-                className="text-xs p-1.5 bg-github-bg-tertiary text-green-600 border border-github-border rounded hover:bg-green-500/10 hover:border-green-600 transition-all"
-                title="Resolve"
-              >
-                <Check size={12} />
-              </button>
+              {!isReadOnly && (
+                <>
+                  <button
+                    onClick={handleStartEdit}
+                    className="text-xs p-1.5 bg-github-bg-tertiary text-github-text-secondary border border-github-border rounded hover:text-github-text-primary hover:bg-github-bg-primary transition-all"
+                    title="Edit"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+                  <button
+                    onClick={handleRemove}
+                    className="text-xs p-1.5 bg-github-bg-tertiary text-green-600 border border-github-border rounded hover:bg-green-500/10 hover:border-green-600 transition-all"
+                    title="Resolve"
+                  >
+                    <Check size={12} />
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>

@@ -107,9 +107,39 @@ function App() {
   const { settings, updateSettings } = useAppearanceSettings();
   const { isMobile, isDesktop } = useViewport();
 
+  const importedComments = useMemo(
+    () =>
+      (diffData?.comments ?? []).map((comment) => ({
+        id: comment.id,
+        filePath: comment.file,
+        body: comment.body,
+        createdAt: comment.timestamp,
+        updatedAt: comment.timestamp,
+        position: {
+          side: comment.side ?? 'new',
+          line:
+            typeof comment.line === 'number'
+              ? comment.line
+              : { start: comment.line[0], end: comment.line[1] },
+        },
+        codeSnapshot: comment.codeContent
+          ? {
+              content: comment.codeContent,
+              language: undefined,
+            }
+          : undefined,
+        source: comment.source ?? 'github-pr-review',
+        author: comment.author,
+        readOnly: comment.readOnly ?? true,
+        url: comment.url,
+      })),
+    [diffData?.comments],
+  );
+
   // New diff-aware comment system
   const {
     comments,
+    localComments,
     addComment,
     removeComment,
     updateComment,
@@ -122,6 +152,7 @@ function App() {
     diffData?.commit, // Using commit as currentCommitHash
     undefined, // branchToHash map - could be populated from server data
     diffData?.repositoryId, // Repository identifier for storage isolation
+    importedComments,
   );
 
   const normalizedComments = useMemo<Comment[]>(
@@ -137,6 +168,10 @@ function App() {
         timestamp: comment.createdAt,
         codeContent: comment.codeSnapshot?.content,
         side: comment.position.side,
+        source: comment.source,
+        author: comment.author,
+        readOnly: comment.readOnly,
+        url: comment.url,
       })),
     [comments],
   );
@@ -152,6 +187,10 @@ function App() {
         body: comment.body,
         timestamp: comment.createdAt,
         side: comment.position.side,
+        source: comment.source,
+        author: comment.author,
+        readOnly: comment.readOnly,
+        url: comment.url,
       })),
     [comments],
   );
@@ -168,7 +207,7 @@ function App() {
     });
     return map;
   }, [normalizedComments]);
-  const showMobileCommentsBar = isMobile && comments.length > 0;
+  const showMobileCommentsBar = isMobile && normalizedComments.length > 0;
 
   // Viewed files management
   const { viewedFiles, toggleFileViewed, clearViewedFiles } = useViewedFiles(
@@ -388,7 +427,7 @@ function App() {
       }
     },
     onDeleteAllComments: () => {
-      if (comments.length > 0 && confirm('Delete all comments?')) {
+      if (localComments.length > 0 && confirm('Delete all comments?')) {
         clearAllComments();
       }
     },
@@ -865,7 +904,8 @@ function App() {
             >
               {!isMobile && comments.length > 0 && (
                 <CommentsDropdown
-                  commentsCount={comments.length}
+                  commentsCount={normalizedComments.length}
+                  deletableCommentsCount={localComments.length}
                   isCopiedAll={isCopiedAll}
                   onCopyAll={handleCopyAllComments}
                   onDeleteAll={clearAllComments}
@@ -1117,7 +1157,8 @@ function App() {
         {showMobileCommentsBar && (
           <div className="fixed bottom-0 left-0 right-0 z-20 bg-github-bg-secondary border-t border-github-border px-4 py-2 flex justify-end">
             <CommentsDropdown
-              commentsCount={comments.length}
+              commentsCount={normalizedComments.length}
+              deletableCommentsCount={localComments.length}
               isCopiedAll={isCopiedAll}
               onCopyAll={handleCopyAllComments}
               onDeleteAll={clearAllComments}

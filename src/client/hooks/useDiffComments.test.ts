@@ -289,5 +289,52 @@ const next = true;
 
       expect(result.current.comments).toHaveLength(0);
     });
+
+    it('combines imported comments with local comments and keeps imported comments read-only', () => {
+      const importedComment = {
+        id: 'github-pr-review:1',
+        filePath: 'src/imported.ts',
+        body: 'Imported review comment',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        position: {
+          side: 'new' as const,
+          line: 11,
+        },
+        source: 'github-pr-review' as const,
+        author: 'reviewer',
+        readOnly: true,
+      };
+
+      const { result } = renderHook(() =>
+        useDiffComments('main', 'feature-branch', 'abc123', undefined, undefined, [
+          importedComment,
+        ]),
+      );
+
+      act(() => {
+        result.current.addComment({
+          filePath: 'src/local.ts',
+          body: 'Local comment',
+          side: 'new',
+          line: 15,
+        });
+      });
+
+      expect(result.current.comments).toHaveLength(2);
+      expect(result.current.localComments).toHaveLength(1);
+      expect(result.current.comments[0]?.id).toBe('github-pr-review:1');
+      expect(result.current.comments[0]?.readOnly).toBe(true);
+
+      act(() => {
+        result.current.removeComment('github-pr-review:1');
+      });
+
+      expect(result.current.comments).toHaveLength(2);
+
+      const prompt = result.current.generatePrompt('github-pr-review:1');
+      expect(prompt).toContain('[GitHub review by @reviewer]');
+      expect(prompt).toContain('Imported review comment');
+    });
   });
 });

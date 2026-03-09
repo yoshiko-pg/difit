@@ -29,6 +29,7 @@ interface ServerOptions {
   targetCommitish?: string;
   baseCommitish?: string;
   stdinDiff?: string;
+  prComments?: Comment[];
   preferredPort?: number;
   host?: string;
   openBrowser?: boolean;
@@ -152,6 +153,7 @@ export async function startServer(
 
     res.json({
       ...diffDataCache,
+      comments: options.prComments ?? [],
       ignoreWhitespace,
       mode: diffMode,
       openInEditorAvailable: !options.stdinDiff,
