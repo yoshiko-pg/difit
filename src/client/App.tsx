@@ -140,6 +140,21 @@ function App() {
       })),
     [comments],
   );
+  const commentsForServer = useMemo<Comment[]>(
+    () =>
+      comments.map((comment) => ({
+        id: comment.id,
+        file: comment.filePath,
+        line:
+          typeof comment.position.line === 'number'
+            ? comment.position.line
+            : ([comment.position.line.start, comment.position.line.end] as [number, number]),
+        body: comment.body,
+        timestamp: comment.createdAt,
+        side: comment.position.side,
+      })),
+    [comments],
+  );
 
   const commentsByFile = useMemo(() => {
     const map = new Map<string, Comment[]>();
@@ -574,49 +589,20 @@ function App() {
 
   // Send comments to server whenever they change and before page unload
   useEffect(() => {
-    // Sync comments whenever they change
-    if (comments.length > 0) {
-      // Transform DiffComment to Comment format for server
-      const transformedComments = comments.map((c) => ({
-        id: c.id,
-        file: c.filePath,
-        line:
-          typeof c.position.line === 'number'
-            ? c.position.line
-            : [c.position.line.start, c.position.line.end],
-        body: c.body,
-        timestamp: c.createdAt,
-        side: c.position.side,
-      }));
-      const data = JSON.stringify({ comments: transformedComments });
-      fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: data,
-      }).catch((error) => {
-        console.error('Failed to sync comments:', error);
-      });
-    }
+    const data = JSON.stringify({ comments: commentsForServer });
+
+    fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: data,
+    }).catch((error) => {
+      console.error('Failed to sync comments:', error);
+    });
 
     // Also handle page unload
     const sendCommentsBeforeUnload = () => {
-      if (comments.length > 0) {
-        // Transform DiffComment to Comment format for server
-        const transformedComments = comments.map((c) => ({
-          id: c.id,
-          file: c.filePath,
-          line:
-            typeof c.position.line === 'number'
-              ? c.position.line
-              : [c.position.line.start, c.position.line.end],
-          body: c.body,
-          timestamp: c.createdAt,
-          side: c.position.side,
-        }));
-        // Use sendBeacon for reliable delivery during page unload
-        const data = JSON.stringify({ comments: transformedComments });
-        navigator.sendBeacon('/api/comments', data);
-      }
+      // Use sendBeacon for reliable delivery during page unload, including empty states.
+      navigator.sendBeacon('/api/comments', data);
     };
 
     window.addEventListener('beforeunload', sendCommentsBeforeUnload);
@@ -624,7 +610,7 @@ function App() {
     return () => {
       window.removeEventListener('beforeunload', sendCommentsBeforeUnload);
     };
-  }, [comments]);
+  }, [commentsForServer]);
 
   // Establish SSE connection for tab close detection
   useEffect(() => {

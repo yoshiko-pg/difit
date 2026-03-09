@@ -297,6 +297,87 @@ describe('App Component - Clear Comments Functionality', () => {
   });
 });
 
+describe('App Component - Comment sync', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockConfirm.mockReturnValue(false);
+    mockFetch(mockDiffResponse);
+  });
+
+  it('syncs an empty comment list after the last comment is resolved', async () => {
+    mockComments = [
+      {
+        id: 'test-1',
+        filePath: 'test.ts',
+        position: { side: 'new', line: 10 },
+        body: 'Test comment',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+    ];
+
+    const mockGlobalFetch = vi.mocked(global.fetch);
+    const { rerender } = renderApp();
+
+    await waitFor(() => {
+      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) => url === '/api/comments');
+      expect(commentCalls).toHaveLength(1);
+
+      const [, request] = commentCalls[0] as [string, RequestInit];
+      expect(request.method).toBe('POST');
+      expect(JSON.parse(String(request.body))).toEqual({
+        comments: [
+          expect.objectContaining({
+            id: 'test-1',
+            file: 'test.ts',
+            line: 10,
+            body: 'Test comment',
+          }),
+        ],
+      });
+    });
+
+    mockComments = [];
+    rerender(
+      <HotkeysProvider initiallyActiveScopes={['navigation']}>
+        <App />
+      </HotkeysProvider>,
+    );
+
+    await waitFor(() => {
+      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) => url === '/api/comments');
+      expect(commentCalls).toHaveLength(2);
+
+      const [, request] = commentCalls[1] as [string, RequestInit];
+      expect(request.method).toBe('POST');
+      expect(JSON.parse(String(request.body))).toEqual({ comments: [] });
+    });
+  });
+
+  it('sends an empty comment list on unload when no comments remain', async () => {
+    mockComments = [];
+
+    renderApp();
+
+    await waitFor(() => {
+      expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+        '/api/comments',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ comments: [] }),
+        }),
+      );
+    });
+
+    fireEvent(window, new Event('beforeunload'));
+
+    expect(navigator.sendBeacon).toHaveBeenCalledWith(
+      '/api/comments',
+      JSON.stringify({ comments: [] }),
+    );
+  });
+});
+
 describe('App Component - Diff Mode Persistence', () => {
   it('keeps the selected view mode after triggering refresh', async () => {
     const mockGlobalFetch = vi.mocked(global.fetch);
@@ -321,8 +402,8 @@ describe('App Component - Diff Mode Persistence', () => {
     fireEvent.click(refreshButton);
 
     await waitFor(() => {
-      // 3 calls: initial /api/diff, /api/revisions, and refresh /api/diff
-      expect(mockGlobalFetch).toHaveBeenCalledTimes(3);
+      // 4 calls: initial /api/diff, /api/revisions, initial /api/comments sync, and refresh /api/diff
+      expect(mockGlobalFetch).toHaveBeenCalledTimes(4);
     });
 
     await waitFor(() => {
