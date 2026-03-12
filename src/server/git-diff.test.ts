@@ -515,6 +515,21 @@ describe('GitDiffParser', () => {
       expect(result.isGenerated).toBe(false);
     });
 
+    it('parses file paths with literal unescaped Japanese characters', () => {
+      const diffLines = [
+        'diff --git a/テスト/file.txt b/テスト/file.txt',
+        'new file mode 100644',
+        'index 0000000..257cc56',
+        '--- /dev/null',
+        '+++ b/テスト/file.txt',
+        '@@ -0,0 +1 @@',
+        '+content',
+      ];
+      const result = (parser as any).parseFileBlock(diffLines.join('\n'), null);
+      expect(result).toBeDefined();
+      expect(result.path).toBe('テスト/file.txt');
+    });
+
     it('decodes unquoted octal escapes in diff headers', () => {
       const diffLines = [
         'diff --git a/some\\040folder/file\\040name.ts b/some\\040folder/file\\040name.ts',

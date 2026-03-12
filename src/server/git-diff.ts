@@ -177,14 +177,14 @@ export class GitDiffParser {
             bytes.push(0x20);
             break;
           default:
-            bytes.push(next.charCodeAt(0));
+            bytes.push(...Buffer.from(next, 'utf8'));
             break;
         }
         i++; // Skip the escaped character
         continue;
       }
 
-      bytes.push(char.charCodeAt(0));
+      bytes.push(...Buffer.from(char, 'utf8'));
     }
 
     return Buffer.from(bytes).toString('utf8');
