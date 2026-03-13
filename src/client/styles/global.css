@@ -56,6 +56,12 @@ button {
   display: block;
 }
 
+.mermaid-diagram svg {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
 /* Sparkle animation */
 @keyframes sparkle-rise {
   0% {
