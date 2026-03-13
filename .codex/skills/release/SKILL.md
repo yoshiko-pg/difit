@@ -16,6 +16,7 @@ Follow this workflow for the current repository.
    - Exclude `yoshiko-pg` and `renovate[bot]` from `Thanks`.
    - Include PR numbers when available.
    - Use commit subject and body for categorization.
+   - Consolidate routine dependency-only updates, including grouped dependency updates, package manager bumps, and ordinary individual dependency bumps, into a single `Changed` bullet formatted as `- Update dependencies (#123 #124 #125)`; keep a separate bullet only when the dependency change is clearly user-facing beyond routine maintenance.
 4. Write the categorized content into `CHANGELOG.md` under `## [Unreleased]`.
 5. Ask for user confirmation in Japanese.
 
