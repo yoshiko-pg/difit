@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.16] - 2026-03-13
+
+### Added
+
+- Add Elixir language support (`.ex`, `.exs`, `.heex`) (#244)
+- Add Mermaid support for markdown diffs (#247)
+
+### Changed
+
+- Update dependencies (#240 #241 #242 #243)
+
+### Fixed
+
+- Decode literal UTF-8 characters correctly in git paths (#245)
+
+### Thanks
+
+- [@YuheiNakasaka](https://github.com/YuheiNakasaka) for fixing UTF-8 decoding in git paths (#245)
+- [@fuelen](https://github.com/fuelen) for adding Elixir language support (#244)
+
 ## [3.1.15] - 2026-03-09
 
 ### Changed
@@ -990,7 +1010,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.15...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.16...HEAD
+[3.1.16]: https://github.com/yoshiko-pg/difit/compare/v3.1.15...v3.1.16
 [3.1.15]: https://github.com/yoshiko-pg/difit/compare/v3.1.14...v3.1.15
 [3.1.14]: https://github.com/yoshiko-pg/difit/compare/v3.1.13...v3.1.14
 [3.1.13]: https://github.com/yoshiko-pg/difit/compare/v3.1.12...v3.1.13
