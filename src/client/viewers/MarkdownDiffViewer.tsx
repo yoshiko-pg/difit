@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import type { DiffLine } from '../../types/diff';
+import { MermaidDiagram } from '../components/MermaidDiagram';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
@@ -184,6 +185,11 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
     const codeText = extractText(codeElement ?? children);
     const match = /language-(\S+)/.exec(codeElement?.props.className ?? '');
     const language = match?.[1];
+    const normalizedCodeText = codeText.replace(/\n$/, '');
+
+    if (language === 'mermaid' && normalizedCodeText.trim()) {
+      return <MermaidDiagram chart={normalizedCodeText} />;
+    }
 
     if (!codeText.trim()) {
       return (
@@ -196,7 +202,7 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
     return (
       <pre className="markdown-preview-code border border-github-border bg-github-bg-secondary p-3 overflow-x-auto text-sm">
         <PrismSyntaxHighlighter
-          code={codeText.replace(/\n$/, '')}
+          code={normalizedCodeText}
           language={language}
           syntaxTheme={syntaxTheme}
           className="font-mono text-github-text-primary"

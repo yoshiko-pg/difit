@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import mermaid from 'mermaid';
 
 import type { DiffFile } from '../../types/diff';
 import { WordHighlightProvider } from '../contexts/WordHighlightContext';
@@ -7,6 +8,16 @@ import type { MergedChunk } from '../hooks/useExpandedLines';
 
 import { MarkdownDiffViewer } from './MarkdownDiffViewer';
 import type { DiffViewerBodyProps } from './types';
+
+vi.mock('mermaid', () => ({
+  default: {
+    initialize: vi.fn(),
+    render: vi.fn().mockResolvedValue({
+      svg: '<svg><title>Mermaid</title></svg>',
+      bindFunctions: undefined,
+    }),
+  },
+}));
 
 const createFile = (overrides: Partial<DiffFile> = {}): DiffFile => ({
   path: 'docs/guide.md',
@@ -54,6 +65,25 @@ const renderViewer = (overrides: Partial<DiffViewerBodyProps> = {}) =>
       <MarkdownDiffViewer {...createProps(overrides)} />
     </WordHighlightProvider>,
   );
+
+const mermaidChunks: MergedChunk[] = [
+  {
+    header: '@@ -1,4 +1,4 @@',
+    oldStart: 1,
+    oldLines: 4,
+    newStart: 1,
+    newLines: 4,
+    lines: [
+      { type: 'context', content: '```mermaid', oldLineNumber: 1, newLineNumber: 1 },
+      { type: 'context', content: 'graph TD', oldLineNumber: 2, newLineNumber: 2 },
+      { type: 'context', content: '  Start --> Finish', oldLineNumber: 3, newLineNumber: 3 },
+      { type: 'context', content: '```', oldLineNumber: 4, newLineNumber: 4 },
+    ],
+    originalIndices: [0, 1, 2, 3],
+    hiddenLinesBefore: 0,
+    hiddenLinesAfter: 0,
+  },
+];
 
 describe('MarkdownDiffViewer', () => {
   beforeEach(() => {
@@ -108,5 +138,70 @@ describe('MarkdownDiffViewer', () => {
 
     expect(await screen.findByText('Prefetched title')).toBeInTheDocument();
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders Mermaid diagrams in Diff Preview', async () => {
+    const { container } = renderViewer({ mergedChunks: mermaidChunks });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+
+    await waitFor(() => {
+      expect(mermaid.initialize).toHaveBeenCalledWith({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: 'dark',
+      });
+      expect(mermaid.render).toHaveBeenCalledWith(
+        expect.stringMatching(/^mermaid-diagram-/),
+        'graph TD\n  Start --> Finish',
+      );
+    });
+
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('renders Mermaid diagrams in Full Preview', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '```mermaid\ngraph TD\n  A --> B\n```',
+    });
+
+    const { container } = renderViewer();
+
+    const fullPreviewButton = await screen.findByRole('button', {
+      name: 'Full Preview',
+    });
+    fireEvent.click(fullPreviewButton);
+
+    await waitFor(() => {
+      expect(mermaid.render).toHaveBeenCalledWith(
+        expect.stringMatching(/^mermaid-diagram-/),
+        'graph TD\n  A --> B',
+      );
+    });
+
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('falls back to code when Mermaid rendering fails', async () => {
+    vi.mocked(mermaid.render).mockRejectedValueOnce(new Error('Parse error'));
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '```mermaid\ngraph TD\n  A --> B\n```',
+    });
+
+    renderViewer();
+
+    const fullPreviewButton = await screen.findByRole('button', {
+      name: 'Full Preview',
+    });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('Unable to render Mermaid diagram.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) => element?.tagName === 'PRE' && element.textContent === 'graph TD\n  A --> B',
+      ),
+    ).toBeInTheDocument();
   });
 });
