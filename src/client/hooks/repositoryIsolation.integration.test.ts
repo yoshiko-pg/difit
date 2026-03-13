@@ -9,6 +9,14 @@ const mockStorage = new Map<string, any>();
 
 vi.mock('../services/StorageService', () => ({
   storageService: {
+    getCommentThreads: vi.fn((base, target, _hash, _branch, repoId) => {
+      const key = `${repoId || 'default'}-${base}-${target}-threads`;
+      return mockStorage.get(key) || [];
+    }),
+    saveCommentThreads: vi.fn((base, target, threads, _hash, _branch, repoId) => {
+      const key = `${repoId || 'default'}-${base}-${target}-threads`;
+      mockStorage.set(key, threads);
+    }),
     getComments: vi.fn((base, target, _hash, _branch, repoId) => {
       const key = `${repoId || 'default'}-${base}-${target}-comments`;
       return mockStorage.get(key) || [];

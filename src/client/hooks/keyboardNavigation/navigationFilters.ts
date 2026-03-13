@@ -1,15 +1,15 @@
-import type { DiffFile, Comment } from '../../../types/diff';
+import type { DiffFile } from '../../../types/diff';
 import { getCommentKey } from '../../utils/navigation/domHelpers';
 import { hasContentOnSide } from '../../utils/navigation/lineHelpers';
 
-import type { CursorPosition, ViewMode } from './types';
+import type { CommentNavigationItem, CursorPosition, ViewMode } from './types';
 
 /**
  * Creates navigation filters for different navigation targets
  */
 export function createNavigationFilters(
   files: DiffFile[],
-  commentIndex: Map<string, Comment[]>,
+  commentIndex: Map<string, CommentNavigationItem[]>,
   viewMode: ViewMode,
   reviewedFiles?: Set<string>,
 ) {

@@ -4,7 +4,7 @@ import {
   type DiffChunk as DiffChunkType,
   type DiffLine,
   type DiffSide,
-  type Comment,
+  type CommentThread,
   type LineNumber,
   type DiffViewMode,
 } from '../../types/diff';
@@ -17,15 +17,15 @@ import {
 } from '../utils/wordLevelDiff';
 
 import { CommentForm } from './CommentForm';
+import { CommentThreadCard } from './CommentThreadCard';
 import { DiffLineRow } from './DiffLineRow';
-import { InlineComment } from './InlineComment';
 import type { AppearanceSettings } from './SettingsModal';
 import { SideBySideDiffChunk } from './SideBySideDiffChunk';
 
 interface DiffChunkProps {
   chunk: DiffChunkType;
   chunkIndex: number;
-  comments: Comment[];
+  threads: CommentThread[];
   showAuthorBadges?: boolean;
   onAddComment: (
     line: LineNumber,
@@ -33,9 +33,11 @@ interface DiffChunkProps {
     codeContent?: string,
     side?: DiffSide,
   ) => Promise<void>;
-  onGeneratePrompt: (comment: Comment) => string;
-  onRemoveComment: (commentId: string) => void;
-  onUpdateComment: (commentId: string, newBody: string) => void;
+  onGenerateThreadPrompt: (thread: CommentThread) => string;
+  onRemoveThread: (threadId: string) => void;
+  onReplyToThread: (threadId: string, body: string) => Promise<void>;
+  onRemoveMessage: (threadId: string, messageId: string) => void;
+  onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
   mode?: DiffViewMode;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   cursor?: CursorPosition | null;
@@ -55,12 +57,14 @@ interface DiffChunkProps {
 export const DiffChunk = memo(function DiffChunk({
   chunk,
   chunkIndex,
-  comments,
+  threads,
   showAuthorBadges = false,
   onAddComment,
-  onGeneratePrompt,
-  onRemoveComment,
-  onUpdateComment,
+  onGenerateThreadPrompt,
+  onRemoveThread,
+  onReplyToThread,
+  onRemoveMessage,
+  onUpdateMessage,
   mode = DEFAULT_DIFF_VIEW_MODE,
   syntaxTheme,
   cursor = null,
@@ -168,16 +172,16 @@ export const DiffChunk = memo(function DiffChunk({
     [commentingLine, onAddComment, getSelectedCodeContent],
   );
 
-  const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
-    return comments.filter((c) => {
-      // Check if line number matches (single line or end of range)
-      const lineMatches = Array.isArray(c.line) ? c.line[1] === lineNumber : c.line === lineNumber;
-
-      // Filter by side - if comment has no side (legacy), show on new side only
-      const sideMatches = !c.side || c.side === side;
-
-      return lineMatches && sideMatches;
-    });
+  const getThreadsForLine = (lineNumber: number, side: DiffSide) => {
+    return threads
+      .filter((thread) => {
+        const lineMatches = Array.isArray(thread.line)
+          ? thread.line[1] === lineNumber
+          : thread.line === lineNumber;
+        const sideMatches = !thread.side || thread.side === side;
+        return lineMatches && sideMatches;
+      })
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   };
 
   const getCommentLayout = (line: DiffLine): 'left' | 'right' | 'full' => {
@@ -302,12 +306,14 @@ export const DiffChunk = memo(function DiffChunk({
       <SideBySideDiffChunk
         chunk={chunk}
         chunkIndex={chunkIndex}
-        comments={comments}
+        threads={threads}
         showAuthorBadges={showAuthorBadges}
         onAddComment={onAddComment}
-        onGeneratePrompt={onGeneratePrompt}
-        onRemoveComment={onRemoveComment}
-        onUpdateComment={onUpdateComment}
+        onGenerateThreadPrompt={onGenerateThreadPrompt}
+        onRemoveThread={onRemoveThread}
+        onReplyToThread={onReplyToThread}
+        onRemoveMessage={onRemoveMessage}
+        onUpdateMessage={onUpdateMessage}
         onOpenInEditor={onOpenInEditor}
         syntaxTheme={syntaxTheme}
         cursor={cursor}
@@ -339,8 +345,8 @@ export const DiffChunk = memo(function DiffChunk({
             const commentLineNumber =
               line.type === 'delete' ? line.oldLineNumber : line.newLineNumber;
             const commentSide: DiffSide = line.type === 'delete' ? 'old' : 'new';
-            const lineComments = commentLineNumber
-              ? getCommentsForLine(commentLineNumber, commentSide)
+            const lineThreads = commentLineNumber
+              ? getThreadsForLine(commentLineNumber, commentSide)
               : [];
             // Generate ID for all lines to match the format used in useKeyboardNavigation
             const lineId = `file-${fileIndex}-chunk-${chunkIndex}-line-${index}`;
@@ -427,10 +433,10 @@ export const DiffChunk = memo(function DiffChunk({
                   }}
                 />
 
-                {lineComments.map((comment) => {
+                {lineThreads.map((thread) => {
                   const layout = getCommentLayout(line);
                   return (
-                    <tr key={comment.id} className="bg-github-bg-secondary">
+                    <tr key={thread.id} className="bg-github-bg-secondary">
                       <td colSpan={3} className="p-0 border-t border-github-border">
                         <div
                           className={`flex ${
@@ -442,12 +448,14 @@ export const DiffChunk = memo(function DiffChunk({
                           }`}
                         >
                           <div className={`${layout === 'full' ? 'w-full' : 'w-1/2'} m-2 mx-4`}>
-                            <InlineComment
-                              comment={comment}
-                              showAuthorBadge={showAuthorBadges}
-                              onGeneratePrompt={onGeneratePrompt}
-                              onRemoveComment={onRemoveComment}
-                              onUpdateComment={onUpdateComment}
+                            <CommentThreadCard
+                              thread={thread}
+                              showAuthorBadges={showAuthorBadges}
+                              onGeneratePrompt={onGenerateThreadPrompt}
+                              onRemoveThread={onRemoveThread}
+                              onReplyToThread={onReplyToThread}
+                              onRemoveMessage={onRemoveMessage}
+                              onUpdateMessage={onUpdateMessage}
                               syntaxTheme={syntaxTheme}
                             />
                           </div>

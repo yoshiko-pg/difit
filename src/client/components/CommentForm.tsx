@@ -10,6 +10,9 @@ interface CommentFormProps {
   selectedCode?: string;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   filename?: string;
+  title?: string;
+  submitLabel?: string;
+  placeholder?: string;
 }
 
 type CommentFormMode = 'edit' | 'preview';
@@ -20,6 +23,9 @@ export function CommentForm({
   selectedCode,
   syntaxTheme,
   filename,
+  title = 'Add a comment',
+  submitLabel = 'Submit',
+  placeholder = 'Leave a comment...',
 }: CommentFormProps) {
   const [body, setBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +67,7 @@ export function CommentForm({
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium" style={{ color: 'var(--color-yellow-path-text)' }}>
-          Add a comment
+          {title}
         </span>
         {hasSuggestion ? (
           <div className="flex items-center border border-github-border rounded-md overflow-hidden">
@@ -114,7 +120,7 @@ export function CommentForm({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Leave a comment..."
+          placeholder={placeholder}
           rows={Math.max(3, body.split('\n').length)}
           autoFocus
           disabled={isSubmitting}
@@ -148,7 +154,7 @@ export function CommentForm({
           }}
           disabled={!body.trim() || isSubmitting}
         >
-          {isSubmitting ? 'Submitting...' : 'Submit'}
+          {isSubmitting ? 'Submitting...' : submitLabel}
         </button>
       </div>
     </form>

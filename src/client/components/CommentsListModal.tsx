@@ -2,20 +2,22 @@ import { X } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook';
 
-import type { Comment } from '../../types/diff';
+import type { CommentThread } from '../../types/diff';
 
-import { InlineComment } from './InlineComment';
+import { CommentThreadCard } from './CommentThreadCard';
 import type { AppearanceSettings } from './SettingsModal';
 
 interface CommentsListModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigate: (comment: Comment) => void;
-  comments: Comment[];
+  onNavigate: (thread: CommentThread) => void;
+  comments: CommentThread[];
   showAuthorBadges?: boolean;
-  onRemoveComment: (commentId: string) => void;
-  onGeneratePrompt: (comment: Comment) => string;
-  onUpdateComment: (commentId: string, newBody: string) => void;
+  onRemoveThread: (threadId: string) => void;
+  onGenerateThreadPrompt: (thread: CommentThread) => string;
+  onReplyToThread: (threadId: string, body: string) => Promise<void>;
+  onRemoveMessage: (threadId: string, messageId: string) => void;
+  onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
 }
 
@@ -25,55 +27,54 @@ export function CommentsListModal({
   onNavigate,
   comments,
   showAuthorBadges = false,
-  onRemoveComment,
-  onGeneratePrompt,
-  onUpdateComment,
+  onRemoveThread,
+  onGenerateThreadPrompt,
+  onReplyToThread,
+  onRemoveMessage,
+  onUpdateMessage,
   syntaxTheme,
 }: CommentsListModalProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const commentRefs = useRef<(HTMLDivElement | null)[]>([]);
   const { enableScope, disableScope } = useHotkeysContext();
 
-  // Sort comments by file path and line number
-  const sortedComments = [...comments].sort((a, b) => {
-    // First sort by file path
+  const sortedThreads = [...comments].sort((a, b) => {
     const fileCompare = a.file.localeCompare(b.file);
     if (fileCompare !== 0) return fileCompare;
 
-    // Then sort by line number
     const aLine = Array.isArray(a.line) ? a.line[0] : a.line;
     const bLine = Array.isArray(b.line) ? b.line[0] : b.line;
-    return aLine - bLine;
+    if (aLine !== bLine) return aLine - bLine;
+
+    return a.createdAt.localeCompare(b.createdAt);
   });
 
-  const handleCommentClick = useCallback(
-    (comment: Comment) => {
-      onNavigate(comment);
+  const handleThreadClick = useCallback(
+    (thread: CommentThread) => {
+      onNavigate(thread);
       onClose();
     },
-    [onNavigate, onClose],
+    [onClose, onNavigate],
   );
 
-  const handleDeleteComment = useCallback(
-    (comment: Comment) => {
-      if (confirm(`Delete this comment?\n\n"${comment.body}"`)) {
-        onRemoveComment(comment.id);
-        // Adjust selected index if needed
-        if (selectedIndex >= sortedComments.length - 1 && selectedIndex > 0) {
+  const handleDeleteThread = useCallback(
+    (thread: CommentThread) => {
+      const preview = thread.messages[0]?.body || '';
+      if (confirm(`Delete this thread?\n\n"${preview}"`)) {
+        onRemoveThread(thread.id);
+        if (selectedIndex >= sortedThreads.length - 1 && selectedIndex > 0) {
           setSelectedIndex(selectedIndex - 1);
         }
       }
     },
-    [onRemoveComment, selectedIndex, sortedComments.length],
+    [onRemoveThread, selectedIndex, sortedThreads.length],
   );
-  // Reset state and manage scope when modal opens/closes
+
   useEffect(() => {
     if (isOpen) {
-      // Enable the modal scope first, then disable navigation
       enableScope('comments-list');
       disableScope('navigation');
     } else {
-      // Enable navigation first, then disable modal scope
       enableScope('navigation');
       disableScope('comments-list');
       // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: reset selection when modal closes
@@ -81,22 +82,20 @@ export function CommentsListModal({
     }
 
     return () => {
-      // Cleanup: ensure navigation scope is enabled when component unmounts
       enableScope('navigation');
       disableScope('comments-list');
     };
-  }, [isOpen, enableScope, disableScope]);
+  }, [disableScope, enableScope, isOpen]);
 
-  // Keyboard shortcuts
   const hotkeyOptions = { scopes: 'comments-list', enableOnFormTags: false };
 
   useHotkeys('escape', () => onClose(), hotkeyOptions, [onClose]);
 
   useHotkeys(
     'j, down',
-    () => setSelectedIndex((prev) => Math.min(prev + 1, sortedComments.length - 1)),
+    () => setSelectedIndex((prev) => Math.min(prev + 1, sortedThreads.length - 1)),
     hotkeyOptions,
-    [sortedComments.length],
+    [sortedThreads.length],
   );
 
   useHotkeys('k, up', () => setSelectedIndex((prev) => Math.max(prev - 1, 0)), hotkeyOptions, []);
@@ -104,27 +103,25 @@ export function CommentsListModal({
   useHotkeys(
     'enter',
     () => {
-      if (sortedComments[selectedIndex]) {
-        handleCommentClick(sortedComments[selectedIndex]);
+      if (sortedThreads[selectedIndex]) {
+        handleThreadClick(sortedThreads[selectedIndex]);
       }
     },
     hotkeyOptions,
-    [selectedIndex, sortedComments, handleCommentClick],
+    [handleThreadClick, selectedIndex, sortedThreads],
   );
 
-  // Delete selected comment with 'd' key (only in comments-list scope)
   useHotkeys(
     'd',
     () => {
-      if (sortedComments[selectedIndex]) {
-        handleDeleteComment(sortedComments[selectedIndex]);
+      if (sortedThreads[selectedIndex]) {
+        handleDeleteThread(sortedThreads[selectedIndex]);
       }
     },
     hotkeyOptions,
-    [selectedIndex, sortedComments, handleDeleteComment],
+    [handleDeleteThread, selectedIndex, sortedThreads],
   );
 
-  // Scroll selected comment into view
   useEffect(() => {
     if (commentRefs.current[selectedIndex]) {
       commentRefs.current[selectedIndex]?.scrollIntoView({
@@ -139,13 +136,13 @@ export function CommentsListModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-github-bg-primary border border-github-border rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
-        <div className="sticky top-0 bg-github-bg-primary border-b border-github-border px-6 py-4">
-          <div className="flex items-center justify-between mb-2">
+      <div className="relative max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-lg border border-github-border bg-github-bg-primary shadow-lg">
+        <div className="sticky top-0 border-b border-github-border bg-github-bg-primary px-6 py-4">
+          <div className="mb-2 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-github-text-primary">All Comments</h2>
             <button
               onClick={onClose}
-              className="text-github-text-secondary hover:text-github-text-primary transition-colors"
+              className="text-github-text-secondary transition-colors hover:text-github-text-primary"
               aria-label="Close comments list"
             >
               <X size={20} />
@@ -159,42 +156,42 @@ export function CommentsListModal({
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[calc(80vh-120px)]">
+        <div className="max-h-[calc(80vh-120px)] overflow-y-auto">
           <div className="p-6">
-            {sortedComments.length === 0 ? (
-              <p className="text-github-text-secondary text-center">No comments yet</p>
+            {sortedThreads.length === 0 ? (
+              <p className="text-center text-github-text-secondary">No comments yet</p>
             ) : (
               <>
                 <div className="space-y-2">
-                  {sortedComments.map((comment, index) => (
+                  {sortedThreads.map((thread, index) => (
                     <div
-                      key={comment.id}
+                      key={thread.id}
                       ref={(el) => {
                         commentRefs.current[index] = el;
                       }}
-                      className={`${selectedIndex === index ? 'ring-2 ring-blue-500 rounded' : ''}`}
+                      className={selectedIndex === index ? 'rounded ring-2 ring-blue-500' : ''}
                     >
-                      <InlineComment
-                        comment={comment}
-                        showAuthorBadge={showAuthorBadges}
-                        onGeneratePrompt={onGeneratePrompt}
-                        onRemoveComment={onRemoveComment}
-                        onUpdateComment={onUpdateComment}
+                      <CommentThreadCard
+                        thread={thread}
+                        showAuthorBadges={showAuthorBadges}
+                        onGeneratePrompt={onGenerateThreadPrompt}
+                        onRemoveThread={onRemoveThread}
+                        onReplyToThread={onReplyToThread}
+                        onRemoveMessage={onRemoveMessage}
+                        onUpdateMessage={onUpdateMessage}
                         syntaxTheme={syntaxTheme}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedIndex(index);
-                          handleCommentClick(comment);
+                          handleThreadClick(thread);
                         }}
                       />
                     </div>
                   ))}
                 </div>
-                {sortedComments.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-github-border text-xs text-github-text-secondary text-center">
-                    {selectedIndex + 1} of {sortedComments.length} comments
-                  </div>
-                )}
+                <div className="mt-4 border-t border-github-border pt-4 text-center text-xs text-github-text-secondary">
+                  {selectedIndex + 1} of {sortedThreads.length} threads
+                </div>
               </>
             )}
           </div>

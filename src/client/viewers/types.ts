@@ -1,13 +1,13 @@
 import type { ComponentType } from 'react';
 
-import type { Comment, DiffFile, DiffSide, DiffViewMode, LineNumber } from '../../types/diff';
+import type { CommentThread, DiffFile, DiffSide, DiffViewMode, LineNumber } from '../../types/diff';
 import type { AppearanceSettings } from '../components/SettingsModal';
 import type { CursorPosition } from '../hooks/keyboardNavigation';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
 export type DiffViewerBodyProps = {
   file: DiffFile;
-  comments: Comment[];
+  threads: CommentThread[];
   showAuthorBadges?: boolean;
   diffMode: DiffViewMode;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
@@ -34,9 +34,11 @@ export type DiffViewerBodyProps = {
     codeContent?: string,
     side?: DiffSide,
   ) => Promise<void>;
-  onGeneratePrompt: (comment: Comment) => string;
-  onRemoveComment: (commentId: string) => void;
-  onUpdateComment: (commentId: string, newBody: string) => void;
+  onGenerateThreadPrompt: (thread: CommentThread) => string;
+  onRemoveThread: (threadId: string) => void;
+  onReplyToThread: (threadId: string, body: string) => Promise<void>;
+  onRemoveMessage: (threadId: string, messageId: string) => void;
+  onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
   onOpenInEditor?: (filePath: string, lineNumber: number) => void;
   onLineClick?: (
     fileIndex: number,

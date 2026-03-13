@@ -6,6 +6,8 @@ import { useDiffComments } from './useDiffComments';
 // Mock StorageService
 vi.mock('../services/StorageService', () => ({
   storageService: {
+    getCommentThreads: vi.fn(() => []),
+    saveCommentThreads: vi.fn(),
     getComments: vi.fn(() => []),
     saveComments: vi.fn(),
     getDiffContextData: vi.fn(() => null),

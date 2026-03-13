@@ -1,6 +1,48 @@
-import { type DiffComment, type ViewedFileRecord, type DiffContextStorage } from '../../types/diff';
+import {
+  type DiffCommentThread,
+  type ViewedFileRecord,
+  type DiffContextStorage,
+  type LegacyDiffContextStorage,
+  type LegacyDiffComment,
+} from '../../types/diff';
 
 const STORAGE_KEY_PREFIX = 'difit-storage-v1';
+
+function migrateLegacyComment(comment: LegacyDiffComment): DiffCommentThread {
+  return {
+    id: comment.id,
+    filePath: comment.filePath,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+    position: comment.position,
+    codeSnapshot: comment.codeSnapshot,
+    messages: [
+      {
+        id: comment.id,
+        body: comment.body,
+        author: comment.author,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+      },
+    ],
+  };
+}
+
+function normalizeRootComment(thread: DiffCommentThread): LegacyDiffComment | null {
+  const rootMessage = thread.messages[0];
+  if (!rootMessage) return null;
+
+  return {
+    id: thread.id,
+    filePath: thread.filePath,
+    body: rootMessage.body,
+    author: rootMessage.author,
+    createdAt: rootMessage.createdAt,
+    updatedAt: rootMessage.updatedAt,
+    position: thread.position,
+    codeSnapshot: thread.codeSnapshot,
+  };
+}
 
 export class StorageService {
   /**
@@ -118,14 +160,25 @@ export class StorageService {
 
       if (!data) return null;
 
-      const parsed = JSON.parse(data) as DiffContextStorage;
-      // Validate version
-      if (parsed.version !== 1) {
-        console.warn(`Unknown storage version: ${parsed.version}`);
-        return null;
+      const parsed = JSON.parse(data) as DiffContextStorage | LegacyDiffContextStorage;
+      if (parsed.version === 2 && 'threads' in parsed) {
+        return parsed;
       }
 
-      return parsed;
+      if (parsed.version === 1 && 'comments' in parsed) {
+        return {
+          version: 2,
+          baseCommitish: parsed.baseCommitish,
+          targetCommitish: parsed.targetCommitish,
+          createdAt: parsed.createdAt,
+          lastModifiedAt: parsed.lastModifiedAt,
+          threads: parsed.comments.map(migrateLegacyComment),
+          viewedFiles: parsed.viewedFiles,
+        };
+      }
+
+      console.warn(`Unknown storage version: ${String((parsed as { version?: unknown }).version)}`);
+      return null;
     } catch (error) {
       console.error('Error reading diff context data:', error);
       return null;
@@ -170,15 +223,15 @@ export class StorageService {
   }
 
   /**
-   * Get comments for a specific diff context
+   * Get comment threads for a specific diff context
    */
-  getComments(
+  getCommentThreads(
     baseCommitish: string,
     targetCommitish: string,
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
-  ): DiffComment[] {
+  ): DiffCommentThread[] {
     const data = this.getDiffContextData(
       baseCommitish,
       targetCommitish,
@@ -186,16 +239,37 @@ export class StorageService {
       branchToHash,
       repositoryId,
     );
-    return data?.comments || [];
+    return data?.threads || [];
   }
 
   /**
-   * Save comments for a specific diff context
+   * Legacy flat comment accessor retained for compatibility
    */
-  saveComments(
+  getComments(
     baseCommitish: string,
     targetCommitish: string,
-    comments: DiffComment[],
+    currentCommitHash?: string,
+    branchToHash?: Map<string, string>,
+    repositoryId?: string,
+  ): LegacyDiffComment[] {
+    return this.getCommentThreads(
+      baseCommitish,
+      targetCommitish,
+      currentCommitHash,
+      branchToHash,
+      repositoryId,
+    )
+      .map((thread) => normalizeRootComment(thread))
+      .filter((comment): comment is LegacyDiffComment => comment !== null);
+  }
+
+  /**
+   * Save comment threads for a specific diff context
+   */
+  saveCommentThreads(
+    baseCommitish: string,
+    targetCommitish: string,
+    threads: DiffCommentThread[],
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
@@ -208,20 +282,41 @@ export class StorageService {
       repositoryId,
     );
     const data: DiffContextStorage = existingData || {
-      version: 1,
+      version: 2,
       baseCommitish,
       targetCommitish,
       createdAt: new Date().toISOString(),
       lastModifiedAt: new Date().toISOString(),
-      comments: [],
+      threads: [],
       viewedFiles: [],
     };
 
-    data.comments = comments;
+    data.threads = threads;
     this.saveDiffContextData(
       baseCommitish,
       targetCommitish,
       data,
+      currentCommitHash,
+      branchToHash,
+      repositoryId,
+    );
+  }
+
+  /**
+   * Legacy flat comment writer retained for compatibility
+   */
+  saveComments(
+    baseCommitish: string,
+    targetCommitish: string,
+    comments: LegacyDiffComment[],
+    currentCommitHash?: string,
+    branchToHash?: Map<string, string>,
+    repositoryId?: string,
+  ): void {
+    this.saveCommentThreads(
+      baseCommitish,
+      targetCommitish,
+      comments.map(migrateLegacyComment),
       currentCommitHash,
       branchToHash,
       repositoryId,
@@ -267,12 +362,12 @@ export class StorageService {
       repositoryId,
     );
     const data: DiffContextStorage = existingData || {
-      version: 1,
+      version: 2,
       baseCommitish,
       targetCommitish,
       createdAt: new Date().toISOString(),
       lastModifiedAt: new Date().toISOString(),
-      comments: [],
+      threads: [],
       viewedFiles: [],
     };
 

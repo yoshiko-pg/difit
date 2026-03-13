@@ -1,4 +1,4 @@
-import type { DiffFile, Comment } from '../../../types/diff';
+import type { DiffFile, CommentThread } from '../../../types/diff';
 import type { CursorPosition } from '../../hooks/keyboardNavigation/types';
 
 /**
@@ -41,13 +41,18 @@ function findLinePosition(
  * @param files The array of diff files to search in
  * @returns The cursor position including file, chunk, and line indices, or null if not found
  */
-export function findCommentPosition(comment: Comment, files: DiffFile[]): CursorPosition | null {
-  const fileIndex = files.findIndex((f) => f.path === comment.file);
+export function findCommentPosition(
+  commentThread: CommentThread,
+  files: DiffFile[],
+): CursorPosition | null {
+  const fileIndex = files.findIndex((f) => f.path === commentThread.file);
   if (fileIndex === -1) return null;
 
   const file = files[fileIndex];
   if (!file) return null;
 
-  const targetLineNumber = Array.isArray(comment.line) ? comment.line[1] : comment.line;
+  const targetLineNumber = Array.isArray(commentThread.line)
+    ? commentThread.line[1]
+    : commentThread.line;
   return findLinePosition(file, fileIndex, targetLineNumber);
 }
