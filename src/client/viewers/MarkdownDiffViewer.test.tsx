@@ -5,6 +5,7 @@ import mermaid from 'mermaid';
 import type { DiffFile } from '../../types/diff';
 import { WordHighlightProvider } from '../contexts/WordHighlightContext';
 import type { MergedChunk } from '../hooks/useExpandedLines';
+import { APPEARANCE_STORAGE_KEY } from '../utils/appearanceTheme';
 
 import { MarkdownDiffViewer } from './MarkdownDiffViewer';
 import type { DiffViewerBodyProps } from './types';
@@ -85,9 +86,24 @@ const mermaidChunks: MergedChunk[] = [
   },
 ];
 
+const setMatchMedia = (matches: boolean) => {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation(() => ({
+      matches,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  });
+};
+
 describe('MarkdownDiffViewer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    setMatchMedia(true);
   });
 
   it('shows Full Preview tab only after prefetch succeeds', async () => {
@@ -141,6 +157,7 @@ describe('MarkdownDiffViewer', () => {
   });
 
   it('renders Mermaid diagrams in Diff Preview', async () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
     const { container } = renderViewer({ mergedChunks: mermaidChunks });
 
     fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
@@ -161,6 +178,7 @@ describe('MarkdownDiffViewer', () => {
   });
 
   it('renders Mermaid diagrams in Full Preview', async () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
     (global.fetch as any).mockResolvedValue({
       ok: true,
       text: async () => '```mermaid\ngraph TD\n  A --> B\n```',
@@ -184,6 +202,7 @@ describe('MarkdownDiffViewer', () => {
   });
 
   it('falls back to code when Mermaid rendering fails', async () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
     vi.mocked(mermaid.render).mockRejectedValueOnce(new Error('Parse error'));
     (global.fetch as any).mockResolvedValue({
       ok: true,
@@ -203,5 +222,53 @@ describe('MarkdownDiffViewer', () => {
         (_, element) => element?.tagName === 'PRE' && element.textContent === 'graph TD\n  A --> B',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('uses the saved light theme for the initial Mermaid render', async () => {
+    localStorage.setItem(
+      APPEARANCE_STORAGE_KEY,
+      JSON.stringify({
+        theme: 'light',
+      }),
+    );
+
+    renderViewer({ mergedChunks: mermaidChunks });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+
+    await waitFor(() => {
+      expect(mermaid.initialize).toHaveBeenCalledWith({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: 'default',
+      });
+    });
+  });
+
+  it('re-renders Mermaid diagrams when data-theme changes after mount', async () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+
+    renderViewer({ mergedChunks: mermaidChunks });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+
+    await waitFor(() => {
+      expect(vi.mocked(mermaid.initialize)).toHaveBeenCalledWith({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: 'dark',
+      });
+    });
+
+    document.documentElement.setAttribute('data-theme', 'light');
+
+    await waitFor(() => {
+      expect(vi.mocked(mermaid.initialize)).toHaveBeenLastCalledWith({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: 'default',
+      });
+      expect(vi.mocked(mermaid.render)).toHaveBeenCalledTimes(2);
+    });
   });
 });

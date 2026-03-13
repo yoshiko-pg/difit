@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 
+import { getResolvedTheme, type ResolvedTheme } from '../utils/appearanceTheme';
+
 type MermaidDiagramProps = {
   chart: string;
 };
@@ -13,14 +15,39 @@ const loadMermaid = () => {
   return mermaidModulePromise;
 };
 
-const getMermaidTheme = () =>
-  document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark';
+const getMermaidTheme = (theme: ResolvedTheme) => (theme === 'light' ? 'default' : 'dark');
 
 export function MermaidDiagram({ chart }: MermaidDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramId = useId().replace(/:/g, '-');
-  const mermaidTheme = getMermaidTheme();
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => getResolvedTheme());
   const [error, setError] = useState<string | null>(null);
+  const mermaidTheme = getMermaidTheme(resolvedTheme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const updateTheme = () => {
+      const nextTheme = getResolvedTheme();
+      setResolvedTheme((currentTheme) => (currentTheme === nextTheme ? currentTheme : nextTheme));
+    };
+
+    updateTheme();
+
+    const observer = new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => mutation.attributeName === 'data-theme')) {
+        updateTheme();
+      }
+    });
+
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -42,16 +69,14 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
 
         const { svg, bindFunctions } = await mermaid.render(`mermaid-diagram-${diagramId}`, chart);
 
-        if (isCancelled || !containerRef.current) return;
+        if (isCancelled) return;
 
-        containerRef.current.innerHTML = svg;
-        bindFunctions?.(containerRef.current);
+        container.innerHTML = svg;
+        bindFunctions?.(container);
       } catch (error) {
         if (isCancelled) return;
 
-        if (containerRef.current) {
-          containerRef.current.innerHTML = '';
-        }
+        container.innerHTML = '';
 
         setError(error instanceof Error ? error.message : 'Failed to render Mermaid diagram');
       }
