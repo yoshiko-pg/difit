@@ -41,6 +41,9 @@ const DIFF_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   markdown: 'markdown',
   tex: 'latex',
   vim: 'vim',
+  ex: 'elixir',
+  exs: 'elixir',
+  heex: 'elixir',
 };
 
 // Prism syntax highlighting: use Prism language IDs (e.g. tsx -> tsx, scss -> css).
@@ -98,6 +101,9 @@ const PRISM_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   tf: 'hcl',
   tfvars: 'hcl',
   hcl: 'hcl',
+  ex: 'elixir',
+  exs: 'elixir',
+  heex: 'elixir',
 };
 
 const PRISM_FILENAME_LANGUAGE_MAP: Record<string, string> = {
