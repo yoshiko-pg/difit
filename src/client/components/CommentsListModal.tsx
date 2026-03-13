@@ -175,7 +175,11 @@ export function CommentsListModal({
                         thread={thread}
                         showAuthorBadges={showAuthorBadges}
                         onGeneratePrompt={onGenerateThreadPrompt}
-                        onRemoveThread={onRemoveThread}
+                        onRemoveThread={(threadId) => {
+                          if (threadId === thread.id) {
+                            handleDeleteThread(thread);
+                          }
+                        }}
                         onReplyToThread={onReplyToThread}
                         onRemoveMessage={onRemoveMessage}
                         onUpdateMessage={onUpdateMessage}

@@ -63,6 +63,7 @@ export function CommentForm({
     <form
       className="m-2 mx-3 p-3 bg-github-bg-tertiary border border-yellow-600/50 rounded-md border-l-4 border-l-yellow-400"
       onSubmit={handleSubmit}
+      onClick={(e) => e.stopPropagation()}
       data-empty={!body.trim()}
     >
       <div className="flex items-center justify-between mb-2">

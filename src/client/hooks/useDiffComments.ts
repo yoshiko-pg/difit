@@ -209,7 +209,11 @@ export function useDiffComments(
       if (!thread) return;
 
       const targetIndex = thread.messages.findIndex((message) => message.id === messageId);
-      if (targetIndex <= 0) {
+      if (targetIndex < 0) {
+        return;
+      }
+
+      if (targetIndex === 0) {
         removeThread(threadId);
         return;
       }

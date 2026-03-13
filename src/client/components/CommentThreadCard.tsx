@@ -341,7 +341,10 @@ export function CommentThreadCard({
         ))}
 
         {isReplying && (
-          <div className="ml-4 border-l border-github-border pl-3">
+          <div
+            className="ml-4 border-l border-github-border pl-3"
+            onClick={(e) => e.stopPropagation()}
+          >
             <CommentForm
               onSubmit={async (body) => {
                 await onReplyToThread(thread.id, body);

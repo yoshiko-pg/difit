@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { HotkeysProvider } from 'react-hotkeys-hook';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import type { CommentThread } from '../../types/diff';
 
@@ -74,6 +75,10 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('CommentsListModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('does not render when closed', () => {
@@ -165,7 +170,39 @@ describe('CommentsListModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('removes a thread from the delete button', () => {
+  it('keeps the modal open when clicking inside the reply form', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onNavigate = vi.fn();
+
+    render(
+      <CommentsListModal
+        isOpen={true}
+        onClose={onClose}
+        onNavigate={onNavigate}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
+      />,
+      { wrapper },
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Reply' })[0]!);
+    await user.click(screen.getByPlaceholderText('Write a reply...'));
+
+    expect(screen.getByText('Reply to thread')).toBeInTheDocument();
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('uses the modal delete handler from the delete button', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.fn(() => false);
+    vi.stubGlobal('confirm', confirmSpy);
+
     render(
       <CommentsListModal
         isOpen={true}
@@ -181,10 +218,10 @@ describe('CommentsListModal', () => {
       { wrapper },
     );
 
-    const deleteButtons = screen.getAllByTitle('Delete thread');
-    fireEvent.click(deleteButtons[0]!);
+    await user.click(screen.getAllByTitle('Delete thread')[0]!);
 
-    expect(mockRemoveThread).toHaveBeenCalledWith('thread-1');
+    expect(confirmSpy).toHaveBeenCalledWith('Delete this thread?\n\n"First root comment"');
+    expect(mockRemoveThread).not.toHaveBeenCalled();
   });
 
   it('shows empty state when there are no threads', () => {
