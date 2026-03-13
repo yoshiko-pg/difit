@@ -27,6 +27,7 @@ interface SideBySideDiffChunkProps {
   chunk: DiffChunkType;
   chunkIndex: number;
   comments: Comment[];
+  showAuthorBadges?: boolean;
   onAddComment: (
     line: LineNumber,
     body: string,
@@ -87,6 +88,7 @@ export function SideBySideDiffChunk({
   chunk,
   chunkIndex,
   comments,
+  showAuthorBadges = false,
   onAddComment,
   onGeneratePrompt,
   onRemoveComment,
@@ -683,6 +685,7 @@ export function SideBySideDiffChunk({
                               <div className="m-2 mx-3">
                                 <InlineComment
                                   comment={comment}
+                                  showAuthorBadge={showAuthorBadges}
                                   onGeneratePrompt={onGeneratePrompt}
                                   onRemoveComment={onRemoveComment}
                                   onUpdateComment={onUpdateComment}

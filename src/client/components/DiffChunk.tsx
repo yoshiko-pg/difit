@@ -26,6 +26,7 @@ interface DiffChunkProps {
   chunk: DiffChunkType;
   chunkIndex: number;
   comments: Comment[];
+  showAuthorBadges?: boolean;
   onAddComment: (
     line: LineNumber,
     body: string,
@@ -55,6 +56,7 @@ export const DiffChunk = memo(function DiffChunk({
   chunk,
   chunkIndex,
   comments,
+  showAuthorBadges = false,
   onAddComment,
   onGeneratePrompt,
   onRemoveComment,
@@ -301,6 +303,7 @@ export const DiffChunk = memo(function DiffChunk({
         chunk={chunk}
         chunkIndex={chunkIndex}
         comments={comments}
+        showAuthorBadges={showAuthorBadges}
         onAddComment={onAddComment}
         onGeneratePrompt={onGeneratePrompt}
         onRemoveComment={onRemoveComment}
@@ -441,6 +444,7 @@ export const DiffChunk = memo(function DiffChunk({
                           <div className={`${layout === 'full' ? 'w-full' : 'w-1/2'} m-2 mx-4`}>
                             <InlineComment
                               comment={comment}
+                              showAuthorBadge={showAuthorBadges}
                               onGeneratePrompt={onGeneratePrompt}
                               onRemoveComment={onRemoveComment}
                               onUpdateComment={onUpdateComment}

@@ -33,6 +33,7 @@ import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { useLazyDiffRendering } from './hooks/useLazyDiffRendering';
 import { useViewedFiles } from './hooks/useViewedFiles';
 import { useViewport } from './hooks/useViewport';
+import { hasMultipleCommentAuthors } from './utils/commentAuthors';
 import { getFileElementId } from './utils/domUtils';
 import { findCommentPosition } from './utils/navigation/positionHelpers';
 
@@ -135,6 +136,7 @@ function App() {
             : ([comment.position.line.start, comment.position.line.end] as [number, number]),
         body: comment.body,
         timestamp: comment.createdAt,
+        author: comment.author,
         codeContent: comment.codeSnapshot?.content,
         side: comment.position.side,
       })),
@@ -151,9 +153,14 @@ function App() {
             : ([comment.position.line.start, comment.position.line.end] as [number, number]),
         body: comment.body,
         timestamp: comment.createdAt,
+        author: comment.author,
         side: comment.position.side,
       })),
     [comments],
+  );
+  const showAuthorBadges = useMemo(
+    () => hasMultipleCommentAuthors(normalizedComments),
+    [normalizedComments],
   );
 
   const commentsByFile = useMemo(() => {
@@ -987,17 +994,7 @@ function App() {
                   files={diffData.files}
                   onScrollToFile={scrollFileIntoDiffContainer}
                   onFileSelected={isMobile ? () => setIsFileTreeOpen(false) : undefined}
-                  comments={comments.map((c) => ({
-                    id: c.id,
-                    file: c.filePath,
-                    line:
-                      typeof c.position.line === 'number'
-                        ? c.position.line
-                        : [c.position.line.start, c.position.line.end],
-                    body: c.body,
-                    timestamp: c.createdAt,
-                    codeContent: c.codeSnapshot?.content,
-                  }))}
+                  comments={normalizedComments}
                   reviewedFiles={viewedFiles}
                   onToggleReviewed={toggleFileReviewed}
                   selectedFileIndex={cursor?.fileIndex ?? null}
@@ -1060,6 +1057,7 @@ function App() {
                     <DiffViewer
                       file={file}
                       comments={fileComments}
+                      showAuthorBadges={showAuthorBadges}
                       diffMode={diffMode}
                       reviewedFiles={viewedFiles}
                       onToggleReviewed={toggleFileReviewed}
@@ -1141,17 +1139,8 @@ function App() {
           isOpen={isCommentsListOpen}
           onClose={() => setIsCommentsListOpen(false)}
           onNavigate={handleNavigateToComment}
-          comments={comments.map((c) => ({
-            id: c.id,
-            file: c.filePath,
-            line:
-              typeof c.position.line === 'number'
-                ? c.position.line
-                : [c.position.line.start, c.position.line.end],
-            body: c.body,
-            timestamp: c.createdAt,
-            codeContent: c.codeSnapshot?.content,
-          }))}
+          comments={normalizedComments}
+          showAuthorBadges={showAuthorBadges}
           onRemoveComment={removeComment}
           onGeneratePrompt={(comment) => generatePrompt(comment.id)}
           onUpdateComment={updateComment}

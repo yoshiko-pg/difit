@@ -8,6 +8,7 @@ import type { MergedChunk } from '../hooks/useExpandedLines';
 export type DiffViewerBodyProps = {
   file: DiffFile;
   comments: Comment[];
+  showAuthorBadges?: boolean;
   diffMode: DiffViewMode;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   baseCommitish?: string;

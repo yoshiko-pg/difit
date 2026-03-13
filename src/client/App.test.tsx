@@ -311,6 +311,7 @@ describe('App Component - Comment sync', () => {
         filePath: 'test.ts',
         position: { side: 'new', line: 10 },
         body: 'Test comment',
+        author: 'User',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       },
@@ -332,6 +333,7 @@ describe('App Component - Comment sync', () => {
             file: 'test.ts',
             line: 10,
             body: 'Test comment',
+            author: 'User',
           }),
         ],
       });
@@ -375,6 +377,50 @@ describe('App Component - Comment sync', () => {
       '/api/comments',
       JSON.stringify({ comments: [] }),
     );
+  });
+
+  it('shows author badges in the comments modal when the diff has multiple authors', async () => {
+    mockComments = [
+      {
+        id: 'test-1',
+        filePath: 'test.ts',
+        position: { side: 'new', line: 10 },
+        body: 'User comment',
+        author: 'User',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'test-2',
+        filePath: 'other.ts',
+        position: { side: 'new', line: 20 },
+        body: 'Reviewer comment',
+        author: 'Reviewer',
+        createdAt: '2024-01-01T00:01:00.000Z',
+        updatedAt: '2024-01-01T00:01:00.000Z',
+      },
+    ];
+    mockFetch({
+      ...mockDiffResponse,
+      files: [
+        ...mockDiffResponse.files,
+        {
+          path: 'other.ts',
+          status: 'modified',
+          additions: 1,
+          deletions: 1,
+          chunks: [],
+        },
+      ],
+    });
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTitle('More options'));
+    fireEvent.click(await screen.findByText('View All Comments'));
+
+    expect(await screen.findByText('User')).toBeInTheDocument();
+    expect(screen.getByText('Reviewer')).toBeInTheDocument();
   });
 });
 

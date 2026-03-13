@@ -23,6 +23,7 @@ const mockComments: Comment[] = [
     file: 'src/file1.ts',
     line: 10,
     body: 'First comment',
+    author: 'User',
     timestamp: '2024-01-01T00:00:00Z',
   },
   {
@@ -30,6 +31,7 @@ const mockComments: Comment[] = [
     file: 'src/file1.ts',
     line: [20, 25],
     body: 'Second comment on range',
+    author: 'Reviewer',
     timestamp: '2024-01-01T00:01:00Z',
   },
   {
@@ -64,6 +66,7 @@ describe('CommentsListModal', () => {
         onClose={onClose}
         onNavigate={onNavigate}
         comments={mockComments}
+        showAuthorBadges={true}
         onRemoveComment={mockRemoveComment}
         onGeneratePrompt={mockGeneratePrompt}
         onUpdateComment={mockUpdateComment}
@@ -89,6 +92,47 @@ describe('CommentsListModal', () => {
       { wrapper },
     );
     expect(screen.getByText('All Comments')).toBeInTheDocument();
+  });
+
+  it('shows author badges when enabled', () => {
+    const onClose = vi.fn();
+    const onNavigate = vi.fn();
+    render(
+      <CommentsListModal
+        isOpen={true}
+        onClose={onClose}
+        onNavigate={onNavigate}
+        comments={mockComments}
+        showAuthorBadges={true}
+        onRemoveComment={mockRemoveComment}
+        onGeneratePrompt={mockGeneratePrompt}
+        onUpdateComment={mockUpdateComment}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.getByText('Reviewer')).toBeInTheDocument();
+  });
+
+  it('does not show author badges when disabled', () => {
+    const onClose = vi.fn();
+    const onNavigate = vi.fn();
+    render(
+      <CommentsListModal
+        isOpen={true}
+        onClose={onClose}
+        onNavigate={onNavigate}
+        comments={mockComments}
+        onRemoveComment={mockRemoveComment}
+        onGeneratePrompt={mockGeneratePrompt}
+        onUpdateComment={mockUpdateComment}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.queryByText('User')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reviewer')).not.toBeInTheDocument();
   });
 
   it('should display all comments in a flat list', () => {

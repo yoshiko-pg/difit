@@ -12,6 +12,7 @@ type CommentEditMode = 'edit' | 'preview';
 
 interface InlineCommentProps {
   comment: Comment;
+  showAuthorBadge?: boolean;
   onGeneratePrompt: (comment: Comment) => string;
   onRemoveComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, newBody: string) => void;
@@ -21,6 +22,7 @@ interface InlineCommentProps {
 
 export function InlineComment({
   comment,
+  showAuthorBadge = false,
   onGeneratePrompt,
   onRemoveComment,
   onUpdateComment,
@@ -128,6 +130,11 @@ export function InlineComment({
             {comment.file}:
             {Array.isArray(comment.line) ? `${comment.line[0]}-${comment.line[1]}` : comment.line}
           </span>
+          {showAuthorBadge && comment.author && (
+            <span className="inline-flex items-center rounded-full border border-github-border bg-github-bg-secondary px-2 py-0.5 text-[11px] font-medium text-github-text-primary">
+              {comment.author}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

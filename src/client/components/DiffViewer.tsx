@@ -18,6 +18,7 @@ import type { AppearanceSettings } from './SettingsModal';
 interface DiffViewerProps {
   file: DiffFile;
   comments: Comment[];
+  showAuthorBadges?: boolean;
   diffMode: DiffViewMode;
   reviewedFiles: Set<string>;
   onToggleReviewed: (path: string) => void;
@@ -165,6 +166,7 @@ const getLastChunkIndex = (mergedChunks: MergedChunk[]): number | null => {
 export const DiffViewer = memo(function DiffViewer({
   file,
   comments,
+  showAuthorBadges = false,
   diffMode,
   reviewedFiles,
   onToggleReviewed,
@@ -305,6 +307,7 @@ export const DiffViewer = memo(function DiffViewer({
   const viewerProps: DiffViewerBodyProps = {
     file,
     comments,
+    showAuthorBadges,
     diffMode,
     syntaxTheme,
     baseCommitish,

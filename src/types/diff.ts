@@ -70,6 +70,7 @@ export interface Comment {
   line: LineNumber;
   body: string;
   timestamp: string;
+  author?: string;
   codeContent?: string; // The actual code content for this line
   side?: DiffSide; // Which side the comment is on
 }
@@ -85,6 +86,7 @@ export interface DiffComment {
   id: string; // UUID format recommended
   filePath: string;
   body: string;
+  author?: string;
   createdAt: string; // ISO 8601 format
   updatedAt: string; // ISO 8601 format
 

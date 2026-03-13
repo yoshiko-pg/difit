@@ -71,6 +71,7 @@ export function useDiffComments(
         id: crypto.randomUUID(),
         filePath: params.filePath,
         body: params.body,
+        author: 'User',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         position: {
@@ -142,6 +143,7 @@ export function useDiffComments(
           : ([comment.position.line.start, comment.position.line.end] as [number, number]),
       body: comment.body,
       timestamp: comment.createdAt,
+      author: comment.author,
       codeContent: comment.codeSnapshot?.content,
     }));
 

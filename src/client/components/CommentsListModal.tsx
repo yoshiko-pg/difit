@@ -12,6 +12,7 @@ interface CommentsListModalProps {
   onClose: () => void;
   onNavigate: (comment: Comment) => void;
   comments: Comment[];
+  showAuthorBadges?: boolean;
   onRemoveComment: (commentId: string) => void;
   onGeneratePrompt: (comment: Comment) => string;
   onUpdateComment: (commentId: string, newBody: string) => void;
@@ -23,6 +24,7 @@ export function CommentsListModal({
   onClose,
   onNavigate,
   comments,
+  showAuthorBadges = false,
   onRemoveComment,
   onGeneratePrompt,
   onUpdateComment,
@@ -174,6 +176,7 @@ export function CommentsListModal({
                     >
                       <InlineComment
                         comment={comment}
+                        showAuthorBadge={showAuthorBadges}
                         onGeneratePrompt={onGeneratePrompt}
                         onRemoveComment={onRemoveComment}
                         onUpdateComment={onUpdateComment}

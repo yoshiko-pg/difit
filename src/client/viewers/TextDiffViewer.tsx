@@ -8,6 +8,7 @@ import type { DiffViewerBodyProps } from './types';
 export function TextDiffViewer({
   file,
   comments,
+  showAuthorBadges,
   diffMode,
   syntaxTheme,
   cursor,
@@ -99,6 +100,7 @@ export function TextDiffViewer({
                 chunk={mergedChunk}
                 chunkIndex={mergedIndex}
                 comments={comments}
+                showAuthorBadges={showAuthorBadges}
                 onAddComment={onAddComment}
                 onGeneratePrompt={onGeneratePrompt}
                 onRemoveComment={onRemoveComment}

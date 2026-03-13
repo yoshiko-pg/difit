@@ -206,6 +206,7 @@ const next = true;
       expect(comment).toBeDefined();
       expect(comment!.filePath).toBe('src/utils/test.ts');
       expect(comment!.body).toBe('Test comment');
+      expect(comment!.author).toBe('User');
       expect(comment!.position.side).toBe('new');
       expect(comment!.position.line).toBe(15);
       expect(comment!.codeSnapshot?.content).toBe('const x = 42;');
