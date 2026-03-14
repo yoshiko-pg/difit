@@ -46,7 +46,7 @@ export function useKeyboardNavigation({
     const index = new Map<string, CommentNavigationItem[]>();
     comments.forEach((thread) => {
       const lineNum = Array.isArray(thread.line) ? thread.line[0] : thread.line;
-      const key = getCommentKey(thread.file, lineNum);
+      const key = getCommentKey(thread.file, lineNum, thread.side);
       if (!index.has(key)) {
         index.set(key, []);
       }

@@ -1,4 +1,4 @@
-import type { DiffFile, CommentThread } from '../../../types/diff';
+import type { CommentThread, DiffFile, DiffSide } from '../../../types/diff';
 import type { CursorPosition } from '../../hooks/keyboardNavigation/types';
 
 /**
@@ -12,6 +12,7 @@ function findLinePosition(
   file: DiffFile,
   fileIndex: number,
   targetLineNumber: number,
+  targetSide?: DiffSide,
 ): CursorPosition | null {
   for (let chunkIndex = 0; chunkIndex < file.chunks.length; chunkIndex++) {
     const chunk = file.chunks[chunkIndex];
@@ -21,13 +22,25 @@ function findLinePosition(
       const line = chunk.lines[lineIndex];
       if (!line) continue;
 
-      const lineNumber = line.newLineNumber || line.oldLineNumber;
+      const lineNumber =
+        targetSide === 'old'
+          ? line.oldLineNumber
+          : targetSide === 'new'
+            ? line.newLineNumber
+            : (line.newLineNumber ?? line.oldLineNumber);
       if (lineNumber === targetLineNumber) {
         return {
           fileIndex,
           chunkIndex,
           lineIndex,
-          side: line.newLineNumber ? 'right' : 'left',
+          side:
+            targetSide === 'old'
+              ? 'left'
+              : targetSide === 'new'
+                ? 'right'
+                : line.newLineNumber
+                  ? 'right'
+                  : 'left',
         };
       }
     }
@@ -54,5 +67,11 @@ export function findCommentPosition(
   const targetLineNumber = Array.isArray(commentThread.line)
     ? commentThread.line[1]
     : commentThread.line;
-  return findLinePosition(file, fileIndex, targetLineNumber);
+  const targetSide = commentThread.side;
+
+  return (
+    findLinePosition(file, fileIndex, targetLineNumber, targetSide) ||
+    findLinePosition(file, fileIndex, targetLineNumber, 'new') ||
+    findLinePosition(file, fileIndex, targetLineNumber, 'old')
+  );
 }

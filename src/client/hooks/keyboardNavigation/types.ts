@@ -1,4 +1,4 @@
-import type { DiffFile, DiffViewMode, LineNumber } from '../../../types/diff';
+import type { DiffFile, DiffSide, DiffViewMode, LineNumber } from '../../../types/diff';
 
 /**
  * Represents the current cursor position in the diff viewer
@@ -26,6 +26,7 @@ export interface NavigationResult {
 export interface CommentNavigationItem {
   file: string;
   line: LineNumber;
+  side?: DiffSide;
 }
 
 /**

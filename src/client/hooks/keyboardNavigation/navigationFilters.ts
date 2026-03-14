@@ -4,6 +4,26 @@ import { hasContentOnSide } from '../../utils/navigation/lineHelpers';
 
 import type { CommentNavigationItem, CursorPosition, ViewMode } from './types';
 
+function hasCommentAtPosition(
+  filePath: string,
+  line: DiffFile['chunks'][number]['lines'][number],
+  commentIndex: Map<string, CommentNavigationItem[]>,
+): boolean {
+  const keys: string[] = [];
+
+  if (line.oldLineNumber !== undefined) {
+    keys.push(getCommentKey(filePath, line.oldLineNumber, 'old'));
+    keys.push(getCommentKey(filePath, line.oldLineNumber));
+  }
+
+  if (line.newLineNumber !== undefined) {
+    keys.push(getCommentKey(filePath, line.newLineNumber, 'new'));
+    keys.push(getCommentKey(filePath, line.newLineNumber));
+  }
+
+  return keys.some((key) => commentIndex.has(key));
+}
+
 /**
  * Creates navigation filters for different navigation targets
  */
@@ -55,7 +75,6 @@ export function createNavigationFilters(
 
     /**
      * Comment navigation - navigates to lines that have comments
-     * Comments can only exist on add and normal lines (right side)
      * Skip comments in reviewed/collapsed files
      */
     comment: (pos: CursorPosition): boolean => {
@@ -68,14 +87,7 @@ export function createNavigationFilters(
       const line = file.chunks[pos.chunkIndex]?.lines[pos.lineIndex];
       if (!line) return false;
 
-      // Comments can only exist on add and normal lines
-      if (line.type === 'delete') return false;
-
-      const lineNum = line.newLineNumber;
-      if (!lineNum) return false;
-
-      const key = getCommentKey(file.path, lineNum);
-      return commentIndex.has(key);
+      return hasCommentAtPosition(file.path, line, commentIndex);
     },
 
     /**
