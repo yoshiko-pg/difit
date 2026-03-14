@@ -37,6 +37,7 @@ function ThreadMessageItem({
   const [editedBody, setEditedBody] = useState(message.body);
   const [editMode, setEditMode] = useState<CommentEditMode>('edit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const showAuthorHeader = showAuthorBadge && Boolean(message.author);
 
   const hasSuggestionInEditedBody = hasSuggestionInBody(editedBody);
   const effectiveEditMode: CommentEditMode = hasSuggestionInEditedBody ? editMode : 'edit';
@@ -76,72 +77,70 @@ function ThreadMessageItem({
 
   return (
     <div
-      className="rounded-md border border-github-border bg-github-bg-secondary p-3"
+      className="relative rounded-md border border-github-border bg-github-bg-secondary p-3 pr-28"
       onClick={onClick}
     >
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-xs text-github-text-secondary">
-          {showAuthorBadge && message.author && (
-            <span className="inline-flex items-center rounded-full border border-github-border bg-github-bg-primary px-2 py-0.5 text-[11px] font-medium text-github-text-primary">
-              {message.author}
-            </span>
-          )}
+      {showAuthorHeader && (
+        <div className="mb-2 flex min-w-0 items-center gap-2 pr-2 text-xs text-github-text-secondary">
+          <span className="inline-flex items-center rounded-full border border-github-border bg-github-bg-primary px-2 py-0.5 text-[11px] font-medium text-github-text-primary">
+            {message.author}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          {!isEditing ? (
-            <>
+      )}
+      <div className="absolute right-3 top-3 flex items-center gap-2">
+        {!isEditing ? (
+          <>
+            <button
+              type="button"
+              onClick={handleStartEdit}
+              className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-secondary transition-all hover:bg-github-bg-primary hover:text-github-text-primary"
+              title="Edit message"
+            >
+              <Edit2 size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-danger transition-all hover:bg-github-danger/10"
+              title={deleteLabel}
+            >
+              <Trash2 size={12} />
+            </button>
+          </>
+        ) : (
+          hasSuggestionInEditedBody && (
+            <div
+              className="flex items-center rounded border border-github-border bg-github-bg-tertiary p-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
-                onClick={handleStartEdit}
-                className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-secondary transition-all hover:bg-github-bg-primary hover:text-github-text-primary"
-                title="Edit message"
+                onClick={() => setEditMode('edit')}
+                className={`rounded px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                  effectiveEditMode === 'edit'
+                    ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
+                    : 'text-github-text-secondary hover:text-github-text-primary'
+                }`}
               >
-                <Edit2 size={12} />
+                Edit
               </button>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-danger transition-all hover:bg-github-danger/10"
-                title={deleteLabel}
+                onClick={() => setEditMode('preview')}
+                className={`rounded px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                  effectiveEditMode === 'preview'
+                    ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
+                    : 'text-github-text-secondary hover:text-github-text-primary'
+                }`}
               >
-                <Trash2 size={12} />
+                Preview
               </button>
-            </>
-          ) : (
-            hasSuggestionInEditedBody && (
-              <div
-                className="flex items-center rounded border border-github-border bg-github-bg-tertiary p-0.5"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  onClick={() => setEditMode('edit')}
-                  className={`rounded px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                    effectiveEditMode === 'edit'
-                      ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
-                      : 'text-github-text-secondary hover:text-github-text-primary'
-                  }`}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditMode('preview')}
-                  className={`rounded px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                    effectiveEditMode === 'preview'
-                      ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
-                      : 'text-github-text-secondary hover:text-github-text-primary'
-                  }`}
-                >
-                  Preview
-                </button>
-              </div>
-            )
-          )}
-        </div>
+            </div>
+          )
+        )}
       </div>
 
       {!isEditing ? (
@@ -242,7 +241,6 @@ export function CommentThreadCard({
   const lineLabel = Array.isArray(thread.line)
     ? `${thread.line[0]}-${thread.line[1]}`
     : thread.line;
-  const replyCount = Math.max(thread.messages.length - 1, 0);
 
   const handleCopyThread = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -278,12 +276,6 @@ export function CommentThreadCard({
           >
             {thread.file}:{lineLabel}
           </span>
-          {replyCount > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-github-border bg-github-bg-secondary px-2 py-0.5 text-[11px] font-medium text-github-text-secondary">
-              <MessageSquareReply size={11} />
-              {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -299,7 +291,7 @@ export function CommentThreadCard({
           >
             <span className="inline-flex items-center gap-1">
               <Copy size={12} />
-              {isCopied ? 'Copied!' : 'Copy Thread'}
+              {isCopied ? 'Copied!' : 'Copy Prompt'}
             </span>
           </button>
           <button
@@ -308,10 +300,11 @@ export function CommentThreadCard({
               e.stopPropagation();
               setIsReplying((prev) => !prev);
             }}
-            className="rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs text-github-text-primary transition-all hover:bg-github-bg-primary"
+            aria-label="Reply"
+            className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
             title="Reply to thread"
           >
-            Reply
+            <MessageSquareReply size={14} />
           </button>
         </div>
       </div>
