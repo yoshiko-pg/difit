@@ -83,15 +83,21 @@ Object.defineProperty(window, 'confirm', {
 
 // Mock EventSource
 class MockEventSource {
+  static instances: MockEventSource[] = [];
   onopen: (() => void) | null = null;
   onerror: ((err: any) => void) | null = null;
   close = vi.fn();
 
   constructor(url: string) {
     this.url = url;
+    MockEventSource.instances.push(this);
   }
 
   url: string;
+
+  static clearInstances() {
+    MockEventSource.instances = [];
+  }
 }
 Object.defineProperty(window, 'EventSource', {
   writable: true,
@@ -112,6 +118,8 @@ const renderApp = () => {
 
 beforeEach(() => {
   window.localStorage.clear();
+  vi.unstubAllEnvs();
+  MockEventSource.clearInstances();
 });
 
 const mockDiffResponse: DiffResponse = {
@@ -293,6 +301,25 @@ describe('App Component - Clear Comments Functionality', () => {
       });
 
       consoleLogSpy.mockRestore();
+    });
+  });
+});
+
+describe('App Component - Heartbeat Connection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockConfirm.mockReturnValue(false);
+    mockFetch(mockDiffResponse);
+  });
+
+  it('uses the direct API url for heartbeat when configured in development', async () => {
+    vi.stubEnv('VITE_DIFIT_API_URL', 'http://localhost:4969');
+
+    renderApp();
+
+    await waitFor(() => {
+      expect(MockEventSource.instances[0]?.url).toBe('http://localhost:4969/api/heartbeat');
     });
   });
 });

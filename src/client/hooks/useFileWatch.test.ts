@@ -57,6 +57,7 @@ describe('useFileWatch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.clearAllTimers();
+    vi.unstubAllEnvs();
     MockEventSource.clearInstances();
   });
 
@@ -80,6 +81,20 @@ describe('useFileWatch', () => {
   });
 
   describe('SSE connection', () => {
+    it('uses the proxied watch endpoint by default', () => {
+      renderHook(() => useFileWatch());
+
+      expect(MockEventSource.instances[0]?.url).toBe('/api/watch');
+    });
+
+    it('uses the direct API url when configured for development', () => {
+      vi.stubEnv('VITE_DIFIT_API_URL', 'http://localhost:4969');
+
+      renderHook(() => useFileWatch());
+
+      expect(MockEventSource.instances[0]?.url).toBe('http://localhost:4969/api/watch');
+    });
+
     it('should establish connection on mount', async () => {
       const { result } = renderHook(() => useFileWatch());
 

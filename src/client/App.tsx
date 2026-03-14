@@ -36,6 +36,7 @@ import { useViewport } from './hooks/useViewport';
 import { hasMultipleCommentAuthors } from './utils/commentAuthors';
 import { getFileElementId } from './utils/domUtils';
 import { findCommentPosition } from './utils/navigation/positionHelpers';
+import { resolveEventSourceUrl } from './utils/eventSourceUrl';
 
 const EMPTY_COMMENTS: Comment[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
@@ -621,7 +622,7 @@ function App() {
 
   // Establish SSE connection for tab close detection
   useEffect(() => {
-    const eventSource = new EventSource('/api/heartbeat');
+    const eventSource = new EventSource(resolveEventSourceUrl('/api/heartbeat'));
 
     eventSource.onopen = () => {
       console.log('Connected to server heartbeat');

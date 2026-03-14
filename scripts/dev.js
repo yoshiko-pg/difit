@@ -2,7 +2,7 @@
 import { spawn } from 'child_process';
 
 const rawArgs = process.argv.slice(2);
-const CLI_SERVER_READY_MESSAGE = 'difit server started';
+const CLI_SERVER_URL_PATTERN = /difit server started on (https?:\/\/\S+)/;
 
 console.log('🚀 Starting CLI server...');
 
@@ -15,20 +15,26 @@ const cliProcess = spawn('pnpm', cliArgs, {
 });
 
 // Wait for CLI server to be ready, then start Vite
-let cliReady = false;
+let cliStdoutBuffer = '';
 let viteProcess = null;
 
 cliProcess.stdout.on('data', (data) => {
   const output = data.toString();
+  cliStdoutBuffer += output;
 
   // Wait for CLI server before starting Vite to prevent proxy connection errors
   // Uses stdout parsing to keep dev orchestration separate from main CLI logic.
   // Intentionally do not mirror CLI stdout to avoid showing internal API server URL.
-  if (!cliReady && output.includes(CLI_SERVER_READY_MESSAGE)) {
-    cliReady = true;
+  const cliServerUrlMatch = cliStdoutBuffer.match(CLI_SERVER_URL_PATTERN);
+  if (!viteProcess && cliServerUrlMatch) {
+    const cliServerUrl = cliServerUrlMatch[1];
     console.log('🎨 Starting Vite dev server...');
     viteProcess = spawn('pnpm', ['exec', 'vite', '--open'], {
       stdio: 'inherit',
+      env: {
+        ...process.env,
+        VITE_DIFIT_API_URL: cliServerUrl,
+      },
     });
   }
 });

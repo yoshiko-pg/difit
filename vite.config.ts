@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
+const apiTarget = process.env.VITE_DIFIT_API_URL || 'http://localhost:4966';
+
 export default defineConfig({
   plugins: [react()],
   root: 'src/client',
@@ -23,7 +25,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:4966',
+        target: apiTarget,
         changeOrigin: true,
       },
     },
