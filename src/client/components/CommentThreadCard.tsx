@@ -187,7 +187,10 @@ function ThreadMessageItem({
           <div className="mt-2 flex justify-end gap-2">
             <button
               type="button"
-              onClick={handleCancelEdit}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCancelEdit();
+              }}
               className="rounded border border-github-border bg-github-bg-tertiary px-3 py-1.5 text-xs text-github-text-primary transition-all hover:opacity-80"
             >
               Cancel

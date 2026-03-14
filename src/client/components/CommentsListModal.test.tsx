@@ -198,6 +198,34 @@ describe('CommentsListModal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('keeps the modal open when cancelling message editing', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onNavigate = vi.fn();
+
+    render(
+      <CommentsListModal
+        isOpen={true}
+        onClose={onClose}
+        onNavigate={onNavigate}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
+      />,
+      { wrapper },
+    );
+
+    await user.click(screen.getAllByTitle('Edit message')[0]!);
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByText('First root comment')).toBeInTheDocument();
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('uses the modal delete handler from the delete button', async () => {
     const user = userEvent.setup();
     const confirmSpy = vi.fn(() => false);
