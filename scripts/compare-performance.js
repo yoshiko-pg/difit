@@ -42,7 +42,7 @@ function formatMilliseconds(ms) {
 function generateMarkdownTable(comparison) {
   const lines = [];
 
-  lines.push('# Performance Comparison Report\n');
+  lines.push('# Keyboard Navigation Benchmark Report\n');
 
   const baseline = comparison.baseline;
   const current = comparison.current;
@@ -75,9 +75,15 @@ function generateMarkdownTable(comparison) {
   // Test details
   lines.push('### Test Configuration');
   lines.push(
+    '- **Scope**: Synthetic diff keyboard navigation only (comment/thread rendering is not measured)',
+  );
+  lines.push(
     `- **Size**: ${baseline.size} (${baseline.totalFiles} files, ${baseline.totalLines} lines)`,
   );
-  lines.push(`- **Iterations**: ${baseline.iterations} → ${current.iterations}\n`);
+  lines.push(`- **Measured iterations**: ${baseline.iterations} → ${current.iterations}`);
+  lines.push(
+    `- **Discarded warm-up iterations**: ${baseline.warmupIterations} → ${current.warmupIterations}\n`,
+  );
 
   // Commit information in a more compact format
   lines.push('### Commits Compared');
@@ -118,6 +124,7 @@ function generateComparison(baselineResults, comparedResults) {
       totalFiles: baselineResults.stats.files,
       totalLines: baselineResults.stats.totalLines,
       iterations: baselineResults.config.iterations,
+      warmupIterations: baselineResults.config.warmupIterations ?? 0,
       averageOperationTime: baselineAvg,
     },
     current: {
@@ -132,6 +139,7 @@ function generateComparison(baselineResults, comparedResults) {
       totalFiles: comparedResults.stats.files,
       totalLines: comparedResults.stats.totalLines,
       iterations: comparedResults.config.iterations,
+      warmupIterations: comparedResults.config.warmupIterations ?? 0,
       averageOperationTime: comparedAvg,
     },
     difference,
@@ -231,8 +239,8 @@ async function main() {
   const outputFormat = args.includes('--json') ? 'json' : 'markdown';
 
   if (outputFormat !== 'json') {
-    log('Performance Comparison Tool');
-    log('===========================\n');
+    log('Keyboard Navigation Benchmark Tool');
+    log('==================================\n');
     log('Loading performance results...');
   }
 

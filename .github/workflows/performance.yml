@@ -1,10 +1,11 @@
-name: Performance Test
+name: Keyboard Navigation Benchmark
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - 'src/**'
+      - 'scripts/**'
       - '.github/workflows/performance.yml'
 
 jobs:
@@ -12,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      PERF_SIZE: medium
+      PERF_ITERATIONS: '2'
+      PERF_WARMUP_ITERATIONS: '1'
+      PERF_DIFF_SEED: performance-ci-medium-v1
 
     steps:
       - name: Setup Node.js
@@ -67,44 +73,79 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm build
 
-      - name: Run performance test on head branch
-        id: head-perf
+      - name: Generate deterministic benchmark input
         working-directory: head
         run: |
-          pnpm perf --size medium --iterations 3
-          # Get the latest result file
-          RESULT_FILE=$(ls -t performance-results/perf-medium-*.json | head -1)
-          echo "result_file=$RESULT_FILE" >> $GITHUB_OUTPUT
+          mkdir -p ../performance-inputs
+          node scripts/generate-large-diff.js --size "$PERF_SIZE" --seed "$PERF_DIFF_SEED" > ../performance-inputs/perf-"$PERF_SIZE".diff
 
-      - name: Run performance test on base branch
-        id: base-perf
+      - name: Run base benchmark round 1
         working-directory: base
         run: |
-          # Install playwright in base directory if needed
-          # This ensures the test can run even if base branch doesn't have playwright
-          if ! pnpm list playwright >/dev/null 2>&1; then
-            echo "Installing playwright for base branch testing..."
-            pnpm add -D playwright
-            pnpm exec playwright install chromium
-          fi
+          node ../head/scripts/measure-performance.js \
+            --size "$PERF_SIZE" \
+            --iterations "$PERF_ITERATIONS" \
+            --warmup-iterations "$PERF_WARMUP_ITERATIONS" \
+            --diff-file ../performance-inputs/perf-"$PERF_SIZE".diff \
+            --output performance-results/base-round-1.json \
+            --memo "ci round 1 (base first)" \
+            --difit-path ../base/dist/cli/index.js
 
-          # Run performance test using head's script but base's build
-          # The script will create results in the head directory's performance-results
-          node ../head/scripts/measure-performance.js --size medium --iterations 3 --difit-path ../base/dist/cli/index.js
+      - name: Run head benchmark round 1
+        working-directory: head
+        run: |
+          node scripts/measure-performance.js \
+            --size "$PERF_SIZE" \
+            --iterations "$PERF_ITERATIONS" \
+            --warmup-iterations "$PERF_WARMUP_ITERATIONS" \
+            --diff-file ../performance-inputs/perf-"$PERF_SIZE".diff \
+            --output performance-results/head-round-1.json \
+            --memo "ci round 1 (head second)"
 
-          # Get the latest result file from head directory
-          RESULT_FILE=$(ls -t ../head/performance-results/perf-medium-*.json | head -1)
-          echo "result_file=$RESULT_FILE" >> $GITHUB_OUTPUT
+      - name: Run head benchmark round 2
+        working-directory: head
+        run: |
+          node scripts/measure-performance.js \
+            --size "$PERF_SIZE" \
+            --iterations "$PERF_ITERATIONS" \
+            --warmup-iterations "$PERF_WARMUP_ITERATIONS" \
+            --diff-file ../performance-inputs/perf-"$PERF_SIZE".diff \
+            --output performance-results/head-round-2.json \
+            --memo "ci round 2 (head first)"
+
+      - name: Run base benchmark round 2
+        working-directory: base
+        run: |
+          node ../head/scripts/measure-performance.js \
+            --size "$PERF_SIZE" \
+            --iterations "$PERF_ITERATIONS" \
+            --warmup-iterations "$PERF_WARMUP_ITERATIONS" \
+            --diff-file ../performance-inputs/perf-"$PERF_SIZE".diff \
+            --output performance-results/base-round-2.json \
+            --memo "ci round 2 (base second)" \
+            --difit-path ../base/dist/cli/index.js
+
+      - name: Merge benchmark results
+        working-directory: head
+        run: |
+          node scripts/merge-performance-results.js \
+            --output performance-results/base-merged.json \
+            ../base/performance-results/base-round-1.json \
+            ../base/performance-results/base-round-2.json
+          node scripts/merge-performance-results.js \
+            --output performance-results/head-merged.json \
+            performance-results/head-round-1.json \
+            performance-results/head-round-2.json
 
       - name: Compare performance
         id: compare
         working-directory: head
         run: |
           # Run comparison script and output markdown directly to GitHub Step Summary
-          node scripts/compare-performance.js ${{ steps.base-perf.outputs.result_file }} ${{ steps.head-perf.outputs.result_file }} >> $GITHUB_STEP_SUMMARY
+          node scripts/compare-performance.js performance-results/base-merged.json performance-results/head-merged.json >> $GITHUB_STEP_SUMMARY
 
           # Also get JSON output for status check
-          COMPARISON_JSON=$(node scripts/compare-performance.js ${{ steps.base-perf.outputs.result_file }} ${{ steps.head-perf.outputs.result_file }} --json)
+          COMPARISON_JSON=$(node scripts/compare-performance.js performance-results/base-merged.json performance-results/head-merged.json --json)
 
           # Extract change percentage for status check
           CHANGE_PERCENT=$(echo "$COMPARISON_JSON" | jq -r '.changePercent')

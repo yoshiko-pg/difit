@@ -10,6 +10,67 @@ const config = {
   },
 };
 
+const defaultSeed = 'difit-performance-default-v1';
+
+function parseArgs(argv) {
+  let size = 'medium';
+  let seed = defaultSeed;
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+
+    if (arg === '--size' && argv[i + 1]) {
+      size = argv[++i];
+      continue;
+    }
+
+    if (arg === '--seed' && argv[i + 1]) {
+      seed = argv[++i];
+      continue;
+    }
+
+    if (!arg.startsWith('--') && size === 'medium') {
+      size = arg;
+    }
+  }
+
+  return { size, seed };
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+
+  for (const char of value) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function createRandom(seed) {
+  let state = hashString(seed) || 1;
+
+  return () => {
+    state += 0x6d2b79f5;
+    let next = state;
+    next = Math.imul(next ^ (next >>> 15), next | 1);
+    next ^= next + Math.imul(next ^ (next >>> 7), next | 61);
+    return ((next ^ (next >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function createTimestampFactory(seed) {
+  const baseTime = Date.UTC(2026, 0, 1, 0, 0, 0) + hashString(seed) * 1000;
+  let index = 0;
+
+  return () => {
+    const timestamp = new Date(baseTime + index * 1000).toISOString();
+    index++;
+    return timestamp;
+  };
+}
+
 function generateFileContent(fileIndex, lines) {
   const chunks = [];
 
@@ -76,7 +137,7 @@ export function Component${fileIndex}({ id, data, onUpdate }: Component${fileInd
   return chunks.join('');
 }
 
-function generateModifiedFileContent(fileIndex, lines) {
+function generateModifiedFileContent(fileIndex, lines, random, nextTimestamp) {
   const content = generateFileContent(fileIndex, lines);
   const lines_array = content.split('\n');
 
@@ -85,19 +146,18 @@ function generateModifiedFileContent(fileIndex, lines) {
   const modifiedLines = new Set();
 
   for (let i = 0; i < modifications; i++) {
-    const lineIndex = Math.floor(Math.random() * lines_array.length);
+    const lineIndex = Math.floor(random() * lines_array.length);
     if (!modifiedLines.has(lineIndex) && lines_array[lineIndex].trim()) {
       modifiedLines.add(lineIndex);
 
       // Different types of modifications
-      const modType = Math.random();
+      const modType = random();
       if (modType < 0.3) {
         // Change variable names
         lines_array[lineIndex] = lines_array[lineIndex].replace(/item/g, 'element');
       } else if (modType < 0.6) {
         // Add comments
-        lines_array[lineIndex] =
-          `  // Modified: ${new Date().toISOString()}\n${lines_array[lineIndex]}`;
+        lines_array[lineIndex] = `  // Modified: ${nextTimestamp()}\n${lines_array[lineIndex]}`;
       } else {
         // Change string literals
         lines_array[lineIndex] = lines_array[lineIndex].replace(/'([^']+)'/g, "'modified-$1'");
@@ -108,8 +168,8 @@ function generateModifiedFileContent(fileIndex, lines) {
   // Add some new lines
   const additions = Math.floor(lines * 0.1); // Add 10% new lines
   for (let i = 0; i < additions; i++) {
-    const insertIndex = Math.floor(Math.random() * lines_array.length);
-    lines_array.splice(insertIndex, 0, `  // New line added at ${new Date().toISOString()}`);
+    const insertIndex = Math.floor(random() * lines_array.length);
+    lines_array.splice(insertIndex, 0, `  // New line added at ${nextTimestamp()}`);
   }
 
   return lines_array.join('\n');
@@ -162,14 +222,16 @@ function generateUnifiedDiff(filename, oldContent, newContent) {
   return diff.join('\n');
 }
 
-function generateDiff(size) {
+function generateDiff(size, seed) {
   const { files, linesPerFile } = config.sizes[size];
   const diffs = [];
+  const random = createRandom(`${seed}:${size}`);
+  const nextTimestamp = createTimestampFactory(`${seed}:${size}`);
 
   for (let i = 0; i < files; i++) {
     const filename = `src/components/Component${i}.tsx`;
     const oldContent = generateFileContent(i, linesPerFile);
-    const newContent = generateModifiedFileContent(i, linesPerFile);
+    const newContent = generateModifiedFileContent(i, linesPerFile, random, nextTimestamp);
 
     diffs.push(generateUnifiedDiff(filename, oldContent, newContent));
   }
@@ -179,8 +241,7 @@ function generateDiff(size) {
 
 // Main function
 function main() {
-  const args = process.argv.slice(2);
-  const size = args[0] || 'medium';
+  const { size, seed } = parseArgs(process.argv.slice(2));
 
   if (!config.sizes[size]) {
     console.error(`Invalid size: ${size}`);
@@ -188,7 +249,7 @@ function main() {
     process.exit(1);
   }
 
-  const diff = generateDiff(size);
+  const diff = generateDiff(size, seed);
   console.log(diff);
 }
 
