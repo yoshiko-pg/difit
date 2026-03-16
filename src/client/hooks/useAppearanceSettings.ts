@@ -6,6 +6,7 @@ import {
   APPEARANCE_STORAGE_KEY,
   applyResolvedTheme,
   resolveThemePreference,
+  type ColorVisionMode,
 } from '../utils/appearanceTheme';
 
 const DEFAULT_SETTINGS: AppearanceSettings = {
@@ -15,6 +16,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   theme: 'dark',
   syntaxTheme: 'vsDark',
   editor: DEFAULT_EDITOR_ID,
+  colorVision: 'normal',
 };
 
 export function useAppearanceSettings() {
@@ -30,9 +32,12 @@ export function useAppearanceSettings() {
     return DEFAULT_SETTINGS;
   });
 
-  const applyTheme = useCallback((theme: 'light' | 'dark') => {
-    applyResolvedTheme(theme);
-  }, []);
+  const applyTheme = useCallback(
+    (theme: 'light' | 'dark', colorVision: ColorVisionMode = 'normal') => {
+      applyResolvedTheme(theme, colorVision);
+    },
+    [],
+  );
 
   // Apply settings to document
   useEffect(() => {
@@ -45,18 +50,22 @@ export function useAppearanceSettings() {
     root.style.setProperty('--app-font-family', settings.fontFamily);
 
     // Apply theme
+    const colorVision = settings.colorVision ?? 'normal';
     if (settings.theme === 'auto') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      applyTheme(resolveThemePreference('auto', mediaQuery.matches ? 'dark' : 'light'));
+      applyTheme(
+        resolveThemePreference('auto', mediaQuery.matches ? 'dark' : 'light'),
+        colorVision,
+      );
 
       const handleChange = (e: MediaQueryListEvent) => {
-        applyTheme(resolveThemePreference('auto', e.matches ? 'dark' : 'light'));
+        applyTheme(resolveThemePreference('auto', e.matches ? 'dark' : 'light'), colorVision);
       };
 
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     } else {
-      applyTheme(settings.theme);
+      applyTheme(settings.theme, colorVision);
       return undefined;
     }
   }, [settings, applyTheme]);

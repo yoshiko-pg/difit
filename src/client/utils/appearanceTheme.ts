@@ -1,5 +1,7 @@
 type ThemePreference = 'light' | 'dark' | 'auto';
 
+export type ColorVisionMode = 'normal' | 'deuteranopia';
+
 export type ResolvedTheme = 'light' | 'dark';
 
 type ThemeStorage = Pick<Storage, 'getItem'>;
@@ -165,14 +167,51 @@ export function getResolvedTheme(
   return resolveThemePreference(getStoredThemePreference(storage), getSystemTheme(themeWindow));
 }
 
-export function applyResolvedTheme(theme: ResolvedTheme, doc = document) {
+// Color overrides for deuteranopia (red-green color blindness)
+// Uses blue for additions and orange for deletions instead of green/red
+const DEUTERANOPIA_DARK_OVERRIDES: Record<string, string> = {
+  '--color-github-accent': '#58a6ff',
+  '--color-github-danger': '#d29922',
+  '--color-diff-addition-bg': '#0c2d6b',
+  '--color-diff-addition-border': '#388bfd',
+  '--color-diff-deletion-bg': '#5a3600',
+  '--color-diff-deletion-border': '#d29922',
+};
+
+const DEUTERANOPIA_LIGHT_OVERRIDES: Record<string, string> = {
+  '--color-github-accent': '#0969da',
+  '--color-github-danger': '#bf8700',
+  '--color-diff-addition-bg': '#ddf4ff',
+  '--color-diff-addition-border': '#0969da',
+  '--color-diff-deletion-bg': '#fff8c5',
+  '--color-diff-deletion-border': '#bf8700',
+};
+
+const DEUTERANOPIA_OVERRIDES: Record<ResolvedTheme, Record<string, string>> = {
+  dark: DEUTERANOPIA_DARK_OVERRIDES,
+  light: DEUTERANOPIA_LIGHT_OVERRIDES,
+};
+
+export function applyResolvedTheme(
+  theme: ResolvedTheme,
+  colorVision: ColorVisionMode = 'normal',
+  doc = document,
+) {
   const root = doc.documentElement;
   root.setAttribute(THEME_ATTRIBUTE, theme);
+  root.setAttribute('data-color-vision', colorVision);
 
   const themeValues = THEME_VALUES[theme];
   Object.entries(themeValues).forEach(([property, value]) => {
     root.style.setProperty(property, value);
   });
+
+  if (colorVision === 'deuteranopia') {
+    const overrides = DEUTERANOPIA_OVERRIDES[theme];
+    Object.entries(overrides).forEach(([property, value]) => {
+      root.style.setProperty(property, value);
+    });
+  }
 
   if (doc.body) {
     doc.body.style.backgroundColor = 'var(--color-github-bg-primary)';
@@ -193,6 +232,6 @@ export function bootstrapAppearanceTheme(
     getStoredThemePreference(storage),
     getSystemTheme(themeWindow),
   );
-  applyResolvedTheme(resolvedTheme, doc);
+  applyResolvedTheme(resolvedTheme, 'normal', doc);
   return resolvedTheme;
 }
