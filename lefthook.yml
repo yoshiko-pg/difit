@@ -7,6 +7,8 @@ pre-commit:
         - 'src/**/*.{ts,tsx}'
         - 'dev/**/*.{ts,tsx,js,mjs,cjs}'
         - 'dev/**/*.d.ts'
+        - 'scripts/*.{js,mjs,cjs}'
+        - 'scripts/**/*.{js,mjs,cjs}'
         - 'packages/vscode/**'
         - 'package.json'
         - 'pnpm-lock.yaml'
@@ -45,6 +47,8 @@ pre-commit:
       glob:
         - 'src/**/*.{ts,tsx}'
         - 'dev/**/*.{ts,tsx,js,mjs,cjs}'
+        - 'scripts/*.{js,mjs,cjs}'
+        - 'scripts/**/*.{js,mjs,cjs}'
         - 'packages/vscode/**'
         - 'package.json'
         - 'vitest.config.ts'
