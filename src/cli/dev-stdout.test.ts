@@ -43,4 +43,20 @@ describe('createCliStdoutProxy', () => {
 
     expect(output).toEqual(['📋 Reviewing: HEAD\n']);
   });
+
+  it('hides internal port retry logs before the server URL is known', () => {
+    const onServerUrl = vi.fn();
+    const output: string[] = [];
+    const proxy = createCliStdoutProxy({
+      onServerUrl,
+      onOutput: (text: string) => output.push(text),
+    });
+
+    proxy.push('Port 4966 is busy, trying 4967...\n');
+    proxy.push('\n🚀 difit server started on http://localhost:4967\n📋 Reviewing: HEAD\n');
+    proxy.flush();
+
+    expect(onServerUrl).toHaveBeenCalledWith('http://localhost:4967');
+    expect(output).toEqual(['📋 Reviewing: HEAD\n']);
+  });
 });
