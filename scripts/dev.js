@@ -4,18 +4,11 @@ import { spawn } from 'child_process';
 import { createCliStdoutProxy } from './dev-stdout.js';
 
 const rawArgs = process.argv.slice(2);
-
-console.log('🚀 Starting CLI server...');
-
-// Delegate argument and stdin interpretation to CLI to avoid divergent behavior.
-const cliArgs = ['run', 'dev:cli', ...rawArgs, '--no-open'];
-
-const cliProcess = spawn('pnpm', cliArgs, {
-  // Keep stdin attached so CLI can decide stdin mode by itself.
-  stdio: ['inherit', 'pipe', 'inherit'],
-});
+const cliArgs = [...rawArgs, '--no-open'];
 
 // Wait for CLI server to be ready, then start Vite
+let cliProcess = null;
+let compileProcess = null;
 let viteProcess = null;
 let isShuttingDown = false;
 
@@ -39,11 +32,58 @@ const cliStdoutProxy = createCliStdoutProxy({
   },
 });
 
-cliProcess.stdout.on('data', (data) => {
-  // Wait for CLI server before starting Vite to prevent proxy connection errors.
-  // Suppress dev-only startup lines but continue mirroring shutdown output such as review comments.
-  cliStdoutProxy.push(data.toString());
-});
+function startCliProcess() {
+  cliProcess = spawn(process.execPath, ['dist/cli/index.js', ...cliArgs], {
+    // Keep stdin attached so CLI can decide stdin mode by itself.
+    stdio: ['inherit', 'pipe', 'inherit'],
+    env: {
+      ...process.env,
+      NODE_ENV: 'development',
+    },
+  });
+
+  cliProcess.stdout.on('data', (data) => {
+    // Wait for CLI server before starting Vite to prevent proxy connection errors.
+    // Suppress dev-only startup lines but continue mirroring shutdown output such as review comments.
+    cliStdoutProxy.push(data.toString());
+  });
+
+  cliProcess.on('close', (code) => {
+    cliStdoutProxy.flush();
+
+    if (code !== 0 && code !== null && !isShuttingDown) {
+      console.error(`CLI server exited with code ${code}`);
+    }
+
+    if (viteProcess && !viteProcess.killed) {
+      viteProcess.kill('SIGINT');
+    }
+
+    process.exit(code || 0);
+  });
+}
+
+function startCompileProcess() {
+  compileProcess = spawn('pnpm', ['exec', 'tsc', '--project', 'tsconfig.cli.json'], {
+    stdio: 'inherit',
+  });
+
+  compileProcess.on('close', (code) => {
+    compileProcess = null;
+
+    if (code !== 0) {
+      process.exit(code || 1);
+      return;
+    }
+
+    if (isShuttingDown) {
+      process.exit(0);
+      return;
+    }
+
+    startCliProcess();
+  });
+}
 
 function shutdown(signal) {
   if (isShuttingDown) {
@@ -52,7 +92,8 @@ function shutdown(signal) {
 
   isShuttingDown = true;
   console.log('\n👋 Shutting down...');
-  cliProcess.kill(signal);
+  compileProcess?.kill(signal);
+  cliProcess?.kill(signal);
   viteProcess?.kill(signal);
 }
 
@@ -64,16 +105,4 @@ process.on('SIGTERM', () => {
   shutdown('SIGTERM');
 });
 
-cliProcess.on('close', (code) => {
-  cliStdoutProxy.flush();
-
-  if (code !== 0 && code !== null && !isShuttingDown) {
-    console.error(`CLI server exited with code ${code}`);
-  }
-
-  if (viteProcess && !viteProcess.killed) {
-    viteProcess.kill('SIGINT');
-  }
-
-  process.exit(code || 0);
-});
+startCompileProcess();
