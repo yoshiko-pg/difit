@@ -1,4 +1,4 @@
-const CLI_SERVER_URL_PATTERN = /difit server started on (https?:\/\/\S+)/;
+const CLI_SERVER_URL_PATTERN = /^🚀 difit server started on (https?:\/\/\S+)$/;
 const PORT_RETRY_PATTERN = /^Port \d+ is busy, trying \d+\.\.\.$/;
 
 export function createCliStdoutProxy({ onServerUrl, onOutput }) {
@@ -22,13 +22,16 @@ export function createCliStdoutProxy({ onServerUrl, onOutput }) {
     }
 
     const serverUrlMatch = line.match(CLI_SERVER_URL_PATTERN);
+    const shouldHideServerUrlLine = !detectedServerUrl && serverUrlMatch !== null;
 
-    if (serverUrlMatch && !detectedServerUrl) {
+    if (shouldHideServerUrlLine) {
       detectedServerUrl = serverUrlMatch[1];
       onServerUrl(detectedServerUrl);
     }
 
-    if (serverUrlMatch || PORT_RETRY_PATTERN.test(line)) {
+    const shouldHidePortRetryLine = !detectedServerUrl && PORT_RETRY_PATTERN.test(line);
+
+    if (shouldHideServerUrlLine || shouldHidePortRetryLine) {
       pendingBlankLines = 0;
       return;
     }

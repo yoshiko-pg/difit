@@ -59,4 +59,22 @@ describe('createCliStdoutProxy', () => {
     expect(onServerUrl).toHaveBeenCalledWith('http://localhost:4967');
     expect(output).toEqual(['📋 Reviewing: HEAD\n']);
   });
+
+  it('preserves later lines that repeat the startup message', () => {
+    const output: string[] = [];
+    const proxy = createCliStdoutProxy({
+      onServerUrl: vi.fn(),
+      onOutput: (text: string) => output.push(text),
+    });
+
+    proxy.push('\n🚀 difit server started on http://localhost:4966\n');
+    proxy.push('📝 Comments from review session:\n');
+    proxy.push('🚀 difit server started on http://localhost:4966\n');
+    proxy.flush();
+
+    expect(output).toEqual([
+      '📝 Comments from review session:\n',
+      '🚀 difit server started on http://localhost:4966\n',
+    ]);
+  });
 });
