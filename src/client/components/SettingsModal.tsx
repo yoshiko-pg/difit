@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 
 import { DEFAULT_EDITOR_ID, EDITOR_OPTIONS, type EditorOptionId } from '../../utils/editorOptions';
+import type { ColorVisionMode } from '../utils/appearanceTheme';
 import { LIGHT_THEMES, DARK_THEMES } from '../utils/themeLoader';
 
 interface AppearanceSettings {
@@ -11,6 +12,7 @@ interface AppearanceSettings {
   theme: 'light' | 'dark' | 'auto';
   syntaxTheme: string;
   editor: EditorOptionId;
+  colorVision: ColorVisionMode;
 }
 
 interface SettingsModalProps {
@@ -27,6 +29,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   theme: 'dark',
   syntaxTheme: 'vsDark',
   editor: DEFAULT_EDITOR_ID,
+  colorVision: 'normal',
 };
 
 const FONT_FAMILIES = [
@@ -193,6 +196,36 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Color Vision */}
+          <div>
+            <label className="block text-sm font-medium text-github-text-primary mb-2">
+              Color Vision
+            </label>
+            <div className="flex gap-2">
+              {(
+                [
+                  { id: 'normal', label: 'Normal' },
+                  { id: 'deuteranopia', label: 'Deuteranopia' },
+                ] as const
+              ).map((mode) => (
+                <button
+                  key={mode.id}
+                  onClick={() => setLocalSettings({ ...localSettings, colorVision: mode.id })}
+                  className={`px-3 py-2 text-sm rounded border transition-colors ${
+                    (localSettings.colorVision ?? 'normal') === mode.id
+                      ? 'bg-github-accent text-white border-github-accent'
+                      : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-github-text-muted">
+              Deuteranopia mode uses blue/orange instead of green/red for diffs.
+            </p>
           </div>
 
           {/* Syntax Theme */}

@@ -213,3 +213,14 @@ td.keyboard-cursor::before {
   --word-diff-added-bg: rgba(63, 185, 80, 0.5);
   --word-diff-removed-bg: rgba(248, 81, 73, 0.5);
 }
+
+/* Deuteranopia (red-green colorblind) word-level diff colors: blue/orange */
+[data-color-vision="deuteranopia"][data-theme="dark"] {
+  --word-diff-added-bg: rgba(88, 166, 255, 0.4);
+  --word-diff-removed-bg: rgba(210, 153, 34, 0.4);
+}
+
+[data-color-vision="deuteranopia"][data-theme="light"] {
+  --word-diff-added-bg: rgba(9, 105, 218, 0.3);
+  --word-diff-removed-bg: rgba(191, 135, 0, 0.3);
+}
