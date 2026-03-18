@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.17] - 2026-03-18
+
+### Added
+
+- Add support for protanopia and deuteranopia color modes (#250)
+- Add comment authors and badges
+- Show deuteranopia hint as tooltip
+
+### Changed
+
+- Update dependencies (#253 #254 #252 #251 #255)
+- Keep `vite` attached to active difit server
+- Stabilize keyboard benchmark workflow
+
+### Fixed
+
+- Restore color vision mode during bootstrap
+- Refine release skill dependency aggregation
+
+### Thanks
+
+- [@MasashiSalvador57](https://github.com/MasashiSalvador57) for implementing support for protanopia and deuteranopia color modes (#250)
+
 ## [3.1.16] - 2026-03-13
 
 ### Added
@@ -1010,7 +1033,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.16...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.17...HEAD
+[3.1.17]: https://github.com/yoshiko-pg/difit/compare/v3.1.16...v3.1.17
 [3.1.16]: https://github.com/yoshiko-pg/difit/compare/v3.1.15...v3.1.16
 [3.1.15]: https://github.com/yoshiko-pg/difit/compare/v3.1.14...v3.1.15
 [3.1.14]: https://github.com/yoshiko-pg/difit/compare/v3.1.13...v3.1.14
