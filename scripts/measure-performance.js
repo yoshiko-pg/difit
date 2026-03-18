@@ -5,7 +5,7 @@ import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { promises as fs } from 'fs';
+import { createReadStream, promises as fs } from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const execAsync = promisify(exec);
@@ -63,16 +63,16 @@ async function getGitInfo() {
   }
 }
 
-async function startDifitServer(size, difitPath) {
+async function startDifitServer(size, options = {}) {
   log('Starting difit server...', colors.blue);
 
   let actualPort = config.port;
+  let diffInput;
 
   // Use provided difit path or default
-  const difitBinaryPath = difitPath || path.join(__dirname, '..', 'dist', 'cli', 'index.js');
+  const difitBinaryPath =
+    options.difitPath || path.join(__dirname, '..', 'dist', 'cli', 'index.js');
 
-  // Generate diff and pipe to difit
-  const generateDiff = spawn('node', [path.join(__dirname, 'generate-large-diff.js'), size]);
   const difitProcess = spawn(
     'node',
     [difitBinaryPath, '--port', config.port.toString(), '--no-open'],
@@ -81,8 +81,25 @@ async function startDifitServer(size, difitPath) {
     },
   );
 
-  // Pipe diff to difit
-  generateDiff.stdout.pipe(difitProcess.stdin);
+  if (options.diffFile) {
+    diffInput = createReadStream(path.resolve(options.diffFile));
+    diffInput.on('error', (error) => {
+      log(`  Diff input error: ${error.message}`, colors.red);
+    });
+    diffInput.pipe(difitProcess.stdin);
+  } else {
+    const generateArgs = [path.join(__dirname, 'generate-large-diff.js'), '--size', size];
+
+    if (options.diffSeed) {
+      generateArgs.push('--seed', options.diffSeed);
+    }
+
+    diffInput = spawn('node', generateArgs);
+    diffInput.stdout.pipe(difitProcess.stdin);
+    diffInput.stderr.on('data', (data) => {
+      log(`  Diff generator error: ${data.toString().trim()}`, colors.red);
+    });
+  }
 
   // Promise to wait for server start
   const serverStarted = new Promise((resolve) => {
@@ -101,10 +118,6 @@ async function startDifitServer(size, difitPath) {
     difitProcess.stderr.on('data', (data) => {
       log(`  Server error: ${data.toString().trim()}`, colors.red);
     });
-
-    generateDiff.stderr.on('data', (data) => {
-      log(`  Diff generator error: ${data.toString().trim()}`, colors.red);
-    });
   });
 
   // Wait for server to start and get actual port
@@ -113,7 +126,7 @@ async function startDifitServer(size, difitPath) {
     new Promise((resolve) => setTimeout(() => resolve(actualPort), 5000)),
   ]);
 
-  return { process: difitProcess, port };
+  return { process: difitProcess, port, diffInput };
 }
 
 async function measureKeyboardNavigation(page) {
@@ -210,6 +223,7 @@ async function measurePerformance(size, options = {}) {
   const { files, linesPerFile } = config.sizes[size];
   const totalLines = files * linesPerFile;
   const results = [];
+  const warmupResults = [];
 
   log(`\nRunning performance test (${size})...`, colors.yellow);
   log(
@@ -223,16 +237,25 @@ async function measurePerformance(size, options = {}) {
   });
 
   const iterations = options.iterations || config.defaultIterations;
+  const warmupIterations = options.warmupIterations || 0;
+  const totalIterations = warmupIterations + iterations;
 
-  for (let i = 0; i < iterations; i++) {
-    log(`\nIteration ${i + 1}/${iterations}`, colors.blue);
+  if (warmupIterations > 0) {
+    log(`Warm-up iterations discarded: ${warmupIterations}`, colors.yellow);
+  }
 
-    const { process: difitProcess, port: actualPort } = await startDifitServer(
-      size,
-      options.difitPath,
-    );
+  for (let i = 0; i < totalIterations; i++) {
+    const isWarmup = i < warmupIterations;
+    log(`\nIteration ${i + 1}/${totalIterations}${isWarmup ? ' (warm-up)' : ''}`, colors.blue);
+
+    const {
+      process: difitProcess,
+      port: actualPort,
+      diffInput,
+    } = await startDifitServer(size, options);
     const iterationMetrics = {
-      iteration: i + 1,
+      iteration: isWarmup ? i + 1 : i + 1 - warmupIterations,
+      phase: isWarmup ? 'warmup' : 'measured',
       timestamp: new Date().toISOString(),
     };
 
@@ -286,14 +309,27 @@ async function measurePerformance(size, options = {}) {
       iterationMetrics.performanceData = perfData;
 
       await context.close();
-      results.push(iterationMetrics);
+      if (isWarmup) {
+        warmupResults.push(iterationMetrics);
+      } else {
+        results.push(iterationMetrics);
+      }
     } catch (error) {
       log(`  Error: ${error.message}`, colors.red);
       iterationMetrics.error = error.message;
-      results.push(iterationMetrics);
+      if (isWarmup) {
+        warmupResults.push(iterationMetrics);
+      } else {
+        results.push(iterationMetrics);
+      }
     } finally {
       // Kill the process
       difitProcess.kill('SIGTERM');
+      if (diffInput?.kill) {
+        diffInput.kill('SIGTERM');
+      } else if (diffInput?.destroy) {
+        diffInput.destroy();
+      }
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
@@ -305,8 +341,10 @@ async function measurePerformance(size, options = {}) {
     stats: { files, linesPerFile, totalLines },
     config: {
       iterations: iterations,
+      warmupIterations,
     },
     results,
+    warmupResults,
     summary: calculateSummary(results),
   };
 }
@@ -372,7 +410,19 @@ async function main() {
   const positionalArgs = args.filter((arg, index) => {
     if (arg.startsWith('--')) return false;
     // Skip flag values
-    if (index > 0 && ['--size', '--memo', '--iterations', '--difit-path'].includes(args[index - 1]))
+    if (
+      index > 0 &&
+      [
+        '--size',
+        '--memo',
+        '--iterations',
+        '--warmup-iterations',
+        '--difit-path',
+        '--diff-file',
+        '--seed',
+        '--output',
+      ].includes(args[index - 1])
+    )
       return false;
     return true;
   });
@@ -389,6 +439,15 @@ async function main() {
   const difitPathIndex = args.indexOf('--difit-path');
   const difitPath =
     difitPathIndex !== -1 && args[difitPathIndex + 1] ? args[difitPathIndex + 1] : undefined;
+  const diffFileIndex = args.indexOf('--diff-file');
+  const diffFile =
+    diffFileIndex !== -1 && args[diffFileIndex + 1] ? args[diffFileIndex + 1] : undefined;
+  const diffSeedIndex = args.indexOf('--seed');
+  const diffSeed =
+    diffSeedIndex !== -1 && args[diffSeedIndex + 1] ? args[diffSeedIndex + 1] : undefined;
+  const outputIndex = args.indexOf('--output');
+  const outputPath =
+    outputIndex !== -1 && args[outputIndex + 1] ? args[outputIndex + 1] : undefined;
 
   const options = {
     headless: !args.includes('--headed'),
@@ -396,7 +455,12 @@ async function main() {
     iterations: args.includes('--iterations')
       ? parseInt(args[args.indexOf('--iterations') + 1])
       : undefined,
+    warmupIterations: args.includes('--warmup-iterations')
+      ? parseInt(args[args.indexOf('--warmup-iterations') + 1])
+      : undefined,
     difitPath,
+    diffFile,
+    diffSeed,
   };
 
   if (!config.sizes[size]) {
@@ -407,9 +471,13 @@ async function main() {
     log(`  --size <size>        Size of diff to test (default: medium)`);
     log(`  --headed             Run tests in headed mode (show browser)`);
     log(`  --iterations <n>     Number of iterations (default: ${config.defaultIterations})`);
+    log(`  --warmup-iterations <n>  Warm-up iterations to discard (default: 0)`);
     log(`  --memo <text>        Add a memo to the results`);
     log(`  --devtools           Open browser devtools`);
     log(`  --difit-path <path>  Path to difit CLI (default: dist/cli/index.js)`);
+    log(`  --diff-file <path>   Use an existing diff file instead of generating one`);
+    log(`  --seed <value>       Seed for deterministic diff generation`);
+    log(`  --output <path>      Write results to a specific file`);
     process.exit(1);
   }
 
@@ -429,6 +497,11 @@ async function main() {
     duration: totalTime,
     gitInfo,
     memo,
+    benchmark: {
+      name: 'keyboard-navigation',
+      diffFile,
+      diffSeed: diffSeed || null,
+    },
     environment: {
       node: process.version,
       platform: process.platform,
@@ -444,9 +517,12 @@ async function main() {
   log(
     `Valid iterations: ${results.results.filter((r) => !r.error).length}/${results.config.iterations}`,
   );
+  if (results.config.warmupIterations > 0) {
+    log(`Discarded warm-up iterations: ${results.config.warmupIterations}`);
+  }
 
   if (results.summary.keyboardNavigation.averageOperationTime > 0) {
-    log(`\nKeyboard Navigation Performance:`);
+    log(`\nKeyboard Navigation Benchmark:`);
     log(
       `  Average operation time: ${results.summary.keyboardNavigation.averageOperationTime.toFixed(2)}ms`,
     );
@@ -461,12 +537,12 @@ async function main() {
   }
 
   // Save results
-  const resultsDir = path.join(__dirname, '..', 'performance-results');
-  await fs.mkdir(resultsDir, { recursive: true });
-
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const resultsFile = path.join(resultsDir, `perf-${size}-${timestamp}.json`);
+  const resultsFile = outputPath
+    ? path.resolve(outputPath)
+    : path.join(__dirname, '..', 'performance-results', `perf-${size}-${timestamp}.json`);
 
+  await fs.mkdir(path.dirname(resultsFile), { recursive: true });
   await fs.writeFile(resultsFile, JSON.stringify(results, null, 2));
   log(`\nResults saved to: ${resultsFile}`, colors.green);
 
