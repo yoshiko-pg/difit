@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 
-import { getCompileCloseExitCode } from './dev-lifecycle.js';
-import { createCliStdoutProxy } from './dev-stdout.js';
+import { getCompileCloseExitCode } from '../dev/dev-lifecycle.js';
+import { createCliStdoutProxy } from '../dev/dev-stdout.js';
 
 const rawArgs = process.argv.slice(2);
 const cliArgs = [...rawArgs, '--no-open'];

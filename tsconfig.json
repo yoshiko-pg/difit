@@ -21,6 +21,6 @@
       "@/types/*": ["./src/types/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "dev/**/*"],
   "references": [{ "path": "./tsconfig.cli.json" }]
 }

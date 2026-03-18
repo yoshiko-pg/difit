@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createCliStdoutProxy } from '../../scripts/dev-stdout.js';
+import { createCliStdoutProxy } from './dev-stdout.js';
 
 describe('createCliStdoutProxy', () => {
   it('detects the CLI server URL across chunks and hides only that line', () => {

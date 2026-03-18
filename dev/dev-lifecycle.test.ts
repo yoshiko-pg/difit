@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getCompileCloseExitCode } from '../../scripts/dev-lifecycle.js';
+import { getCompileCloseExitCode } from './dev-lifecycle.js';
 
 describe('getCompileCloseExitCode', () => {
   it('returns zero when compile closes during shutdown', () => {

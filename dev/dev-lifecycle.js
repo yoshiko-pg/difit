@@ -1,3 +1,8 @@
+/**
+ * @param {number | null} code
+ * @param {boolean} isShuttingDown
+ * @returns {number | null}
+ */
 export function getCompileCloseExitCode(code, isShuttingDown) {
   if (isShuttingDown) {
     return 0;

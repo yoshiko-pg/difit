@@ -1,9 +1,16 @@
 const CLI_SERVER_URL_PATTERN = /^🚀 difit server started on (https?:\/\/\S+)$/;
 const PORT_RETRY_PATTERN = /^Port \d+ is busy, trying \d+\.\.\.$/;
 
+/**
+ * @param {{
+ *   onServerUrl: (serverUrl: string) => void;
+ *   onOutput: (output: string) => void;
+ * }} options
+ */
 export function createCliStdoutProxy({ onServerUrl, onOutput }) {
   let buffer = '';
   let pendingBlankLines = 0;
+  /** @type {string | undefined} */
   let detectedServerUrl;
 
   function flushPendingBlankLines() {
@@ -13,6 +20,10 @@ export function createCliStdoutProxy({ onServerUrl, onOutput }) {
     }
   }
 
+  /**
+   * @param {string} rawLine
+   * @param {boolean} hasTrailingNewline
+   */
   function handleLine(rawLine, hasTrailingNewline) {
     const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
 
