@@ -89,7 +89,6 @@ function shutdown(signal) {
   }
 
   isShuttingDown = true;
-  console.log('\n👋 Shutting down...');
   compileProcess?.kill(signal);
   cliProcess?.kill(signal);
   viteProcess?.kill(signal);
