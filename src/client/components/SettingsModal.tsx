@@ -5,6 +5,7 @@ import { useHotkeysContext } from 'react-hotkeys-hook';
 import { DEFAULT_EDITOR_ID, EDITOR_OPTIONS, type EditorOptionId } from '../../utils/editorOptions';
 import type { ColorVisionMode } from '../utils/appearanceTheme';
 import { LIGHT_THEMES, DARK_THEMES } from '../utils/themeLoader';
+import { Tooltip } from './Tooltip';
 
 interface AppearanceSettings {
   fontSize: number;
@@ -43,6 +44,15 @@ const FONT_FAMILIES = [
   { name: 'Fira Code', value: '"Fira Code", "Courier New", monospace' },
   { name: 'JetBrains Mono', value: '"JetBrains Mono", "Courier New", monospace' },
 ];
+
+const COLOR_VISION_MODES = [
+  { id: 'normal', label: 'Normal' },
+  {
+    id: 'deuteranopia',
+    label: 'Deuteranopia',
+    tooltip: 'Deuteranopia mode uses blue/orange instead of green/red for diffs.',
+  },
+] as const;
 
 export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: SettingsModalProps) {
   const [localSettings, setLocalSettings] = useState<AppearanceSettings>(settings);
@@ -204,28 +214,33 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
               Color Vision
             </label>
             <div className="flex gap-2">
-              {(
-                [
-                  { id: 'normal', label: 'Normal' },
-                  { id: 'deuteranopia', label: 'Deuteranopia' },
-                ] as const
-              ).map((mode) => (
-                <button
-                  key={mode.id}
-                  onClick={() => setLocalSettings({ ...localSettings, colorVision: mode.id })}
-                  className={`px-3 py-2 text-sm rounded border transition-colors ${
-                    (localSettings.colorVision ?? 'normal') === mode.id
-                      ? 'bg-github-accent text-white border-github-accent'
-                      : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
-                  }`}
-                >
-                  {mode.label}
-                </button>
-              ))}
+              {COLOR_VISION_MODES.map((mode) => {
+                const isSelected = (localSettings.colorVision ?? 'normal') === mode.id;
+                const button = (
+                  <button
+                    key={mode.id}
+                    onClick={() => setLocalSettings({ ...localSettings, colorVision: mode.id })}
+                    className={`px-3 py-2 text-sm rounded border transition-colors ${
+                      isSelected
+                        ? 'bg-github-accent text-white border-github-accent'
+                        : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                );
+
+                if (!('tooltip' in mode)) {
+                  return button;
+                }
+
+                return (
+                  <Tooltip key={mode.id} content={mode.tooltip}>
+                    {button}
+                  </Tooltip>
+                );
+              })}
             </div>
-            <p className="mt-1 text-xs text-github-text-muted">
-              Deuteranopia mode uses blue/orange instead of green/red for diffs.
-            </p>
           </div>
 
           {/* Syntax Theme */}
