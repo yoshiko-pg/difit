@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 
+import { createCliStdoutProxy } from './dev-stdout.js';
+
 const rawArgs = process.argv.slice(2);
-const CLI_SERVER_URL_PATTERN = /difit server started on (https?:\/\/\S+)/;
 
 console.log('🚀 Starting CLI server...');
 
@@ -15,19 +16,15 @@ const cliProcess = spawn('pnpm', cliArgs, {
 });
 
 // Wait for CLI server to be ready, then start Vite
-let cliStdoutBuffer = '';
 let viteProcess = null;
+let isShuttingDown = false;
 
-cliProcess.stdout.on('data', (data) => {
-  const output = data.toString();
-  cliStdoutBuffer += output;
+const cliStdoutProxy = createCliStdoutProxy({
+  onServerUrl: (cliServerUrl) => {
+    if (viteProcess) {
+      return;
+    }
 
-  // Wait for CLI server before starting Vite to prevent proxy connection errors
-  // Uses stdout parsing to keep dev orchestration separate from main CLI logic.
-  // Intentionally do not mirror CLI stdout to avoid showing internal API server URL.
-  const cliServerUrlMatch = cliStdoutBuffer.match(CLI_SERVER_URL_PATTERN);
-  if (!viteProcess && cliServerUrlMatch) {
-    const cliServerUrl = cliServerUrlMatch[1];
     console.log('🎨 Starting Vite dev server...');
     viteProcess = spawn('pnpm', ['exec', 'vite', '--open'], {
       stdio: 'inherit',
@@ -36,22 +33,47 @@ cliProcess.stdout.on('data', (data) => {
         VITE_DIFIT_API_URL: cliServerUrl,
       },
     });
+  },
+  onOutput: (output) => {
+    process.stdout.write(output);
+  },
+});
+
+cliProcess.stdout.on('data', (data) => {
+  // Wait for CLI server before starting Vite to prevent proxy connection errors.
+  // Suppress dev-only startup lines but continue mirroring shutdown output such as review comments.
+  cliStdoutProxy.push(data.toString());
+});
+
+function shutdown(signal) {
+  if (isShuttingDown) {
+    return;
   }
-});
 
-// Handle graceful shutdown
-process.on('SIGINT', () => {
+  isShuttingDown = true;
   console.log('\n👋 Shutting down...');
-  cliProcess.kill('SIGINT');
-  viteProcess?.kill('SIGINT');
-  process.exit(0);
+  cliProcess.kill(signal);
+  viteProcess?.kill(signal);
+}
+
+process.on('SIGINT', () => {
+  shutdown('SIGINT');
 });
 
-cliProcess.on('exit', (code) => {
-  if (code !== 0) {
+process.on('SIGTERM', () => {
+  shutdown('SIGTERM');
+});
+
+cliProcess.on('close', (code) => {
+  cliStdoutProxy.flush();
+
+  if (code !== 0 && code !== null && !isShuttingDown) {
     console.error(`CLI server exited with code ${code}`);
   }
-  // Kill vite process when CLI exits
-  viteProcess?.kill('SIGINT');
+
+  if (viteProcess && !viteProcess.killed) {
+    viteProcess.kill('SIGINT');
+  }
+
   process.exit(code || 0);
 });
