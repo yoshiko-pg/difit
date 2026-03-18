@@ -10,22 +10,20 @@ All notable changes to this project will be documented in this file.
 
 - Add support for protanopia and deuteranopia color modes (#250)
 - Add comment authors and badges
-- Show deuteranopia hint as tooltip
 
 ### Changed
 
 - Update dependencies (#253 #254 #252 #251 #255)
-- Keep `vite` attached to active difit server
-- Stabilize keyboard benchmark workflow
 
 ### Fixed
 
-- Restore color vision mode during bootstrap
+- Keep `vite` attached to active difit server
+- Stabilize keyboard benchmark workflow
 - Refine release skill dependency aggregation
 
 ### Thanks
 
-- [@MasashiSalvador57](https://github.com/MasashiSalvador57) for implementing support for protanopia and deuteranopia color modes (#250)
+- [@MasashiSalvador57f](https://github.com/MasashiSalvador57f) for implementing support for protanopia and deuteranopia color modes (#250)
 
 ## [3.1.16] - 2026-03-13
 
