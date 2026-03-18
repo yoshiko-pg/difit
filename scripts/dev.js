@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 
+import { getCompileCloseExitCode } from './dev-lifecycle.js';
 import { createCliStdoutProxy } from './dev-stdout.js';
 
 const rawArgs = process.argv.slice(2);
@@ -71,13 +72,10 @@ function startCompileProcess() {
   compileProcess.on('close', (code) => {
     compileProcess = null;
 
-    if (code !== 0) {
-      process.exit(code || 1);
-      return;
-    }
+    const exitCode = getCompileCloseExitCode(code, isShuttingDown);
 
-    if (isShuttingDown) {
-      process.exit(0);
+    if (exitCode !== null) {
+      process.exit(exitCode);
       return;
     }
 
