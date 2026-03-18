@@ -18,7 +18,7 @@ const cliStdoutProxy = createCliStdoutProxy({
       return;
     }
 
-    console.log('🎨 Starting Vite dev server...');
+    console.log('🚀 Starting Vite dev server...');
     viteProcess = spawn('pnpm', ['exec', 'vite', '--open'], {
       stdio: 'inherit',
       env: {
