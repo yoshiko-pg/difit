@@ -86,6 +86,9 @@ export const APPEARANCE_STORAGE_KEY = 'reviewit-appearance-settings';
 const isThemePreference = (value: unknown): value is ThemePreference =>
   value === 'light' || value === 'dark' || value === 'auto';
 
+const isColorVisionMode = (value: unknown): value is ColorVisionMode =>
+  value === 'normal' || value === 'deuteranopia';
+
 const isResolvedTheme = (value: string | null): value is ResolvedTheme =>
   value === 'light' || value === 'dark';
 
@@ -109,9 +112,14 @@ const getThemeWindow = (): ThemeWindow | undefined => {
   return window;
 };
 
-function getStoredThemePreference(
+type StoredAppearanceSettings = {
+  colorVision?: ColorVisionMode;
+  theme?: ThemePreference;
+};
+
+function getStoredAppearanceSettings(
   storage: ThemeStorage | undefined = getThemeStorage(),
-): ThemePreference | null {
+): StoredAppearanceSettings | null {
   if (!storage) {
     return null;
   }
@@ -123,13 +131,19 @@ function getStoredThemePreference(
     }
 
     const parsed: unknown = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed === 'object' &&
-      'theme' in parsed &&
-      isThemePreference((parsed as { theme?: unknown }).theme)
-    ) {
-      return (parsed as { theme: ThemePreference }).theme;
+    if (parsed && typeof parsed === 'object') {
+      const settings: StoredAppearanceSettings = {};
+      const candidate = parsed as { colorVision?: unknown; theme?: unknown };
+
+      if (isThemePreference(candidate.theme)) {
+        settings.theme = candidate.theme;
+      }
+
+      if (isColorVisionMode(candidate.colorVision)) {
+        settings.colorVision = candidate.colorVision;
+      }
+
+      return settings;
     }
   } catch {
     return null;
@@ -164,7 +178,10 @@ export function getResolvedTheme(
     return documentTheme;
   }
 
-  return resolveThemePreference(getStoredThemePreference(storage), getSystemTheme(themeWindow));
+  return resolveThemePreference(
+    getStoredAppearanceSettings(storage)?.theme,
+    getSystemTheme(themeWindow),
+  );
 }
 
 // Color overrides for deuteranopia (red-green color blindness)
@@ -228,10 +245,9 @@ export function bootstrapAppearanceTheme(
     return null;
   }
 
-  const resolvedTheme = resolveThemePreference(
-    getStoredThemePreference(storage),
-    getSystemTheme(themeWindow),
-  );
-  applyResolvedTheme(resolvedTheme, 'normal', doc);
+  const storedSettings = getStoredAppearanceSettings(storage);
+  const resolvedTheme = resolveThemePreference(storedSettings?.theme, getSystemTheme(themeWindow));
+  const colorVision = storedSettings?.colorVision ?? 'normal';
+  applyResolvedTheme(resolvedTheme, colorVision, doc);
   return resolvedTheme;
 }

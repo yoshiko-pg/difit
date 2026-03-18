@@ -22,6 +22,7 @@ const setMatchMedia = (matches: boolean) => {
 describe('appearanceTheme', () => {
   beforeEach(() => {
     localStorage.clear();
+    document.documentElement.removeAttribute('data-color-vision');
     document.documentElement.removeAttribute('data-theme');
     document.documentElement.removeAttribute('style');
     document.body.removeAttribute('style');
@@ -45,6 +46,22 @@ describe('appearanceTheme', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
     expect(document.documentElement.style.getPropertyValue('--color-github-bg-primary')).toBe(
       '#ffffff',
+    );
+  });
+
+  it('bootstraps the saved color vision mode before app mount', () => {
+    localStorage.setItem(
+      APPEARANCE_STORAGE_KEY,
+      JSON.stringify({
+        colorVision: 'deuteranopia',
+        theme: 'dark',
+      }),
+    );
+
+    expect(bootstrapAppearanceTheme()).toBe('dark');
+    expect(document.documentElement.getAttribute('data-color-vision')).toBe('deuteranopia');
+    expect(document.documentElement.style.getPropertyValue('--color-diff-addition-bg')).toBe(
+      '#0c2d6b',
     );
   });
 
