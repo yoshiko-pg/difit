@@ -5,6 +5,10 @@ pre-commit:
       glob:
         - '*.{ts,tsx}'
         - 'src/**/*.{ts,tsx}'
+        - 'dev/**/*.{ts,tsx,js,mjs,cjs}'
+        - 'dev/**/*.d.ts'
+        - 'scripts/*.{js,mjs,cjs}'
+        - 'scripts/**/*.{js,mjs,cjs}'
         - 'packages/vscode/**'
         - 'package.json'
         - 'pnpm-lock.yaml'
@@ -24,6 +28,7 @@ pre-commit:
     knip:
       glob:
         - 'src/**/*.{ts,tsx,js,jsx,json,css}'
+        - 'dev/**/*.{ts,tsx,js,jsx,json,css}'
         - 'packages/vscode/**'
         - 'scripts/*.{js,mjs,cjs}'
         - 'scripts/**/*.{js,mjs,cjs}'
@@ -41,6 +46,9 @@ pre-commit:
     test:
       glob:
         - 'src/**/*.{ts,tsx}'
+        - 'dev/**/*.{ts,tsx,js,mjs,cjs}'
+        - 'scripts/*.{js,mjs,cjs}'
+        - 'scripts/**/*.{js,mjs,cjs}'
         - 'packages/vscode/**'
         - 'package.json'
         - 'vitest.config.ts'
