@@ -71,10 +71,7 @@ export function validateCommitish(commitish: string): boolean {
     return true; // Allow special keywords for working directory and staging area diff
   }
 
-  const revisionSuffixMatch = trimmed.match(/((?:\^\d*|~\d+)*)$/);
-  const revisionSuffix = revisionSuffixMatch?.[1] ?? '';
-  const baseCommitish =
-    revisionSuffix.length > 0 ? trimmed.slice(0, trimmed.length - revisionSuffix.length) : trimmed;
+  const baseCommitish = stripRevisionSuffix(trimmed);
 
   if (baseCommitish.length === 0) {
     return false;
@@ -96,6 +93,41 @@ function isValidCommitishBase(baseCommitish: string): boolean {
 
   // For branch, tag, and remote refs, use git's ref naming rules.
   return isValidBranchName(baseCommitish);
+}
+
+function stripRevisionSuffix(commitish: string): string {
+  let suffixStart = commitish.length;
+
+  while (suffixStart > 0) {
+    const current = commitish[suffixStart - 1];
+
+    if (current === '^') {
+      suffixStart--;
+      continue;
+    }
+
+    if (!isAsciiDigit(current)) {
+      break;
+    }
+
+    let digitStart = suffixStart - 1;
+    while (digitStart > 0 && isAsciiDigit(commitish[digitStart - 1])) {
+      digitStart--;
+    }
+
+    const operator = commitish[digitStart - 1];
+    if (operator !== '^' && operator !== '~') {
+      break;
+    }
+
+    suffixStart = digitStart - 1;
+  }
+
+  return commitish.slice(0, suffixStart);
+}
+
+function isAsciiDigit(char: string): boolean {
+  return char >= '0' && char <= '9';
 }
 
 function isValidBranchName(name: string): boolean {
