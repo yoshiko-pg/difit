@@ -3,7 +3,6 @@ import { describe, it, expect } from 'vitest';
 import {
   detectStdinSource,
   parseCommentOptions,
-  parseGitHubPrUrl,
   shortHash,
   shouldReadStdin,
   validateCommitish,
@@ -462,80 +461,6 @@ describe('CLI Utils', () => {
     it('should handle short hashes', () => {
       expect(shortHash('abc')).toBe('abc');
       expect(shortHash('')).toBe('');
-    });
-  });
-
-  describe('parseGitHubPrUrl', () => {
-    it('should parse valid GitHub PR URLs', () => {
-      const result = parseGitHubPrUrl('https://github.com/owner/repo/pull/123');
-      expect(result).toEqual({
-        owner: 'owner',
-        repo: 'repo',
-        pullNumber: 123,
-        hostname: 'github.com',
-      });
-    });
-
-    it('should parse GitHub PR URLs with additional path segments', () => {
-      const result = parseGitHubPrUrl('https://github.com/owner/repo/pull/456/files');
-      expect(result).toEqual({
-        owner: 'owner',
-        repo: 'repo',
-        pullNumber: 456,
-        hostname: 'github.com',
-      });
-    });
-
-    it('should parse GitHub PR URLs with query parameters', () => {
-      const result = parseGitHubPrUrl('https://github.com/owner/repo/pull/789?tab=files');
-      expect(result).toEqual({
-        owner: 'owner',
-        repo: 'repo',
-        pullNumber: 789,
-        hostname: 'github.com',
-      });
-    });
-
-    it('should handle URLs with hyphens and underscores in owner/repo names', () => {
-      const result = parseGitHubPrUrl('https://github.com/owner-name/repo_name/pull/123');
-      expect(result).toEqual({
-        owner: 'owner-name',
-        repo: 'repo_name',
-        pullNumber: 123,
-        hostname: 'github.com',
-      });
-    });
-
-    it('should parse GitHub Enterprise PR URLs', () => {
-      const result1 = parseGitHubPrUrl('https://github.enterprise.com/owner/repo/pull/123');
-      expect(result1).toEqual({
-        owner: 'owner',
-        repo: 'repo',
-        pullNumber: 123,
-        hostname: 'github.enterprise.com',
-      });
-
-      const result2 = parseGitHubPrUrl('https://git.company.io/team/project/pull/456');
-      expect(result2).toEqual({
-        owner: 'team',
-        repo: 'project',
-        pullNumber: 456,
-        hostname: 'git.company.io',
-      });
-    });
-
-    it('should return null for invalid URLs', () => {
-      expect(parseGitHubPrUrl('not-a-url')).toBe(null);
-      expect(parseGitHubPrUrl('https://github.com/owner/repo/issues/123')).toBe(null);
-      expect(parseGitHubPrUrl('https://github.com/owner/repo')).toBe(null);
-      expect(parseGitHubPrUrl('https://github.com/owner/repo/pull/abc')).toBe(null);
-    });
-
-    it('should handle malformed URLs gracefully', () => {
-      expect(parseGitHubPrUrl('')).toBe(null);
-      expect(parseGitHubPrUrl('https://github.com')).toBe(null);
-      expect(parseGitHubPrUrl('https://github.com/owner')).toBe(null);
-      expect(parseGitHubPrUrl('https://github.com/owner/repo/pull')).toBe(null);
     });
   });
 });

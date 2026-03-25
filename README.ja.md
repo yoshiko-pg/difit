@@ -73,6 +73,7 @@ difit --pr https://github.com/owner/repo/pull/123
 ```
 
 `--pr` モードでは、内部で `gh pr diff --patch` を実行してパッチを取得します。
+加えて、PR 上の未解決 inline review thread も起動時コメントとして取り込み、difit 上でそのまま表示します。
 
 認証は GitHub CLI が処理します：
 

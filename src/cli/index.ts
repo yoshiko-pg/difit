@@ -17,9 +17,9 @@ import {
   promptUser,
   parseCommentOptions,
   validateDiffArguments,
-  getPrPatch,
   getGitRoot,
 } from './utils.js';
+import { getPrPatch, getPrCommentImports } from './github.js';
 
 type SpecialArg = 'working' | 'staged' | '.';
 
@@ -101,10 +101,12 @@ program
     try {
       let stdinDiff: string | undefined;
       let stdinReviewLabel = 'diff from stdin';
+      let manualCommentImports: CommentImport[] = [];
       let commentImports: CommentImport[] = [];
 
       try {
-        commentImports = parseCommentOptions(options.comment);
+        manualCommentImports = parseCommentOptions(options.comment);
+        commentImports = manualCommentImports;
       } catch (error) {
         console.error(
           `Error: ${error instanceof Error ? error.message : 'Invalid --comment value'}`,
@@ -131,6 +133,15 @@ program
             `Error resolving PR: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
           process.exit(1);
+        }
+
+        try {
+          const prCommentImports = await getPrCommentImports(options.pr);
+          commentImports = [...prCommentImports, ...manualCommentImports];
+        } catch (error) {
+          console.warn(
+            `Warning: Failed to load PR review comments: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
         }
       } else {
         // Check if we should read from stdin

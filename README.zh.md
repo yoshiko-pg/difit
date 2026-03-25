@@ -73,6 +73,7 @@ difit --pr https://github.com/owner/repo/pull/123
 ```
 
 `--pr` 模式会在内部执行 `gh pr diff --patch` 来获取补丁。
+同时还会导入 PR 中未解决的 inline review thread，并在 difit 中作为启动评论显示出来。
 
 认证由 GitHub CLI 处理：
 

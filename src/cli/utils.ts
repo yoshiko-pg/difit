@@ -1,4 +1,4 @@
-import { execFileSync, execSync } from 'child_process';
+import { execSync } from 'child_process';
 import { fstatSync, type Stats } from 'node:fs';
 import { createInterface } from 'readline/promises';
 
@@ -165,65 +165,6 @@ export function shortHash(hash: string): string {
 
 export function createCommitRangeString(baseHash: string, targetHash: string): string {
   return `${baseHash}...${targetHash}`;
-}
-
-interface PullRequestInfo {
-  owner: string;
-  repo: string;
-  pullNumber: number;
-  hostname: string;
-}
-
-export function parseGitHubPrUrl(url: string): PullRequestInfo | null {
-  try {
-    const urlObj = new URL(url);
-
-    // Allow any hostname for GitHub Enterprise support
-    // Just validate the path structure
-    const pathParts = urlObj.pathname.split('/').filter(Boolean);
-
-    if (pathParts.length < 4 || pathParts[2] !== 'pull') {
-      return null;
-    }
-
-    const owner = pathParts[0];
-    const repo = pathParts[1];
-    const pullNumber = parseInt(pathParts[3], 10);
-
-    if (isNaN(pullNumber)) {
-      return null;
-    }
-
-    return { owner, repo, pullNumber, hostname: urlObj.hostname };
-  } catch {
-    return null;
-  }
-}
-
-export function getPrPatch(prArg: string): string {
-  try {
-    const patch = execFileSync('gh', ['pr', 'diff', prArg], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    if (!patch.trim()) {
-      throw new Error('No diff content returned from gh pr diff');
-    }
-
-    return patch;
-  } catch (error) {
-    const stderr = (error as { stderr?: Buffer | string }).stderr;
-    const stderrText =
-      typeof stderr === 'string'
-        ? stderr.trim()
-        : Buffer.isBuffer(stderr)
-          ? stderr.toString('utf8').trim()
-          : '';
-    const message =
-      stderrText || (error instanceof Error ? error.message : 'Unknown error while running gh');
-    throw new Error(`${message}\nTry: gh auth login`);
-  }
 }
 
 export function parseCommentOptions(commentValues: string[]): CommentImport[] {
