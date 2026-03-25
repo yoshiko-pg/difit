@@ -4,6 +4,7 @@ import { useHotkeysContext } from 'react-hotkeys-hook';
 
 import { DEFAULT_EDITOR_ID, EDITOR_OPTIONS, type EditorOptionId } from '../../utils/editorOptions';
 import type { ColorVisionMode } from '../utils/appearanceTheme';
+import { formatAutoViewedPatterns, parseAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import { LIGHT_THEMES, DARK_THEMES } from '../utils/themeLoader';
 import { Tooltip } from './Tooltip';
 
@@ -14,6 +15,7 @@ interface AppearanceSettings {
   syntaxTheme: string;
   editor: EditorOptionId;
   colorVision: ColorVisionMode;
+  autoViewedPatterns: string[];
 }
 
 interface SettingsModalProps {
@@ -33,6 +35,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   syntaxTheme: 'vsDark',
   editor: DEFAULT_EDITOR_ID,
   colorVision: 'normal',
+  autoViewedPatterns: [],
 };
 
 const FONT_FAMILIES = [
@@ -68,24 +71,11 @@ const SETTINGS_SECTIONS = [
 ] as const;
 
 export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: SettingsModalProps) {
-  const [localSettings, setLocalSettings] = useState<AppearanceSettings>(settings);
+  const [autoViewedPatternsInput, setAutoViewedPatternsInput] = useState(
+    formatAutoViewedPatterns(settings.autoViewedPatterns),
+  );
   const [activeSection, setActiveSection] = useState<SettingsSection>('appearance');
   const { enableScope, disableScope } = useHotkeysContext();
-
-  useEffect(() => {
-    setLocalSettings(settings);
-  }, [settings]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setActiveSection('appearance');
-    }
-  }, [isOpen]);
-
-  // Apply changes immediately for real-time preview
-  useEffect(() => {
-    onSettingsChange(localSettings);
-  }, [localSettings, onSettingsChange]);
 
   // Manage scopes when modal opens/closes
   useEffect(() => {
@@ -105,10 +95,10 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
   // Get current theme (resolve 'auto' to actual theme)
   const getCurrentTheme = (): 'light' | 'dark' => {
-    if (localSettings.theme === 'auto') {
+    if (settings.theme === 'auto') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    return localSettings.theme;
+    return settings.theme;
   };
 
   // Get available themes based on current background color
@@ -119,7 +109,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
   // Handle theme change and auto-select valid syntax theme
   const handleThemeChange = (theme: 'light' | 'dark' | 'auto') => {
-    const newSettings = { ...localSettings, theme };
+    const newSettings = { ...settings, theme };
 
     // Determine the effective theme
     const effectiveTheme =
@@ -131,7 +121,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
     // Check if current syntax theme is valid for the new theme
     const availableThemes = effectiveTheme === 'light' ? LIGHT_THEMES : DARK_THEMES;
-    const isCurrentThemeValid = availableThemes.some((t) => t.id === localSettings.syntaxTheme);
+    const isCurrentThemeValid = availableThemes.some((t) => t.id === settings.syntaxTheme);
 
     // If current theme becomes invalid, auto-select first item
     if (!isCurrentThemeValid && availableThemes.length > 0) {
@@ -141,13 +131,13 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
       }
     }
 
-    setLocalSettings(newSettings);
+    onSettingsChange(newSettings);
   };
 
   const handleReset = () => {
     if (activeSection === 'appearance') {
-      setLocalSettings({
-        ...localSettings,
+      onSettingsChange({
+        ...settings,
         fontSize: DEFAULT_SETTINGS.fontSize,
         fontFamily: DEFAULT_SETTINGS.fontFamily,
         theme: DEFAULT_SETTINGS.theme,
@@ -157,10 +147,12 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
       return;
     }
 
-    setLocalSettings({
-      ...localSettings,
+    onSettingsChange({
+      ...settings,
       editor: DEFAULT_SETTINGS.editor,
+      autoViewedPatterns: DEFAULT_SETTINGS.autoViewedPatterns,
     });
+    setAutoViewedPatternsInput(formatAutoViewedPatterns(DEFAULT_SETTINGS.autoViewedPatterns));
   };
 
   if (!isOpen) return null;
@@ -221,17 +213,17 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                       min="10"
                       max="20"
                       step="1"
-                      value={localSettings.fontSize}
+                      value={settings.fontSize}
                       onChange={(e) =>
-                        setLocalSettings({
-                          ...localSettings,
+                        onSettingsChange({
+                          ...settings,
                           fontSize: Number.parseInt(e.target.value, 10),
                         })
                       }
                       className="flex-1 accent-github-accent"
                     />
                     <span className="text-sm text-github-text-secondary w-8 text-right">
-                      {localSettings.fontSize}px
+                      {settings.fontSize}px
                     </span>
                   </div>
                 </div>
@@ -241,10 +233,8 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                     Font Family
                   </label>
                   <select
-                    value={localSettings.fontFamily}
-                    onChange={(e) =>
-                      setLocalSettings({ ...localSettings, fontFamily: e.target.value })
-                    }
+                    value={settings.fontFamily}
+                    onChange={(e) => onSettingsChange({ ...settings, fontFamily: e.target.value })}
                     className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
                   >
                     {FONT_FAMILIES.map((font) => (
@@ -266,7 +256,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                         type="button"
                         onClick={() => handleThemeChange(theme)}
                         className={`px-3 py-2 text-sm rounded border transition-colors ${
-                          localSettings.theme === theme
+                          settings.theme === theme
                             ? 'bg-github-accent text-white border-github-accent'
                             : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
                         }`}
@@ -283,14 +273,12 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                   </label>
                   <div className="flex gap-2">
                     {COLOR_VISION_MODES.map((mode) => {
-                      const isSelected = (localSettings.colorVision ?? 'normal') === mode.id;
+                      const isSelected = (settings.colorVision ?? 'normal') === mode.id;
                       const button = (
                         <button
                           key={mode.id}
                           type="button"
-                          onClick={() =>
-                            setLocalSettings({ ...localSettings, colorVision: mode.id })
-                          }
+                          onClick={() => onSettingsChange({ ...settings, colorVision: mode.id })}
                           className={`px-3 py-2 text-sm rounded border transition-colors ${
                             isSelected
                               ? 'bg-github-accent text-white border-github-accent'
@@ -319,10 +307,10 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                     Syntax Highlighting Theme
                   </label>
                   <select
-                    value={localSettings.syntaxTheme}
+                    value={settings.syntaxTheme}
                     onChange={(e) =>
-                      setLocalSettings({
-                        ...localSettings,
+                      onSettingsChange({
+                        ...settings,
                         syntaxTheme: e.target.value,
                       })
                     }
@@ -345,10 +333,10 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                     Open In Editor
                   </label>
                   <select
-                    value={localSettings.editor}
+                    value={settings.editor}
                     onChange={(e) =>
-                      setLocalSettings({
-                        ...localSettings,
+                      onSettingsChange({
+                        ...settings,
                         editor: e.target.value as AppearanceSettings['editor'],
                       })
                     }
@@ -360,6 +348,34 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="auto-viewed-patterns"
+                    className="block text-sm font-medium text-github-text-primary mb-2"
+                  >
+                    Auto-Mark Viewed Patterns
+                  </label>
+                  <p className="text-sm text-github-text-secondary mb-2">
+                    Files matching these glob patterns are marked as Viewed automatically. Enter one
+                    pattern per line.
+                  </p>
+                  <textarea
+                    id="auto-viewed-patterns"
+                    value={autoViewedPatternsInput}
+                    onChange={(e) => {
+                      setAutoViewedPatternsInput(e.target.value);
+                      onSettingsChange({
+                        ...settings,
+                        autoViewedPatterns: parseAutoViewedPatterns(e.target.value),
+                      });
+                    }}
+                    rows={6}
+                    spellCheck={false}
+                    placeholder={'*.test.ts\n*.stories.tsx\nsrc/generated/**'}
+                    className="w-full p-3 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm font-mono"
+                  />
                 </div>
               </div>
             )}
