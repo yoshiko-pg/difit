@@ -390,6 +390,7 @@ describe('Server Integration Tests', () => {
       const output = await response.text();
 
       expect(response.ok).toBe(true);
+      expect(response.headers.get('Content-Type')).toContain('text/plain');
       expect(output).toContain('Comments from review session');
       expect(output).toContain('test.js:L10');
       expect(output).toContain('First comment');
