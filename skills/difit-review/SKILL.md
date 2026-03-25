@@ -1,6 +1,6 @@
 ---
 name: difit-review
-description: Review branch diffs or GitHub PRs and show the findings inside difit with `--comment`. Use when the user asks to review `main` vs a feature branch, compare two commits or branches, or inspect a PR and wants the results preloaded as local difit comments instead of posted back to GitHub.
+description: Review a specific diff, then show the findings as comments inside difit (the diff viewer). Use when the user asks to review a branch diff, commit diff, or GitHub PR and wants the pointed-out issues preloaded into difit with `--comment`.
 ---
 
 # Difit Review
