@@ -17,13 +17,20 @@ vi.mock('./utils.js', async () => {
     findUntrackedFiles: vi.fn(),
     markFilesIntentToAdd: vi.fn(),
     getPrPatch: vi.fn(),
+    getPrCommentImports: vi.fn(),
   };
 });
 
 const { simpleGit } = await import('simple-git');
 const { startServer } = await import('../server/server.js');
-const { promptUser, findUntrackedFiles, markFilesIntentToAdd, getPrPatch, parseCommentOptions } =
-  await import('./utils.js');
+const {
+  promptUser,
+  findUntrackedFiles,
+  markFilesIntentToAdd,
+  getPrPatch,
+  getPrCommentImports,
+  parseCommentOptions,
+} = await import('./utils.js');
 
 describe('CLI index.ts', () => {
   let mockGit: any;
@@ -32,11 +39,13 @@ describe('CLI index.ts', () => {
   let mockFindUntrackedFiles: any;
   let mockMarkFilesIntentToAdd: any;
   let mockGetPrPatch: any;
+  let mockGetPrCommentImports: any;
   let actualParseCommentOptions: typeof parseCommentOptions;
 
   // Store original console methods
   let originalConsoleLog: any;
   let originalConsoleError: any;
+  let originalConsoleWarn: any;
   let originalProcessExit: any;
 
   beforeEach(() => {
@@ -58,15 +67,19 @@ describe('CLI index.ts', () => {
     mockFindUntrackedFiles = vi.mocked(findUntrackedFiles);
     mockMarkFilesIntentToAdd = vi.mocked(markFilesIntentToAdd);
     mockGetPrPatch = vi.mocked(getPrPatch);
+    mockGetPrCommentImports = vi.mocked(getPrCommentImports);
+    mockGetPrCommentImports.mockResolvedValue([]);
     actualParseCommentOptions = parseCommentOptions;
 
     // Mock console and process.exit
     originalConsoleLog = console.log;
     originalConsoleError = console.error;
+    originalConsoleWarn = console.warn;
     originalProcessExit = process.exit;
 
     console.log = vi.fn();
     console.error = vi.fn();
+    console.warn = vi.fn();
     process.exit = vi.fn() as any;
 
     // Reset all mocks
@@ -77,6 +90,7 @@ describe('CLI index.ts', () => {
     // Restore original methods
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
+    console.warn = originalConsoleWarn;
     process.exit = originalProcessExit;
   });
 
@@ -466,16 +480,45 @@ describe('CLI index.ts', () => {
   });
 
   describe('GitHub PR integration', () => {
-    it('loads PR patch with gh and starts server with stdin diff', async () => {
+    it('loads PR patch, appends manual comments after PR imports, and starts server with stdin diff', async () => {
       const prUrl = 'https://github.com/owner/repo/pull/123';
       const prPatch = 'diff --git a/file.ts b/file.ts\nindex 1111111..2222222 100644\n';
+      const prCommentImports = [
+        {
+          type: 'thread' as const,
+          id: 'PR_COMMENT_1',
+          filePath: 'src/example.ts',
+          position: { side: 'new' as const, line: 10 },
+          body: 'Imported PR thread',
+          author: 'octocat',
+          createdAt: '2026-03-25T09:00:00Z',
+          updatedAt: '2026-03-25T09:05:00Z',
+        },
+        {
+          type: 'reply' as const,
+          id: 'PR_COMMENT_2',
+          filePath: 'src/example.ts',
+          position: { side: 'new' as const, line: 10 },
+          body: 'Imported PR reply',
+          author: 'hubot',
+          createdAt: '2026-03-25T09:10:00Z',
+          updatedAt: '2026-03-25T09:12:00Z',
+        },
+      ];
       mockGetPrPatch.mockReturnValue(prPatch);
+      mockGetPrCommentImports.mockResolvedValue(prCommentImports);
 
       const program = new Command();
 
       program
         .argument('[commit-ish]', 'commit-ish', 'HEAD')
         .argument('[compare-with]', 'compare-with')
+        .option(
+          '--comment <json>',
+          'comment',
+          (value: string, previous: string[] = []) => [...previous, value],
+          [],
+        )
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
@@ -483,10 +526,104 @@ describe('CLI index.ts', () => {
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          const manualCommentImports = actualParseCommentOptions(options.comment);
+          let commentImports = manualCommentImports;
+
           if (options.pr) {
             if (commitish !== 'HEAD' || _compareWith) {
               console.error('Error: --pr option cannot be used with positional arguments');
               process.exit(1);
+            }
+
+            const importedPrComments = await getPrCommentImports(options.pr);
+            commentImports = [...importedPrComments, ...manualCommentImports];
+          }
+
+          await startServer({
+            stdinDiff: getPrPatch(options.pr),
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            commentImports,
+          });
+        });
+
+      await program.parseAsync(
+        [
+          '--pr',
+          prUrl,
+          '--comment',
+          '{"type":"reply","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"Manual reply"}',
+        ],
+        { from: 'user' },
+      );
+
+      expect(mockGetPrPatch).toHaveBeenCalledWith(prUrl);
+      expect(mockGetPrCommentImports).toHaveBeenCalledWith(prUrl);
+      expect(mockStartServer).toHaveBeenCalledWith({
+        stdinDiff: prPatch,
+        preferredPort: undefined,
+        host: '',
+        openBrowser: true,
+        mode: 'split',
+        commentImports: [
+          ...prCommentImports,
+          {
+            type: 'reply',
+            id: undefined,
+            filePath: 'src/example.ts',
+            position: { side: 'new', line: 10 },
+            body: 'Manual reply',
+            author: undefined,
+            createdAt: undefined,
+            updatedAt: undefined,
+            codeSnapshot: undefined,
+          },
+        ],
+      });
+    });
+
+    it('continues with patch only when PR comment import fetch fails', async () => {
+      const prUrl = 'https://github.com/owner/repo/pull/123';
+      const prPatch = 'diff --git a/file.ts b/file.ts\nindex 1111111..2222222 100644\n';
+      mockGetPrPatch.mockReturnValue(prPatch);
+      mockGetPrCommentImports.mockRejectedValue(new Error('gh api graphql failed'));
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option(
+          '--comment <json>',
+          'comment',
+          (value: string, previous: string[] = []) => [...previous, value],
+          [],
+        )
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--tui', 'tui')
+        .option('--pr <url>', 'pr')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          const manualCommentImports = actualParseCommentOptions(options.comment);
+          let commentImports = manualCommentImports;
+
+          if (options.pr) {
+            if (commitish !== 'HEAD' || _compareWith) {
+              console.error('Error: --pr option cannot be used with positional arguments');
+              process.exit(1);
+            }
+
+            try {
+              const importedPrComments = await getPrCommentImports(options.pr);
+              commentImports = [...importedPrComments, ...manualCommentImports];
+            } catch (error) {
+              console.warn(
+                `Warning: Failed to load PR review comments: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              );
             }
           }
 
@@ -496,12 +633,15 @@ describe('CLI index.ts', () => {
             host: options.host,
             openBrowser: options.open,
             mode: options.mode,
+            ...(commentImports.length > 0 ? { commentImports } : {}),
           });
         });
 
       await program.parseAsync(['--pr', prUrl], { from: 'user' });
 
-      expect(mockGetPrPatch).toHaveBeenCalledWith(prUrl);
+      expect(console.warn).toHaveBeenCalledWith(
+        'Warning: Failed to load PR review comments: gh api graphql failed',
+      );
       expect(mockStartServer).toHaveBeenCalledWith({
         stdinDiff: prPatch,
         preferredPort: undefined,

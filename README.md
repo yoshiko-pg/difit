@@ -73,6 +73,7 @@ difit --pr https://github.com/owner/repo/pull/123
 ```
 
 `--pr` mode fetches patches by running `gh pr diff --patch` under the hood.
+It also imports unresolved inline review threads from the PR so they appear as startup comments in difit.
 
 Authentication is handled by GitHub CLI:
 

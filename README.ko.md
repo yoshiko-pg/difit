@@ -73,6 +73,7 @@ difit --pr https://github.com/owner/repo/pull/123
 ```
 
 `--pr` 모드는 내부적으로 `gh pr diff --patch`를 실행해 패치를 가져옵니다.
+추가로 PR의 unresolved inline review thread도 시작 코멘트로 가져와 difit에서 그대로 표시합니다.
 
 인증은 GitHub CLI가 처리합니다:
 
