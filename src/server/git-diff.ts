@@ -1,4 +1,5 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
+import { isAbsolute, resolve, sep } from 'path';
 
 import { validateDiffArguments, shortHash, createCommitRangeString } from '../cli/utils.js';
 import { type DiffFile, type DiffChunk, type DiffLine, type DiffResponse } from '../types/diff.js';
@@ -15,6 +16,26 @@ export class GitDiffParser {
   constructor(repoPath = process.cwd()) {
     this.repoPath = repoPath;
     this.git = simpleGit(repoPath);
+  }
+
+  private normalizeRepositoryRelativePath(filepath: string): string {
+    if (filepath.length === 0) {
+      throw new Error('Invalid file path');
+    }
+
+    const normalizedFilepath = filepath.replace(/\\/g, '/');
+    const hasParentTraversal = normalizedFilepath.split('/').some((segment) => segment === '..');
+    if (isAbsolute(filepath) || normalizedFilepath.startsWith('/') || hasParentTraversal) {
+      throw new Error('File path outside repository');
+    }
+
+    const repositoryPath = resolve(this.repoPath);
+    const resolvedPath = resolve(repositoryPath, normalizedFilepath);
+    if (resolvedPath !== repositoryPath && !resolvedPath.startsWith(`${repositoryPath}${sep}`)) {
+      throw new Error('File path outside repository');
+    }
+
+    return normalizedFilepath;
   }
 
   async parseDiff(
@@ -403,13 +424,12 @@ export class GitDiffParser {
 
   async getBlobContent(filepath: string, ref: string): Promise<Buffer> {
     try {
+      const normalizedFilepath = this.normalizeRepositoryRelativePath(filepath);
+
       // For working directory, read directly from filesystem
       if (ref === 'working' || ref === '.') {
         const fs = await import('fs');
-        const path = await import('path');
-        const absolutePath = path.isAbsolute(filepath)
-          ? filepath
-          : path.resolve(this.repoPath, filepath);
+        const absolutePath = resolve(this.repoPath, normalizedFilepath);
         return fs.readFileSync(absolutePath);
       }
 
@@ -421,7 +441,7 @@ export class GitDiffParser {
       if (ref === 'staged') {
         // For staged files, use git show :filepath
         // Using execFileSync to prevent command injection
-        const buffer = execFileSync('git', ['show', `:${filepath}`], {
+        const buffer = execFileSync('git', ['show', `:${normalizedFilepath}`], {
           maxBuffer: 10 * 1024 * 1024, // 10MB limit
         });
         return buffer;
@@ -429,7 +449,7 @@ export class GitDiffParser {
 
       // First, get the blob hash for the file at the given ref
       // Using execFileSync to prevent command injection
-      const blobHash = execFileSync('git', ['rev-parse', `${ref}:${filepath}`], {
+      const blobHash = execFileSync('git', ['rev-parse', `${ref}:${normalizedFilepath}`], {
         encoding: 'utf8',
         maxBuffer: 10 * 1024 * 1024,
       }).trim();
@@ -448,6 +468,13 @@ export class GitDiffParser {
         (error.message.includes('ENOBUFS') || error.message.includes('maxBuffer'))
       ) {
         throw new Error(`Image file ${filepath} is too large to display (over 10MB limit)`);
+      }
+
+      if (
+        error instanceof Error &&
+        (error.message === 'Invalid file path' || error.message === 'File path outside repository')
+      ) {
+        throw error;
       }
 
       throw new Error(

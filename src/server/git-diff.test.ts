@@ -136,6 +136,30 @@ describe('GitDiffParser', () => {
         'Failed to get blob content for missing.txt at HEAD: fatal: Path does not exist',
       );
     });
+
+    it('rejects working tree paths outside the repository', async () => {
+      await expect(parser.getBlobContent('../outside.txt', 'working')).rejects.toThrow(
+        'File path outside repository',
+      );
+
+      expect(mockReadFileSync).not.toHaveBeenCalled();
+    });
+
+    it('rejects absolute working tree paths', async () => {
+      await expect(parser.getBlobContent('/etc/passwd', 'working')).rejects.toThrow(
+        'File path outside repository',
+      );
+
+      expect(mockReadFileSync).not.toHaveBeenCalled();
+    });
+
+    it('rejects git ref paths outside the repository before invoking git', async () => {
+      await expect(parser.getBlobContent('../outside.txt', 'HEAD')).rejects.toThrow(
+        'File path outside repository',
+      );
+
+      expect(mockExecFileSync).not.toHaveBeenCalled();
+    });
   });
 
   describe('parseFileBlock with binary files', () => {
