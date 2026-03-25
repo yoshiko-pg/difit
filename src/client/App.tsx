@@ -802,7 +802,7 @@ function App() {
               <button
                 onClick={() => setIsSettingsOpen(true)}
                 className="p-2 text-github-text-secondary hover:text-github-text-primary hover:bg-github-bg-tertiary rounded transition-colors"
-                title="Appearance Settings"
+                title="Settings"
               >
                 <Settings size={18} />
               </button>
