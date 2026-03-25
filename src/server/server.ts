@@ -436,6 +436,8 @@ export async function startServer(
   });
 
   app.get('/api/comments-output', (_req, res) => {
+    res.type('text/plain');
+
     if (finalThreads.length > 0) {
       const output = formatCommentsOutput(finalThreads);
       res.send(output);
