@@ -1,9 +1,9 @@
 ---
-name: difit-review-comments
+name: difit-review
 description: Review branch diffs or GitHub PRs in the difit repository and show the findings inside difit with `--comment`. Use when the user asks to review `main` vs a feature branch, compare two commits or branches, or inspect a PR and wants the results preloaded as local difit comments instead of posted back to GitHub.
 ---
 
-# Difit Review Comments
+# Difit Review
 
 ## Overview
 
@@ -25,7 +25,7 @@ Keep the normal assistant response focused on findings first. Use difit comments
    - Use `position.side: "old"` for deleted-only lines.
    - Use a line range only when the issue genuinely spans multiple adjacent lines.
    - Keep `body` self-contained: state the risk and the reason it is wrong or incomplete.
-4. Start difit with `--keep-alive` so the user can inspect the findings without the server shutting down on disconnect.
+4. Start difit so the user can inspect the findings in the UI.
 5. If there are no findings, say so explicitly and still launch difit when the user asked to view the diff in difit.
 
 ## Command Rules
@@ -40,13 +40,13 @@ Keep the normal assistant response focused on findings first. Use difit comments
 Review a branch or commit diff:
 
 ```bash
-pnpm run dev <target> [compare-with] --keep-alive --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
+pnpm run dev <target> [compare-with] --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
 ```
 
 Review a PR:
 
 ```bash
-pnpm run dev --pr <url> --keep-alive --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
+pnpm run dev --pr <url> --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
 ```
 
 ## Comment Shape
