@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { HotkeysProvider } from 'react-hotkeys-hook';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom';
@@ -32,10 +32,14 @@ vi.mock('./hooks/useDiffComments', () => ({
 
 // Mock the useViewedFiles hook
 const mockClearViewedFiles = vi.fn();
+const mockToggleFileViewed = vi.fn();
+let mockViewedFiles = new Set<string>();
+let mockHasLoadedInitialViewedFiles = true;
 vi.mock('./hooks/useViewedFiles', () => ({
   useViewedFiles: vi.fn(() => ({
-    viewedFiles: new Set<string>(),
-    toggleFileViewed: vi.fn(),
+    viewedFiles: mockViewedFiles,
+    hasLoadedInitialViewedFiles: mockHasLoadedInitialViewedFiles,
+    toggleFileViewed: mockToggleFileViewed,
     isFileContentChanged: vi.fn(),
     getViewedFileRecord: vi.fn(),
     clearViewedFiles: mockClearViewedFiles,
@@ -120,6 +124,8 @@ beforeEach(() => {
   window.localStorage.clear();
   vi.unstubAllEnvs();
   MockEventSource.clearInstances();
+  mockViewedFiles = new Set<string>();
+  mockHasLoadedInitialViewedFiles = true;
 });
 
 const mockDiffResponse: DiffResponse = {
@@ -320,6 +326,41 @@ describe('App Component - Heartbeat Connection', () => {
 
     await waitFor(() => {
       expect(MockEventSource.instances[0]?.url).toBe('http://localhost:4969/api/heartbeat');
+    });
+  });
+});
+
+describe('App Component - Initial file collapsing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockConfirm.mockReturnValue(false);
+    mockFetch(mockDiffResponse);
+    mockViewedFiles = new Set<string>();
+    mockHasLoadedInitialViewedFiles = false;
+  });
+
+  it('collapses initially viewed files after viewed state finishes loading', async () => {
+    const view = renderApp();
+
+    await waitFor(() => {
+      expect(screen.getByTitle('Collapse file (Alt+Click to collapse all)')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTitle('Collapse file (Alt+Click to collapse all)')).toBeInTheDocument();
+
+    act(() => {
+      mockViewedFiles = new Set(['test.ts']);
+      mockHasLoadedInitialViewedFiles = true;
+      view.rerender(
+        <HotkeysProvider initiallyActiveScopes={['navigation']}>
+          <App />
+        </HotkeysProvider>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTitle('Expand file (Alt+Click to expand all)')).toBeInTheDocument();
     });
   });
 });

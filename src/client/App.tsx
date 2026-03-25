@@ -179,28 +179,34 @@ function App() {
   const showMobileCommentsBar = isMobile && comments.length > 0;
 
   // Viewed files management
-  const { viewedFiles, toggleFileViewed, clearViewedFiles } = useViewedFiles(
-    diffData?.baseCommitish,
-    diffData?.targetCommitish,
-    diffData?.commit,
-    undefined,
-    diffData?.files,
-    diffData?.repositoryId, // Repository identifier for storage isolation
-    settings.autoViewedPatterns,
-  );
+  const { viewedFiles, hasLoadedInitialViewedFiles, toggleFileViewed, clearViewedFiles } =
+    useViewedFiles(
+      diffData?.baseCommitish,
+      diffData?.targetCommitish,
+      diffData?.commit,
+      undefined,
+      diffData?.files,
+      diffData?.repositoryId, // Repository identifier for storage isolation
+      settings.autoViewedPatterns,
+    );
 
   // Reset initialization flag when diff context changes
   useEffect(() => {
     collapsedInitializedRef.current = false;
-  }, [diffData?.repositoryId, diffData?.commit]);
+  }, [
+    diffData?.repositoryId,
+    diffData?.baseCommitish,
+    diffData?.targetCommitish,
+    diffData?.commit,
+  ]);
 
   // Initialize collapsed files from viewed files (only once per diff)
   useEffect(() => {
-    if (!collapsedInitializedRef.current) {
+    if (!collapsedInitializedRef.current && hasLoadedInitialViewedFiles) {
       setCollapsedFiles(new Set(viewedFiles));
       collapsedInitializedRef.current = true;
     }
-  }, [viewedFiles]);
+  }, [viewedFiles, hasLoadedInitialViewedFiles]);
   const {
     renderedFilePaths,
     ensureFileRendered,

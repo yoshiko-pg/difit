@@ -7,6 +7,7 @@ import { generateDiffHash, getDiffContentForHashing } from '../utils/diffUtils';
 
 interface UseViewedFilesReturn {
   viewedFiles: Set<string>; // Set of file paths
+  hasLoadedInitialViewedFiles: boolean;
   toggleFileViewed: (filePath: string, diffFile: DiffFile) => Promise<void>;
   isFileContentChanged: (filePath: string, diffFile: DiffFile) => Promise<boolean>;
   getViewedFileRecord: (filePath: string) => ViewedFileRecord | undefined;
@@ -23,11 +24,20 @@ export function useViewedFiles(
   autoViewedPatterns: string[] = [],
 ): UseViewedFilesReturn {
   const [viewedFileRecords, setViewedFileRecords] = useState<ViewedFileRecord[]>([]);
+  const [loadedViewedFilesKey, setLoadedViewedFilesKey] = useState<string | null>(null);
   const [fileHashes, setFileHashes] = useState<Map<string, string>>(new Map());
+  const viewedFilesKey =
+    baseCommitish && targetCommitish
+      ? `${repositoryId ?? 'default'}:${baseCommitish}:${targetCommitish}:${currentCommitHash ?? 'no-commit'}`
+      : null;
+  const hasLoadedInitialViewedFiles =
+    viewedFilesKey !== null && loadedViewedFilesKey === viewedFilesKey;
 
   // Load viewed files from storage and auto-mark configured/generated files
   useEffect(() => {
-    if (!baseCommitish || !targetCommitish) return;
+    if (!baseCommitish || !targetCommitish || !viewedFilesKey) return;
+
+    let cancelled = false;
 
     const loadedFiles = storageService.getViewedFiles(
       baseCommitish,
@@ -83,17 +93,33 @@ export function useViewedFiles(
             branchToHash,
             repositoryId,
           );
-          setViewedFileRecords(updatedRecords);
+          if (!cancelled) {
+            setViewedFileRecords(updatedRecords);
+            setLoadedViewedFilesKey(viewedFilesKey);
+          }
           return;
         }
       }
 
-      setViewedFileRecords(loadedFiles);
+      if (!cancelled) {
+        setViewedFileRecords(loadedFiles);
+        setLoadedViewedFilesKey(viewedFilesKey);
+      }
     };
 
     void processAutoCollapsedFiles();
+    return () => {
+      cancelled = true;
+    };
     // oxlint-disable-next-line react/exhaustive-deps
-  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]); // initialFiles and autoViewedPatterns intentionally omitted to run only on diff init
+  }, [
+    baseCommitish,
+    targetCommitish,
+    currentCommitHash,
+    branchToHash,
+    repositoryId,
+    viewedFilesKey,
+  ]); // initialFiles and autoViewedPatterns intentionally omitted to run only on diff init
 
   // Save viewed files to storage
   const saveViewedFiles = useCallback(
@@ -186,6 +212,7 @@ export function useViewedFiles(
 
   return {
     viewedFiles,
+    hasLoadedInitialViewedFiles,
     toggleFileViewed,
     isFileContentChanged,
     getViewedFileRecord,
