@@ -102,6 +102,29 @@ export async function startServer(
   let currentBaseCommitish = options.baseCommitish ?? '';
   let currentTargetCommitish = options.targetCommitish ?? '';
 
+  function parseRepositoryRelativePath(
+    filepath: unknown,
+  ):
+    | { ok: true; path: string }
+    | { ok: false; error: 'Invalid file path' | 'File path outside repository' } {
+    if (typeof filepath !== 'string' || filepath.length === 0) {
+      return { ok: false, error: 'Invalid file path' };
+    }
+
+    const normalizedFilepath = filepath.replace(/\\/g, '/');
+    const hasParentTraversal = normalizedFilepath.split('/').some((segment) => segment === '..');
+    if (isAbsolute(filepath) || normalizedFilepath.startsWith('/') || hasParentTraversal) {
+      return { ok: false, error: 'File path outside repository' };
+    }
+
+    const resolvedPath = resolve(repositoryPath, normalizedFilepath);
+    if (resolvedPath !== repositoryPath && !resolvedPath.startsWith(`${repositoryPath}${sep}`)) {
+      return { ok: false, error: 'File path outside repository' };
+    }
+
+    return { ok: true, path: normalizedFilepath };
+  }
+
   app.get('/api/diff', async (req, res) => {
     const ignoreWhitespace = req.query.ignoreWhitespace === 'true';
     const requestedBase = (req.query.base as string) || options.baseCommitish || '';
@@ -173,24 +196,12 @@ export async function startServer(
     }
 
     try {
-      const filepath = req.params[0];
-      if (typeof filepath !== 'string' || filepath.length === 0) {
-        res.status(400).json({ error: 'Invalid file path' });
+      const filepathResult = parseRepositoryRelativePath(req.params[0]);
+      if (!filepathResult.ok) {
+        res.status(400).json({ error: filepathResult.error });
         return;
       }
-
-      const normalizedFilepath = filepath.replace(/\\/g, '/');
-      const hasParentTraversal = normalizedFilepath.split('/').some((segment) => segment === '..');
-      if (isAbsolute(filepath) || normalizedFilepath.startsWith('/') || hasParentTraversal) {
-        res.status(400).json({ error: 'File path outside repository' });
-        return;
-      }
-
-      const resolvedPath = resolve(repositoryPath, normalizedFilepath);
-      if (resolvedPath !== repositoryPath && !resolvedPath.startsWith(`${repositoryPath}${sep}`)) {
-        res.status(400).json({ error: 'File path outside repository' });
-        return;
-      }
+      const normalizedFilepath = filepathResult.path;
 
       const ref = (req.query.ref as string) || currentTargetCommitish || 'HEAD';
       const cacheKey = `${ref}:${normalizedFilepath}`;
@@ -258,10 +269,22 @@ export async function startServer(
         return;
       }
 
-      const filepath = req.params[0];
+      const filepathResult = parseRepositoryRelativePath(req.params[0]);
+      if (!filepathResult.ok) {
+        res.status(400).json({ error: filepathResult.error });
+        return;
+      }
+      const filepath = filepathResult.path;
       const oldRef = req.query.oldRef as string | undefined;
+      const oldPathResult = req.query.oldPath
+        ? parseRepositoryRelativePath(req.query.oldPath)
+        : { ok: true as const, path: filepath };
+      if (!oldPathResult.ok) {
+        res.status(400).json({ error: oldPathResult.error });
+        return;
+      }
       const newRef = req.query.newRef as string | undefined;
-      const oldPath = (req.query.oldPath as string | undefined) || filepath;
+      const oldPath = oldPathResult.path;
 
       const result: { oldLineCount?: number; newLineCount?: number } = {};
 
@@ -295,7 +318,12 @@ export async function startServer(
         return;
       }
 
-      const filepath = req.params[0];
+      const filepathResult = parseRepositoryRelativePath(req.params[0]);
+      if (!filepathResult.ok) {
+        res.status(400).json({ error: filepathResult.error });
+        return;
+      }
+      const filepath = filepathResult.path;
       const ref = (req.query.ref as string) || 'HEAD';
 
       const blob = await parser.getBlobContent(filepath, ref);
@@ -433,13 +461,12 @@ export async function startServer(
       return;
     }
 
-    const repoRoot = resolve(options.repoPath ?? process.cwd());
-    const resolvedPath = resolve(repoRoot, filePath);
-
-    if (resolvedPath !== repoRoot && !resolvedPath.startsWith(`${repoRoot}${sep}`)) {
-      res.status(400).json({ error: 'File path outside repository' });
+    const filepathResult = parseRepositoryRelativePath(filePath);
+    if (!filepathResult.ok) {
+      res.status(400).json({ error: filepathResult.error });
       return;
     }
+    const resolvedPath = resolve(repositoryPath, filepathResult.path);
 
     const editorInput =
       typeof editor === 'string' ? editor : (process.env.DIFIT_EDITOR ?? process.env.EDITOR);
@@ -467,7 +494,7 @@ export async function startServer(
       } else {
         args.push(resolvedPath);
       }
-      args.push(repoRoot);
+      args.push(repositoryPath);
 
       return await new Promise<boolean>((resolvePromise) => {
         const child = spawn(resolvedEditor.cliCommand, args, { stdio: 'ignore', detached: true });
