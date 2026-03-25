@@ -2,18 +2,8 @@ name: Keyboard Navigation Benchmark
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'src/**'
-      - 'scripts/**'
-      - '.github/workflows/performance.yml'
-  merge_group:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'scripts/**'
-      - '.github/workflows/performance.yml'
-    types: [checks_requested]
+    types: [opened, synchronize, reopened]
 
 jobs:
   performance-test:
@@ -27,29 +17,46 @@ jobs:
       PERF_DIFF_SEED: performance-ci-medium-v1
 
     steps:
+      - name: Checkout head branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          path: head
+
+      - name: Detect benchmark changes
+        id: changes
+        working-directory: head
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD \
+            | grep -Eq '^(src/|scripts/|\.github/workflows/performance\.yml$)'; then
+            echo "run_benchmark=true" >> $GITHUB_OUTPUT
+          else
+            echo "run_benchmark=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
+        if: steps.changes.outputs.run_benchmark == 'true'
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: '21'
 
       - name: Install pnpm
+        if: steps.changes.outputs.run_benchmark == 'true'
         uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
         with:
           version: 10.30.3
 
-      - name: Checkout head branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          path: head
-
       - name: Checkout base branch
+        if: steps.changes.outputs.run_benchmark == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Merge queue runs target main; pull requests compare against the exact base SHA.
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'main' }}
+          ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
       - name: Get Playwright version
+        if: steps.changes.outputs.run_benchmark == 'true'
         id: playwright-version
         working-directory: head
         run: |
@@ -57,6 +64,7 @@ jobs:
           echo "version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
+        if: steps.changes.outputs.run_benchmark == 'true'
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/.cache/ms-playwright
@@ -66,28 +74,33 @@ jobs:
             playwright-browsers-
 
       - name: Setup head branch
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: head
         run: |
           pnpm install --frozen-lockfile
           pnpm build
 
       - name: Install Playwright browsers
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: head
         run: pnpm exec playwright install chromium
 
       - name: Setup base branch
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: base
         run: |
           pnpm install --frozen-lockfile
           pnpm build
 
       - name: Generate deterministic benchmark input
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: head
         run: |
           mkdir -p ../performance-inputs
           node scripts/generate-large-diff.js --size "$PERF_SIZE" --seed "$PERF_DIFF_SEED" > ../performance-inputs/perf-"$PERF_SIZE".diff
 
       - name: Run base benchmark round 1
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: base
         run: |
           node ../head/scripts/measure-performance.js \
@@ -100,6 +113,7 @@ jobs:
             --difit-path ../base/dist/cli/index.js
 
       - name: Run head benchmark round 1
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: head
         run: |
           node scripts/measure-performance.js \
@@ -111,6 +125,7 @@ jobs:
             --memo "ci round 1 (head second)"
 
       - name: Run head benchmark round 2
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: head
         run: |
           node scripts/measure-performance.js \
@@ -122,6 +137,7 @@ jobs:
             --memo "ci round 2 (head first)"
 
       - name: Run base benchmark round 2
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: base
         run: |
           node ../head/scripts/measure-performance.js \
@@ -134,6 +150,7 @@ jobs:
             --difit-path ../base/dist/cli/index.js
 
       - name: Merge benchmark results
+        if: steps.changes.outputs.run_benchmark == 'true'
         working-directory: head
         run: |
           node scripts/merge-performance-results.js \
@@ -146,6 +163,7 @@ jobs:
             performance-results/head-round-2.json
 
       - name: Compare performance
+        if: steps.changes.outputs.run_benchmark == 'true'
         id: compare
         working-directory: head
         run: |
@@ -175,3 +193,7 @@ jobs:
         run: |
           echo "::warning::Performance has degraded by ${{ steps.compare.outputs.change_percent }}%"
           exit 1
+
+      - name: Skip benchmark
+        if: steps.changes.outputs.run_benchmark != 'true'
+        run: echo "No benchmark-relevant changes detected."
