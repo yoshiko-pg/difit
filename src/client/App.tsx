@@ -668,6 +668,14 @@ function App() {
     }
   };
 
+  const handleReplyToThread = useCallback(
+    (threadId: string, body: string): Promise<void> => {
+      replyToThread({ threadId, body });
+      return Promise.resolve();
+    },
+    [replyToThread],
+  );
+
   const handleNavigateToComment = (thread: CommentThread) => {
     if (!diffData) return;
 
@@ -1061,10 +1069,7 @@ function App() {
                       onAddComment={handleAddComment}
                       onGenerateThreadPrompt={handleGenerateThreadPrompt}
                       onRemoveThread={removeThread}
-                      onReplyToThread={(threadId, body) => {
-                        replyToThread({ threadId, body });
-                        return Promise.resolve();
-                      }}
+                      onReplyToThread={handleReplyToThread}
                       onRemoveMessage={removeMessage}
                       onUpdateMessage={updateMessage}
                       onOpenInEditor={canOpenInEditor ? handleOpenInEditor : undefined}
@@ -1144,10 +1149,7 @@ function App() {
           showAuthorBadges={showAuthorBadges}
           onRemoveThread={removeThread}
           onGenerateThreadPrompt={handleGenerateThreadPrompt}
-          onReplyToThread={(threadId, body) => {
-            replyToThread({ threadId, body });
-            return Promise.resolve();
-          }}
+          onReplyToThread={handleReplyToThread}
           onRemoveMessage={removeMessage}
           onUpdateMessage={updateMessage}
           syntaxTheme={settings.syntaxTheme}
