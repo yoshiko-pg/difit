@@ -77,17 +77,97 @@ function ThreadMessageItem({
 
   return (
     <div
-      className={`relative min-w-0 pr-28 ${isEditing ? 'rounded-md border border-github-border bg-github-bg-secondary p-3' : ''}`}
+      className={
+        isEditing
+          ? 'relative min-w-0 rounded-md border border-github-border bg-github-bg-secondary p-3 pr-28'
+          : 'flex min-w-0 items-start gap-3'
+      }
       onClick={onClick}
     >
-      {showAuthorHeader && (
-        <div className="mb-2 flex min-w-0 items-center gap-2 pr-2 text-xs text-github-text-secondary">
-          <span className="inline-flex items-center rounded-full border border-github-border bg-github-bg-primary px-2 py-0.5 text-[11px] font-medium text-github-text-primary">
-            {message.author}
-          </span>
-        </div>
-      )}
-      <div className="absolute right-3 top-3 flex items-center gap-2">
+      <div className="min-w-0 flex-1">
+        {showAuthorHeader && (
+          <div className="mb-2 flex min-w-0 items-center gap-2 pr-2 text-xs text-github-text-secondary">
+            <span className="inline-flex items-center rounded-full border border-github-border bg-github-bg-primary px-2 py-0.5 text-[11px] font-medium text-github-text-primary">
+              {message.author}
+            </span>
+          </div>
+        )}
+
+        {!isEditing ? (
+          <CommentBodyRenderer
+            body={message.body}
+            originalCode={originalCode}
+            filename={filename}
+            syntaxTheme={syntaxTheme}
+          />
+        ) : hasSuggestionInEditedBody && effectiveEditMode === 'preview' ? (
+          <CommentBodyRenderer
+            body={editedBody}
+            originalCode={originalCode}
+            filename={filename}
+            syntaxTheme={syntaxTheme}
+          />
+        ) : (
+          <div>
+            {!hasSuggestionInEditedBody && (
+              <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                <SuggestionTemplateButton
+                  selectedCode={originalCode}
+                  value={editedBody}
+                  onChange={setEditedBody}
+                  textareaRef={textareaRef}
+                />
+              </div>
+            )}
+            <textarea
+              ref={textareaRef}
+              value={editedBody}
+              onChange={(e) => setEditedBody(e.target.value)}
+              className="w-full resize-none rounded border border-github-border bg-github-bg-primary px-2 py-1 text-sm leading-6 text-github-text-primary focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30"
+              rows={Math.max(2, editedBody.split('\n').length)}
+              placeholder="Edit your message..."
+              autoFocus
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                handleKeyDown(e);
+              }}
+            />
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCancelEdit();
+                }}
+                className="rounded border border-github-border bg-github-bg-tertiary px-3 py-1.5 text-xs text-github-text-primary transition-all hover:opacity-80"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleSaveEdit(e)}
+                className="rounded px-3 py-1.5 text-xs transition-all"
+                style={{
+                  backgroundColor: 'var(--color-yellow-btn-bg)',
+                  color: 'var(--color-yellow-btn-text)',
+                  border: '1px solid var(--color-yellow-btn-border)',
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div
+        className={
+          isEditing
+            ? 'absolute right-3 top-3 flex items-center gap-2'
+            : 'flex shrink-0 items-start gap-2 pt-0.5'
+        }
+      >
         {!isEditing ? (
           <>
             <button
@@ -142,73 +222,6 @@ function ThreadMessageItem({
           )
         )}
       </div>
-
-      {!isEditing ? (
-        <CommentBodyRenderer
-          body={message.body}
-          originalCode={originalCode}
-          filename={filename}
-          syntaxTheme={syntaxTheme}
-        />
-      ) : hasSuggestionInEditedBody && effectiveEditMode === 'preview' ? (
-        <CommentBodyRenderer
-          body={editedBody}
-          originalCode={originalCode}
-          filename={filename}
-          syntaxTheme={syntaxTheme}
-        />
-      ) : (
-        <div>
-          {!hasSuggestionInEditedBody && (
-            <div className="mb-2" onClick={(e) => e.stopPropagation()}>
-              <SuggestionTemplateButton
-                selectedCode={originalCode}
-                value={editedBody}
-                onChange={setEditedBody}
-                textareaRef={textareaRef}
-              />
-            </div>
-          )}
-          <textarea
-            ref={textareaRef}
-            value={editedBody}
-            onChange={(e) => setEditedBody(e.target.value)}
-            className="w-full resize-none rounded border border-github-border bg-github-bg-primary px-2 py-1 text-sm leading-6 text-github-text-primary focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30"
-            rows={Math.max(2, editedBody.split('\n').length)}
-            placeholder="Edit your message..."
-            autoFocus
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              handleKeyDown(e);
-            }}
-          />
-          <div className="mt-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCancelEdit();
-              }}
-              className="rounded border border-github-border bg-github-bg-tertiary px-3 py-1.5 text-xs text-github-text-primary transition-all hover:opacity-80"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={(e) => handleSaveEdit(e)}
-              className="rounded px-3 py-1.5 text-xs transition-all"
-              style={{
-                backgroundColor: 'var(--color-yellow-btn-bg)',
-                color: 'var(--color-yellow-btn-text)',
-                border: '1px solid var(--color-yellow-btn-border)',
-              }}
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
