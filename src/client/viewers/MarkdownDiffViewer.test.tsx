@@ -88,6 +88,22 @@ const mermaidChunks: MergedChunk[] = [
   },
 ];
 
+const htmlCommentChunks: MergedChunk[] = [
+  {
+    header: '@@ -1 +1 @@',
+    oldStart: 1,
+    oldLines: 1,
+    newStart: 1,
+    newLines: 1,
+    lines: [
+      { type: 'context', content: '  <!-- hidden note -->  ', oldLineNumber: 1, newLineNumber: 1 },
+    ],
+    originalIndices: [0],
+    hiddenLinesBefore: 0,
+    hiddenLinesAfter: 0,
+  },
+];
+
 const setMatchMedia = (matches: boolean) => {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -177,6 +193,19 @@ describe('MarkdownDiffViewer', () => {
     });
 
     expect(container.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('renders comment-only markdown lines as plain text in Diff Preview', () => {
+    renderViewer({ mergedChunks: htmlCommentChunks });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'PRE' && element.textContent === '<!-- hidden note -->',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('renders Mermaid diagrams in Full Preview', async () => {
