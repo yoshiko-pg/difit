@@ -77,7 +77,7 @@ function ThreadMessageItem({
 
   return (
     <div
-      className="relative rounded-md border border-github-border bg-github-bg-secondary p-3 pr-28"
+      className={`relative min-w-0 pr-28 ${isEditing ? 'rounded-md border border-github-border bg-github-bg-secondary p-3' : ''}`}
       onClick={onClick}
     >
       {showAuthorHeader && (
