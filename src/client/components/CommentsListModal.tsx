@@ -60,7 +60,7 @@ export function CommentsListModal({
   const handleDeleteThread = useCallback(
     (thread: CommentThread) => {
       const preview = thread.messages[0]?.body || '';
-      if (confirm(`Delete this thread?\n\n"${preview}"`)) {
+      if (confirm(`Resolve this thread?\n\n"${preview}"`)) {
         onRemoveThread(thread.id);
         if (selectedIndex >= sortedThreads.length - 1 && selectedIndex > 0) {
           setSelectedIndex(selectedIndex - 1);
@@ -151,7 +151,7 @@ export function CommentsListModal({
           <div className="text-xs text-github-text-secondary">
             <span className="font-mono">j/k</span> or <span className="font-mono">↑/↓</span> to
             navigate • <span className="font-mono">Enter</span> to jump •{' '}
-            <span className="font-mono">d</span> to delete • <span className="font-mono">Esc</span>{' '}
+            <span className="font-mono">d</span> to resolve • <span className="font-mono">Esc</span>{' '}
             to close
           </div>
         </div>

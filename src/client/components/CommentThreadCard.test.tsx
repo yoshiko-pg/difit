@@ -47,12 +47,39 @@ describe('CommentThreadCard', () => {
 
     expect(screen.getByText('Root comment')).toBeInTheDocument();
     expect(screen.getByText('Reply comment')).toBeInTheDocument();
+    expect(screen.getByTitle('Resolve thread')).toBeInTheDocument();
+    expect(screen.getAllByTitle('Edit message')).toHaveLength(1);
+    expect(screen.queryByTitle('Delete reply')).not.toBeInTheDocument();
     expect(container.querySelector('.ml-4.border-l.border-github-border.pl-3')).toBeTruthy();
     expect(
       container.querySelector(
         '.rounded-md.border.border-github-border.bg-github-bg-secondary.p-3.pr-28',
       ),
     ).toBeNull();
+  });
+
+  it('keeps resolve available for root comments even when not authored by the user', () => {
+    render(
+      <CommentThreadCard
+        thread={{
+          ...mockThread,
+          messages: [
+            {
+              ...mockThread.messages[0]!,
+              author: 'Reviewer',
+            },
+          ],
+        }}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTitle('Resolve thread')).toBeInTheDocument();
+    expect(screen.queryByTitle('Edit message')).not.toBeInTheDocument();
   });
 
   it('shows the shared comment form layout while editing', async () => {

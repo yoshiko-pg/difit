@@ -1,4 +1,4 @@
-import { Copy, Edit2, MessageSquareReply, Trash2 } from 'lucide-react';
+import { Check, Copy, Edit2, MessageSquareReply, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 
 import { type CommentThread, type DiffCommentMessage } from '../../types/diff';
@@ -9,29 +9,32 @@ import type { AppearanceSettings } from './SettingsModal';
 
 interface ThreadMessageItemProps {
   message: DiffCommentMessage;
+  isRootMessage?: boolean;
   showAuthorBadge: boolean;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   filename?: string;
   originalCode?: string;
   onUpdate: (newBody: string) => void;
-  onDelete: () => void;
-  deleteLabel: string;
+  onResolveOrDelete: () => void;
+  actionLabel: string;
   onClick?: (e: React.MouseEvent) => void;
 }
 
 function ThreadMessageItem({
   message,
+  isRootMessage = false,
   showAuthorBadge,
   syntaxTheme,
   filename,
   originalCode,
   onUpdate,
-  onDelete,
-  deleteLabel,
+  onResolveOrDelete,
+  actionLabel,
   onClick,
 }: ThreadMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const showAuthorHeader = showAuthorBadge && Boolean(message.author);
+  const isUserAuthoredMessage = message.author?.trim() === 'User';
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,27 +73,52 @@ function ThreadMessageItem({
               syntaxTheme={syntaxTheme}
             />
           </div>
-          <div className="flex shrink-0 items-start gap-2 pt-0.5">
-            <button
-              type="button"
-              onClick={handleStartEdit}
-              className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-secondary transition-all hover:bg-github-bg-primary hover:text-github-text-primary"
-              title="Edit message"
-            >
-              <Edit2 size={12} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-danger transition-all hover:bg-github-danger/10"
-              title={deleteLabel}
-            >
-              <Trash2 size={12} />
-            </button>
-          </div>
+          {(isRootMessage || isUserAuthoredMessage) && (
+            <div className="flex shrink-0 items-start gap-2 pt-0.5">
+              {isUserAuthoredMessage && (
+                <button
+                  type="button"
+                  onClick={handleStartEdit}
+                  className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-secondary transition-all hover:bg-github-bg-primary hover:text-github-text-primary"
+                  title="Edit message"
+                >
+                  <Edit2 size={12} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onResolveOrDelete();
+                }}
+                className={
+                  isRootMessage
+                    ? 'inline-flex items-center gap-1 rounded px-2 py-1 text-xs transition-all'
+                    : 'rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-danger transition-all hover:bg-github-danger/10'
+                }
+                style={
+                  isRootMessage
+                    ? {
+                        backgroundColor: 'var(--color-yellow-btn-bg)',
+                        color: 'var(--color-yellow-btn-text)',
+                        border: '1px solid var(--color-yellow-btn-border)',
+                      }
+                    : undefined
+                }
+                title={actionLabel}
+                aria-label={actionLabel}
+              >
+                {isRootMessage ? (
+                  <>
+                    <Check size={12} />
+                    <span>Resolve</span>
+                  </>
+                ) : (
+                  <Trash2 size={12} />
+                )}
+              </button>
+            </div>
+          )}
         </>
       ) : (
         <CommentForm
@@ -209,13 +237,14 @@ export function CommentThreadCard({
       <div className="space-y-3">
         <ThreadMessageItem
           message={rootMessage}
+          isRootMessage={true}
           showAuthorBadge={showAuthorBadges}
           syntaxTheme={syntaxTheme}
           filename={thread.file}
           originalCode={thread.codeContent}
           onUpdate={(newBody) => onUpdateMessage(thread.id, rootMessage.id, newBody)}
-          onDelete={() => onRemoveThread(thread.id)}
-          deleteLabel="Delete thread"
+          onResolveOrDelete={() => onRemoveThread(thread.id)}
+          actionLabel="Resolve thread"
         />
 
         {thread.messages.slice(1).map((message) => (
@@ -227,8 +256,8 @@ export function CommentThreadCard({
               filename={thread.file}
               originalCode={thread.codeContent}
               onUpdate={(newBody) => onUpdateMessage(thread.id, message.id, newBody)}
-              onDelete={() => onRemoveMessage(thread.id, message.id)}
-              deleteLabel="Delete reply"
+              onResolveOrDelete={() => onRemoveMessage(thread.id, message.id)}
+              actionLabel="Delete reply"
             />
           </div>
         ))}
