@@ -128,6 +128,7 @@ function ThreadMessageItem({
 interface CommentThreadCardProps {
   thread: CommentThread;
   showAuthorBadges?: boolean;
+  confirmRootAction?: boolean;
   onGeneratePrompt: (thread: CommentThread) => string;
   onRemoveThread: (threadId: string) => void;
   onReplyToThread: (threadId: string, body: string) => Promise<void>;
@@ -140,6 +141,7 @@ interface CommentThreadCardProps {
 export function CommentThreadCard({
   thread,
   showAuthorBadges = false,
+  confirmRootAction = true,
   onGeneratePrompt,
   onRemoveThread,
   onReplyToThread,
@@ -232,6 +234,9 @@ export function CommentThreadCard({
           onUpdate={(newBody) => onUpdateMessage(thread.id, rootMessage.id, newBody)}
           onResolveOrDelete={() => onRemoveThread(thread.id)}
           actionLabel="Resolve thread"
+          confirmMessage={
+            confirmRootAction ? `Resolve this thread?\n\n"${rootMessage.body}"` : undefined
+          }
         />
 
         {thread.messages.slice(1).map((message) => (

@@ -174,6 +174,7 @@ export function CommentsListModal({
                       <CommentThreadCard
                         thread={thread}
                         showAuthorBadges={showAuthorBadges}
+                        confirmRootAction={false}
                         onGeneratePrompt={onGenerateThreadPrompt}
                         onRemoveThread={(threadId) => {
                           if (threadId === thread.id) {

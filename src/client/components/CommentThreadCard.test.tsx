@@ -86,6 +86,29 @@ describe('CommentThreadCard', () => {
     expect(screen.queryByTitle('Edit message')).not.toBeInTheDocument();
   });
 
+  it('confirms before resolving a root comment by default', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.fn(() => false);
+    const onRemoveThread = vi.fn();
+    vi.stubGlobal('confirm', confirmSpy);
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={onRemoveThread}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTitle('Resolve thread'));
+
+    expect(confirmSpy).toHaveBeenCalledWith('Resolve this thread?\n\n"Root comment"');
+    expect(onRemoveThread).not.toHaveBeenCalled();
+  });
+
   it('confirms before deleting a user-authored reply', async () => {
     const user = userEvent.setup();
     const confirmSpy = vi.fn(() => false);
