@@ -81,7 +81,7 @@ function ThreadMessageItem({
                 <button
                   type="button"
                   onClick={handleStartEdit}
-                  className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-secondary transition-all hover:bg-github-bg-primary hover:text-github-text-primary"
+                  className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
                   title="Edit message"
                 >
                   <Edit2 size={12} />
@@ -97,7 +97,7 @@ function ThreadMessageItem({
                   onResolveOrDelete();
                 }}
                 className={`rounded border border-github-border bg-github-bg-tertiary p-1.5 transition-all hover:bg-github-bg-primary ${
-                  isRootMessage ? 'text-green-600 hover:text-green-700' : 'text-github-danger'
+                  isRootMessage ? 'text-green-700 hover:text-green-800' : 'text-github-danger'
                 }`}
                 title={actionLabel}
                 aria-label={actionLabel}
