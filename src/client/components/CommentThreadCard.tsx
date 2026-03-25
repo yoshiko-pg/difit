@@ -17,6 +17,7 @@ interface ThreadMessageItemProps {
   onUpdate: (newBody: string) => void;
   onResolveOrDelete: () => void;
   actionLabel: string;
+  confirmMessage?: string;
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -30,6 +31,7 @@ function ThreadMessageItem({
   onUpdate,
   onResolveOrDelete,
   actionLabel,
+  confirmMessage,
   onClick,
 }: ThreadMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -89,33 +91,18 @@ function ThreadMessageItem({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (confirmMessage && !confirm(confirmMessage)) {
+                    return;
+                  }
                   onResolveOrDelete();
                 }}
-                className={
-                  isRootMessage
-                    ? 'inline-flex items-center gap-1 rounded px-2 py-1 text-xs transition-all'
-                    : 'rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-danger transition-all hover:bg-github-danger/10'
-                }
-                style={
-                  isRootMessage
-                    ? {
-                        backgroundColor: 'var(--color-yellow-btn-bg)',
-                        color: 'var(--color-yellow-btn-text)',
-                        border: '1px solid var(--color-yellow-btn-border)',
-                      }
-                    : undefined
-                }
+                className={`rounded border border-github-border bg-github-bg-tertiary p-1.5 transition-all hover:bg-github-bg-primary ${
+                  isRootMessage ? 'text-green-600 hover:text-green-700' : 'text-github-danger'
+                }`}
                 title={actionLabel}
                 aria-label={actionLabel}
               >
-                {isRootMessage ? (
-                  <>
-                    <Check size={12} />
-                    <span>Resolve</span>
-                  </>
-                ) : (
-                  <Trash2 size={12} />
-                )}
+                {isRootMessage ? <Check size={12} /> : <Trash2 size={12} />}
               </button>
             </div>
           )}
@@ -258,6 +245,7 @@ export function CommentThreadCard({
               onUpdate={(newBody) => onUpdateMessage(thread.id, message.id, newBody)}
               onResolveOrDelete={() => onRemoveMessage(thread.id, message.id)}
               actionLabel="Delete reply"
+              confirmMessage={`Delete this reply?\n\n"${message.body}"`}
             />
           </div>
         ))}

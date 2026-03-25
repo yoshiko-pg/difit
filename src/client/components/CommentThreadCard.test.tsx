@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { CommentThread } from '../../types/diff';
 
@@ -33,6 +33,10 @@ const mockThread: CommentThread = {
 };
 
 describe('CommentThreadCard', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('renders messages inline while keeping the reply indentation line', () => {
     const { container } = render(
       <CommentThreadCard
@@ -80,6 +84,38 @@ describe('CommentThreadCard', () => {
 
     expect(screen.getByTitle('Resolve thread')).toBeInTheDocument();
     expect(screen.queryByTitle('Edit message')).not.toBeInTheDocument();
+  });
+
+  it('confirms before deleting a user-authored reply', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.fn(() => false);
+    const onRemoveMessage = vi.fn();
+    vi.stubGlobal('confirm', confirmSpy);
+
+    render(
+      <CommentThreadCard
+        thread={{
+          ...mockThread,
+          messages: [
+            mockThread.messages[0]!,
+            {
+              ...mockThread.messages[1]!,
+              author: 'User',
+            },
+          ],
+        }}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={onRemoveMessage}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTitle('Delete reply'));
+
+    expect(confirmSpy).toHaveBeenCalledWith('Delete this reply?\n\n"Reply comment"');
+    expect(onRemoveMessage).not.toHaveBeenCalled();
   });
 
   it('shows the shared comment form layout while editing', async () => {
