@@ -60,12 +60,10 @@ const SETTINGS_SECTIONS = [
   {
     id: 'appearance',
     label: 'Appearance',
-    description: 'Theme, typography, and syntax highlighting.',
   },
   {
     id: 'system',
     label: 'System',
-    description: 'Editor integration and local environment behavior.',
   },
 ] as const;
 
@@ -167,8 +165,6 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
   if (!isOpen) return null;
 
-  const activeSectionMeta = SETTINGS_SECTIONS.find((section) => section.id === activeSection);
-
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
       <div className="bg-github-bg-secondary border border-github-border rounded-lg w-full max-w-3xl mx-4 pointer-events-auto overflow-hidden">
@@ -188,9 +184,9 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
         <div className="flex flex-col sm:flex-row min-h-[420px]">
           <nav
             aria-label="Settings sections"
-            className="sm:w-64 border-b sm:border-b-0 sm:border-r border-github-border bg-github-bg-primary p-3"
+            className="sm:w-40 border-b sm:border-b-0 sm:border-r border-github-border px-3 py-2"
           >
-            <div className="flex sm:flex-col gap-2">
+            <div className="flex sm:flex-col gap-1">
               {SETTINGS_SECTIONS.map((section) => {
                 const isActive = section.id === activeSection;
                 return (
@@ -199,20 +195,13 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                     type="button"
                     onClick={() => setActiveSection(section.id)}
                     aria-pressed={isActive}
-                    className={`flex-1 sm:flex-none text-left rounded-md border px-3 py-3 transition-colors ${
+                    className={`flex-1 sm:flex-none text-left px-3 py-2 text-sm font-medium transition-colors border-b-2 sm:border-b-0 sm:border-l-2 ${
                       isActive
-                        ? 'bg-github-accent text-white border-github-accent'
-                        : 'bg-github-bg-secondary text-github-text-secondary border-github-border hover:text-github-text-primary'
+                        ? 'text-github-text-primary border-github-accent'
+                        : 'text-github-text-secondary border-transparent hover:text-github-text-primary'
                     }`}
                   >
-                    <div className="text-sm font-medium">{section.label}</div>
-                    <div
-                      className={`mt-1 text-xs leading-relaxed ${
-                        isActive ? 'text-white' : 'text-github-text-muted'
-                      }`}
-                    >
-                      {section.description}
-                    </div>
+                    {section.label}
                   </button>
                 );
               })}
@@ -220,15 +209,6 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
           </nav>
 
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
-            <div className="mb-6">
-              <h3 className="text-base font-semibold text-github-text-primary">
-                {activeSectionMeta?.label}
-              </h3>
-              <p className="mt-1 text-sm text-github-text-secondary">
-                {activeSectionMeta?.description}
-              </p>
-            </div>
-
             {activeSection === 'appearance' && (
               <div className="space-y-6">
                 <div>

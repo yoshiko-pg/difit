@@ -41,6 +41,10 @@ describe('SettingsModal', () => {
 
     expect(screen.getByText('Font Size')).toBeInTheDocument();
     expect(screen.queryByText('Open In Editor')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Theme, typography, and syntax highlighting.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText('Appearance')).toHaveLength(1);
     expect(screen.getByRole('button', { name: /^Appearance/ })).toHaveAttribute(
       'aria-pressed',
       'true',
