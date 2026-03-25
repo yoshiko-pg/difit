@@ -65,6 +65,7 @@ vi.mock('./git-diff.js', () => {
       isEmpty: false,
     });
     getBlobContent = vi.fn().mockResolvedValue(Buffer.from('mock image data'));
+    getLineCount = vi.fn().mockResolvedValue(42);
     getGeneratedStatus = vi.fn().mockResolvedValue({
       isGenerated: true,
       source: 'content',
@@ -634,6 +635,51 @@ describe('Server Integration Tests', () => {
     });
   });
 
+  describe('Line count API', () => {
+    let port: number;
+
+    beforeEach(async () => {
+      const result = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9050,
+      });
+      servers.push(result.server);
+      port = result.port;
+    });
+
+    it('returns line counts for repository files', async () => {
+      const response = await fetch(
+        `http://localhost:${port}/api/line-count/src%2Findex.ts?oldRef=HEAD~1&newRef=HEAD`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data).toEqual({
+        oldLineCount: 42,
+        newLineCount: 42,
+      });
+    });
+
+    it('rejects paths outside repository', async () => {
+      const response = await fetch(`http://localhost:${port}/api/line-count/..%2Foutside.txt`);
+      const data = (await response.json()) as any;
+
+      expect(response.status).toBe(400);
+      expect(data).toHaveProperty('error', 'File path outside repository');
+    });
+
+    it('rejects oldPath values outside repository', async () => {
+      const response = await fetch(
+        `http://localhost:${port}/api/line-count/src%2Findex.ts?oldRef=HEAD~1&oldPath=..%2Foutside.txt`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.status).toBe(400);
+      expect(data).toHaveProperty('error', 'File path outside repository');
+    });
+  });
+
   describe('Blob API endpoints', () => {
     let port: number;
 
@@ -729,6 +775,14 @@ describe('Server Integration Tests', () => {
         const response = await fetch(`http://localhost:${port}/api/blob/${encodedPath}?ref=HEAD`);
         expect(response.ok).toBe(true);
       }
+    });
+
+    it('rejects paths outside repository', async () => {
+      const response = await fetch(`http://localhost:${port}/api/blob/..%2Foutside.txt?ref=HEAD`);
+      const data = (await response.json()) as any;
+
+      expect(response.status).toBe(400);
+      expect(data).toHaveProperty('error', 'File path outside repository');
     });
   });
 
