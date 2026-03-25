@@ -54,6 +54,8 @@ export async function startServer(
   const repositoryPath = resolve(options.repoPath ?? process.cwd());
   const repositoryId = createHash('sha256').update(repositoryPath).digest('hex');
   const initialCommentImports = options.commentImports || [];
+  const initialBaseCommitish = options.baseCommitish ?? '';
+  const initialTargetCommitish = options.targetCommitish ?? '';
   const commentImportId =
     initialCommentImports.length > 0
       ? createHash('sha256').update(serializeCommentImports(initialCommentImports)).digest('hex')
@@ -137,6 +139,10 @@ export async function startServer(
     const ignoreWhitespace = req.query.ignoreWhitespace === 'true';
     const requestedBase = (req.query.base as string) || options.baseCommitish || '';
     const requestedTarget = (req.query.target as string) || options.targetCommitish || '';
+    const shouldIncludeCommentImports =
+      initialCommentImports.length > 0 &&
+      (Boolean(options.stdinDiff) ||
+        (requestedBase === initialBaseCommitish && requestedTarget === initialTargetCommitish));
 
     // Check if revisions or whitespace setting changed
     const revisionsChanged =
@@ -194,8 +200,8 @@ export async function startServer(
       requestedTargetCommitish,
       clearComments: options.clearComments,
       repositoryId,
-      commentImports: initialCommentImports.length > 0 ? initialCommentImports : undefined,
-      commentImportId,
+      commentImports: shouldIncludeCommentImports ? initialCommentImports : undefined,
+      commentImportId: shouldIncludeCommentImports ? commentImportId : undefined,
     });
   });
 

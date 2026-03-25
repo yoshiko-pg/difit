@@ -347,6 +347,34 @@ describe('Server Integration Tests', () => {
       expect(data.commentImportId).toEqual(expect.any(String));
     });
 
+    it('GET /api/diff omits comment import payload after revision changes', async () => {
+      const importedComments: CommentImport[] = [
+        {
+          type: 'thread',
+          filePath: 'test.js',
+          position: { side: 'new', line: 10 },
+          body: 'Imported comment',
+        },
+      ];
+
+      const importServer = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9038,
+        commentImports: importedComments,
+      });
+      servers.push(importServer.server);
+
+      const response = await fetch(
+        `http://localhost:${importServer.port}/api/diff?base=main&target=feature`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data.commentImports).toBeUndefined();
+      expect(data.commentImportId).toBeUndefined();
+    });
+
     it('GET /api/generated-status/* returns generated status', async () => {
       const response = await fetch(
         `http://localhost:${port}/api/generated-status/src/query.ts?ref=HEAD`,
