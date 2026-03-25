@@ -16,21 +16,18 @@ vi.mock('./utils.js', async () => {
     promptUser: vi.fn(),
     findUntrackedFiles: vi.fn(),
     markFilesIntentToAdd: vi.fn(),
-    getPrPatch: vi.fn(),
-    getPrCommentImports: vi.fn(),
   };
 });
+vi.mock('./github.js', () => ({
+  getPrPatch: vi.fn(),
+  getPrCommentImports: vi.fn(),
+}));
 
 const { simpleGit } = await import('simple-git');
 const { startServer } = await import('../server/server.js');
-const {
-  promptUser,
-  findUntrackedFiles,
-  markFilesIntentToAdd,
-  getPrPatch,
-  getPrCommentImports,
-  parseCommentOptions,
-} = await import('./utils.js');
+const { promptUser, findUntrackedFiles, markFilesIntentToAdd, parseCommentOptions } =
+  await import('./utils.js');
+const { getPrPatch, getPrCommentImports } = await import('./github.js');
 
 describe('CLI index.ts', () => {
   let mockGit: any;

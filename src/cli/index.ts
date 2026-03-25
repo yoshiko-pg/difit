@@ -17,10 +17,9 @@ import {
   promptUser,
   parseCommentOptions,
   validateDiffArguments,
-  getPrPatch,
-  getPrCommentImports,
   getGitRoot,
 } from './utils.js';
+import { getPrPatch, getPrCommentImports } from './github.js';
 
 type SpecialArg = 'working' | 'staged' | '.';
 
