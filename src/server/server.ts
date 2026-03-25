@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import { createHash } from 'crypto';
+import { existsSync, readFileSync } from 'fs';
 import { type Server } from 'http';
 import { join, dirname, isAbsolute, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
@@ -615,10 +616,17 @@ export async function startServer(
   if (isProduction) {
     // Find client files relative to the CLI executable location
     const distPath = join(__dirname, '..', 'client');
+    const indexPath = join(distPath, 'index.html');
+    const cachedIndexHtml = existsSync(indexPath) ? readFileSync(indexPath, 'utf8') : null;
     app.use(express.static(distPath));
 
     app.get('/{*splat}', (_req, res) => {
-      res.sendFile(join(distPath, 'index.html'));
+      if (cachedIndexHtml === null) {
+        res.status(404).send('Not found');
+        return;
+      }
+
+      res.type('html').send(cachedIndexHtml);
     });
   } else {
     app.get('/', (_req, res) => {
