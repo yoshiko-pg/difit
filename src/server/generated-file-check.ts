@@ -4,63 +4,135 @@ interface GeneratedCheckResult {
   matchedPattern?: string;
 }
 
+interface PathMatcher {
+  description: string;
+  matches: (parsedPath: string, fileName: string) => boolean;
+}
+
+const EXACT_FILENAMES = new Set([
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'Gemfile.lock',
+  'Pipfile.lock',
+  'composer.lock',
+  'Cargo.lock',
+  'poetry.lock',
+  'go.sum',
+  'go.mod',
+  'pubspec.lock',
+  'flake.lock',
+  'Package.resolved',
+  'packages.lock.json',
+  '.terraform.lock.hcl',
+  'bun.lockb',
+  'gradle.lockfile',
+  'uv.lock',
+  'pdm.lock',
+]);
+
+const FILENAME_SUFFIXES = [
+  '.min.js',
+  '.min.css',
+  '.bundle.js',
+  '.bundle.css',
+  '-min.js',
+  '.map',
+  '.pb.go',
+  '.pb.rb',
+  '.pb.py',
+  '.pb.js',
+  '.pb.cc',
+  '.pb.h',
+  '.pb2.py',
+  '_pb2.py',
+  '.grpc.pb.go',
+  '_string.go',
+  '.graphql.ts',
+  '.graphql.js',
+  '.openapi.ts',
+  '.openapi.js',
+  '.msw.ts',
+  '.zod.ts',
+  '.api.ts',
+  '.g.dart',
+  '.freezed.dart',
+  '.g.cs',
+  '.designer.cs',
+  '_ide_helper.php',
+] as const;
+
+const ROOT_PATH_PREFIXES = ['vendor/', 'node_modules/', 'dist/', 'build/', 'out/'] as const;
+const PATH_SEGMENTS = ['/generated/', '/gen/', '/__generated__/'] as const;
+
+function matchesAnySuffix(fileName: string, suffixes: readonly string[]): boolean {
+  return suffixes.some((suffix) => fileName.endsWith(suffix));
+}
+
+function isWordCharacter(char: string): boolean {
+  const code = char.charCodeAt(0);
+  return (
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122) ||
+    code === 95
+  );
+}
+
+function isWordString(text: string): boolean {
+  if (text.length === 0) {
+    return false;
+  }
+
+  for (const char of text) {
+    if (!isWordCharacter(char)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function hasGeneratedSuffix(fileName: string, marker: '.generated.' | '.gen.'): boolean {
+  const markerIndex = fileName.lastIndexOf(marker);
+  if (markerIndex === -1) {
+    return false;
+  }
+
+  return isWordString(fileName.slice(markerIndex + marker.length));
+}
+
 // Layer 1: Path/Filename Patterns
-const PATH_PATTERNS: RegExp[] = [
-  // Lock files (all languages)
-  /package-lock\.json$/,
-  /pnpm-lock\.yaml$/,
-  /yarn\.lock$/,
-  /Gemfile\.lock$/,
-  /Pipfile\.lock$/,
-  /composer\.lock$/,
-  /Cargo\.lock$/,
-  /poetry\.lock$/,
-  /go\.sum$/,
-  /go\.mod$/,
-  /pubspec\.lock$/,
-  /flake\.lock$/,
-  /Package\.resolved$/,
-  /packages\.lock\.json$/,
-  /\.terraform\.lock\.hcl$/,
-  /bun\.lockb$/,
-  /gradle\.lockfile$/,
-  /uv\.lock$/,
-  /pdm\.lock$/,
-
-  // Minified / Bundled
-  /\.min\.(js|css)$/,
-  /\.bundle\.(js|css)$/,
-  /-min\.js$/,
-  /\.map$/,
-
-  // Generated naming conventions
-  /\.generated\.\w+$/,
-  /\.gen\.\w+$/,
-  /\.pb\.(go|rb|py|js|cc|h)$/, // protobuf
-  /\.pb2\.py$/, // protobuf python
-  /_pb2\.py$/,
-  /\.grpc\.pb\.go$/,
-  /_string\.go$/, // go generate stringer
-  /\.graphql\.(ts|js)$/, // GraphQL codegen
-  /\.openapi\.(ts|js)$/,
-  /mock_.*\.go$/, // mockgen
-  /mocks\/.*\.go$/,
-  /\.msw\.ts$/,
-  /\.zod\.ts$/,
-  /\.api\.ts$/,
-  /\.g\.dart$/,
-  /\.freezed\.dart$/,
-  /\.g\.cs$/,
-  /\.designer\.cs$/,
-  /_ide_helper\.php$/,
-
-  // Directories
-  /^vendor\//,
-  /^node_modules\//,
-  /^(dist|build|out)\//,
-  /\/generated\//,
-  /\/gen\//,
-  /\/__generated__\//, // Relay
+const PATH_MATCHERS: PathMatcher[] = [
+  {
+    description: 'exact-filename',
+    matches: (_parsedPath, fileName) => EXACT_FILENAMES.has(fileName),
+  },
+  {
+    description: 'minified-or-generated-suffix',
+    matches: (_parsedPath, fileName) => matchesAnySuffix(fileName, FILENAME_SUFFIXES),
+  },
+  {
+    description: 'generated-extension',
+    matches: (_parsedPath, fileName) =>
+      hasGeneratedSuffix(fileName, '.generated.') || hasGeneratedSuffix(fileName, '.gen.'),
+  },
+  {
+    description: 'mockgen-go',
+    matches: (_parsedPath, fileName) => fileName.startsWith('mock_') && fileName.endsWith('.go'),
+  },
+  {
+    description: 'mocks-go-directory',
+    matches: (parsedPath, fileName) => parsedPath.includes('mocks/') && fileName.endsWith('.go'),
+  },
+  {
+    description: 'root-generated-directory',
+    matches: (parsedPath) => ROOT_PATH_PREFIXES.some((prefix) => parsedPath.startsWith(prefix)),
+  },
+  {
+    description: 'generated-path-segment',
+    matches: (parsedPath) => PATH_SEGMENTS.some((segment) => parsedPath.includes(segment)),
+  },
 ];
 
 // Layer 2: Universal Header Patterns
@@ -196,14 +268,12 @@ export function isGeneratedFile(
   // or if the path is in a known generated directory
   const fileName = parsedPath.split('/').pop() || '';
 
-  for (const pattern of PATH_PATTERNS) {
-    // Some patterns match the whole path (directories), others just the filename
-    const textToCheck = pattern.source.includes('/') ? parsedPath : fileName;
-    if (pattern.test(textToCheck)) {
+  for (const matcher of PATH_MATCHERS) {
+    if (matcher.matches(parsedPath, fileName)) {
       return {
         isGenerated: true,
         reason: 'path',
-        matchedPattern: pattern.source,
+        matchedPattern: matcher.description,
       };
     }
   }
