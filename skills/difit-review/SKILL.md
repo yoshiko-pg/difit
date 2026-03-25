@@ -1,62 +1,62 @@
 ---
 name: difit-review
-description: Review a specific diff, then show the findings as comments inside difit (the diff viewer). Use when the user asks to review a branch diff, commit diff, or GitHub PR and wants the pointed-out issues preloaded into difit with `--comment`.
+description: 特定の diff をレビューし、その指摘事項を difit（diff viewer）上のコメントとして表示する skill。ブランチ差分、コミット差分、GitHub PR をレビューして、見つけた問題点を `--comment` で difit に事前投入したいときに使う。
 ---
 
 # Difit Review
 
-## Overview
+## 概要
 
-Review the requested diff with a code-review mindset, convert each actionable finding into a difit startup comment, and launch difit so the user can inspect the findings in context.
+指定された diff をコードレビュー観点で確認し、指摘事項を difit の起動時コメントに変換してから difit を起動する。ユーザーが difit 上で文脈つきに指摘を確認できる状態まで持っていく。
 
-Keep the normal assistant response focused on findings first. Use difit comments only for concrete bugs, regressions, risky assumptions, or missing-test gaps that belong on a diff line.
+通常のアシスタント応答は、まず指摘事項を先に並べる。difit のコメントには、具体的なバグ、リグレッション、危険な前提、テスト不足など、diff 上の位置にひも付ける価値がある内容だけを入れる。
 
-## Review Workflow
+## レビュー手順
 
-1. Identify the review surface.
-   - Branch or commit comparison: review the requested range and launch difit with `<target> [compare-with]`.
-   - PR review: inspect the PR locally and keep the review output local. Do not post review comments back to GitHub.
-2. Read the changed files, review them according to the user's instruction, and identify the findings that should be called out in difit.
-3. Convert each finding into one startup comment.
-   - Prefer `type: "thread"` for each finding.
-   - Use `position.side: "new"` for lines that exist on the target side of the diff.
-   - Use `position.side: "old"` for deleted-only lines.
-   - Use a line range only when the issue genuinely spans multiple adjacent lines.
-   - Keep `body` self-contained: state the risk and the reason it is wrong or incomplete.
-4. Start difit so the user can inspect the findings in the UI.
-5. If there are no findings, say so explicitly and still launch difit when the user asked to view the diff in difit.
+1. レビュー対象を特定する。
+   - ブランチ差分やコミット差分なら、依頼された範囲をレビューし、`<target> [compare-with]` で difit を起動する。
+   - PR レビューなら、PR をローカルで確認し、レビュー結果はローカル出力にとどめる。GitHub へコメント投稿はしない。
+2. 変更ファイルを読み、ユーザーの指示どおりにレビューして、difit 上で指摘すべき事項を洗い出す。
+3. 各指摘事項を 1 つの起動時コメントに変換する。
+   - 基本は各指摘ごとに `type: "thread"` を使う。
+   - diff の target 側に存在する行には `position.side: "new"` を使う。
+   - 削除された側にしか存在しない行には `position.side: "old"` を使う。
+   - 複数行にまたがる問題だけを範囲コメントにする。
+   - `body` は、その指摘単体で意味が通るように、何が危険か・なぜ問題かを書く。
+4. ユーザーが UI 上で確認できるように difit を起動する。
+5. 指摘が無い場合はその旨を明示しつつ、ユーザーが difit 表示を求めているなら difit は起動する。
 
-## Command Rules
+## コマンド方針
 
-- Use the installed `difit` command in production-facing examples.
-- Use one `--comment '<json>'` flag per finding.
-- Keep each JSON blob compact and single-line so shell quoting stays predictable.
+- 配布用の例では、インストール済みの `difit` コマンドを使う。
+- 指摘ごとに `--comment '<json>'` を 1 つ付ける。
+- シェルの quoting が壊れにくいように、各 JSON は 1 行のコンパクトな形に保つ。
 
-## Command Templates
+## コマンド例
 
-Review a branch or commit diff:
-
-```bash
-difit <target> [compare-with] --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
-```
-
-Review a PR:
+ブランチ差分やコミット差分をレビューする:
 
 ```bash
-difit --pr <url> --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
+difit <target> [compare-with] --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"この実装は ... の場合に壊れます"}'
 ```
 
-## Comment Shape
+PR をレビューする:
 
-Use this shape for most findings:
+```bash
+difit --pr <url> --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"この実装は ... の場合に壊れます"}'
+```
+
+## コメント形式
+
+多くの指摘は次の形式で十分:
 
 ```json
 {
   "type": "thread",
   "filePath": "src/example.ts",
   "position": { "side": "new", "line": 42 },
-  "body": "This breaks when the PR contains multiple unresolved threads at the same diff position because replies are matched by latest position rather than thread identity."
+  "body": "同じ diff 位置に未解決 thread が複数ある PR では、reply の紐付けが thread identity ではなく最新位置基準になっているため、会話が別 thread に混ざります。"
 }
 ```
 
-Use `reply` only when intentionally attaching to an already imported thread at the same position.
+`reply` は、同じ位置にある既存 thread に意図的に追記したいときだけ使う。
