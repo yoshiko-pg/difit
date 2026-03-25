@@ -149,10 +149,14 @@ function createRightSidePosition(thread: GitHubReviewThreadNode): DiffCommentPos
     return null;
   }
 
+  const startLine =
+    thread.startLine !== undefined && thread.startLine !== null ? thread.startLine : null;
+  const isSingleLineWithRedundantStart =
+    startLine !== null && startLine === thread.line && thread.startDiffSide == null;
   const hasMultiLineMetadata =
     thread.startDiffSide !== undefined && thread.startDiffSide !== null
       ? true
-      : thread.startLine !== undefined && thread.startLine !== null;
+      : startLine !== null && !isSingleLineWithRedundantStart;
 
   if (!hasMultiLineMetadata) {
     return createSingleLinePosition('new', thread.line);
@@ -163,12 +167,12 @@ function createRightSidePosition(thread: GitHubReviewThreadNode): DiffCommentPos
     return null;
   }
 
-  if (!isPositiveInteger(thread.startLine) || thread.startLine > thread.line) {
+  if (!isPositiveInteger(startLine) || startLine > thread.line) {
     warnPrCommentImport(thread.id ?? undefined, 'RIGHT thread has an invalid multi-line range.');
     return null;
   }
 
-  return createMultiLinePosition('new', thread.startLine, thread.line);
+  return createMultiLinePosition('new', startLine, thread.line);
 }
 
 function createLeftSidePosition(thread: GitHubReviewThreadNode): DiffCommentPosition | null {
@@ -177,10 +181,18 @@ function createLeftSidePosition(thread: GitHubReviewThreadNode): DiffCommentPosi
     return null;
   }
 
+  const originalStartLine =
+    thread.originalStartLine !== undefined && thread.originalStartLine !== null
+      ? thread.originalStartLine
+      : null;
+  const isSingleLineWithRedundantStart =
+    originalStartLine !== null &&
+    originalStartLine === thread.originalLine &&
+    thread.startDiffSide == null;
   const hasMultiLineMetadata =
     thread.startDiffSide !== undefined && thread.startDiffSide !== null
       ? true
-      : thread.originalStartLine !== undefined && thread.originalStartLine !== null;
+      : originalStartLine !== null && !isSingleLineWithRedundantStart;
 
   if (!hasMultiLineMetadata) {
     return createSingleLinePosition('old', thread.originalLine);
@@ -191,15 +203,12 @@ function createLeftSidePosition(thread: GitHubReviewThreadNode): DiffCommentPosi
     return null;
   }
 
-  if (
-    !isPositiveInteger(thread.originalStartLine) ||
-    thread.originalStartLine > thread.originalLine
-  ) {
+  if (!isPositiveInteger(originalStartLine) || originalStartLine > thread.originalLine) {
     warnPrCommentImport(thread.id ?? undefined, 'LEFT thread has an invalid multi-line range.');
     return null;
   }
 
-  return createMultiLinePosition('old', thread.originalStartLine, thread.originalLine);
+  return createMultiLinePosition('old', originalStartLine, thread.originalLine);
 }
 
 function getThreadPosition(thread: GitHubReviewThreadNode): DiffCommentPosition | null {

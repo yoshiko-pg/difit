@@ -135,7 +135,7 @@ describe('CLI GitHub utils', () => {
                     id: 'THREAD_RIGHT_SINGLE',
                     diffSide: 'RIGHT',
                     line: 20,
-                    startLine: null,
+                    startLine: 20,
                     startDiffSide: null,
                     comments: {
                       nodes: [createReviewComment({ id: 'COMMENT_RIGHT_SINGLE' })],
