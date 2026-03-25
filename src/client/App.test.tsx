@@ -31,6 +31,7 @@ vi.mock('./hooks/useDiffComments', () => ({
     updateComment: vi.fn(),
     updateMessage: vi.fn(),
     clearAllComments: mockClearAllComments,
+    applyCommentImports: mockApplyCommentImports,
     generatePrompt: vi.fn(),
     generateThreadPrompt: vi.fn(),
     generateAllCommentsPrompt: vi.fn(),
@@ -117,6 +118,7 @@ Object.defineProperty(window, 'EventSource', {
 
 let mockComments: DiffCommentThread[] = [];
 const mockClearAllComments = vi.fn();
+const mockApplyCommentImports = vi.fn(() => []);
 
 function createMockThread({
   id,
@@ -187,6 +189,8 @@ describe('App Component - Clear Comments Functionality', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockComments = [];
+    mockApplyCommentImports.mockReset();
+    mockApplyCommentImports.mockReturnValue([]);
     mockConfirm.mockReturnValue(false);
     mockFetch(mockDiffResponse);
   });
@@ -257,7 +261,9 @@ describe('App Component - Clear Comments Functionality', () => {
       renderApp();
 
       await waitFor(() => {
-        expect(mockClearAllComments).toHaveBeenCalled();
+        expect(mockClearAllComments).toHaveBeenCalledWith({
+          resetAppliedCommentImportIds: true,
+        });
       });
     });
 
@@ -325,6 +331,32 @@ describe('App Component - Clear Comments Functionality', () => {
       });
 
       consoleLogSpy.mockRestore();
+    });
+
+    it('applies imported comments after loading the diff response', async () => {
+      const responseWithImports: DiffResponse = {
+        ...mockDiffResponse,
+        commentImportId: 'import-bundle-1',
+        commentImports: [
+          {
+            type: 'thread',
+            filePath: 'test.ts',
+            position: { side: 'new', line: 10 },
+            body: 'Imported comment',
+          },
+        ],
+      };
+
+      mockFetch(responseWithImports);
+
+      renderApp();
+
+      await waitFor(() => {
+        expect(mockApplyCommentImports).toHaveBeenCalledWith(
+          responseWithImports.commentImports,
+          'import-bundle-1',
+        );
+      });
     });
   });
 });

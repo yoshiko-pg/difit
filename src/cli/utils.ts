@@ -4,6 +4,9 @@ import { createInterface } from 'readline/promises';
 
 import type { SimpleGit } from 'simple-git';
 
+import type { CommentImport } from '../types/diff.js';
+import { parseCommentImportValue } from '../utils/commentImports.js';
+
 type StdinStat = Pick<Stats, 'isFIFO' | 'isFile' | 'isSocket'>;
 
 type StdinSource = 'pipe' | 'file' | 'socket' | 'tty';
@@ -221,6 +224,10 @@ export function getPrPatch(prArg: string): string {
       stderrText || (error instanceof Error ? error.message : 'Unknown error while running gh');
     throw new Error(`${message}\nTry: gh auth login`);
   }
+}
+
+export function parseCommentOptions(commentValues: string[]): CommentImport[] {
+  return commentValues.flatMap((value) => parseCommentImportValue(value));
 }
 
 export function validateDiffArguments(

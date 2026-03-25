@@ -39,6 +39,17 @@ export interface ParsedDiff {
 export type DiffViewMode = 'split' | 'unified';
 export type LegacyDiffViewMode = 'side-by-side' | 'inline';
 export type DiffSide = 'old' | 'new';
+export type DiffLineRange = number | { start: number; end: number };
+
+export interface DiffCommentPosition {
+  side: DiffSide;
+  line: DiffLineRange;
+}
+
+export interface DiffCommentCodeSnapshot {
+  content: string;
+  language?: string;
+}
 
 export interface DiffResponse {
   commit: string;
@@ -53,6 +64,8 @@ export interface DiffResponse {
   requestedTargetCommitish?: string;
   clearComments?: boolean;
   repositoryId?: string;
+  commentImports?: CommentImport[];
+  commentImportId?: string;
 }
 
 export interface GeneratedStatusResponse {
@@ -88,15 +101,9 @@ export interface LegacyDiffComment {
   createdAt: string; // ISO 8601 format
   updatedAt: string; // ISO 8601 format
 
-  position: {
-    side: DiffSide; // whether on deletion (-) or addition (+) side
-    line: number | { start: number; end: number }; // single line or range
-  };
+  position: DiffCommentPosition;
 
-  codeSnapshot?: {
-    content: string;
-    language?: string; // inferred from file extension
-  };
+  codeSnapshot?: DiffCommentCodeSnapshot;
 }
 
 export interface DiffCommentMessage {
@@ -114,18 +121,33 @@ export interface DiffCommentThread {
   createdAt: string; // ISO 8601 format
   updatedAt: string; // ISO 8601 format
 
-  position: {
-    side: DiffSide; // whether on deletion (-) or addition (+) side
-    line: number | { start: number; end: number }; // single line or range
-  };
+  position: DiffCommentPosition;
 
-  codeSnapshot?: {
-    content: string;
-    language?: string; // inferred from file extension
-  };
+  codeSnapshot?: DiffCommentCodeSnapshot;
 
   messages: DiffCommentMessage[];
 }
+
+interface CommentImportBase {
+  id?: string;
+  filePath: string;
+  position: DiffCommentPosition;
+  body: string;
+  author?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  codeSnapshot?: DiffCommentCodeSnapshot;
+}
+
+export interface ThreadCommentImport extends CommentImportBase {
+  type: 'thread';
+}
+
+export interface ReplyCommentImport extends CommentImportBase {
+  type: 'reply';
+}
+
+export type CommentImport = ThreadCommentImport | ReplyCommentImport;
 
 export interface ViewedFileRecord {
   filePath: string;
@@ -144,7 +166,7 @@ export interface LegacyDiffContextStorage {
   viewedFiles: ViewedFileRecord[];
 }
 
-export interface DiffContextStorage {
+export interface LegacyThreadDiffContextStorage {
   version: 2; // Schema version
   baseCommitish: string;
   targetCommitish: string;
@@ -153,6 +175,18 @@ export interface DiffContextStorage {
 
   threads: DiffCommentThread[];
   viewedFiles: ViewedFileRecord[];
+}
+
+export interface DiffContextStorage {
+  version: 3; // Schema version
+  baseCommitish: string;
+  targetCommitish: string;
+  createdAt: string; // ISO 8601 format
+  lastModifiedAt: string; // ISO 8601 format
+
+  threads: DiffCommentThread[];
+  viewedFiles: ViewedFileRecord[];
+  appliedCommentImportIds: string[];
 }
 
 export interface CommentThread {

@@ -2,6 +2,7 @@ import {
   type DiffCommentThread,
   type ViewedFileRecord,
   type DiffContextStorage,
+  type LegacyThreadDiffContextStorage,
   type LegacyDiffContextStorage,
   type LegacyDiffComment,
 } from '../../types/diff';
@@ -160,20 +161,37 @@ export class StorageService {
 
       if (!data) return null;
 
-      const parsed = JSON.parse(data) as DiffContextStorage | LegacyDiffContextStorage;
+      const parsed = JSON.parse(data) as
+        | DiffContextStorage
+        | LegacyThreadDiffContextStorage
+        | LegacyDiffContextStorage;
       if (parsed.version === 2 && 'threads' in parsed) {
+        return {
+          version: 3,
+          baseCommitish: parsed.baseCommitish,
+          targetCommitish: parsed.targetCommitish,
+          createdAt: parsed.createdAt,
+          lastModifiedAt: parsed.lastModifiedAt,
+          threads: parsed.threads,
+          viewedFiles: parsed.viewedFiles,
+          appliedCommentImportIds: [],
+        };
+      }
+
+      if (parsed.version === 3 && 'threads' in parsed) {
         return parsed;
       }
 
       if (parsed.version === 1 && 'comments' in parsed) {
         return {
-          version: 2,
+          version: 3,
           baseCommitish: parsed.baseCommitish,
           targetCommitish: parsed.targetCommitish,
           createdAt: parsed.createdAt,
           lastModifiedAt: parsed.lastModifiedAt,
           threads: parsed.comments.map(migrateLegacyComment),
           viewedFiles: parsed.viewedFiles,
+          appliedCommentImportIds: [],
         };
       }
 
@@ -207,9 +225,11 @@ export class StorageService {
       // Ensure data includes original commitish values
       const dataToSave: DiffContextStorage = {
         ...data,
+        version: 3,
         baseCommitish,
         targetCommitish,
         lastModifiedAt: new Date().toISOString(),
+        appliedCommentImportIds: data.appliedCommentImportIds || [],
       };
       localStorage.setItem(key, JSON.stringify(dataToSave));
     } catch (error) {
@@ -282,13 +302,14 @@ export class StorageService {
       repositoryId,
     );
     const data: DiffContextStorage = existingData || {
-      version: 2,
+      version: 3,
       baseCommitish,
       targetCommitish,
       createdAt: new Date().toISOString(),
       lastModifiedAt: new Date().toISOString(),
       threads: [],
       viewedFiles: [],
+      appliedCommentImportIds: [],
     };
 
     data.threads = threads;
@@ -362,13 +383,14 @@ export class StorageService {
       repositoryId,
     );
     const data: DiffContextStorage = existingData || {
-      version: 2,
+      version: 3,
       baseCommitish,
       targetCommitish,
       createdAt: new Date().toISOString(),
       lastModifiedAt: new Date().toISOString(),
       threads: [],
       viewedFiles: [],
+      appliedCommentImportIds: [],
     };
 
     data.viewedFiles = files;
@@ -433,6 +455,24 @@ export class StorageService {
     }
 
     return totalSize;
+  }
+
+  getAppliedCommentImportIds(
+    baseCommitish: string,
+    targetCommitish: string,
+    currentCommitHash?: string,
+    branchToHash?: Map<string, string>,
+    repositoryId?: string,
+  ): string[] {
+    const data = this.getDiffContextData(
+      baseCommitish,
+      targetCommitish,
+      currentCommitHash,
+      branchToHash,
+      repositoryId,
+    );
+
+    return data?.appliedCommentImportIds || [];
   }
 }
 

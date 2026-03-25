@@ -118,6 +118,7 @@ function App() {
     removeMessage,
     updateMessage,
     clearAllComments,
+    applyCommentImports,
     generateThreadPrompt,
     generateAllCommentsPrompt,
   } = useDiffComments(
@@ -561,13 +562,22 @@ function App() {
   useEffect(() => {
     if (diffData?.clearComments && !hasCleanedRef.current) {
       hasCleanedRef.current = true;
-      clearAllComments();
+      clearAllComments({ resetAppliedCommentImportIds: true });
       clearViewedFiles();
       console.log(
         '✅ All existing comments and viewed files cleared as requested via --clean flag',
       );
     }
   }, [diffData?.clearComments, clearAllComments, clearViewedFiles]);
+
+  useEffect(() => {
+    if (!diffData?.commentImportId || !diffData.commentImports?.length) {
+      return;
+    }
+
+    const warnings = applyCommentImports(diffData.commentImports, diffData.commentImportId);
+    warnings.forEach((warning) => console.warn(warning));
+  }, [applyCommentImports, diffData?.commentImportId, diffData?.commentImports]);
 
   // Trigger sparkle animation when all files are viewed
   useEffect(() => {

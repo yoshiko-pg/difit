@@ -249,5 +249,47 @@ describe('StorageService - Repository Isolation', () => {
       expect(retrieved1.length).toBe(1);
       expect(retrieved1[0]?.id).toBe('working-comment');
     });
+
+    it('migrates existing thread storage to include applied import ids', () => {
+      localStorage.setItem(
+        'difit-storage-v1/base-target',
+        JSON.stringify({
+          version: 2,
+          baseCommitish: 'base',
+          targetCommitish: 'target',
+          createdAt: '2024-01-01T00:00:00Z',
+          lastModifiedAt: '2024-01-01T00:00:00Z',
+          threads: [],
+          viewedFiles: [],
+        }),
+      );
+
+      const data = service.getDiffContextData('base', 'target');
+      expect(data?.version).toBe(3);
+      expect(data?.appliedCommentImportIds).toEqual([]);
+    });
+
+    it('preserves applied import ids when saving viewed files', () => {
+      service.saveDiffContextData('base', 'target', {
+        version: 3,
+        baseCommitish: 'base',
+        targetCommitish: 'target',
+        createdAt: '2024-01-01T00:00:00Z',
+        lastModifiedAt: '2024-01-01T00:00:00Z',
+        threads: [],
+        viewedFiles: [],
+        appliedCommentImportIds: ['import-bundle-1'],
+      });
+
+      service.saveViewedFiles('base', 'target', [
+        {
+          filePath: 'file.ts',
+          viewedAt: '2024-01-01T00:00:00Z',
+          diffContentHash: 'hash',
+        },
+      ]);
+
+      expect(service.getAppliedCommentImportIds('base', 'target')).toEqual(['import-bundle-1']);
+    });
   });
 });
