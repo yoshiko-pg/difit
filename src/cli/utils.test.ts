@@ -203,6 +203,14 @@ describe('CLI Utils', () => {
       expect(validateCommitish('bugfix/login-timeout')).toBe(true); // path with dash
     });
 
+    it('should validate branch and remote refs with revision suffixes', () => {
+      expect(validateCommitish('main^')).toBe(true);
+      expect(validateCommitish('origin/main~2')).toBe(true);
+      expect(validateCommitish('codex/comment-thread^')).toBe(true);
+      expect(validateCommitish('feature/new-feature^2')).toBe(true);
+      expect(validateCommitish('release/v2.3.1~3^1')).toBe(true);
+    });
+
     it('should validate special cases', () => {
       expect(validateCommitish('.')).toBe(true); // working directory diff
     });
@@ -368,6 +376,10 @@ describe('CLI Utils', () => {
         expect(validateDiffArguments('HEAD~2', 'HEAD~3')).toEqual({ valid: true });
         expect(validateDiffArguments('HEAD^1', 'HEAD^2')).toEqual({ valid: true });
         expect(validateDiffArguments('feature/branch-name', 'origin/main')).toEqual({
+          valid: true,
+        });
+        expect(validateDiffArguments('main', 'main^')).toEqual({ valid: true });
+        expect(validateDiffArguments('codex/comment-thread', 'codex/comment-thread^')).toEqual({
           valid: true,
         });
       });

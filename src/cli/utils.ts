@@ -67,29 +67,35 @@ export function validateCommitish(commitish: string): boolean {
     return false;
   }
 
-  // Special cases
-  if (trimmed === 'HEAD~') {
-    return false;
-  }
   if (trimmed === '.' || trimmed === 'working' || trimmed === 'staged') {
     return true; // Allow special keywords for working directory and staging area diff
   }
 
-  const validPatterns = [
+  const revisionSuffixMatch = trimmed.match(/((?:\^\d*|~\d+)*)$/);
+  const revisionSuffix = revisionSuffixMatch?.[1] ?? '';
+  const baseCommitish =
+    revisionSuffix.length > 0 ? trimmed.slice(0, trimmed.length - revisionSuffix.length) : trimmed;
+
+  if (baseCommitish.length === 0) {
+    return false;
+  }
+
+  return isValidCommitishBase(baseCommitish);
+}
+
+function isValidCommitishBase(baseCommitish: string): boolean {
+  const validBasePatterns = [
     /^[a-f0-9]{4,40}$/i, // SHA hashes
-    /^[a-f0-9]{4,40}\^+$/i, // SHA hashes with ^ suffix (parent references)
-    /^[a-f0-9]{4,40}~\d+$/i, // SHA hashes with ~N suffix (ancestor references)
-    /^HEAD(~\d+|\^\d*)*$/, // HEAD, HEAD~1, HEAD^, HEAD^2, etc.
-    /^@(~\d+|\^\d*)*$/, // @, @~1, @^, @^2, etc. (@ is Git alias for HEAD)
+    /^HEAD$/, // HEAD
+    /^@$/, // @ is Git alias for HEAD
   ];
 
-  // Check if it matches any specific patterns first
-  if (validPatterns.some((pattern) => pattern.test(trimmed))) {
+  if (validBasePatterns.some((pattern) => pattern.test(baseCommitish))) {
     return true;
   }
 
-  // For branch names, use git's rules
-  return isValidBranchName(trimmed);
+  // For branch, tag, and remote refs, use git's ref naming rules.
+  return isValidBranchName(baseCommitish);
 }
 
 function isValidBranchName(name: string): boolean {
