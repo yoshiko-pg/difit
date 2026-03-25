@@ -1226,4 +1226,27 @@ index abc123..def456 100644
       expect(result.isGenerated).toBe(true);
     });
   });
+
+  describe('parseDiff', () => {
+    it('accepts branch refs with revision suffixes', async () => {
+      const gitDiff = (parser as any).git.diff;
+      const gitRevparse = (parser as any).git.revparse;
+
+      gitRevparse
+        .mockResolvedValueOnce('1234567890abcdef1234567890abcdef12345678')
+        .mockResolvedValueOnce('abcdef1234567890abcdef1234567890abcdef12');
+      gitDiff.mockResolvedValue('');
+
+      const response = await parser.parseDiff('codex/comment-thread', 'codex/comment-thread^');
+
+      expect(gitRevparse).toHaveBeenNthCalledWith(1, ['codex/comment-thread']);
+      expect(gitRevparse).toHaveBeenNthCalledWith(2, ['codex/comment-thread^']);
+      expect(gitDiff).toHaveBeenCalledWith(['abcdef1...1234567', '--no-ext-diff', '--color=never']);
+      expect(response).toEqual({
+        commit: 'abcdef1...1234567',
+        files: [],
+        isEmpty: true,
+      });
+    });
+  });
 });
