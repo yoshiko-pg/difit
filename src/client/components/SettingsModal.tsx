@@ -23,6 +23,8 @@ interface SettingsModalProps {
   onSettingsChange: (settings: AppearanceSettings) => void;
 }
 
+type SettingsSection = 'appearance' | 'system';
+
 const DEFAULT_SETTINGS: AppearanceSettings = {
   fontSize: 14,
   fontFamily:
@@ -54,13 +56,31 @@ const COLOR_VISION_MODES = [
   },
 ] as const;
 
+const SETTINGS_SECTIONS = [
+  {
+    id: 'appearance',
+    label: 'Appearance',
+  },
+  {
+    id: 'system',
+    label: 'System',
+  },
+] as const;
+
 export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: SettingsModalProps) {
   const [localSettings, setLocalSettings] = useState<AppearanceSettings>(settings);
+  const [activeSection, setActiveSection] = useState<SettingsSection>('appearance');
   const { enableScope, disableScope } = useHotkeysContext();
 
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveSection('appearance');
+    }
+  }, [isOpen]);
 
   // Apply changes immediately for real-time preview
   useEffect(() => {
@@ -125,18 +145,33 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
   };
 
   const handleReset = () => {
-    setLocalSettings(DEFAULT_SETTINGS);
+    if (activeSection === 'appearance') {
+      setLocalSettings({
+        ...localSettings,
+        fontSize: DEFAULT_SETTINGS.fontSize,
+        fontFamily: DEFAULT_SETTINGS.fontFamily,
+        theme: DEFAULT_SETTINGS.theme,
+        syntaxTheme: DEFAULT_SETTINGS.syntaxTheme,
+        colorVision: DEFAULT_SETTINGS.colorVision,
+      });
+      return;
+    }
+
+    setLocalSettings({
+      ...localSettings,
+      editor: DEFAULT_SETTINGS.editor,
+    });
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <div className="bg-github-bg-secondary border border-github-border rounded-lg w-full max-w-md mx-4 pointer-events-auto">
+      <div className="bg-github-bg-secondary border border-github-border rounded-lg w-full max-w-3xl mx-4 pointer-events-auto overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-github-border">
           <h2 className="text-lg font-semibold text-github-text-primary flex items-center gap-2">
             <Settings size={20} />
-            Appearance Settings
+            Settings
           </h2>
           <button
             onClick={onClose}
@@ -146,147 +181,188 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
           </button>
         </div>
 
-        <div className="p-4 space-y-6">
-          {/* Font Size */}
-          <div>
-            <label className="block text-sm font-medium text-github-text-primary mb-2">
-              Font Size
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min="10"
-                max="20"
-                step="1"
-                value={localSettings.fontSize}
-                onChange={(e) =>
-                  setLocalSettings({ ...localSettings, fontSize: parseInt(e.target.value) })
-                }
-                className="flex-1 accent-github-accent"
-              />
-              <span className="text-sm text-github-text-secondary w-8 text-right">
-                {localSettings.fontSize}px
-              </span>
-            </div>
-          </div>
-
-          {/* Font Family */}
-          <div>
-            <label className="block text-sm font-medium text-github-text-primary mb-2">
-              Font Family
-            </label>
-            <select
-              value={localSettings.fontFamily}
-              onChange={(e) => setLocalSettings({ ...localSettings, fontFamily: e.target.value })}
-              className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
-            >
-              {FONT_FAMILIES.map((font) => (
-                <option key={font.value} value={font.value}>
-                  {font.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Theme */}
-          <div>
-            <label className="block text-sm font-medium text-github-text-primary mb-2">Theme</label>
-            <div className="flex gap-2">
-              {(['light', 'dark', 'auto'] as const).map((theme) => (
-                <button
-                  key={theme}
-                  onClick={() => handleThemeChange(theme)}
-                  className={`px-3 py-2 text-sm rounded border transition-colors ${
-                    localSettings.theme === theme
-                      ? 'bg-github-accent text-white border-github-accent'
-                      : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
-                  }`}
-                >
-                  {theme.charAt(0).toUpperCase() + theme.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Color Vision */}
-          <div>
-            <label className="block text-sm font-medium text-github-text-primary mb-2">
-              Color Vision
-            </label>
-            <div className="flex gap-2">
-              {COLOR_VISION_MODES.map((mode) => {
-                const isSelected = (localSettings.colorVision ?? 'normal') === mode.id;
-                const button = (
+        <div className="flex flex-col sm:flex-row min-h-[420px]">
+          <nav
+            aria-label="Settings sections"
+            className="sm:w-40 border-b sm:border-b-0 sm:border-r border-github-border px-3 py-2"
+          >
+            <div className="flex sm:flex-col gap-1">
+              {SETTINGS_SECTIONS.map((section) => {
+                const isActive = section.id === activeSection;
+                return (
                   <button
-                    key={mode.id}
-                    onClick={() => setLocalSettings({ ...localSettings, colorVision: mode.id })}
-                    className={`px-3 py-2 text-sm rounded border transition-colors ${
-                      isSelected
-                        ? 'bg-github-accent text-white border-github-accent'
-                        : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
+                    key={section.id}
+                    type="button"
+                    onClick={() => setActiveSection(section.id)}
+                    aria-pressed={isActive}
+                    className={`flex-1 sm:flex-none text-left px-3 py-2 text-sm font-medium transition-colors border-b-2 sm:border-b-0 sm:border-l-2 ${
+                      isActive
+                        ? 'text-github-text-primary border-github-accent'
+                        : 'text-github-text-secondary border-transparent hover:text-github-text-primary'
                     }`}
                   >
-                    {mode.label}
+                    {section.label}
                   </button>
-                );
-
-                if (!('tooltip' in mode)) {
-                  return button;
-                }
-
-                return (
-                  <Tooltip key={mode.id} content={mode.tooltip}>
-                    {button}
-                  </Tooltip>
                 );
               })}
             </div>
-          </div>
+          </nav>
 
-          {/* Syntax Theme */}
-          <div>
-            <label className="block text-sm font-medium text-github-text-primary mb-2">
-              Syntax Highlighting Theme
-            </label>
-            <select
-              value={localSettings.syntaxTheme}
-              onChange={(e) =>
-                setLocalSettings({
-                  ...localSettings,
-                  syntaxTheme: e.target.value,
-                })
-              }
-              className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
-            >
-              {getAvailableThemes().map((theme) => (
-                <option key={theme.id} value={theme.id}>
-                  {theme.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+            {activeSection === 'appearance' && (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-github-text-primary mb-2">
+                    Font Size
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="10"
+                      max="20"
+                      step="1"
+                      value={localSettings.fontSize}
+                      onChange={(e) =>
+                        setLocalSettings({
+                          ...localSettings,
+                          fontSize: Number.parseInt(e.target.value, 10),
+                        })
+                      }
+                      className="flex-1 accent-github-accent"
+                    />
+                    <span className="text-sm text-github-text-secondary w-8 text-right">
+                      {localSettings.fontSize}px
+                    </span>
+                  </div>
+                </div>
 
-          {/* Editor */}
-          <div>
-            <label className="block text-sm font-medium text-github-text-primary mb-2">
-              Open In Editor
-            </label>
-            <select
-              value={localSettings.editor}
-              onChange={(e) =>
-                setLocalSettings({
-                  ...localSettings,
-                  editor: e.target.value as AppearanceSettings['editor'],
-                })
-              }
-              className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
-            >
-              {EDITOR_OPTIONS.map((editor) => (
-                <option key={editor.id} value={editor.id}>
-                  {editor.label}
-                </option>
-              ))}
-            </select>
+                <div>
+                  <label className="block text-sm font-medium text-github-text-primary mb-2">
+                    Font Family
+                  </label>
+                  <select
+                    value={localSettings.fontFamily}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, fontFamily: e.target.value })
+                    }
+                    className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
+                  >
+                    {FONT_FAMILIES.map((font) => (
+                      <option key={font.value} value={font.value}>
+                        {font.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-github-text-primary mb-2">
+                    Theme
+                  </label>
+                  <div className="flex gap-2">
+                    {(['light', 'dark', 'auto'] as const).map((theme) => (
+                      <button
+                        key={theme}
+                        type="button"
+                        onClick={() => handleThemeChange(theme)}
+                        className={`px-3 py-2 text-sm rounded border transition-colors ${
+                          localSettings.theme === theme
+                            ? 'bg-github-accent text-white border-github-accent'
+                            : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
+                        }`}
+                      >
+                        {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-github-text-primary mb-2">
+                    Color Vision
+                  </label>
+                  <div className="flex gap-2">
+                    {COLOR_VISION_MODES.map((mode) => {
+                      const isSelected = (localSettings.colorVision ?? 'normal') === mode.id;
+                      const button = (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() =>
+                            setLocalSettings({ ...localSettings, colorVision: mode.id })
+                          }
+                          className={`px-3 py-2 text-sm rounded border transition-colors ${
+                            isSelected
+                              ? 'bg-github-accent text-white border-github-accent'
+                              : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
+                          }`}
+                        >
+                          {mode.label}
+                        </button>
+                      );
+
+                      if (!('tooltip' in mode)) {
+                        return button;
+                      }
+
+                      return (
+                        <Tooltip key={mode.id} content={mode.tooltip}>
+                          {button}
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-github-text-primary mb-2">
+                    Syntax Highlighting Theme
+                  </label>
+                  <select
+                    value={localSettings.syntaxTheme}
+                    onChange={(e) =>
+                      setLocalSettings({
+                        ...localSettings,
+                        syntaxTheme: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
+                  >
+                    {getAvailableThemes().map((theme) => (
+                      <option key={theme.id} value={theme.id}>
+                        {theme.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'system' && (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-github-text-primary mb-2">
+                    Open In Editor
+                  </label>
+                  <select
+                    value={localSettings.editor}
+                    onChange={(e) =>
+                      setLocalSettings({
+                        ...localSettings,
+                        editor: e.target.value as AppearanceSettings['editor'],
+                      })
+                    }
+                    className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
+                  >
+                    {EDITOR_OPTIONS.map((editor) => (
+                      <option key={editor.id} value={editor.id}>
+                        {editor.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -295,7 +371,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
             onClick={handleReset}
             className="px-3 py-2 text-sm text-github-text-secondary hover:text-github-text-primary"
           >
-            Reset to Default
+            {activeSection === 'appearance' ? 'Reset Appearance Defaults' : 'Reset System Defaults'}
           </button>
           <button
             onClick={onClose}

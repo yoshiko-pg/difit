@@ -28,6 +28,35 @@ const baseSettings = {
 };
 
 describe('SettingsModal', () => {
+  it('shows appearance settings by default and moves editor selection into the system section', () => {
+    render(
+      <SettingsModal
+        isOpen={true}
+        onClose={vi.fn()}
+        settings={baseSettings}
+        onSettingsChange={vi.fn()}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByText('Font Size')).toBeInTheDocument();
+    expect(screen.queryByText('Open In Editor')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Theme, typography, and syntax highlighting.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText('Appearance')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /^Appearance/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^System/ }));
+
+    expect(screen.getByText('Open In Editor')).toBeInTheDocument();
+    expect(screen.queryByText('Font Size')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^System/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('shows the deuteranopia explanation only while the button is hovered', async () => {
     render(
       <SettingsModal
