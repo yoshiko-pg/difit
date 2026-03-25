@@ -57,7 +57,7 @@ describe('CommentThreadCard', () => {
 
   it('shows the shared comment form layout while editing', async () => {
     const user = userEvent.setup();
-    render(
+    const { container } = render(
       <CommentThreadCard
         thread={mockThread}
         onGeneratePrompt={() => 'thread prompt'}
@@ -74,5 +74,6 @@ describe('CommentThreadCard', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add suggestion/i })).toBeInTheDocument();
+    expect(container.querySelector('form')?.className).not.toContain('border-yellow-600/50');
   });
 });

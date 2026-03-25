@@ -100,6 +100,7 @@ function ThreadMessageItem({
           syntaxTheme={syntaxTheme}
           filename={filename}
           initialValue={message.body}
+          embedded={true}
           title="Edit comment"
           submitLabel="Save"
           placeholder="Edit your message..."
@@ -246,6 +247,7 @@ export function CommentThreadCard({
               selectedCode={thread.codeContent}
               syntaxTheme={syntaxTheme}
               filename={thread.file}
+              embedded={true}
               title="Reply to thread"
               submitLabel="Reply"
               placeholder="Write a reply..."

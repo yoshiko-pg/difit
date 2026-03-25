@@ -11,6 +11,7 @@ interface CommentFormProps {
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   filename?: string;
   initialValue?: string;
+  embedded?: boolean;
   title?: string;
   submitLabel?: string;
   placeholder?: string;
@@ -25,6 +26,7 @@ export function CommentForm({
   syntaxTheme,
   filename,
   initialValue = '',
+  embedded = false,
   title = 'Add a comment',
   submitLabel = 'Submit',
   placeholder = 'Leave a comment...',
@@ -63,7 +65,11 @@ export function CommentForm({
 
   return (
     <form
-      className="m-2 mx-3 p-3 bg-github-bg-tertiary border border-yellow-600/50 rounded-md border-l-4 border-l-yellow-400"
+      className={
+        embedded
+          ? 'bg-transparent'
+          : 'm-2 mx-3 rounded-md border border-yellow-600/50 border-l-4 border-l-yellow-400 bg-github-bg-tertiary p-3'
+      }
       onSubmit={handleSubmit}
       onClick={(e) => e.stopPropagation()}
       data-empty={!body.trim()}
