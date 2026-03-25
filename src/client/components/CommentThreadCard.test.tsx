@@ -55,9 +55,9 @@ describe('CommentThreadCard', () => {
     ).toBeNull();
   });
 
-  it('shows the bordered editor chrome only while editing', async () => {
+  it('shows the shared comment form layout while editing', async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    render(
       <CommentThreadCard
         thread={mockThread}
         onGeneratePrompt={() => 'thread prompt'}
@@ -70,9 +70,9 @@ describe('CommentThreadCard', () => {
 
     await user.click(screen.getAllByTitle('Edit message')[0]!);
 
-    expect(screen.getByPlaceholderText('Edit your message...')).toBeInTheDocument();
-    expect(
-      container.querySelector('.rounded-md.border.border-github-border.bg-github-bg-secondary.p-3'),
-    ).toBeTruthy();
+    expect(screen.getByText('Edit comment')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add suggestion/i })).toBeInTheDocument();
   });
 });

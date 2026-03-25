@@ -10,6 +10,7 @@ interface CommentFormProps {
   selectedCode?: string;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   filename?: string;
+  initialValue?: string;
   title?: string;
   submitLabel?: string;
   placeholder?: string;
@@ -23,11 +24,12 @@ export function CommentForm({
   selectedCode,
   syntaxTheme,
   filename,
+  initialValue = '',
   title = 'Add a comment',
   submitLabel = 'Submit',
   placeholder = 'Leave a comment...',
 }: CommentFormProps) {
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(initialValue);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mode, setMode] = useState<CommentFormMode>('edit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
