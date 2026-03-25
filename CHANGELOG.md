@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.18] - 2026-03-25
+
+### Added
+
+- Add auto-viewed file patterns (#265)
+
+### Changed
+
+- Refactor settings modal into appearance and system sections (#263)
+- Improve development startup logging and hide internal server output (#257)
+- Align CI workflows for Renovate auto-merge and merge queue checks (#262)
+- Update dependencies (#264 #260 #259 #258)
+
+### Fixed
+
+- Fix commit-ish parsing for branch refs with revision suffixes (#266)
+
 ## [3.1.17] - 2026-03-18
 
 ### Added
@@ -1031,7 +1048,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.17...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.18...HEAD
+[3.1.18]: https://github.com/yoshiko-pg/difit/compare/v3.1.17...v3.1.18
 [3.1.17]: https://github.com/yoshiko-pg/difit/compare/v3.1.16...v3.1.17
 [3.1.16]: https://github.com/yoshiko-pg/difit/compare/v3.1.15...v3.1.16
 [3.1.15]: https://github.com/yoshiko-pg/difit/compare/v3.1.14...v3.1.15
