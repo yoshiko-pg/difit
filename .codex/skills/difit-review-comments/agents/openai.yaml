@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Difit Review Comments'
+  short_description: 'Review diffs and open difit with inline findings.'
+  default_prompt: 'Use $difit-review-comments to review a diff or PR, convert concrete findings into --comment entries, and open difit with those comments preloaded.'
