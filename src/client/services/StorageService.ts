@@ -2,16 +2,11 @@ import {
   type DiffCommentThread,
   type ViewedFileRecord,
   type DiffContextStorage,
-  type LegacyThreadDiffContextStorage,
   type LegacyDiffContextStorage,
   type LegacyDiffComment,
 } from '../../types/diff';
 
 const STORAGE_KEY_PREFIX = 'difit-storage-v1';
-
-interface DiffContextStorageV3Compat extends Omit<DiffContextStorage, 'version'> {
-  version: 3;
-}
 
 function migrateLegacyComment(comment: LegacyDiffComment): DiffCommentThread {
   return {
@@ -47,12 +42,6 @@ function normalizeRootComment(thread: DiffCommentThread): LegacyDiffComment | nu
     position: thread.position,
     codeSnapshot: thread.codeSnapshot,
   };
-}
-
-function normalizeAppliedCommentImportIds(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string')
-    : [];
 }
 
 export class StorageService {
@@ -171,37 +160,9 @@ export class StorageService {
 
       if (!data) return null;
 
-      const parsed = JSON.parse(data) as
-        | DiffContextStorage
-        | DiffContextStorageV3Compat
-        | LegacyThreadDiffContextStorage
-        | LegacyDiffContextStorage;
+      const parsed = JSON.parse(data) as DiffContextStorage | LegacyDiffContextStorage;
       if (parsed.version === 2 && 'threads' in parsed) {
-        return {
-          version: 2,
-          baseCommitish: parsed.baseCommitish,
-          targetCommitish: parsed.targetCommitish,
-          createdAt: parsed.createdAt,
-          lastModifiedAt: parsed.lastModifiedAt,
-          threads: parsed.threads,
-          viewedFiles: parsed.viewedFiles,
-          appliedCommentImportIds: normalizeAppliedCommentImportIds(
-            (parsed as Partial<DiffContextStorage>).appliedCommentImportIds,
-          ),
-        };
-      }
-
-      if (parsed.version === 3 && 'threads' in parsed) {
-        return {
-          version: 2,
-          baseCommitish: parsed.baseCommitish,
-          targetCommitish: parsed.targetCommitish,
-          createdAt: parsed.createdAt,
-          lastModifiedAt: parsed.lastModifiedAt,
-          threads: parsed.threads,
-          viewedFiles: parsed.viewedFiles,
-          appliedCommentImportIds: normalizeAppliedCommentImportIds(parsed.appliedCommentImportIds),
-        };
+        return parsed;
       }
 
       if (parsed.version === 1 && 'comments' in parsed) {
@@ -477,24 +438,6 @@ export class StorageService {
     }
 
     return totalSize;
-  }
-
-  getAppliedCommentImportIds(
-    baseCommitish: string,
-    targetCommitish: string,
-    currentCommitHash?: string,
-    branchToHash?: Map<string, string>,
-    repositoryId?: string,
-  ): string[] {
-    const data = this.getDiffContextData(
-      baseCommitish,
-      targetCommitish,
-      currentCommitHash,
-      branchToHash,
-      repositoryId,
-    );
-
-    return data?.appliedCommentImportIds || [];
   }
 }
 

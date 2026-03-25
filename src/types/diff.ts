@@ -166,17 +166,6 @@ export interface LegacyDiffContextStorage {
   viewedFiles: ViewedFileRecord[];
 }
 
-export interface LegacyThreadDiffContextStorage {
-  version: 2; // Schema version
-  baseCommitish: string;
-  targetCommitish: string;
-  createdAt: string; // ISO 8601 format
-  lastModifiedAt: string; // ISO 8601 format
-
-  threads: DiffCommentThread[];
-  viewedFiles: ViewedFileRecord[];
-}
-
 export interface DiffContextStorage {
   version: 2; // Schema version
   baseCommitish: string;
