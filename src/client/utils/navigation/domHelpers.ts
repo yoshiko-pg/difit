@@ -1,4 +1,3 @@
-import type { DiffSide } from '../../../types/diff';
 import type { CursorPosition, ViewMode } from '../../hooks/keyboardNavigation/types';
 
 /**
@@ -13,6 +12,6 @@ export function getElementId(position: CursorPosition, viewMode: ViewMode): stri
 /**
  * Creates a comment lookup key from file path and line number
  */
-export function getCommentKey(filePath: string, lineNumber: number, side?: DiffSide): string {
-  return `${filePath}:${lineNumber}:${side ?? 'any'}`;
+export function getCommentKey(filePath: string, lineNumber: number): string {
+  return `${filePath}:${lineNumber}`;
 }

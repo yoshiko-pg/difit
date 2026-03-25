@@ -8,18 +8,16 @@ import type { DiffViewerBodyProps } from './types';
 
 describe('ImageDiffViewer', () => {
   const baseProps: Omit<DiffViewerBodyProps, 'file'> = {
-    threads: [],
+    comments: [],
     diffMode: 'unified',
     mergedChunks: [],
     isExpandLoading: false,
     expandHiddenLines: vi.fn().mockResolvedValue(undefined),
     expandAllBetweenChunks: vi.fn().mockResolvedValue(undefined),
     onAddComment: vi.fn().mockResolvedValue(undefined),
-    onGenerateThreadPrompt: vi.fn(),
-    onRemoveThread: vi.fn(),
-    onReplyToThread: vi.fn().mockResolvedValue(undefined),
-    onRemoveMessage: vi.fn(),
-    onUpdateMessage: vi.fn(),
+    onGeneratePrompt: vi.fn(),
+    onRemoveComment: vi.fn(),
+    onUpdateComment: vi.fn(),
   };
 
   const renderViewer = (file: DiffFile, overrides: Partial<DiffViewerBodyProps> = {}) =>

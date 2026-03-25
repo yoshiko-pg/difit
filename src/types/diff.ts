@@ -80,51 +80,27 @@ export interface LineSelection {
   lineNumber: number;
 }
 
-export interface LegacyDiffComment {
-  id: string; // UUID format recommended
-  filePath: string;
-  body: string;
-  author?: string;
-  createdAt: string; // ISO 8601 format
-  updatedAt: string; // ISO 8601 format
-
-  position: {
-    side: DiffSide; // whether on deletion (-) or addition (+) side
-    line: number | { start: number; end: number }; // single line or range
-  };
-
-  codeSnapshot?: {
-    content: string;
-    language?: string; // inferred from file extension
-  };
-}
-
-export interface DiffCommentMessage {
-  id: string;
-  body: string;
-  author?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 // New data structures for enhanced comment and viewed state management
-export interface DiffCommentThread {
+
+export interface DiffComment {
   id: string; // UUID format recommended
   filePath: string;
+  body: string;
+  author?: string;
   createdAt: string; // ISO 8601 format
   updatedAt: string; // ISO 8601 format
 
+  // Comment position
   position: {
     side: DiffSide; // whether on deletion (-) or addition (+) side
     line: number | { start: number; end: number }; // single line or range
   };
 
+  // Code snapshot at comment time (optional)
   codeSnapshot?: {
     content: string;
     language?: string; // inferred from file extension
   };
-
-  messages: DiffCommentMessage[];
 }
 
 export interface ViewedFileRecord {
@@ -133,37 +109,15 @@ export interface ViewedFileRecord {
   diffContentHash: string; // SHA-256 hash
 }
 
-export interface LegacyDiffContextStorage {
+export interface DiffContextStorage {
   version: 1; // Schema version
   baseCommitish: string;
   targetCommitish: string;
   createdAt: string; // ISO 8601 format
   lastModifiedAt: string; // ISO 8601 format
 
-  comments: LegacyDiffComment[];
+  comments: DiffComment[];
   viewedFiles: ViewedFileRecord[];
-}
-
-export interface DiffContextStorage {
-  version: 2; // Schema version
-  baseCommitish: string;
-  targetCommitish: string;
-  createdAt: string; // ISO 8601 format
-  lastModifiedAt: string; // ISO 8601 format
-
-  threads: DiffCommentThread[];
-  viewedFiles: ViewedFileRecord[];
-}
-
-export interface CommentThread {
-  id: string;
-  file: string;
-  line: LineNumber;
-  side?: DiffSide;
-  createdAt: string;
-  updatedAt: string;
-  codeContent?: string;
-  messages: DiffCommentMessage[];
 }
 
 // Revision selector types

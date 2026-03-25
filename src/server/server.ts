@@ -20,8 +20,6 @@ import { GitDiffParser } from './git-diff.js';
 
 import {
   type Comment,
-  type CommentThread,
-  type DiffCommentThread,
   type DiffResponse,
   type GeneratedStatusResponse,
   type RevisionsResponse,
@@ -331,75 +329,22 @@ export async function startServer(
     }
   });
 
-  let finalThreads: CommentThread[] = [];
+  // Store comments for final output
+  let finalComments: Comment[] = [];
 
-  function normalizeComment(comment: Comment): CommentThread {
-    return {
-      id: comment.id,
-      file: comment.file,
-      line: comment.line,
-      side: comment.side,
-      createdAt: comment.timestamp,
-      updatedAt: comment.timestamp,
-      codeContent: comment.codeContent,
-      messages: [
-        {
-          id: comment.id,
-          body: comment.body,
-          author: comment.author,
-          createdAt: comment.timestamp,
-          updatedAt: comment.timestamp,
-        },
-      ],
-    };
-  }
-
-  function normalizeThreadPayload(thread: CommentThread | DiffCommentThread): CommentThread {
-    if ('file' in thread && 'line' in thread) {
-      return thread;
-    }
-
-    return {
-      id: thread.id,
-      file: thread.filePath,
-      line:
-        typeof thread.position.line === 'number'
-          ? thread.position.line
-          : ([thread.position.line.start, thread.position.line.end] as [number, number]),
-      side: thread.position.side,
-      createdAt: thread.createdAt,
-      updatedAt: thread.updatedAt,
-      codeContent: thread.codeSnapshot?.content,
-      messages: thread.messages,
-    };
-  }
-
-  function parseCommentsPayload(body: unknown): CommentThread[] {
+  // Parse comments from request body (handles both JSON and text/plain)
+  function parseCommentsPayload(body: unknown): Comment[] {
     const payload =
       typeof body === 'string'
-        ? (JSON.parse(body) as {
-            comments?: Comment[];
-            threads?: Array<CommentThread | DiffCommentThread>;
-          })
-        : (body as {
-            comments?: Comment[];
-            threads?: Array<CommentThread | DiffCommentThread>;
-          });
+        ? (JSON.parse(body) as { comments?: Comment[] })
+        : (body as { comments?: Comment[] });
 
-    if (Array.isArray(payload.threads)) {
-      return payload.threads.map(normalizeThreadPayload);
-    }
-
-    if (Array.isArray(payload.comments)) {
-      return payload.comments.map(normalizeComment);
-    }
-
-    return [];
+    return payload.comments || [];
   }
 
   app.post('/api/comments', (req, res) => {
     try {
-      finalThreads = parseCommentsPayload(req.body);
+      finalComments = parseCommentsPayload(req.body);
       res.json({ success: true });
     } catch (error) {
       console.error('Error parsing comments:', error);
@@ -408,8 +353,8 @@ export async function startServer(
   });
 
   app.get('/api/comments-output', (_req, res) => {
-    if (finalThreads.length > 0) {
-      const output = formatCommentsOutput(finalThreads);
+    if (finalComments.length > 0) {
+      const output = formatCommentsOutput(finalComments);
       res.send(output);
     } else {
       res.send('');
@@ -504,8 +449,8 @@ export async function startServer(
 
   // Function to output comments when server shuts down
   function outputFinalComments() {
-    if (finalThreads.length > 0) {
-      console.log(formatCommentsOutput(finalThreads));
+    if (finalComments.length > 0) {
+      console.log(formatCommentsOutput(finalComments));
     }
   }
 

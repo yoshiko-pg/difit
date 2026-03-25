@@ -4,7 +4,7 @@ import {
   type DiffChunk as DiffChunkType,
   type DiffLine,
   type DiffSide,
-  type CommentThread,
+  type Comment,
   type LineNumber,
   type LineSelection,
 } from '../../types/diff';
@@ -17,8 +17,8 @@ import {
 
 import { CommentButton } from './CommentButton';
 import { CommentForm } from './CommentForm';
-import { CommentThreadCard } from './CommentThreadCard';
 import { EnhancedPrismSyntaxHighlighter } from './EnhancedPrismSyntaxHighlighter';
+import { InlineComment } from './InlineComment';
 import { OpenInEditorButton } from './OpenInEditorButton';
 import type { AppearanceSettings } from './SettingsModal';
 import { WordLevelDiffHighlighter } from './WordLevelDiffHighlighter';
@@ -26,7 +26,7 @@ import { WordLevelDiffHighlighter } from './WordLevelDiffHighlighter';
 interface SideBySideDiffChunkProps {
   chunk: DiffChunkType;
   chunkIndex: number;
-  threads: CommentThread[];
+  comments: Comment[];
   showAuthorBadges?: boolean;
   onAddComment: (
     line: LineNumber,
@@ -34,11 +34,9 @@ interface SideBySideDiffChunkProps {
     codeContent?: string,
     side?: DiffSide,
   ) => Promise<void>;
-  onGenerateThreadPrompt: (thread: CommentThread) => string;
-  onRemoveThread: (threadId: string) => void;
-  onReplyToThread: (threadId: string, body: string) => Promise<void>;
-  onRemoveMessage: (threadId: string, messageId: string) => void;
-  onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
+  onGeneratePrompt: (comment: Comment) => string;
+  onRemoveComment: (commentId: string) => void;
+  onUpdateComment: (commentId: string, newBody: string) => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   cursor?: CursorPosition | null;
   fileIndex?: number;
@@ -89,14 +87,12 @@ const getSideBySideLineClass = (line: DiffLine | undefined, isExpanded: boolean)
 export function SideBySideDiffChunk({
   chunk,
   chunkIndex,
-  threads,
+  comments,
   showAuthorBadges = false,
   onAddComment,
-  onGenerateThreadPrompt,
-  onRemoveThread,
-  onReplyToThread,
-  onRemoveMessage,
-  onUpdateMessage,
+  onGeneratePrompt,
+  onRemoveComment,
+  onUpdateComment,
   syntaxTheme,
   cursor = null,
   fileIndex = 0,
@@ -202,16 +198,16 @@ export function SideBySideDiffChunk({
     [commentingLine, onAddComment, getSelectedCodeContent],
   );
 
-  const getThreadsForLine = (lineNumber: number, side: DiffSide) => {
-    return threads
-      .filter((thread) => {
-        const lineMatches = Array.isArray(thread.line)
-          ? thread.line[1] === lineNumber
-          : thread.line === lineNumber;
-        const sideMatches = !thread.side || thread.side === side;
-        return lineMatches && sideMatches;
-      })
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const getCommentsForLine = (lineNumber: number, side: DiffSide) => {
+    return comments.filter((c) => {
+      // Check if line number matches (single line or end of range)
+      const lineMatches = Array.isArray(c.line) ? c.line[1] === lineNumber : c.line === lineNumber;
+
+      // Filter by side - if comment has no side (legacy), show on new side only
+      const sideMatches = !c.side || c.side === side;
+
+      return lineMatches && sideMatches;
+    });
   };
 
   const getCommentLayout = (sideLine: SideBySideLine): 'left' | 'right' | 'full' => {
@@ -374,13 +370,14 @@ export function SideBySideDiffChunk({
       <table className="w-full table-fixed border-collapse font-mono text-sm leading-5">
         <tbody>
           {sideBySideLines.map((sideLine, index) => {
-            const oldThreads = sideLine.oldLineNumber
-              ? getThreadsForLine(sideLine.oldLineNumber, 'old')
+            // Fetch comments separately for each side to prevent duplication
+            const oldComments = sideLine.oldLineNumber
+              ? getCommentsForLine(sideLine.oldLineNumber, 'old')
               : [];
-            const newThreads = sideLine.newLineNumber
-              ? getThreadsForLine(sideLine.newLineNumber, 'new')
+            const newComments = sideLine.newLineNumber
+              ? getCommentsForLine(sideLine.newLineNumber, 'new')
               : [];
-            const allThreads = [...oldThreads, ...newThreads];
+            const allComments = [...oldComments, ...newComments];
 
             // Use the stored original indices
             const oldLineOriginalIndex = sideLine.oldLineOriginalIndex ?? -1;
@@ -656,17 +653,18 @@ export function SideBySideDiffChunk({
                   </td>
                 </tr>
 
-                {/* Comment threads row */}
-                {allThreads.length > 0 && (
+                {/* Comments row */}
+                {allComments.length > 0 && (
                   <tr className="bg-github-bg-secondary">
                     <td colSpan={4} className="p-0 border-t border-github-border">
-                      {allThreads.map((thread) => {
-                        const threadSide = thread.side || 'new';
+                      {allComments.map((comment) => {
+                        // Determine layout based on comment's side
+                        const commentSide = comment.side || 'new';
                         let layout: 'left' | 'right' | 'full';
 
-                        if (threadSide === 'old' && sideLine.oldLineNumber) {
+                        if (commentSide === 'old' && sideLine.oldLineNumber) {
                           layout = 'left';
-                        } else if (threadSide === 'new' && sideLine.newLineNumber) {
+                        } else if (commentSide === 'new' && sideLine.newLineNumber) {
                           layout = 'right';
                         } else {
                           layout = getCommentLayout(sideLine);
@@ -674,7 +672,7 @@ export function SideBySideDiffChunk({
 
                         return (
                           <div
-                            key={thread.id}
+                            key={comment.id}
                             className={`flex ${
                               layout === 'left'
                                 ? 'justify-start'
@@ -685,14 +683,12 @@ export function SideBySideDiffChunk({
                           >
                             <div className={`${layout === 'full' ? 'w-full' : 'w-1/2'}`}>
                               <div className="m-2 mx-3">
-                                <CommentThreadCard
-                                  thread={thread}
-                                  showAuthorBadges={showAuthorBadges}
-                                  onGeneratePrompt={onGenerateThreadPrompt}
-                                  onRemoveThread={onRemoveThread}
-                                  onReplyToThread={onReplyToThread}
-                                  onRemoveMessage={onRemoveMessage}
-                                  onUpdateMessage={onUpdateMessage}
+                                <InlineComment
+                                  comment={comment}
+                                  showAuthorBadge={showAuthorBadges}
+                                  onGeneratePrompt={onGeneratePrompt}
+                                  onRemoveComment={onRemoveComment}
+                                  onUpdateComment={onUpdateComment}
                                   syntaxTheme={syntaxTheme}
                                 />
                               </div>

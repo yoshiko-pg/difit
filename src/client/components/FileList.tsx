@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 
-import { type DiffFile, type CommentThread } from '../../types/diff';
+import { type DiffFile, type Comment } from '../../types/diff';
 
 import { Checkbox } from './Checkbox';
 
@@ -22,7 +22,7 @@ interface FileListProps {
   files: DiffFile[];
   onScrollToFile: (path: string) => void;
   onFileSelected?: () => void;
-  comments: CommentThread[];
+  comments: Comment[];
   reviewedFiles: Set<string>;
   onToggleReviewed: (path: string) => void;
   selectedFileIndex: number | null;

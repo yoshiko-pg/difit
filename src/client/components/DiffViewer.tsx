@@ -4,7 +4,7 @@ import {
   type DiffFile,
   type DiffViewMode,
   type DiffSide,
-  type CommentThread,
+  type Comment,
   type LineNumber,
 } from '../../types/diff';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
@@ -17,7 +17,7 @@ import type { AppearanceSettings } from './SettingsModal';
 
 interface DiffViewerProps {
   file: DiffFile;
-  threads: CommentThread[];
+  comments: Comment[];
   showAuthorBadges?: boolean;
   diffMode: DiffViewMode;
   reviewedFiles: Set<string>;
@@ -32,11 +32,9 @@ interface DiffViewerProps {
     codeContent?: string,
     side?: DiffSide,
   ) => Promise<void>;
-  onGenerateThreadPrompt: (thread: CommentThread) => string;
-  onRemoveThread: (threadId: string) => void;
-  onReplyToThread: (threadId: string, body: string) => Promise<void>;
-  onRemoveMessage: (threadId: string, messageId: string) => void;
-  onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
+  onGeneratePrompt: (comment: Comment) => string;
+  onRemoveComment: (commentId: string) => void;
+  onUpdateComment: (commentId: string, newBody: string) => void;
   onOpenInEditor?: (filePath: string, lineNumber: number) => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   baseCommitish?: string;
@@ -77,14 +75,14 @@ type Gap = {
   prevChunkIndex?: number;
 };
 
-const normalizeCommentRanges = (threads: CommentThread[]): Record<DiffSide, LineRange[]> => {
+const normalizeCommentRanges = (comments: Comment[]): Record<DiffSide, LineRange[]> => {
   const ranges: Record<DiffSide, LineRange[]> = { old: [], new: [] };
 
-  threads.forEach((thread) => {
-    const side = thread.side ?? 'new';
-    const [start, end] = Array.isArray(thread.line)
-      ? [thread.line[0], thread.line[1]]
-      : [thread.line, thread.line];
+  comments.forEach((comment) => {
+    const side = comment.side ?? 'new';
+    const [start, end] = Array.isArray(comment.line)
+      ? [comment.line[0], comment.line[1]]
+      : [comment.line, comment.line];
 
     if (start <= 0 || end <= 0) return;
 
@@ -167,7 +165,7 @@ const getLastChunkIndex = (mergedChunks: MergedChunk[]): number | null => {
 
 export const DiffViewer = memo(function DiffViewer({
   file,
-  threads,
+  comments,
   showAuthorBadges = false,
   diffMode,
   reviewedFiles,
@@ -176,11 +174,9 @@ export const DiffViewer = memo(function DiffViewer({
   onToggleCollapsed,
   onToggleAllCollapsed,
   onAddComment,
-  onGenerateThreadPrompt,
-  onRemoveThread,
-  onReplyToThread,
-  onRemoveMessage,
-  onUpdateMessage,
+  onGeneratePrompt,
+  onRemoveComment,
+  onUpdateComment,
   onOpenInEditor,
   syntaxTheme,
   baseCommitish,
@@ -237,7 +233,7 @@ export const DiffViewer = memo(function DiffViewer({
   );
 
   useEffect(() => {
-    if (isCollapsed || isExpandLoading || !canExpandHiddenLines || threads.length === 0) {
+    if (isCollapsed || isExpandLoading || !canExpandHiddenLines || comments.length === 0) {
       return;
     }
 
@@ -245,7 +241,7 @@ export const DiffViewer = memo(function DiffViewer({
       return;
     }
 
-    const commentRangesBySide = normalizeCommentRanges(threads);
+    const commentRangesBySide = normalizeCommentRanges(comments);
     const mergedByFirstIndex = buildMergedChunkIndex(mergedChunks);
     const lastChunkIndex = getLastChunkIndex(mergedChunks);
     const lastMerged = mergedChunks[mergedChunks.length - 1];
@@ -296,7 +292,7 @@ export const DiffViewer = memo(function DiffViewer({
       });
     });
   }, [
-    threads,
+    comments,
     expandAllBetweenChunks,
     expandLines,
     file,
@@ -310,7 +306,7 @@ export const DiffViewer = memo(function DiffViewer({
   const ViewerComponent = viewer.Component;
   const viewerProps: DiffViewerBodyProps = {
     file,
-    threads,
+    comments,
     showAuthorBadges,
     diffMode,
     syntaxTheme,
@@ -323,11 +319,9 @@ export const DiffViewer = memo(function DiffViewer({
     expandHiddenLines: expandLines,
     expandAllBetweenChunks,
     onAddComment: handleAddComment,
-    onGenerateThreadPrompt,
-    onRemoveThread,
-    onReplyToThread,
-    onRemoveMessage,
-    onUpdateMessage,
+    onGeneratePrompt,
+    onRemoveComment,
+    onUpdateComment,
     onOpenInEditor,
     onLineClick,
     commentTrigger,

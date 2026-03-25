@@ -1,4 +1,4 @@
-import type { CommentThread, DiffFile, DiffSide } from '../../../types/diff';
+import type { DiffFile, Comment } from '../../../types/diff';
 import type { CursorPosition } from '../../hooks/keyboardNavigation/types';
 
 /**
@@ -12,7 +12,6 @@ function findLinePosition(
   file: DiffFile,
   fileIndex: number,
   targetLineNumber: number,
-  targetSide?: DiffSide,
 ): CursorPosition | null {
   for (let chunkIndex = 0; chunkIndex < file.chunks.length; chunkIndex++) {
     const chunk = file.chunks[chunkIndex];
@@ -22,25 +21,13 @@ function findLinePosition(
       const line = chunk.lines[lineIndex];
       if (!line) continue;
 
-      const lineNumber =
-        targetSide === 'old'
-          ? line.oldLineNumber
-          : targetSide === 'new'
-            ? line.newLineNumber
-            : (line.newLineNumber ?? line.oldLineNumber);
+      const lineNumber = line.newLineNumber || line.oldLineNumber;
       if (lineNumber === targetLineNumber) {
         return {
           fileIndex,
           chunkIndex,
           lineIndex,
-          side:
-            targetSide === 'old'
-              ? 'left'
-              : targetSide === 'new'
-                ? 'right'
-                : line.newLineNumber
-                  ? 'right'
-                  : 'left',
+          side: line.newLineNumber ? 'right' : 'left',
         };
       }
     }
@@ -54,24 +41,13 @@ function findLinePosition(
  * @param files The array of diff files to search in
  * @returns The cursor position including file, chunk, and line indices, or null if not found
  */
-export function findCommentPosition(
-  commentThread: CommentThread,
-  files: DiffFile[],
-): CursorPosition | null {
-  const fileIndex = files.findIndex((f) => f.path === commentThread.file);
+export function findCommentPosition(comment: Comment, files: DiffFile[]): CursorPosition | null {
+  const fileIndex = files.findIndex((f) => f.path === comment.file);
   if (fileIndex === -1) return null;
 
   const file = files[fileIndex];
   if (!file) return null;
 
-  const targetLineNumber = Array.isArray(commentThread.line)
-    ? commentThread.line[1]
-    : commentThread.line;
-  const targetSide = commentThread.side;
-
-  return (
-    findLinePosition(file, fileIndex, targetLineNumber, targetSide) ||
-    findLinePosition(file, fileIndex, targetLineNumber, 'new') ||
-    findLinePosition(file, fileIndex, targetLineNumber, 'old')
-  );
+  const targetLineNumber = Array.isArray(comment.line) ? comment.line[1] : comment.line;
+  return findLinePosition(file, fileIndex, targetLineNumber);
 }

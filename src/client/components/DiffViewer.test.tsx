@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import type { DiffFile, CommentThread } from '../../types/diff';
+import type { DiffFile, Comment } from '../../types/diff';
 
 import { DiffViewer } from './DiffViewer';
 
@@ -32,11 +32,9 @@ vi.mock('../utils/imageUtils', () => ({
 
 describe('DiffViewer', () => {
   const mockOnAddComment = vi.fn();
-  const mockOnGenerateThreadPrompt = vi.fn();
-  const mockOnRemoveThread = vi.fn();
-  const mockOnReplyToThread = vi.fn();
-  const mockOnRemoveMessage = vi.fn();
-  const mockOnUpdateMessage = vi.fn();
+  const mockOnGeneratePrompt = vi.fn();
+  const mockOnRemoveComment = vi.fn();
+  const mockOnUpdateComment = vi.fn();
   const mockOnToggleReviewed = vi.fn();
   const mockOnToggleCollapsed = vi.fn();
   const mockOnToggleAllCollapsed = vi.fn();
@@ -70,16 +68,14 @@ describe('DiffViewer', () => {
   const mockFile = createMockFile();
   const defaultProps = {
     file: mockFile,
-    threads: [] as CommentThread[],
+    comments: [] as Comment[],
     reviewedFiles: new Set<string>(),
     collapsedFiles: new Set<string>(),
     diffMode: 'split' as const,
     onAddComment: mockOnAddComment,
-    onGenerateThreadPrompt: mockOnGenerateThreadPrompt,
-    onRemoveThread: mockOnRemoveThread,
-    onReplyToThread: mockOnReplyToThread,
-    onRemoveMessage: mockOnRemoveMessage,
-    onUpdateMessage: mockOnUpdateMessage,
+    onGeneratePrompt: mockOnGeneratePrompt,
+    onRemoveComment: mockOnRemoveComment,
+    onUpdateComment: mockOnUpdateComment,
     onToggleReviewed: mockOnToggleReviewed,
     onToggleCollapsed: mockOnToggleCollapsed,
     onToggleAllCollapsed: mockOnToggleAllCollapsed,
@@ -207,26 +203,17 @@ describe('DiffViewer', () => {
 
   describe('Comments integration', () => {
     it('passes comments to DiffChunk', () => {
-      const threads: CommentThread[] = [
+      const comments: Comment[] = [
         {
-          id: 'thread-1',
+          id: '1',
           file: 'test.txt',
           line: 5,
-          side: 'new',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          messages: [
-            {
-              id: 'thread-1',
-              body: 'Test comment',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          ],
+          body: 'Test comment',
+          timestamp: new Date().toISOString(),
         },
       ];
 
-      render(<DiffViewer {...defaultProps} threads={threads} />);
+      render(<DiffViewer {...defaultProps} comments={comments} />);
 
       // Check that DiffChunk is rendered for non-image files
       expect(screen.getByTestId('diff-chunk')).toBeInTheDocument();

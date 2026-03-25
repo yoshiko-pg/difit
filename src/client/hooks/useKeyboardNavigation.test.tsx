@@ -426,42 +426,6 @@ describe('useKeyboardNavigation', () => {
       expect(result.current.cursor).not.toBeNull();
     });
 
-    it('should navigate to old-side and new-side comments on the same line separately', async () => {
-      const user = userEvent.setup();
-      const comments = [
-        { file: 'file1.js', line: 1, side: 'old' as const },
-        { file: 'file1.js', line: 1, side: 'new' as const },
-      ];
-
-      const { result } = renderHook(
-        () =>
-          useKeyboardNavigation({
-            files: mockFiles,
-            comments,
-            viewMode: 'unified',
-            onToggleReviewed: vi.fn(),
-            reviewedFiles: new Set<string>(),
-          }),
-        { wrapper },
-      );
-
-      await user.keyboard('{Shift>}n{/Shift}');
-      expect(result.current.cursor).toEqual({
-        fileIndex: 0,
-        chunkIndex: 0,
-        lineIndex: 0,
-        side: 'left',
-      });
-
-      await user.keyboard('{Shift>}n{/Shift}');
-      expect(result.current.cursor).toEqual({
-        fileIndex: 0,
-        chunkIndex: 0,
-        lineIndex: 1,
-        side: 'right',
-      });
-    });
-
     it('should navigate to previous comment with Shift+P', async () => {
       const user = userEvent.setup();
       const comments = [
@@ -501,37 +465,6 @@ describe('useKeyboardNavigation', () => {
       await user.keyboard('{Shift>}p{/Shift}');
 
       expect(result.current.cursor).not.toBeNull();
-    });
-
-    it('should navigate back to the old-side comment with Shift+P', async () => {
-      const user = userEvent.setup();
-      const comments = [
-        { file: 'file1.js', line: 1, side: 'old' as const },
-        { file: 'file1.js', line: 1, side: 'new' as const },
-      ];
-
-      const { result } = renderHook(
-        () =>
-          useKeyboardNavigation({
-            files: mockFiles,
-            comments,
-            viewMode: 'unified',
-            onToggleReviewed: vi.fn(),
-            reviewedFiles: new Set<string>(),
-          }),
-        { wrapper },
-      );
-
-      await user.keyboard('{Shift>}n{/Shift}');
-      await user.keyboard('{Shift>}n{/Shift}');
-      await user.keyboard('{Shift>}p{/Shift}');
-
-      expect(result.current.cursor).toEqual({
-        fileIndex: 0,
-        chunkIndex: 0,
-        lineIndex: 0,
-        side: 'left',
-      });
     });
   });
 
