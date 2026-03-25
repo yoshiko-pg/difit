@@ -91,7 +91,7 @@ difit --pr https://github.com/owner/repo/pull/123
 你可以在启动 difit 时注入初始审查评论：
 
 ```bash
-difit --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"请重命名这个变量"}'
+difit --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"这次修改的背景是……"}'
 ```
 
 `--comment` 可重复指定，同时接受单个 JSON object 或 JSON array。支持的类型如下：

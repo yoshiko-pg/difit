@@ -91,7 +91,7 @@ For Enterprise Server PRs, authenticate GitHub CLI against your Enterprise host:
 You can inject initial review comments when launching difit:
 
 ```bash
-difit --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"Please rename this variable"}'
+difit --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"The background for this change is..."}'
 ```
 
 `--comment` is repeatable and accepts either a single JSON object or a JSON array. Supported types:
