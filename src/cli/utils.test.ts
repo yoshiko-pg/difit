@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
   detectStdinSource,
+  parseCommentOptions,
   parseGitHubPrUrl,
   shortHash,
   shouldReadStdin,
@@ -141,6 +142,60 @@ describe('CLI Utils', () => {
           stdinSource: 'tty',
         }),
       ).toBe(false);
+    });
+  });
+
+  describe('parseCommentOptions', () => {
+    it('parses a single comment import', () => {
+      const result = parseCommentOptions([
+        JSON.stringify({
+          type: 'thread',
+          filePath: 'src/example.ts',
+          position: { side: 'new', line: 10 },
+          body: 'Imported comment',
+        }),
+      ]);
+
+      expect(result).toEqual([
+        {
+          type: 'thread',
+          id: undefined,
+          filePath: 'src/example.ts',
+          position: { side: 'new', line: 10 },
+          body: 'Imported comment',
+          author: undefined,
+          createdAt: undefined,
+          updatedAt: undefined,
+          codeSnapshot: undefined,
+        },
+      ]);
+    });
+
+    it('flattens array values from repeated options', () => {
+      const result = parseCommentOptions([
+        JSON.stringify([
+          {
+            type: 'thread',
+            filePath: 'src/example.ts',
+            position: { side: 'new', line: 10 },
+            body: 'Imported comment',
+          },
+        ]),
+        JSON.stringify({
+          type: 'reply',
+          filePath: 'src/example.ts',
+          position: { side: 'new', line: 10 },
+          body: 'Imported reply',
+        }),
+      ]);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]?.type).toBe('thread');
+      expect(result[1]?.type).toBe('reply');
+    });
+
+    it('throws for invalid json', () => {
+      expect(() => parseCommentOptions(['{'])).toThrow('Invalid --comment JSON');
     });
   });
 

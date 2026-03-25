@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 process.env.VITEST_SERVER_TEST = 'true';
 
 import { startServer } from './server.js';
+import type { CommentImport } from '../types/diff.js';
 
 // Add fetch polyfill for Node.js test environment
 const { fetch } = await import('undici');
@@ -290,6 +291,88 @@ describe('Server Integration Tests', () => {
 
       expect(response.ok).toBe(true);
       expect(data).toHaveProperty('ignoreWhitespace', true);
+    });
+
+    it('GET /api/diff returns comment import payload when configured', async () => {
+      const importedComments: CommentImport[] = [
+        {
+          type: 'thread',
+          filePath: 'test.js',
+          position: { side: 'new', line: 10 },
+          body: 'Imported comment',
+        },
+      ];
+
+      const importServer = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9034,
+        commentImports: importedComments,
+      });
+      servers.push(importServer.server);
+
+      const response = await fetch(`http://localhost:${importServer.port}/api/diff`);
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data.commentImports).toEqual(importedComments);
+      expect(data.commentImportId).toEqual(expect.any(String));
+    });
+
+    it('GET /api/diff returns clearComments together with comment import payload', async () => {
+      const importedComments: CommentImport[] = [
+        {
+          type: 'thread',
+          filePath: 'test.js',
+          position: { side: 'new', line: 10 },
+          body: 'Imported comment',
+        },
+      ];
+
+      const importServer = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9037,
+        clearComments: true,
+        commentImports: importedComments,
+      });
+      servers.push(importServer.server);
+
+      const response = await fetch(`http://localhost:${importServer.port}/api/diff`);
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data.clearComments).toBe(true);
+      expect(data.commentImports).toEqual(importedComments);
+      expect(data.commentImportId).toEqual(expect.any(String));
+    });
+
+    it('GET /api/diff omits comment import payload after revision changes', async () => {
+      const importedComments: CommentImport[] = [
+        {
+          type: 'thread',
+          filePath: 'test.js',
+          position: { side: 'new', line: 10 },
+          body: 'Imported comment',
+        },
+      ];
+
+      const importServer = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9038,
+        commentImports: importedComments,
+      });
+      servers.push(importServer.server);
+
+      const response = await fetch(
+        `http://localhost:${importServer.port}/api/diff?base=main&target=feature`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data.commentImports).toBeUndefined();
+      expect(data.commentImportId).toBeUndefined();
     });
 
     it('GET /api/generated-status/* returns generated status', async () => {

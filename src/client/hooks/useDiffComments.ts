@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import {
+  type CommentImport,
   type CommentThread,
+  type DiffContextStorage,
   type DiffCommentThread,
   type DiffSide,
   type LegacyDiffComment,
@@ -10,6 +12,7 @@ import {
   formatCommentThreadPrompt,
   formatAllCommentThreadsPrompt,
 } from '../../utils/commentFormatting';
+import { mergeCommentImports } from '../../utils/commentImports';
 import { storageService } from '../services/StorageService';
 import { getLanguageFromPath } from '../utils/diffUtils';
 
@@ -37,7 +40,8 @@ interface UseDiffCommentsReturn {
   updateComment: (commentId: string, newBody: string) => void;
   removeMessage: (threadId: string, messageId: string) => void;
   updateMessage: (threadId: string, messageId: string, newBody: string) => void;
-  clearAllComments: () => void;
+  clearAllComments: (options?: { resetAppliedCommentImportIds?: boolean }) => void;
+  applyCommentImports: (imports: CommentImport[], importId: string) => string[];
   generatePrompt: (commentId: string) => string;
   generateThreadPrompt: (threadId: string) => string;
   generateAllCommentsPrompt: () => string;
@@ -84,19 +88,60 @@ export function useDiffComments(
 ): UseDiffCommentsReturn {
   const [threads, setThreads] = useState<DiffCommentThread[]>([]);
 
-  useEffect(() => {
-    if (!baseCommitish || !targetCommitish) return;
+  const loadDiffContextData = useCallback(() => {
+    if (!baseCommitish || !targetCommitish) {
+      return null;
+    }
 
-    const loadedThreads = storageService.getCommentThreads(
+    return storageService.getDiffContextData(
       baseCommitish,
       targetCommitish,
       currentCommitHash,
       branchToHash,
       repositoryId,
     );
+  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]);
+
+  const createEmptyDiffContext = useCallback((): DiffContextStorage | null => {
+    if (!baseCommitish || !targetCommitish) {
+      return null;
+    }
+
+    const now = new Date().toISOString();
+    return {
+      version: 2,
+      baseCommitish,
+      targetCommitish,
+      createdAt: now,
+      lastModifiedAt: now,
+      threads: [],
+      viewedFiles: [],
+      appliedCommentImportIds: [],
+    };
+  }, [baseCommitish, targetCommitish]);
+
+  useEffect(() => {
+    if (!baseCommitish || !targetCommitish) return;
+
+    const loadedThreads =
+      loadDiffContextData()?.threads ||
+      storageService.getCommentThreads(
+        baseCommitish,
+        targetCommitish,
+        currentCommitHash,
+        branchToHash,
+        repositoryId,
+      );
     // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: sync state from external storage on prop change
     setThreads(loadedThreads);
-  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]);
+  }, [
+    baseCommitish,
+    targetCommitish,
+    currentCommitHash,
+    branchToHash,
+    repositoryId,
+    loadDiffContextData,
+  ]);
 
   const saveThreads = useCallback(
     (newThreads: DiffCommentThread[]) => {
@@ -263,6 +308,91 @@ export function useDiffComments(
     saveThreads([]);
   }, [saveThreads]);
 
+  const clearAllCommentsWithOptions = useCallback(
+    (options?: { resetAppliedCommentImportIds?: boolean }) => {
+      if (!options?.resetAppliedCommentImportIds) {
+        clearAllComments();
+        return;
+      }
+
+      const existingData = loadDiffContextData() || createEmptyDiffContext();
+      if (!existingData || !baseCommitish || !targetCommitish) {
+        return;
+      }
+
+      const nextData: DiffContextStorage = {
+        ...existingData,
+        threads: [],
+        appliedCommentImportIds: [],
+      };
+
+      storageService.saveDiffContextData(
+        baseCommitish,
+        targetCommitish,
+        nextData,
+        currentCommitHash,
+        branchToHash,
+        repositoryId,
+      );
+      setThreads([]);
+    },
+    [
+      baseCommitish,
+      targetCommitish,
+      branchToHash,
+      clearAllComments,
+      createEmptyDiffContext,
+      currentCommitHash,
+      loadDiffContextData,
+      repositoryId,
+    ],
+  );
+
+  const applyCommentImports = useCallback(
+    (imports: CommentImport[], importId: string): string[] => {
+      if (!baseCommitish || !targetCommitish || imports.length === 0 || importId.length === 0) {
+        return [];
+      }
+
+      const existingData = loadDiffContextData() || createEmptyDiffContext();
+      if (!existingData) {
+        return [];
+      }
+
+      if (existingData.appliedCommentImportIds.includes(importId)) {
+        setThreads(existingData.threads);
+        return [];
+      }
+
+      const merged = mergeCommentImports(existingData.threads, imports);
+      const nextData: DiffContextStorage = {
+        ...existingData,
+        threads: merged.threads,
+        appliedCommentImportIds: [...existingData.appliedCommentImportIds, importId],
+      };
+
+      storageService.saveDiffContextData(
+        baseCommitish,
+        targetCommitish,
+        nextData,
+        currentCommitHash,
+        branchToHash,
+        repositoryId,
+      );
+      setThreads(merged.threads);
+      return merged.warnings;
+    },
+    [
+      baseCommitish,
+      targetCommitish,
+      branchToHash,
+      createEmptyDiffContext,
+      currentCommitHash,
+      loadDiffContextData,
+      repositoryId,
+    ],
+  );
+
   const generateThreadPrompt = useCallback(
     (threadId: string): string => {
       const thread = threads.find((item) => item.id === threadId);
@@ -299,7 +429,8 @@ export function useDiffComments(
     updateComment,
     removeMessage,
     updateMessage,
-    clearAllComments,
+    clearAllComments: clearAllCommentsWithOptions,
+    applyCommentImports,
     generatePrompt,
     generateThreadPrompt,
     generateAllCommentsPrompt,

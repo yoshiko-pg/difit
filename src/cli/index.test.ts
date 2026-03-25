@@ -22,7 +22,7 @@ vi.mock('./utils.js', async () => {
 
 const { simpleGit } = await import('simple-git');
 const { startServer } = await import('../server/server.js');
-const { promptUser, findUntrackedFiles, markFilesIntentToAdd, getPrPatch } =
+const { promptUser, findUntrackedFiles, markFilesIntentToAdd, getPrPatch, parseCommentOptions } =
   await import('./utils.js');
 
 describe('CLI index.ts', () => {
@@ -32,6 +32,7 @@ describe('CLI index.ts', () => {
   let mockFindUntrackedFiles: any;
   let mockMarkFilesIntentToAdd: any;
   let mockGetPrPatch: any;
+  let actualParseCommentOptions: typeof parseCommentOptions;
 
   // Store original console methods
   let originalConsoleLog: any;
@@ -57,6 +58,7 @@ describe('CLI index.ts', () => {
     mockFindUntrackedFiles = vi.mocked(findUntrackedFiles);
     mockMarkFilesIntentToAdd = vi.mocked(markFilesIntentToAdd);
     mockGetPrPatch = vi.mocked(getPrPatch);
+    actualParseCommentOptions = parseCommentOptions;
 
     // Mock console and process.exit
     originalConsoleLog = console.log;
@@ -570,6 +572,131 @@ describe('CLI index.ts', () => {
       await program.parseAsync(['--pr', prUrl, '--tui'], { from: 'user' });
 
       expect(console.error).toHaveBeenCalledWith('Error: --pr option cannot be used with --tui');
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockStartServer).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('--comment option', () => {
+    it('passes parsed comment imports to startServer', async () => {
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .option(
+          '--comment <json>',
+          'comment',
+          (value: string, previous: string[] = []) => [...previous, value],
+          [],
+        )
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .action(async (commitish: string, options: any) => {
+          const commentImports = actualParseCommentOptions(options.comment);
+          await startServer({
+            targetCommitish: commitish,
+            baseCommitish: `${commitish}^`,
+            preferredPort: options.port,
+            host: options.host,
+            openBrowser: options.open,
+            mode: options.mode,
+            commentImports,
+          });
+        });
+
+      await program.parseAsync(
+        [
+          '--comment',
+          '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"Imported comment"}',
+        ],
+        { from: 'user' },
+      );
+
+      expect(mockStartServer).toHaveBeenCalledWith({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: undefined,
+        host: '',
+        openBrowser: true,
+        mode: 'split',
+        commentImports: [
+          {
+            type: 'thread',
+            id: undefined,
+            filePath: 'src/example.ts',
+            position: { side: 'new', line: 10 },
+            body: 'Imported comment',
+            author: undefined,
+            createdAt: undefined,
+            updatedAt: undefined,
+            codeSnapshot: undefined,
+          },
+        ],
+      });
+    });
+
+    it('rejects --comment with --tui', async () => {
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .option(
+          '--comment <json>',
+          'comment',
+          (value: string, previous: string[] = []) => [...previous, value],
+          [],
+        )
+        .option('--tui', 'tui')
+        .action(async (_commitish: string, options: any) => {
+          const commentImports = actualParseCommentOptions(options.comment);
+          if (options.tui && commentImports.length > 0) {
+            console.error('Error: --comment option cannot be used with --tui');
+            process.exit(1);
+          }
+        });
+
+      await program.parseAsync(
+        [
+          '--tui',
+          '--comment',
+          '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"Imported comment"}',
+        ],
+        { from: 'user' },
+      );
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: --comment option cannot be used with --tui',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('reports invalid comment json before starting the server', async () => {
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .option(
+          '--comment <json>',
+          'comment',
+          (value: string, previous: string[] = []) => [...previous, value],
+          [],
+        )
+        .action(async (_commitish: string, options: any) => {
+          try {
+            actualParseCommentOptions(options.comment);
+          } catch (error) {
+            console.error(
+              `Error: ${error instanceof Error ? error.message : 'Invalid --comment value'}`,
+            );
+            process.exit(1);
+          }
+        });
+
+      await program.parseAsync(['--comment', '{'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith('Error: Invalid --comment JSON');
       expect(process.exit).toHaveBeenCalledWith(1);
       expect(mockStartServer).not.toHaveBeenCalled();
     });

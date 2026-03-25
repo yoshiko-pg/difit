@@ -86,6 +86,21 @@ difit --pr https://github.com/owner/repo/pull/123
 1. `gh auth login --hostname YOUR-ENTERPRISE-SERVER`
 2. 或设置 `GH_HOST=YOUR-ENTERPRISE-SERVER`，并配置 `GH_TOKEN` / `GITHUB_TOKEN`
 
+### 启动时注入评论
+
+你可以在启动 difit 时注入初始审查评论：
+
+```bash
+difit --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"这次修改的背景是……"}'
+```
+
+`--comment` 可重复指定，同时接受单个 JSON object 或 JSON array。支持的类型如下：
+
+- `thread`：在指定 diff 位置创建新的 thread
+- `reply`：向相同 diff 位置上最新的现有 thread 添加 reply
+
+如果相同评论已经存在，difit 会跳过导入。
+
 ### 标准输入
 
 通过使用管道通过标准输入传递统一差异，您可以使用 difit 查看来自任何工具的差异。
@@ -120,6 +135,7 @@ git diff --cached | difit -
 | `<target>`            | HEAD      | 提交哈希、标签、HEAD~n、分支或特殊参数                                 |
 | `[compare-with]`      | -         | 要比较的可选第二个提交（显示两者之间的差异）                           |
 | `--pr <url>`          | -         | 要审查的 GitHub PR URL（例如：https://github.com/owner/repo/pull/123） |
+| `--comment <json>`    | -         | 注入初始评论（可重复指定；接受 JSON object 或 array）                  |
 | `--port`              | 4966      | 首选端口；如果被占用则回退到 +1                                        |
 | `--host`              | 127.0.0.1 | 绑定服务器的主机地址（使用 0.0.0.0 进行外部访问）                      |
 | `--no-open`           | false     | 不自动打开浏览器                                                       |

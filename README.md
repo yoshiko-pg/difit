@@ -86,6 +86,21 @@ For Enterprise Server PRs, authenticate GitHub CLI against your Enterprise host:
 1. `gh auth login --hostname YOUR-ENTERPRISE-SERVER`
 2. Or set `GH_HOST=YOUR-ENTERPRISE-SERVER` with `GH_TOKEN`/`GITHUB_TOKEN`
 
+### Initial Comments
+
+You can inject initial review comments when launching difit:
+
+```bash
+difit --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"The background for this change is..."}'
+```
+
+`--comment` is repeatable and accepts either a single JSON object or a JSON array. Supported types:
+
+- `thread`: create a new thread at the specified diff position
+- `reply`: add a reply to the latest existing thread at the same diff position
+
+If the same comment already exists, difit skips importing it.
+
 ### Stdin
 
 By using a pipe to pass unified diffs via stdin, you can view diffs from any tool with difit.
@@ -120,6 +135,7 @@ Stdin mode is selected with intent-first rules:
 | `<target>`            | HEAD      | Commit hash, tag, HEAD~n, branch, or special arguments                     |
 | `[compare-with]`      | -         | Optional second commit to compare with (shows diff between the two)        |
 | `--pr <url>`          | -         | GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)     |
+| `--comment <json>`    | -         | Inject initial comments (repeatable; accepts a JSON object or array)       |
 | `--port`              | 4966      | Preferred port; falls back to +1 if occupied                               |
 | `--host`              | 127.0.0.1 | Host address to bind server to (use 0.0.0.0 for external access)           |
 | `--no-open`           | false     | Don't automatically open browser                                           |

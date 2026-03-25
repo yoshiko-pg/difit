@@ -6,7 +6,7 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 
 import pkg from '../../package.json' with { type: 'json' };
 import { startServer } from '../server/server.js';
-import { type DiffViewMode } from '../types/diff.js';
+import { type CommentImport, type DiffViewMode } from '../types/diff.js';
 import { DiffMode } from '../types/watch.js';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 
@@ -15,6 +15,7 @@ import {
   findUntrackedFiles,
   markFilesIntentToAdd,
   promptUser,
+  parseCommentOptions,
   validateDiffArguments,
   getPrPatch,
   getGitRoot,
@@ -53,6 +54,7 @@ interface CliOptions {
   host?: string;
   open: boolean;
   mode: DiffViewMode;
+  comment: string[];
   tui?: boolean;
   pr?: string;
   clean?: boolean;
@@ -84,6 +86,12 @@ program
     normalizeDiffViewMode,
     DEFAULT_DIFF_VIEW_MODE,
   )
+  .option(
+    '--comment <json>',
+    'inject initial review comments (repeatable, accepts a JSON object or array)',
+    (value: string, previous: string[] = []) => [...previous, value],
+    [],
+  )
   .option('--tui', 'use terminal UI instead of web interface')
   .option('--pr <url>', 'GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)')
   .option('--clean', 'start with a clean slate by clearing all existing comments')
@@ -93,6 +101,16 @@ program
     try {
       let stdinDiff: string | undefined;
       let stdinReviewLabel = 'diff from stdin';
+      let commentImports: CommentImport[] = [];
+
+      try {
+        commentImports = parseCommentOptions(options.comment);
+      } catch (error) {
+        console.error(
+          `Error: ${error instanceof Error ? error.message : 'Invalid --comment value'}`,
+        );
+        process.exit(1);
+      }
 
       if (options.pr) {
         if (commitish !== 'HEAD' || compareWith) {
@@ -143,6 +161,7 @@ program
           mode: options.mode,
           clearComments: options.clean,
           keepAlive: options.keepAlive,
+          ...(commentImports.length > 0 ? { commentImports } : {}),
         });
 
         console.log(`\n🚀 difit server started on ${url}`);
@@ -188,6 +207,11 @@ program
       }
 
       if (options.tui) {
+        if (commentImports.length > 0) {
+          console.error('Error: --comment option cannot be used with --tui');
+          process.exit(1);
+        }
+
         // Check if we're in a TTY environment
         if (!process.stdin.isTTY) {
           console.error('Error: TUI mode requires an interactive terminal (TTY).');
@@ -227,6 +251,7 @@ program
         keepAlive: options.keepAlive,
         diffMode: determineDiffMode(targetCommitish, compareWith),
         repoPath,
+        ...(commentImports.length > 0 ? { commentImports } : {}),
       });
 
       console.log(`\n🚀 difit server started on ${url}`);

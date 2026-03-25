@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 import { type DiffMode } from '../types/watch.js';
 import { formatCommentsOutput } from '../utils/commentFormatting.js';
+import { serializeCommentImports } from '../utils/commentImports.js';
 import { normalizeDiffViewMode } from '../utils/diffMode.js';
 import { resolveEditorOption } from '../utils/editorOptions.js';
 import { getFileExtension } from '../utils/fileUtils.js';
@@ -19,6 +20,7 @@ import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
 
 import {
+  type CommentImport,
   type Comment,
   type CommentThread,
   type DiffCommentThread,
@@ -37,6 +39,7 @@ interface ServerOptions {
   mode?: string;
   ignoreWhitespace?: boolean;
   clearComments?: boolean;
+  commentImports?: CommentImport[];
   keepAlive?: boolean;
   diffMode?: DiffMode;
   repoPath?: string;
@@ -50,6 +53,13 @@ export async function startServer(
   const app = express();
   const repositoryPath = resolve(options.repoPath ?? process.cwd());
   const repositoryId = createHash('sha256').update(repositoryPath).digest('hex');
+  const initialCommentImports = options.commentImports || [];
+  const initialBaseCommitish = options.baseCommitish ?? '';
+  const initialTargetCommitish = options.targetCommitish ?? '';
+  const commentImportId =
+    initialCommentImports.length > 0
+      ? createHash('sha256').update(serializeCommentImports(initialCommentImports)).digest('hex')
+      : undefined;
   const parser = new GitDiffParser(repositoryPath);
   const fileWatcher = new FileWatcherService();
   const generatedStatusCache = new Map<
@@ -129,6 +139,10 @@ export async function startServer(
     const ignoreWhitespace = req.query.ignoreWhitespace === 'true';
     const requestedBase = (req.query.base as string) || options.baseCommitish || '';
     const requestedTarget = (req.query.target as string) || options.targetCommitish || '';
+    const shouldIncludeCommentImports =
+      initialCommentImports.length > 0 &&
+      (Boolean(options.stdinDiff) ||
+        (requestedBase === initialBaseCommitish && requestedTarget === initialTargetCommitish));
 
     // Check if revisions or whitespace setting changed
     const revisionsChanged =
@@ -186,6 +200,8 @@ export async function startServer(
       requestedTargetCommitish,
       clearComments: options.clearComments,
       repositoryId,
+      commentImports: shouldIncludeCommentImports ? initialCommentImports : undefined,
+      commentImportId: shouldIncludeCommentImports ? commentImportId : undefined,
     });
   });
 
