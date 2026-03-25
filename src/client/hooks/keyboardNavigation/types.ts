@@ -1,4 +1,4 @@
-import type { DiffFile, Comment, DiffViewMode } from '../../../types/diff';
+import type { DiffFile, DiffSide, DiffViewMode, LineNumber } from '../../../types/diff';
 
 /**
  * Represents the current cursor position in the diff viewer
@@ -23,12 +23,18 @@ export interface NavigationResult {
   scrollTarget: string | null;
 }
 
+export interface CommentNavigationItem {
+  file: string;
+  line: LineNumber;
+  side?: DiffSide;
+}
+
 /**
  * Props for the useKeyboardNavigation hook
  */
 export interface UseKeyboardNavigationProps {
   files: DiffFile[];
-  comments: Comment[];
+  comments: CommentNavigationItem[];
   viewMode?: DiffViewMode;
   reviewedFiles: Set<string>;
   onToggleReviewed: (filePath: string) => void;

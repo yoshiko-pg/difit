@@ -6,6 +6,8 @@ import { useDiffComments } from './useDiffComments';
 // Mock StorageService
 vi.mock('../services/StorageService', () => ({
   storageService: {
+    getCommentThreads: vi.fn(() => []),
+    saveCommentThreads: vi.fn(),
     getComments: vi.fn(() => []),
     saveComments: vi.fn(),
     getDiffContextData: vi.fn(() => null),
@@ -289,6 +291,39 @@ const next = true;
       });
 
       expect(result.current.comments).toHaveLength(0);
+    });
+
+    it('should not remove a thread when reply deletion targets a missing message id', () => {
+      const { result } = renderHook(() => useDiffComments('main', 'feature-branch', 'abc123'));
+
+      let threadId = '';
+      act(() => {
+        threadId = result.current.addThread({
+          filePath: 'test.ts',
+          body: 'Root comment',
+          side: 'new',
+          line: 1,
+        }).id;
+      });
+
+      act(() => {
+        result.current.replyToThread({
+          threadId,
+          body: 'Reply comment',
+        });
+      });
+
+      expect(result.current.threads).toHaveLength(1);
+      expect(result.current.threads[0]?.messages).toHaveLength(2);
+
+      act(() => {
+        result.current.removeMessage(threadId, 'missing-message-id');
+      });
+
+      expect(result.current.threads).toHaveLength(1);
+      expect(result.current.threads[0]?.id).toBe(threadId);
+      expect(result.current.threads[0]?.messages).toHaveLength(2);
+      expect(result.current.threads[0]?.messages[1]?.body).toBe('Reply comment');
     });
   });
 });

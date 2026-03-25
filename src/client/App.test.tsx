@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom';
 
 import { mockFetch } from '../../vitest.setup';
-import type { DiffResponse, DiffViewMode } from '../types/diff';
+import type { DiffCommentThread, DiffResponse, DiffViewMode } from '../types/diff';
 import type { ClientWatchState } from '../types/watch';
 import { DiffMode } from '../types/watch';
 import { normalizeDiffViewMode } from '../utils/diffMode';
@@ -20,12 +20,19 @@ vi.mock('./hooks/useViewport', () => ({
 // Mock the useDiffComments hook
 vi.mock('./hooks/useDiffComments', () => ({
   useDiffComments: vi.fn(() => ({
-    comments: mockComments,
+    comments: [],
+    threads: mockComments,
     addComment: vi.fn(),
+    addThread: vi.fn(),
     removeComment: vi.fn(),
+    removeThread: vi.fn(),
+    removeMessage: vi.fn(),
+    replyToThread: vi.fn(),
     updateComment: vi.fn(),
+    updateMessage: vi.fn(),
     clearAllComments: mockClearAllComments,
     generatePrompt: vi.fn(),
+    generateThreadPrompt: vi.fn(),
     generateAllCommentsPrompt: vi.fn(),
   })),
 }));
@@ -108,8 +115,40 @@ Object.defineProperty(window, 'EventSource', {
   value: MockEventSource,
 });
 
-let mockComments: any[] = [];
+let mockComments: DiffCommentThread[] = [];
 const mockClearAllComments = vi.fn();
+
+function createMockThread({
+  id,
+  filePath,
+  line,
+  body,
+  author = 'User',
+}: {
+  id: string;
+  filePath: string;
+  line: number;
+  body: string;
+  author?: string;
+}): DiffCommentThread {
+  const timestamp = '2024-01-01T00:00:00.000Z';
+  return {
+    id,
+    filePath,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    position: { side: 'new', line },
+    messages: [
+      {
+        id,
+        body,
+        author,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ],
+  };
+}
 
 // Helper to render App with HotkeysProvider
 const renderApp = () => {
@@ -167,14 +206,7 @@ describe('App Component - Clear Comments Functionality', () => {
 
     it('should show delete button when comments exist', async () => {
       mockComments = [
-        {
-          id: 'test-1',
-          filePath: 'test.ts',
-          position: { side: 'new', line: 10 },
-          body: 'Test comment',
-          createdAt: '2024-01-01T00:00:00.000Z',
-          updatedAt: '2024-01-01T00:00:00.000Z',
-        },
+        createMockThread({ id: 'test-1', filePath: 'test.ts', line: 10, body: 'Test comment' }),
       ];
 
       renderApp();
@@ -192,22 +224,8 @@ describe('App Component - Clear Comments Functionality', () => {
 
     it('should call clearAllComments immediately when delete button is clicked', async () => {
       mockComments = [
-        {
-          id: '1',
-          filePath: 'test.ts',
-          position: { side: 'new', line: 10 },
-          body: 'Comment 1',
-          createdAt: '2024-01-01',
-          updatedAt: '2024-01-01',
-        },
-        {
-          id: '2',
-          filePath: 'test.ts',
-          position: { side: 'new', line: 20 },
-          body: 'Comment 2',
-          createdAt: '2024-01-01',
-          updatedAt: '2024-01-01',
-        },
+        createMockThread({ id: '1', filePath: 'test.ts', line: 10, body: 'Comment 1' }),
+        createMockThread({ id: '2', filePath: 'test.ts', line: 20, body: 'Comment 2' }),
       ];
 
       renderApp();
@@ -374,15 +392,7 @@ describe('App Component - Comment sync', () => {
 
   it('syncs an empty comment list after the last comment is resolved', async () => {
     mockComments = [
-      {
-        id: 'test-1',
-        filePath: 'test.ts',
-        position: { side: 'new', line: 10 },
-        body: 'Test comment',
-        author: 'User',
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      },
+      createMockThread({ id: 'test-1', filePath: 'test.ts', line: 10, body: 'Test comment' }),
     ];
 
     const mockGlobalFetch = vi.mocked(global.fetch);
@@ -395,13 +405,18 @@ describe('App Component - Comment sync', () => {
       const [, request] = commentCalls[0] as [string, RequestInit];
       expect(request.method).toBe('POST');
       expect(JSON.parse(String(request.body))).toEqual({
-        comments: [
+        threads: [
           expect.objectContaining({
             id: 'test-1',
             file: 'test.ts',
             line: 10,
-            body: 'Test comment',
-            author: 'User',
+            messages: [
+              expect.objectContaining({
+                id: 'test-1',
+                body: 'Test comment',
+                author: 'User',
+              }),
+            ],
           }),
         ],
       });
@@ -420,7 +435,7 @@ describe('App Component - Comment sync', () => {
 
       const [, request] = commentCalls[1] as [string, RequestInit];
       expect(request.method).toBe('POST');
-      expect(JSON.parse(String(request.body))).toEqual({ comments: [] });
+      expect(JSON.parse(String(request.body))).toEqual({ threads: [] });
     });
   });
 
@@ -434,7 +449,7 @@ describe('App Component - Comment sync', () => {
         '/api/comments',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ comments: [] }),
+          body: JSON.stringify({ threads: [] }),
         }),
       );
     });
@@ -443,30 +458,20 @@ describe('App Component - Comment sync', () => {
 
     expect(navigator.sendBeacon).toHaveBeenCalledWith(
       '/api/comments',
-      JSON.stringify({ comments: [] }),
+      JSON.stringify({ threads: [] }),
     );
   });
 
   it('shows author badges in the comments modal when the diff has multiple authors', async () => {
     mockComments = [
-      {
-        id: 'test-1',
-        filePath: 'test.ts',
-        position: { side: 'new', line: 10 },
-        body: 'User comment',
-        author: 'User',
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      },
-      {
+      createMockThread({ id: 'test-1', filePath: 'test.ts', line: 10, body: 'User comment' }),
+      createMockThread({
         id: 'test-2',
         filePath: 'other.ts',
-        position: { side: 'new', line: 20 },
+        line: 20,
         body: 'Reviewer comment',
         author: 'Reviewer',
-        createdAt: '2024-01-01T00:01:00.000Z',
-        updatedAt: '2024-01-01T00:01:00.000Z',
-      },
+      }),
     ];
     mockFetch({
       ...mockDiffResponse,

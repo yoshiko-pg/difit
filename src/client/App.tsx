@@ -6,7 +6,7 @@ import {
   type DiffViewMode,
   type DiffSide,
   type LineNumber,
-  type Comment,
+  type CommentThread,
   type RevisionsResponse,
 } from '../types/diff';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode';
@@ -38,7 +38,7 @@ import { getFileElementId } from './utils/domUtils';
 import { findCommentPosition } from './utils/navigation/positionHelpers';
 import { resolveEventSourceUrl } from './utils/eventSourceUrl';
 
-const EMPTY_COMMENTS: Comment[] = [];
+const EMPTY_COMMENT_THREADS: CommentThread[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
 const SIDEBAR_WIDTH_STORAGE_KEY = 'difit.sidebarWidth';
 const SIDEBAR_OPEN_STORAGE_KEY = 'difit.sidebarOpen';
@@ -111,12 +111,14 @@ function App() {
 
   // New diff-aware comment system
   const {
-    comments,
-    addComment,
-    removeComment,
-    updateComment,
+    threads,
+    addThread,
+    replyToThread,
+    removeThread,
+    removeMessage,
+    updateMessage,
     clearAllComments,
-    generatePrompt,
+    generateThreadPrompt,
     generateAllCommentsPrompt,
   } = useDiffComments(
     diffData?.baseCommitish,
@@ -126,57 +128,41 @@ function App() {
     diffData?.repositoryId, // Repository identifier for storage isolation
   );
 
-  const normalizedComments = useMemo<Comment[]>(
+  const normalizedThreads = useMemo<CommentThread[]>(
     () =>
-      comments.map((comment) => ({
-        id: comment.id,
-        file: comment.filePath,
+      threads.map((thread) => ({
+        id: thread.id,
+        file: thread.filePath,
         line:
-          typeof comment.position.line === 'number'
-            ? comment.position.line
-            : ([comment.position.line.start, comment.position.line.end] as [number, number]),
-        body: comment.body,
-        timestamp: comment.createdAt,
-        author: comment.author,
-        codeContent: comment.codeSnapshot?.content,
-        side: comment.position.side,
+          typeof thread.position.line === 'number'
+            ? thread.position.line
+            : ([thread.position.line.start, thread.position.line.end] as [number, number]),
+        side: thread.position.side,
+        createdAt: thread.createdAt,
+        updatedAt: thread.updatedAt,
+        codeContent: thread.codeSnapshot?.content,
+        messages: thread.messages,
       })),
-    [comments],
-  );
-  const commentsForServer = useMemo<Comment[]>(
-    () =>
-      comments.map((comment) => ({
-        id: comment.id,
-        file: comment.filePath,
-        line:
-          typeof comment.position.line === 'number'
-            ? comment.position.line
-            : ([comment.position.line.start, comment.position.line.end] as [number, number]),
-        body: comment.body,
-        timestamp: comment.createdAt,
-        author: comment.author,
-        side: comment.position.side,
-      })),
-    [comments],
+    [threads],
   );
   const showAuthorBadges = useMemo(
-    () => hasMultipleCommentAuthors(normalizedComments),
-    [normalizedComments],
+    () => hasMultipleCommentAuthors(normalizedThreads.flatMap((thread) => thread.messages)),
+    [normalizedThreads],
   );
 
-  const commentsByFile = useMemo(() => {
-    const map = new Map<string, Comment[]>();
-    normalizedComments.forEach((normalized) => {
-      const entry = map.get(normalized.file);
+  const threadsByFile = useMemo(() => {
+    const map = new Map<string, CommentThread[]>();
+    normalizedThreads.forEach((thread) => {
+      const entry = map.get(thread.file);
       if (entry) {
-        entry.push(normalized);
+        entry.push(thread);
       } else {
-        map.set(normalized.file, [normalized]);
+        map.set(thread.file, [thread]);
       }
     });
     return map;
-  }, [normalizedComments]);
-  const showMobileCommentsBar = isMobile && comments.length > 0;
+  }, [normalizedThreads]);
+  const showMobileCommentsBar = isMobile && threads.length > 0;
 
   // Viewed files management
   const { viewedFiles, hasLoadedInitialViewedFiles, toggleFileViewed, clearViewedFiles } =
@@ -384,7 +370,7 @@ function App() {
 
   const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition } = useKeyboardNavigation({
     files: navigableFiles,
-    comments: normalizedComments,
+    comments: normalizedThreads,
     viewMode: diffMode,
     reviewedFiles: viewedFiles,
     onToggleReviewed: toggleFileReviewed,
@@ -398,12 +384,12 @@ function App() {
       }
     },
     onCopyAllComments: () => {
-      if (comments.length > 0) {
+      if (threads.length > 0) {
         void handleCopyAllComments();
       }
     },
     onDeleteAllComments: () => {
-      if (comments.length > 0 && confirm('Delete all comments?')) {
+      if (threads.length > 0 && confirm('Delete all comments?')) {
         clearAllComments();
       }
     },
@@ -443,9 +429,9 @@ function App() {
     setCommentTrigger(null);
   }, [setCommentTrigger]);
 
-  const handleGeneratePrompt = useCallback(
-    (comment: Comment) => generatePrompt(comment.id),
-    [generatePrompt],
+  const handleGenerateThreadPrompt = useCallback(
+    (thread: CommentThread) => generateThreadPrompt(thread.id),
+    [generateThreadPrompt],
   );
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -604,7 +590,7 @@ function App() {
 
   // Send comments to server whenever they change and before page unload
   useEffect(() => {
-    const data = JSON.stringify({ comments: commentsForServer });
+    const data = JSON.stringify({ threads: normalizedThreads });
 
     fetch('/api/comments', {
       method: 'POST',
@@ -625,7 +611,7 @@ function App() {
     return () => {
       window.removeEventListener('beforeunload', sendCommentsBeforeUnload);
     };
-  }, [commentsForServer]);
+  }, [normalizedThreads]);
 
   // Establish SSE connection for tab close detection
   useEffect(() => {
@@ -654,7 +640,7 @@ function App() {
       codeContent?: string,
       side?: DiffSide,
     ): Promise<void> => {
-      addComment({
+      addThread({
         filePath: file,
         body,
         side: side || 'new',
@@ -668,7 +654,7 @@ function App() {
       });
       return Promise.resolve();
     },
-    [addComment],
+    [addThread],
   );
 
   const handleCopyAllComments = async () => {
@@ -682,10 +668,18 @@ function App() {
     }
   };
 
-  const handleNavigateToComment = (comment: Comment) => {
+  const handleReplyToThread = useCallback(
+    (threadId: string, body: string): Promise<void> => {
+      replyToThread({ threadId, body });
+      return Promise.resolve();
+    },
+    [replyToThread],
+  );
+
+  const handleNavigateToComment = (thread: CommentThread) => {
     if (!diffData) return;
 
-    const position = findCommentPosition(comment, diffData.files);
+    const position = findCommentPosition(thread, diffData.files);
     if (position) {
       setCursorPosition(position);
     }
@@ -878,9 +872,9 @@ function App() {
                 isMobile ? 'gap-3' : 'gap-4'
               }`}
             >
-              {!isMobile && comments.length > 0 && (
+              {!isMobile && threads.length > 0 && (
                 <CommentsDropdown
-                  commentsCount={comments.length}
+                  commentsCount={threads.length}
                   isCopiedAll={isCopiedAll}
                   onCopyAll={handleCopyAllComments}
                   onDeleteAll={clearAllComments}
@@ -1002,7 +996,7 @@ function App() {
                   files={diffData.files}
                   onScrollToFile={scrollFileIntoDiffContainer}
                   onFileSelected={isMobile ? () => setIsFileTreeOpen(false) : undefined}
-                  comments={normalizedComments}
+                  comments={normalizedThreads}
                   reviewedFiles={viewedFiles}
                   onToggleReviewed={toggleFileReviewed}
                   selectedFileIndex={cursor?.fileIndex ?? null}
@@ -1049,7 +1043,7 @@ function App() {
             className={`flex-1 overflow-y-auto ${showMobileCommentsBar ? 'pb-16' : ''}`}
           >
             {diffData.files.map((file, fileIndex) => {
-              const fileComments = commentsByFile.get(file.path) ?? EMPTY_COMMENTS;
+              const fileThreads = threadsByFile.get(file.path) ?? EMPTY_COMMENT_THREADS;
               const mergedChunks = mergedChunksByFile.get(file.path) ?? EMPTY_MERGED_CHUNKS;
               const isRendered = renderedFilePaths.has(file.path);
               return (
@@ -1064,7 +1058,7 @@ function App() {
                   {isRendered ? (
                     <DiffViewer
                       file={file}
-                      comments={fileComments}
+                      threads={fileThreads}
                       showAuthorBadges={showAuthorBadges}
                       diffMode={diffMode}
                       reviewedFiles={viewedFiles}
@@ -1073,9 +1067,11 @@ function App() {
                       onToggleCollapsed={toggleFileCollapsed}
                       onToggleAllCollapsed={toggleAllFilesCollapsed}
                       onAddComment={handleAddComment}
-                      onGeneratePrompt={handleGeneratePrompt}
-                      onRemoveComment={removeComment}
-                      onUpdateComment={updateComment}
+                      onGenerateThreadPrompt={handleGenerateThreadPrompt}
+                      onRemoveThread={removeThread}
+                      onReplyToThread={handleReplyToThread}
+                      onRemoveMessage={removeMessage}
+                      onUpdateMessage={updateMessage}
                       onOpenInEditor={canOpenInEditor ? handleOpenInEditor : undefined}
                       syntaxTheme={settings.syntaxTheme}
                       baseCommitish={diffData.baseCommitish}
@@ -1123,7 +1119,7 @@ function App() {
         {showMobileCommentsBar && (
           <div className="fixed bottom-0 left-0 right-0 z-20 bg-github-bg-secondary border-t border-github-border px-4 py-2 flex justify-end">
             <CommentsDropdown
-              commentsCount={comments.length}
+              commentsCount={threads.length}
               isCopiedAll={isCopiedAll}
               onCopyAll={handleCopyAllComments}
               onDeleteAll={clearAllComments}
@@ -1149,11 +1145,13 @@ function App() {
           isOpen={isCommentsListOpen}
           onClose={() => setIsCommentsListOpen(false)}
           onNavigate={handleNavigateToComment}
-          comments={normalizedComments}
+          comments={normalizedThreads}
           showAuthorBadges={showAuthorBadges}
-          onRemoveComment={removeComment}
-          onGeneratePrompt={(comment) => generatePrompt(comment.id)}
-          onUpdateComment={updateComment}
+          onRemoveThread={removeThread}
+          onGenerateThreadPrompt={handleGenerateThreadPrompt}
+          onReplyToThread={handleReplyToThread}
+          onRemoveMessage={removeMessage}
+          onUpdateMessage={updateMessage}
           syntaxTheme={settings.syntaxTheme}
         />
       </div>

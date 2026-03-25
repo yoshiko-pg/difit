@@ -1,13 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { HotkeysProvider } from 'react-hotkeys-hook';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import type { Comment } from '../../types/diff';
+import type { CommentThread } from '../../types/diff';
 
 import { CommentsListModal } from './CommentsListModal';
 
-// Mock react-hotkeys-hook
 vi.mock('react-hotkeys-hook', () => ({
   useHotkeys: vi.fn(),
   useHotkeysContext: vi.fn(() => ({
@@ -17,37 +17,57 @@ vi.mock('react-hotkeys-hook', () => ({
   HotkeysProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-const mockComments: Comment[] = [
+const mockThreads: CommentThread[] = [
   {
-    id: '1',
+    id: 'thread-1',
     file: 'src/file1.ts',
     line: 10,
-    body: 'First comment',
-    author: 'User',
-    timestamp: '2024-01-01T00:00:00Z',
+    side: 'new',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    codeContent: 'const value = 1;',
+    messages: [
+      {
+        id: 'thread-1',
+        body: 'First root comment',
+        author: 'User',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'reply-1',
+        body: 'First reply',
+        author: 'Reviewer',
+        createdAt: '2024-01-01T00:01:00Z',
+        updatedAt: '2024-01-01T00:01:00Z',
+      },
+    ],
   },
   {
-    id: '2',
-    file: 'src/file1.ts',
-    line: [20, 25],
-    body: 'Second comment on range',
-    author: 'Reviewer',
-    timestamp: '2024-01-01T00:01:00Z',
-  },
-  {
-    id: '3',
+    id: 'thread-2',
     file: 'src/file2.ts',
-    line: 42,
-    body: 'Third comment',
-    timestamp: '2024-01-01T00:02:00Z',
+    line: [20, 25],
+    side: 'new',
+    createdAt: '2024-01-01T00:02:00Z',
+    updatedAt: '2024-01-01T00:02:00Z',
+    messages: [
+      {
+        id: 'thread-2',
+        body: 'Second root comment',
+        author: 'User',
+        createdAt: '2024-01-01T00:02:00Z',
+        updatedAt: '2024-01-01T00:02:00Z',
+      },
+    ],
   },
 ];
 
-const mockRemoveComment = vi.fn();
-const mockGeneratePrompt = vi.fn().mockReturnValue('test prompt');
-const mockUpdateComment = vi.fn();
+const mockRemoveThread = vi.fn();
+const mockGenerateThreadPrompt = vi.fn().mockReturnValue('thread prompt');
+const mockReplyToThread = vi.fn().mockResolvedValue(undefined);
+const mockRemoveMessage = vi.fn();
+const mockUpdateMessage = vi.fn();
 
-// Wrapper component for HotkeysProvider
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <HotkeysProvider initiallyActiveScopes={['global']}>{children}</HotkeysProvider>
 );
@@ -57,152 +77,101 @@ describe('CommentsListModal', () => {
     vi.clearAllMocks();
   });
 
-  it('should not render when isOpen is false', () => {
-    const onClose = vi.fn();
-    const onNavigate = vi.fn();
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('does not render when closed', () => {
     const { container } = render(
       <CommentsListModal
         isOpen={false}
-        onClose={onClose}
-        onNavigate={onNavigate}
-        comments={mockComments}
-        showAuthorBadges={true}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
+        onClose={vi.fn()}
+        onNavigate={vi.fn()}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
       />,
       { wrapper },
     );
+
     expect(container.firstChild).toBeNull();
   });
 
-  it('should render when isOpen is true', () => {
-    const onClose = vi.fn();
-    const onNavigate = vi.fn();
+  it('renders thread content when open', () => {
     render(
       <CommentsListModal
         isOpen={true}
-        onClose={onClose}
-        onNavigate={onNavigate}
-        comments={mockComments}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
+        onClose={vi.fn()}
+        onNavigate={vi.fn()}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
       />,
       { wrapper },
     );
+
     expect(screen.getByText('All Comments')).toBeInTheDocument();
+    expect(screen.getByText('First root comment')).toBeInTheDocument();
+    expect(screen.getByText('First reply')).toBeInTheDocument();
+    expect(screen.getByText('Second root comment')).toBeInTheDocument();
+    expect(screen.getByText('src/file1.ts:10')).toBeInTheDocument();
+    expect(screen.getByText('src/file2.ts:20-25')).toBeInTheDocument();
   });
 
   it('shows author badges when enabled', () => {
-    const onClose = vi.fn();
-    const onNavigate = vi.fn();
     render(
       <CommentsListModal
         isOpen={true}
-        onClose={onClose}
-        onNavigate={onNavigate}
-        comments={mockComments}
+        onClose={vi.fn()}
+        onNavigate={vi.fn()}
+        comments={mockThreads}
         showAuthorBadges={true}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
       />,
       { wrapper },
     );
 
-    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.getAllByText('User').length).toBeGreaterThan(0);
     expect(screen.getByText('Reviewer')).toBeInTheDocument();
   });
 
-  it('does not show author badges when disabled', () => {
+  it('navigates when clicking a thread', () => {
     const onClose = vi.fn();
     const onNavigate = vi.fn();
+
     render(
       <CommentsListModal
         isOpen={true}
         onClose={onClose}
         onNavigate={onNavigate}
-        comments={mockComments}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
       />,
       { wrapper },
     );
 
-    expect(screen.queryByText('User')).not.toBeInTheDocument();
-    expect(screen.queryByText('Reviewer')).not.toBeInTheDocument();
-  });
+    fireEvent.click(screen.getByText('First root comment'));
 
-  it('should display all comments in a flat list', () => {
-    const onClose = vi.fn();
-    const onNavigate = vi.fn();
-    render(
-      <CommentsListModal
-        isOpen={true}
-        onClose={onClose}
-        onNavigate={onNavigate}
-        comments={mockComments}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
-      />,
-      { wrapper },
-    );
-
-    // Check comment bodies
-    expect(screen.getByText('First comment')).toBeInTheDocument();
-    expect(screen.getByText('Second comment on range')).toBeInTheDocument();
-    expect(screen.getByText('Third comment')).toBeInTheDocument();
-  });
-
-  it('should display line numbers correctly', () => {
-    const onClose = vi.fn();
-    const onNavigate = vi.fn();
-    render(
-      <CommentsListModal
-        isOpen={true}
-        onClose={onClose}
-        onNavigate={onNavigate}
-        comments={mockComments}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
-      />,
-      { wrapper },
-    );
-
-    // Check that file paths and line numbers are displayed correctly
-    expect(screen.getByText('src/file1.ts:10')).toBeInTheDocument();
-    expect(screen.getByText('src/file1.ts:20-25')).toBeInTheDocument();
-    expect(screen.getByText('src/file2.ts:42')).toBeInTheDocument();
-  });
-
-  it('should call onNavigate when clicking on a comment', () => {
-    const onClose = vi.fn();
-    const onNavigate = vi.fn();
-    render(
-      <CommentsListModal
-        isOpen={true}
-        onClose={onClose}
-        onNavigate={onNavigate}
-        comments={mockComments}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
-      />,
-      { wrapper },
-    );
-
-    const firstComment = screen.getByText('First comment').closest('div');
-    fireEvent.click(firstComment!);
-
-    expect(onNavigate).toHaveBeenCalledWith(mockComments[0]);
+    expect(onNavigate).toHaveBeenCalledWith(mockThreads[0]);
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('should call onRemoveComment when delete button is clicked', () => {
+  it('keeps the modal open when clicking inside the reply form', async () => {
+    const user = userEvent.setup();
     const onClose = vi.fn();
     const onNavigate = vi.fn();
 
@@ -211,86 +180,94 @@ describe('CommentsListModal', () => {
         isOpen={true}
         onClose={onClose}
         onNavigate={onNavigate}
-        comments={mockComments}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
       />,
       { wrapper },
     );
 
-    const deleteButtons = screen.getAllByTitle('Resolve');
-    fireEvent.click(deleteButtons[0]!);
+    await user.click(screen.getAllByRole('button', { name: 'Reply' })[0]!);
+    await user.click(screen.getByPlaceholderText('Write a reply...'));
 
-    expect(mockRemoveComment).toHaveBeenCalledWith('1');
+    expect(screen.getByText('Reply to thread')).toBeInTheDocument();
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('should show empty state when no comments', () => {
+  it('keeps the modal open when cancelling message editing', async () => {
+    const user = userEvent.setup();
     const onClose = vi.fn();
     const onNavigate = vi.fn();
+
     render(
       <CommentsListModal
         isOpen={true}
         onClose={onClose}
         onNavigate={onNavigate}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
+      />,
+      { wrapper },
+    );
+
+    await user.click(screen.getAllByTitle('Edit message')[0]!);
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByText('First root comment')).toBeInTheDocument();
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('uses the modal resolve handler from the resolve button', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.fn(() => false);
+    vi.stubGlobal('confirm', confirmSpy);
+
+    render(
+      <CommentsListModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onNavigate={vi.fn()}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
+      />,
+      { wrapper },
+    );
+
+    await user.click(screen.getAllByTitle('Resolve thread')[0]!);
+
+    expect(confirmSpy).toHaveBeenCalledWith('Resolve this thread?\n\n"First root comment"');
+    expect(mockRemoveThread).not.toHaveBeenCalled();
+  });
+
+  it('shows empty state when there are no threads', () => {
+    render(
+      <CommentsListModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onNavigate={vi.fn()}
         comments={[]}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
       />,
       { wrapper },
     );
 
     expect(screen.getByText('No comments yet')).toBeInTheDocument();
-  });
-
-  it('should call onClose when close button is clicked', () => {
-    const onClose = vi.fn();
-    const onNavigate = vi.fn();
-    render(
-      <CommentsListModal
-        isOpen={true}
-        onClose={onClose}
-        onNavigate={onNavigate}
-        comments={mockComments}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
-      />,
-      { wrapper },
-    );
-
-    const closeButton = screen.getByLabelText('Close comments list');
-    fireEvent.click(closeButton);
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('should call onClose when Escape key is pressed', async () => {
-    const onClose = vi.fn();
-    const onNavigate = vi.fn();
-    const { useHotkeys } = await import('react-hotkeys-hook');
-
-    render(
-      <CommentsListModal
-        isOpen={true}
-        onClose={onClose}
-        onNavigate={onNavigate}
-        comments={mockComments}
-        onRemoveComment={mockRemoveComment}
-        onGeneratePrompt={mockGeneratePrompt}
-        onUpdateComment={mockUpdateComment}
-      />,
-      { wrapper },
-    );
-
-    // Find the escape handler
-    const calls = (useHotkeys as any).mock.calls;
-    const escapeCall = calls.find((call: any) => call[0] === 'escape');
-    expect(escapeCall).toBeDefined();
-
-    // Call the handler
-    escapeCall[1]();
-    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

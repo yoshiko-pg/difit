@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
-import type { Comment } from '../../types/diff';
 import { DEFAULT_DIFF_VIEW_MODE } from '../../utils/diffMode';
 import { NAVIGATION_SELECTORS } from '../constants/navigation';
 import { getElementId, getCommentKey } from '../utils/navigation/domHelpers';
@@ -17,6 +16,7 @@ import {
   createNavigationFilters,
   createScrollToElement,
 } from './keyboardNavigation';
+import type { CommentNavigationItem } from './keyboardNavigation/types';
 import { getStartPosition, findNextMatchingPosition } from './keyboardNavigation/navigationCore';
 
 /**
@@ -43,14 +43,14 @@ export function useKeyboardNavigation({
 
   // Build comment index for efficient lookup
   const commentIndex = useMemo(() => {
-    const index = new Map<string, Comment[]>();
-    comments.forEach((comment) => {
-      const lineNum = Array.isArray(comment.line) ? comment.line[0] : comment.line;
-      const key = getCommentKey(comment.file, lineNum);
+    const index = new Map<string, CommentNavigationItem[]>();
+    comments.forEach((thread) => {
+      const lineNum = Array.isArray(thread.line) ? thread.line[0] : thread.line;
+      const key = getCommentKey(thread.file, lineNum, thread.side);
       if (!index.has(key)) {
         index.set(key, []);
       }
-      index.get(key)?.push(comment);
+      index.get(key)?.push(thread);
     });
     return index;
   }, [comments]);

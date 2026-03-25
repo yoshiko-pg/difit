@@ -10,6 +10,11 @@ interface CommentFormProps {
   selectedCode?: string;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   filename?: string;
+  initialValue?: string;
+  embedded?: boolean;
+  title?: string;
+  submitLabel?: string;
+  placeholder?: string;
 }
 
 type CommentFormMode = 'edit' | 'preview';
@@ -20,8 +25,13 @@ export function CommentForm({
   selectedCode,
   syntaxTheme,
   filename,
+  initialValue = '',
+  embedded = false,
+  title = 'Add a comment',
+  submitLabel = 'Submit',
+  placeholder = 'Leave a comment...',
 }: CommentFormProps) {
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(initialValue);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mode, setMode] = useState<CommentFormMode>('edit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -55,13 +65,18 @@ export function CommentForm({
 
   return (
     <form
-      className="m-2 mx-3 p-3 bg-github-bg-tertiary border border-yellow-600/50 rounded-md border-l-4 border-l-yellow-400"
+      className={
+        embedded
+          ? 'bg-transparent'
+          : 'm-2 mx-3 rounded-md border border-yellow-600/50 border-l-4 border-l-yellow-400 bg-github-bg-tertiary p-3'
+      }
       onSubmit={handleSubmit}
+      onClick={(e) => e.stopPropagation()}
       data-empty={!body.trim()}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium" style={{ color: 'var(--color-yellow-path-text)' }}>
-          Add a comment
+          {title}
         </span>
         {hasSuggestion ? (
           <div className="flex items-center border border-github-border rounded-md overflow-hidden">
@@ -114,7 +129,7 @@ export function CommentForm({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Leave a comment..."
+          placeholder={placeholder}
           rows={Math.max(3, body.split('\n').length)}
           autoFocus
           disabled={isSubmitting}
@@ -148,7 +163,7 @@ export function CommentForm({
           }}
           disabled={!body.trim() || isSubmitting}
         >
-          {isSubmitting ? 'Submitting...' : 'Submit'}
+          {isSubmitting ? 'Submitting...' : submitLabel}
         </button>
       </div>
     </form>
