@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { type ViewedFileRecord, type DiffFile } from '../../types/diff';
 import { storageService } from '../services/StorageService';
+import { matchesAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import { generateDiffHash, getDiffContentForHashing } from '../utils/diffUtils';
 
 interface UseViewedFilesReturn {
@@ -19,11 +20,12 @@ export function useViewedFiles(
   branchToHash?: Map<string, string>,
   initialFiles?: DiffFile[],
   repositoryId?: string,
+  autoViewedPatterns: string[] = [],
 ): UseViewedFilesReturn {
   const [viewedFileRecords, setViewedFileRecords] = useState<ViewedFileRecord[]>([]);
   const [fileHashes, setFileHashes] = useState<Map<string, string>>(new Map());
 
-  // Load viewed files from storage and auto-mark lock files
+  // Load viewed files from storage and auto-mark configured/generated files
   useEffect(() => {
     if (!baseCommitish || !targetCommitish) return;
 
@@ -35,7 +37,9 @@ export function useViewedFiles(
       repositoryId,
     );
 
-    // Auto-mark generated/deleted files as viewed if we have initial files and they are not already viewed
+    // Auto-mark generated, deleted, or pattern-matched files as viewed if they
+    // are not already marked. Pattern changes are intentionally not reactive here
+    // so editing the textarea does not immediately re-mark the current diff.
     const processAutoCollapsedFiles = async () => {
       if (initialFiles && initialFiles.length > 0) {
         const autoCollapsedFilesToAdd: ViewedFileRecord[] = [];
@@ -43,11 +47,15 @@ export function useViewedFiles(
         // Create a Set of already viewed file paths for quick lookup
         const viewedPaths = new Set(loadedFiles.map((f) => f.filePath));
 
-        // Find generated files or deleted files that aren't already marked as viewed
+        // Find generated, deleted, or configured files that aren't already marked as viewed
         for (const file of initialFiles) {
-          if ((file.isGenerated || file.status === 'deleted') && !viewedPaths.has(file.path)) {
+          const shouldAutoMarkViewed =
+            file.isGenerated ||
+            file.status === 'deleted' ||
+            matchesAutoViewedPatterns(file.path, autoViewedPatterns);
+
+          if (shouldAutoMarkViewed && !viewedPaths.has(file.path)) {
             try {
-              // Generate hash for the file
               const content = getDiffContentForHashing(file);
               const hash = await generateDiffHash(content);
 
@@ -85,7 +93,7 @@ export function useViewedFiles(
 
     void processAutoCollapsedFiles();
     // oxlint-disable-next-line react/exhaustive-deps
-  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]); // initialFiles intentionally omitted to run only on mount
+  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]); // initialFiles and autoViewedPatterns intentionally omitted to run only on diff init
 
   // Save viewed files to storage
   const saveViewedFiles = useCallback(

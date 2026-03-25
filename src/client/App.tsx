@@ -186,6 +186,7 @@ function App() {
     undefined,
     diffData?.files,
     diffData?.repositoryId, // Repository identifier for storage isolation
+    settings.autoViewedPatterns,
   );
 
   // Reset initialization flag when diff context changes
@@ -1127,12 +1128,14 @@ function App() {
           </div>
         )}
 
-        <SettingsModal
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          settings={settings}
-          onSettingsChange={updateSettings}
-        />
+        {isSettingsOpen && (
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            settings={settings}
+            onSettingsChange={updateSettings}
+          />
+        )}
 
         <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 

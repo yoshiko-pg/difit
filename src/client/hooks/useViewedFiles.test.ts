@@ -115,6 +115,26 @@ describe('useViewedFiles', () => {
       expect(mockSaveViewedFiles).toHaveBeenCalled();
     });
 
+    it('should auto-mark files matching configured auto-viewed patterns', async () => {
+      const initialFiles: DiffFile[] = [
+        createMockDiffFile('src/app.test.ts', 'modified', false),
+        createMockDiffFile('src/app.ts', 'modified', false),
+      ];
+
+      const { result } = renderHook(() =>
+        useViewedFiles('main', 'feature-branch', 'abc123', undefined, initialFiles, undefined, [
+          '*.test.ts',
+        ]),
+      );
+
+      await waitFor(() => {
+        expect(result.current.viewedFiles.has('src/app.test.ts')).toBe(true);
+      });
+
+      expect(result.current.viewedFiles.has('src/app.ts')).toBe(false);
+      expect(mockSaveViewedFiles).toHaveBeenCalled();
+    });
+
     it('should auto-mark both generated and deleted files as viewed', async () => {
       const initialFiles: DiffFile[] = [
         createMockDiffFile('package-lock.json', 'modified', true),

@@ -25,6 +25,7 @@ const baseSettings = {
   syntaxTheme: 'vsDark',
   editor: 'cursor' as const,
   colorVision: 'normal' as const,
+  autoViewedPatterns: [],
 };
 
 describe('SettingsModal', () => {
@@ -86,6 +87,30 @@ describe('SettingsModal', () => {
     await waitFor(() => {
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
       expect(deuteranopiaButton).not.toHaveAttribute('aria-describedby');
+    });
+  });
+
+  it('edits auto-viewed patterns from the system section as newline-delimited values', () => {
+    const onSettingsChange = vi.fn();
+
+    render(
+      <SettingsModal
+        isOpen={true}
+        onClose={vi.fn()}
+        settings={baseSettings}
+        onSettingsChange={onSettingsChange}
+      />,
+      { wrapper },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^System/ }));
+
+    const textarea = screen.getByLabelText('Auto-Mark Viewed Patterns');
+    fireEvent.change(textarea, { target: { value: '*.test.ts\nsrc/generated/**' } });
+
+    expect(onSettingsChange).toHaveBeenLastCalledWith({
+      ...baseSettings,
+      autoViewedPatterns: ['*.test.ts', 'src/generated/**'],
     });
   });
 });

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { DEFAULT_EDITOR_ID } from '../../utils/editorOptions';
 import type { AppearanceSettings } from '../components/SettingsModal';
+import { normalizeAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import {
   APPEARANCE_STORAGE_KEY,
   applyResolvedTheme,
@@ -17,6 +18,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   syntaxTheme: 'vsDark',
   editor: DEFAULT_EDITOR_ID,
   colorVision: 'normal',
+  autoViewedPatterns: [],
 };
 
 export function useAppearanceSettings() {
@@ -24,7 +26,15 @@ export function useAppearanceSettings() {
     try {
       const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY);
       if (stored) {
-        return { ...DEFAULT_SETTINGS, ...(JSON.parse(stored) as AppearanceSettings) };
+        const parsed = JSON.parse(stored) as Partial<AppearanceSettings> & {
+          autoViewedPatterns?: unknown;
+        };
+
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          autoViewedPatterns: normalizeAutoViewedPatterns(parsed.autoViewedPatterns),
+        };
       }
     } catch (error) {
       console.warn('Failed to load appearance settings from localStorage:', error);
