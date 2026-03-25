@@ -1,6 +1,6 @@
 ---
 name: difit-review
-description: Review branch diffs or GitHub PRs in the difit repository and show the findings inside difit with `--comment`. Use when the user asks to review `main` vs a feature branch, compare two commits or branches, or inspect a PR and wants the results preloaded as local difit comments instead of posted back to GitHub.
+description: Review branch diffs or GitHub PRs and show the findings inside difit with `--comment`. Use when the user asks to review `main` vs a feature branch, compare two commits or branches, or inspect a PR and wants the results preloaded as local difit comments instead of posted back to GitHub.
 ---
 
 # Difit Review
@@ -16,9 +16,7 @@ Keep the normal assistant response focused on findings first. Use difit comments
 1. Identify the review surface.
    - Branch or commit comparison: review the requested range and launch difit with `<target> [compare-with]`.
    - PR review: inspect the PR locally and keep the review output local. Do not post review comments back to GitHub.
-2. Read the changed files and collect only actionable findings.
-   - Prioritize bugs, behavior changes, data loss, broken mappings, unsafe assumptions, and missing tests.
-   - Skip cosmetic nits unless the user explicitly asks for style feedback.
+2. Read the changed files, review them according to the user's instruction, and identify the findings that should be called out in difit.
 3. Convert each finding into one startup comment.
    - Prefer `type: "thread"` for each finding.
    - Use `position.side: "new"` for lines that exist on the target side of the diff.
@@ -30,8 +28,7 @@ Keep the normal assistant response focused on findings first. Use difit comments
 
 ## Command Rules
 
-- Inside this repository, prefer `pnpm run dev`.
-- Do not insert an extra `--` after `pnpm run dev`; this script forwards args directly and `pnpm run dev -- ...` breaks argument parsing here.
+- Use the installed `difit` command in production-facing examples.
 - Use one `--comment '<json>'` flag per finding.
 - Keep each JSON blob compact and single-line so shell quoting stays predictable.
 
@@ -40,13 +37,13 @@ Keep the normal assistant response focused on findings first. Use difit comments
 Review a branch or commit diff:
 
 ```bash
-pnpm run dev <target> [compare-with] --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
+difit <target> [compare-with] --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
 ```
 
 Review a PR:
 
 ```bash
-pnpm run dev --pr <url> --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
+difit --pr <url> --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
 ```
 
 ## Comment Shape
