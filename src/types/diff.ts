@@ -178,7 +178,7 @@ export interface LegacyThreadDiffContextStorage {
 }
 
 export interface DiffContextStorage {
-  version: 3; // Schema version
+  version: 2; // Schema version
   baseCommitish: string;
   targetCommitish: string;
   createdAt: string; // ISO 8601 format

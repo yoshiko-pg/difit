@@ -109,7 +109,7 @@ export function useDiffComments(
 
     const now = new Date().toISOString();
     return {
-      version: 3,
+      version: 2,
       baseCommitish,
       targetCommitish,
       createdAt: now,

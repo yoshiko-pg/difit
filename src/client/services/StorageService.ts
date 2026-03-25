@@ -9,6 +9,10 @@ import {
 
 const STORAGE_KEY_PREFIX = 'difit-storage-v1';
 
+interface DiffContextStorageV3Compat extends Omit<DiffContextStorage, 'version'> {
+  version: 3;
+}
+
 function migrateLegacyComment(comment: LegacyDiffComment): DiffCommentThread {
   return {
     id: comment.id,
@@ -43,6 +47,12 @@ function normalizeRootComment(thread: DiffCommentThread): LegacyDiffComment | nu
     position: thread.position,
     codeSnapshot: thread.codeSnapshot,
   };
+}
+
+function normalizeAppliedCommentImportIds(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
 }
 
 export class StorageService {
@@ -163,28 +173,40 @@ export class StorageService {
 
       const parsed = JSON.parse(data) as
         | DiffContextStorage
+        | DiffContextStorageV3Compat
         | LegacyThreadDiffContextStorage
         | LegacyDiffContextStorage;
       if (parsed.version === 2 && 'threads' in parsed) {
         return {
-          version: 3,
+          version: 2,
           baseCommitish: parsed.baseCommitish,
           targetCommitish: parsed.targetCommitish,
           createdAt: parsed.createdAt,
           lastModifiedAt: parsed.lastModifiedAt,
           threads: parsed.threads,
           viewedFiles: parsed.viewedFiles,
-          appliedCommentImportIds: [],
+          appliedCommentImportIds: normalizeAppliedCommentImportIds(
+            (parsed as Partial<DiffContextStorage>).appliedCommentImportIds,
+          ),
         };
       }
 
       if (parsed.version === 3 && 'threads' in parsed) {
-        return parsed;
+        return {
+          version: 2,
+          baseCommitish: parsed.baseCommitish,
+          targetCommitish: parsed.targetCommitish,
+          createdAt: parsed.createdAt,
+          lastModifiedAt: parsed.lastModifiedAt,
+          threads: parsed.threads,
+          viewedFiles: parsed.viewedFiles,
+          appliedCommentImportIds: normalizeAppliedCommentImportIds(parsed.appliedCommentImportIds),
+        };
       }
 
       if (parsed.version === 1 && 'comments' in parsed) {
         return {
-          version: 3,
+          version: 2,
           baseCommitish: parsed.baseCommitish,
           targetCommitish: parsed.targetCommitish,
           createdAt: parsed.createdAt,
@@ -225,7 +247,7 @@ export class StorageService {
       // Ensure data includes original commitish values
       const dataToSave: DiffContextStorage = {
         ...data,
-        version: 3,
+        version: 2,
         baseCommitish,
         targetCommitish,
         lastModifiedAt: new Date().toISOString(),
@@ -302,7 +324,7 @@ export class StorageService {
       repositoryId,
     );
     const data: DiffContextStorage = existingData || {
-      version: 3,
+      version: 2,
       baseCommitish,
       targetCommitish,
       createdAt: new Date().toISOString(),
@@ -383,7 +405,7 @@ export class StorageService {
       repositoryId,
     );
     const data: DiffContextStorage = existingData || {
-      version: 3,
+      version: 2,
       baseCommitish,
       targetCommitish,
       createdAt: new Date().toISOString(),

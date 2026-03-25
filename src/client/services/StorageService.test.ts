@@ -265,13 +265,13 @@ describe('StorageService - Repository Isolation', () => {
       );
 
       const data = service.getDiffContextData('base', 'target');
-      expect(data?.version).toBe(3);
+      expect(data?.version).toBe(2);
       expect(data?.appliedCommentImportIds).toEqual([]);
     });
 
     it('preserves applied import ids when saving viewed files', () => {
       service.saveDiffContextData('base', 'target', {
-        version: 3,
+        version: 2,
         baseCommitish: 'base',
         targetCommitish: 'target',
         createdAt: '2024-01-01T00:00:00Z',
@@ -290,6 +290,26 @@ describe('StorageService - Repository Isolation', () => {
       ]);
 
       expect(service.getAppliedCommentImportIds('base', 'target')).toEqual(['import-bundle-1']);
+    });
+
+    it('normalizes existing v3 thread storage back to v2', () => {
+      localStorage.setItem(
+        'difit-storage-v1/base-target',
+        JSON.stringify({
+          version: 3,
+          baseCommitish: 'base',
+          targetCommitish: 'target',
+          createdAt: '2024-01-01T00:00:00Z',
+          lastModifiedAt: '2024-01-01T00:00:00Z',
+          threads: [],
+          viewedFiles: [],
+          appliedCommentImportIds: ['import-bundle-1'],
+        }),
+      );
+
+      const data = service.getDiffContextData('base', 'target');
+      expect(data?.version).toBe(2);
+      expect(data?.appliedCommentImportIds).toEqual(['import-bundle-1']);
     });
   });
 });
