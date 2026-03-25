@@ -3,6 +3,7 @@
   extends: ['config:recommended'],
   dependencyDashboard: false,
   minimumReleaseAge: '14 days',
+  platformAutomerge: true,
   schedule: ['on wednesday'],
   'pre-commit': {
     enabled: true,

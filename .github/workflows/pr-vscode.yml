@@ -9,6 +9,8 @@ on:
       - 'pnpm-workspace.yaml'
       - 'package.json'
       - '.github/workflows/pr-vscode.yml'
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
