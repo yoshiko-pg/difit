@@ -10,6 +10,13 @@ on:
       - 'package.json'
       - '.github/workflows/pr-vscode.yml'
   merge_group:
+    branches: [main]
+    paths:
+      - 'packages/vscode/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/pr-vscode.yml'
     types: [checks_requested]
 
 permissions:

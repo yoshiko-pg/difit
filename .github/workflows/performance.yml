@@ -7,6 +7,13 @@ on:
       - 'src/**'
       - 'scripts/**'
       - '.github/workflows/performance.yml'
+  merge_group:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/performance.yml'
+    types: [checks_requested]
 
 jobs:
   performance-test:
@@ -38,7 +45,8 @@ jobs:
       - name: Checkout base branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          # Merge queue runs target main; pull requests compare against the exact base SHA.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'main' }}
           path: base
 
       - name: Get Playwright version
