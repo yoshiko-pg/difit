@@ -106,6 +106,11 @@ program
       let manualCommentImports: CommentImport[] = [];
       let commentImports: CommentImport[] = [];
 
+      if (options.context !== undefined && (!Number.isInteger(options.context) || options.context < 0)) {
+        console.error('Error: --context must be a non-negative integer');
+        process.exit(1);
+      }
+
       try {
         manualCommentImports = parseCommentOptions(options.comment);
         commentImports = manualCommentImports;
@@ -124,6 +129,11 @@ program
 
         if (options.tui) {
           console.error('Error: --pr option cannot be used with --tui');
+          process.exit(1);
+        }
+
+        if (options.context !== undefined) {
+          console.error('Error: --context option cannot be used with --pr');
           process.exit(1);
         }
 
@@ -155,6 +165,10 @@ program
         });
 
         if (readFromStdin) {
+          if (options.context !== undefined) {
+            console.error('Error: --context option cannot be used with stdin diff');
+            process.exit(1);
+          }
           // Read unified diff from stdin
           stdinDiff = await readStdin();
           if (!stdinDiff.trim()) {
@@ -174,7 +188,6 @@ program
           mode: options.mode,
           clearComments: options.clean,
           keepAlive: options.keepAlive,
-          contextLines: options.context,
           ...(commentImports.length > 0 ? { commentImports } : {}),
         });
 
