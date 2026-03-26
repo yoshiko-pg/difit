@@ -106,7 +106,10 @@ program
       let manualCommentImports: CommentImport[] = [];
       let commentImports: CommentImport[] = [];
 
-      if (options.context !== undefined && (!Number.isInteger(options.context) || options.context < 0)) {
+      if (
+        options.context !== undefined &&
+        (!Number.isInteger(options.context) || options.context < 0)
+      ) {
         console.error('Error: --context must be a non-negative integer');
         process.exit(1);
       }
