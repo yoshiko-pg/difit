@@ -43,6 +43,7 @@ interface ServerOptions {
   keepAlive?: boolean;
   diffMode?: DiffMode;
   repoPath?: string;
+  contextLines?: number;
 }
 
 const GENERATED_STATUS_CACHE_TTL_MS = 60_000;
@@ -98,6 +99,7 @@ export async function startServer(
       options.targetCommitish ?? '',
       options.baseCommitish ?? '',
       currentIgnoreWhitespace,
+      options.contextLines,
     );
   }
 
@@ -154,7 +156,12 @@ export async function startServer(
       currentIgnoreWhitespace = ignoreWhitespace;
       currentBaseCommitish = requestedBase;
       currentTargetCommitish = requestedTarget;
-      diffDataCache = await parser.parseDiff(requestedTarget, requestedBase, ignoreWhitespace);
+      diffDataCache = await parser.parseDiff(
+        requestedTarget,
+        requestedBase,
+        ignoreWhitespace,
+        options.contextLines,
+      );
       generatedStatusCache.clear();
     }
 

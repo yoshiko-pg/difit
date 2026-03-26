@@ -60,6 +60,7 @@ interface CliOptions {
   clean?: boolean;
   includeUntracked?: boolean;
   keepAlive?: boolean;
+  context?: number;
 }
 
 const program = new Command();
@@ -97,6 +98,7 @@ program
   .option('--clean', 'start with a clean slate by clearing all existing comments')
   .option('--include-untracked', 'automatically include untracked files in diff')
   .option('--keep-alive', 'keep server running even after browser disconnects')
+  .option('--context <lines>', 'number of context lines shown around each change', parseInt)
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
       let stdinDiff: string | undefined;
@@ -172,6 +174,7 @@ program
           mode: options.mode,
           clearComments: options.clean,
           keepAlive: options.keepAlive,
+          contextLines: options.context,
           ...(commentImports.length > 0 ? { commentImports } : {}),
         });
 
@@ -240,6 +243,7 @@ program
             baseCommitish,
             mode: options.mode,
             repoPath,
+            contextLines: options.context,
           }),
         );
         return;
@@ -260,6 +264,7 @@ program
         mode: options.mode,
         clearComments: options.clean,
         keepAlive: options.keepAlive,
+        contextLines: options.context,
         diffMode: determineDiffMode(targetCommitish, compareWith),
         repoPath,
         ...(commentImports.length > 0 ? { commentImports } : {}),
