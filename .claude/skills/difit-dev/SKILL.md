@@ -1,13 +1,13 @@
 ---
-name: difit
-description: Ask the user for a code review through difit after code changes.
+name: difit-dev
+description: Ask the user for a code review through difit after code changes in this repository, using `pnpm run dev`.
 ---
 
-# Difit
+# Difit Dev
 
 ## Overview
 
-This skill requests a code review from the user using the difit command.
+This skill requests a code review from the user using `pnpm run dev` in this repository.
 If the user leaves review comments, they are printed to stdout when the difit command exits.
 When review comments are returned, continue work and address them.
 If the server is shut down without comments, treat it as "no review comments were provided." Restarting it is unnecessary.
@@ -15,16 +15,16 @@ Manual verification of whether the page launched correctly is also unnecessary.
 
 ## Commands
 
-- Review uncommitted changes before commit: `difit .`
-- Review the HEAD commit: `difit`
-- Review staging area changes: `difit staged`
-- Review unstaged changes only: `difit working`
+- Review uncommitted changes before commit: `pnpm run dev .`
+- Review the HEAD commit: `pnpm run dev`
+- Review staging area changes: `pnpm run dev staged`
+- Review unstaged changes only: `pnpm run dev working`
 
 Basic Usage:
 
 ```bash
-difit <target>                    # View single commit diff. ex: difit 6f4a9b7
-difit <target> [compare-with]     # Compare two commits/branches. ex: difit feature main
+pnpm run dev <target>                    # View single commit diff. ex: pnpm run dev 6f4a9b7
+pnpm run dev <target> [compare-with]     # Compare two commits/branches. ex: pnpm run dev feature main
 ```
 
 ## Optional Startup Comments
@@ -33,7 +33,7 @@ If there is something you want to tell the user when difit opens, attach it as s
 This is useful for review findings, explanations, and any context the user should see directly on the diff.
 
 ```bash
-difit <target> [compare-with] \
+pnpm run dev <target> [compare-with] \
   --comment '{"type":"thread","filePath":"src/foobar.ts","position":{"side":"old","line":102},"body":"line 1\nline 2"}' \
   --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":{"start":36,"end":39}},"body":"Range comment for L36-L39"}'
 ```
@@ -49,9 +49,9 @@ difit <target> [compare-with] \
 For uncommitted changes, if files not yet added to git should also appear in the diff, add `--include-untracked`.
 
 ```bash
-difit . --include-untracked
+pnpm run dev . --include-untracked
 ```
 
 ## Constraints
 
-Can only be used inside a Git-managed directory.
+Can only be used inside this Git-managed repository.
