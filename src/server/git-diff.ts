@@ -424,14 +424,25 @@ export class GitDiffParser {
 
   async getBlobContent(filepath: string, ref: string): Promise<Buffer> {
     try {
-      const normalizedFilepath = this.normalizeRepositoryRelativePath(filepath);
-
       // For working directory, read directly from filesystem
       if (ref === 'working' || ref === '.') {
         const fs = await import('fs');
-        const absolutePath = resolve(this.repoPath, normalizedFilepath);
+        if (filepath.length === 0) {
+          throw new Error('Invalid file path');
+        }
+
+        const repositoryPath = fs.realpathSync(resolve(this.repoPath));
+        const repositoryRoot = `${repositoryPath}${sep}`;
+        const absolutePath = fs.realpathSync(resolve(repositoryRoot, filepath.replace(/\\/g, '/')));
+
+        if (!absolutePath.startsWith(repositoryRoot)) {
+          throw new Error('File path outside repository');
+        }
+
         return fs.readFileSync(absolutePath);
       }
+
+      const normalizedFilepath = this.normalizeRepositoryRelativePath(filepath);
 
       // For git refs, we need to use child_process to execute git cat-file
       // to properly handle binary data

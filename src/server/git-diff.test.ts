@@ -28,6 +28,7 @@ vi.mock('fs', async (importOriginal) => {
   return {
     ...actual,
     readFileSync: vi.fn(),
+    realpathSync: vi.fn((path: string) => path),
   };
 });
 
@@ -35,6 +36,7 @@ describe('GitDiffParser', () => {
   let parser: GitDiffParser;
   let mockExecFileSync: any;
   let mockReadFileSync: any;
+  let mockRealpathSync: any;
 
   beforeEach(async () => {
     parser = new GitDiffParser('/test/repo');
@@ -45,6 +47,8 @@ describe('GitDiffParser', () => {
     const fs = await import('fs');
     mockExecFileSync = childProcess.execFileSync;
     mockReadFileSync = fs.readFileSync;
+    mockRealpathSync = fs.realpathSync;
+    mockRealpathSync.mockImplementation((path: string) => path);
   });
 
   afterEach(() => {
@@ -147,6 +151,21 @@ describe('GitDiffParser', () => {
 
     it('rejects absolute working tree paths', async () => {
       await expect(parser.getBlobContent('/etc/passwd', 'working')).rejects.toThrow(
+        'File path outside repository',
+      );
+
+      expect(mockReadFileSync).not.toHaveBeenCalled();
+    });
+
+    it('rejects working tree symlinks that resolve outside the repository', async () => {
+      mockRealpathSync.mockImplementation((path: string) => {
+        if (path === '/test/repo/link.txt') {
+          return '/etc/passwd';
+        }
+        return path;
+      });
+
+      await expect(parser.getBlobContent('link.txt', 'working')).rejects.toThrow(
         'File path outside repository',
       );
 
