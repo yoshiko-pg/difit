@@ -10,9 +10,12 @@ metadata:
 ## Overview
 
 This skill requests a code review from the user using `pnpm run dev` in this repository.
+Running `pnpm run dev` once is sufficient to start the review request workflow.
+Do not open a browser yourself, verify that a browser connected, or restart the server just to keep it alive.
 If the user leaves review comments, they are printed to stdout when the difit command exits.
 When review comments are returned, continue work and address them.
 If the server is shut down without comments, treat it as "no review comments were provided." Restarting it is unnecessary.
+Treat `Client disconnected, shutting down server...` without comments as a successful no-comments outcome.
 Manual verification of whether the page launched correctly is also unnecessary.
 
 ## Commands
