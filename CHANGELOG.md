@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-03-28
+
+### Added
+
+- Add `--context` flag to control how many context lines difit shows around each change (#273)
+- Add `origin/<default>...Uncommitted` quick diff preset
+
+### Thanks
+
+- [@moritzwilksch](https://github.com/moritzwilksch) for adding the `--context` flag (#273)
+
 ## [4.0.0] - 2026-03-27
 
 ### Added
@@ -1067,7 +1078,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.1...HEAD
+[4.0.1]: https://github.com/yoshiko-pg/difit/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/yoshiko-pg/difit/compare/v3.1.18...v4.0.0
 [3.1.18]: https://github.com/yoshiko-pg/difit/compare/v3.1.17...v3.1.18
 [3.1.17]: https://github.com/yoshiko-pg/difit/compare/v3.1.16...v3.1.17
