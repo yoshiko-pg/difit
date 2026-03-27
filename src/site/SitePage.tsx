@@ -462,14 +462,18 @@ function SitePage() {
           </Prompt>
           <CopyBtn text="npm install -g difit" />
         </div>
-        <Stdout>
-          <span className="text-github-text-muted">
-            added 1 package in 3s
-            <br />
-            Requires <span className="text-github-text-secondary">Node.js ≥ 21</span> and{' '}
-            <span className="text-github-text-secondary">git</span>
-          </span>
-        </Stdout>
+      </section>
+
+      <section className="w-[90vw] max-w-[1000px] mx-auto mt-6 space-y-2">
+        <Comment>Or install skills</Comment>
+        <div className="flex items-center gap-2">
+          <Prompt>
+            <span className="text-[#f1e927]">npx</span>{' '}
+            <span className="text-github-text-primary">skills</span> add{' '}
+            <span className="text-github-text-secondary">yoshiko-pg/difit</span>
+          </Prompt>
+          <CopyBtn text="npx skills add yoshiko-pg/difit" />
+        </div>
       </section>
 
       {/* ── Features as --help output ────────────────── */}
