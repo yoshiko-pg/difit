@@ -10,12 +10,14 @@ description: A skill for reviewing a specific diff and showing the findings as c
 This skill launches a requested git diff in a viewer that is easy for humans to read. At the same time, the agent can attach arbitrary comments via the `--comment` option.
 This comment mechanism is well suited for code review findings and code explanations.
 
+In this local repository copy, use `pnpm run dev` instead of the installed `difit` command.
+
 ## Steps
 
 The final command typically looks like this:
 
 ```bash
-difit <target> [compare-with] \
+pnpm run dev <target> [compare-with] \
   --comment '{"type":"thread","filePath":"src/foobar.ts","position":{"side":"old","line":102},"body":"line 1\nline 2"}' \
   --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":{"start":36,"end":39}},"body":"Range comment for L36-L39"}'
 ```
@@ -30,10 +32,11 @@ The detailed procedure is as follows.
 
 2. Attach the prepared comments and launch difit.
 
-- **difit launch options**
-  - Use `difit <target> [compare-with]` to specify the target diff.
-  - For uncommitted changes use `difit .`, for working tree changes use `difit working`, and for staged changes use `difit staging`.
-  - For PRs use `difit --pr <URL>`. For stdin input, use a form such as `diff -u file1.txt file2.txt | difit`.
+- **pnpm run dev launch options**
+  - Use `pnpm run dev <target> [compare-with]` to specify the target diff.
+  - Do not insert `--` after `pnpm run dev` in this repository. `pnpm run dev -- ...` breaks argument parsing here.
+  - For uncommitted changes use `pnpm run dev .`, for working tree changes use `pnpm run dev working`, and for staged changes use `pnpm run dev staging`.
+  - For PRs use `pnpm run dev --pr <URL>`. For stdin input, use a form such as `diff -u file1.txt file2.txt | pnpm run dev`.
 - **Comment arguments**
   - Use `type: "thread"` for each comment.
   - Use `position.side: "new"` for lines that exist on the target side of the diff.
