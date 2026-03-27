@@ -104,6 +104,49 @@ const htmlCommentChunks: MergedChunk[] = [
   },
 ];
 
+const codeFenceDiffChunks: MergedChunk[] = [
+  {
+    header: '@@ -1,7 +1,9 @@',
+    oldStart: 1,
+    oldLines: 7,
+    newStart: 1,
+    newLines: 9,
+    lines: [
+      {
+        type: 'context',
+        content: 'AIエージェントから使えるようにする',
+        oldLineNumber: 1,
+        newLineNumber: 1,
+      },
+      { type: 'context', content: '', oldLineNumber: 2, newLineNumber: 2 },
+      { type: 'context', content: '```bash', oldLineNumber: 3, newLineNumber: 3 },
+      {
+        type: 'delete',
+        content: 'npx skills add yoshiko-pg/difit # エージェントにスキルを追加',
+        oldLineNumber: 4,
+        newLineNumber: undefined,
+      },
+      {
+        type: 'add',
+        content: 'npx skills add yoshiko-pg/difit # エージェントにスキル群を追加',
+        oldLineNumber: undefined,
+        newLineNumber: 4,
+      },
+      { type: 'context', content: '```', oldLineNumber: 5, newLineNumber: 5 },
+      { type: 'context', content: '', oldLineNumber: 6, newLineNumber: 6 },
+      {
+        type: 'context',
+        content: 'インストールされる主な skill:',
+        oldLineNumber: 7,
+        newLineNumber: 7,
+      },
+    ],
+    originalIndices: [0, 1, 2, 3, 4, 5, 6, 7],
+    hiddenLinesBefore: 0,
+    hiddenLinesAfter: 0,
+  },
+];
+
 const setMatchMedia = (matches: boolean) => {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -206,6 +249,24 @@ describe('MarkdownDiffViewer', () => {
           element?.tagName === 'PRE' && element.textContent === '<!-- hidden note -->',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('renders changed fenced code blocks without dropping surrounding markdown in Diff Preview', () => {
+    renderViewer({ mergedChunks: codeFenceDiffChunks });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+
+    const oldLine = screen.getByText(
+      'npx skills add yoshiko-pg/difit # エージェントにスキルを追加',
+    );
+    const newLine = screen.getByText(
+      'npx skills add yoshiko-pg/difit # エージェントにスキル群を追加',
+    );
+
+    expect(oldLine.closest('.markdown-preview-code')).toContainElement(newLine);
+    expect(screen.getByText('インストールされる主な skill:')).toBeInTheDocument();
+    expect(screen.queryByText('```bash')).not.toBeInTheDocument();
+    expect(screen.queryByText('```')).not.toBeInTheDocument();
   });
 
   it('renders Mermaid diagrams in Full Preview', async () => {
