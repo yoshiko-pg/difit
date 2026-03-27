@@ -595,6 +595,21 @@ describe('Server Integration Tests', () => {
       // But the server should not crash
       expect([200, 404]).toContain(response.status);
     });
+
+    it('returns 404 for unknown paths in production mode', async () => {
+      process.env.NODE_ENV = 'production';
+
+      const result = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9055,
+      });
+      servers.push(result.server);
+
+      const response = await fetch(`http://localhost:${result.port}/not-a-route`);
+
+      expect(response.status).toBe(404);
+    });
   });
 
   describe('Mode option handling', () => {
