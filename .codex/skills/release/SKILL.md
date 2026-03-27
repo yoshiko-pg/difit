@@ -1,6 +1,8 @@
 ---
 name: release
 description: Execute the difit release workflow when the user says "リリース" or asks to cut a release. Update CHANGELOG Unreleased from commits since latest tag, ask for explicit OK confirmation in Japanese, then release using the confirmed Unreleased section as the exact source of truth.
+metadata:
+  internal: true
 ---
 
 # Release Workflow

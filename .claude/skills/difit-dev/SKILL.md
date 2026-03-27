@@ -1,6 +1,8 @@
 ---
 name: difit-dev
 description: Ask the user for a code review through difit after code changes in this repository, using `pnpm run dev`.
+metadata:
+  internal: true
 ---
 
 # Difit Dev

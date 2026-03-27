@@ -1,6 +1,8 @@
 ---
 name: vscode-release
 description: Execute the VS Code extension release workflow when the user asks to publish/release the difit VS Code extension. Run local VSIX build and smoke verification first, ask for explicit OK in Japanese, then publish with vsce.
+metadata:
+  internal: true
 ---
 
 # VS Code Extension Release Workflow
