@@ -1,6 +1,6 @@
 ---
 name: difit
-description: Ask the user for a code review through difit after code changes. Use when implementation is finished and you want to launch difit for the user, optionally preload comments with `--comment`, or include untracked files in the review target.
+description: Ask the user for a code review through difit after code changes.
 ---
 
 # Difit
@@ -10,44 +10,21 @@ description: Ask the user for a code review through difit after code changes. Us
 This skill requests a code review from the user using the difit command.
 If the user leaves review comments, they are printed to stdout when the difit command exits.
 When review comments are returned, continue work and address them.
-If the server is shut down without comments, treat it as "no review comments were provided."
+If the server is shut down without comments, treat it as "no review comments were provided." Restarting it is unnecessary.
+Manual verification of whether the page launched correctly is also unnecessary.
 
 ## Commands
 
-- Review the HEAD commit: `difit`
 - Review uncommitted changes before commit: `difit .`
+- Review the HEAD commit: `difit`
+- Review staging area changes: `difit staged`
+- Review unstaged changes only: `difit working`
 
-## Basic Usage
-
-```bash
-difit <target>                    # View single commit diff
-difit <target> [compare-with]     # Compare two commits/branches
-```
-
-## Single Commit Review
+Basic Usage:
 
 ```bash
-difit          # HEAD (latest) commit
-difit 6f4a9b7  # Specific commit
-difit feature  # Latest commit on feature branch
-```
-
-## Compare Two Commits
-
-```bash
-difit @ main         # Compare with main branch (@ is alias for HEAD)
-difit feature main   # Compare branches
-difit . origin/main  # Compare working directory with remote main
-```
-
-## Special Arguments
-
-difit supports special keywords for common diff scenarios:
-
-```bash
-difit .        # All uncommitted changes (staging area + unstaged)
-difit staged   # Staging area changes
-difit working  # Unstaged changes only
+difit <target>                    # View single commit diff. ex: difit 6f4a9b7
+difit <target> [compare-with]     # Compare two commits/branches. ex: difit feature main
 ```
 
 ## Optional Startup Comments
@@ -56,7 +33,9 @@ If there is something you want to tell the user when difit opens, attach it as s
 This is useful for review findings, explanations, and any context the user should see directly on the diff.
 
 ```bash
-difit --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":42},"body":"This can fail when ..."}'
+difit <target> [compare-with] \
+  --comment '{"type":"thread","filePath":"src/foobar.ts","position":{"side":"old","line":102},"body":"line 1\nline 2"}' \
+  --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":{"start":36,"end":39}},"body":"Range comment for L36-L39"}'
 ```
 
 - Use `type: "thread"` for each comment.
