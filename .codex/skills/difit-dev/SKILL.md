@@ -42,6 +42,7 @@ pnpm run dev <target> [compare-with] \
 
 - Do not insert `--` after `pnpm run dev` in this repository. `pnpm run dev -- ...` breaks argument parsing here.
 - Use `type: "thread"` for each comment.
+- Write comment bodies in the language the user is using.
 - Use `position.side: "new"` for lines that exist on the target side of the diff.
 - Use `position.side: "old"` for lines that exist only on the deleted side.
 - Use range comments for issues that span multiple lines.

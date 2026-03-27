@@ -39,6 +39,7 @@ difit <target> [compare-with] \
 ```
 
 - Use `type: "thread"` for each comment.
+- Write comment bodies in the language the user is using.
 - Use `position.side: "new"` for lines that exist on the target side of the diff.
 - Use `position.side: "old"` for lines that exist only on the deleted side.
 - Use range comments for issues that span multiple lines.

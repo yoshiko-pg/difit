@@ -41,6 +41,7 @@ The detailed procedure is as follows.
   - For PRs use `pnpm run dev --pr <URL>`. For stdin input, use a form such as `diff -u file1.txt file2.txt | pnpm run dev`.
 - **Comment arguments**
   - Use `type: "thread"` for each comment.
+  - Write comment bodies in the language the user is using.
   - Use `position.side: "new"` for lines that exist on the target side of the diff.
   - Use `position.side: "old"` for lines that exist only on the deleted side.
   - Use range comments for issues that span multiple lines.
