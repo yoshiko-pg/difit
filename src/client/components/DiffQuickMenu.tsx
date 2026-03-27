@@ -282,6 +282,15 @@ export function DiffQuickMenu({
                 Quick Diffs
               </div>
               <button
+                onClick={() => handleSelect(headPreset.base, headPreset.target)}
+                className={getItemClasses(
+                  isPresetActive(headPreset.base, headPreset.target),
+                  false,
+                )}
+              >
+                HEAD
+              </button>
+              <button
                 onClick={() => handleSelect('HEAD', '.')}
                 className={getItemClasses(isPresetActive('HEAD', '.'), false)}
               >
@@ -305,15 +314,6 @@ export function DiffQuickMenu({
                   {originDefaultBranch}...Uncommitted
                 </button>
               )}
-              <button
-                onClick={() => handleSelect(headPreset.base, headPreset.target)}
-                className={getItemClasses(
-                  isPresetActive(headPreset.base, headPreset.target),
-                  false,
-                )}
-              >
-                HEAD
-              </button>
             </div>
 
             <div className="border-b border-github-border">

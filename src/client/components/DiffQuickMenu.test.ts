@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { createElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -107,6 +107,26 @@ describe('DiffQuickMenu', () => {
     expect(screen.queryByRole('button', { name: 'HEAD...Staging' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Staging...Working' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'main...HEAD' })).not.toBeInTheDocument();
+  });
+
+  it('places HEAD at the top of quick diffs', () => {
+    render(
+      createElement(DiffQuickMenu, {
+        options,
+        baseRevision: 'HEAD',
+        targetRevision: '.',
+        onSelectDiff: vi.fn(),
+        onOpenAdvanced: vi.fn(),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
+
+    const quickDiffSection = screen.getByText('Quick Diffs').parentElement;
+    expect(quickDiffSection).not.toBeNull();
+
+    const quickDiffButtons = within(quickDiffSection!).getAllByRole('button');
+    expect(quickDiffButtons[0]).toHaveTextContent('HEAD');
   });
 
   it('selects HEAD commit when HEAD quick preset is clicked', () => {
