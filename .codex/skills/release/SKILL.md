@@ -1,6 +1,6 @@
 ---
 name: release
-description: Execute the difit release workflow when the user says "リリース" or asks to cut a release. Update CHANGELOG Unreleased from commits since latest tag, ask for explicit OK confirmation in Japanese, then release using the confirmed Unreleased section as the exact source of truth.
+description: Execute the difit release workflow when the user says "リリース" or asks to cut a release. Update CHANGELOG Unreleased from commits since latest tag, ask for explicit OK confirmation in Japanese, then release by moving the confirmed Unreleased section verbatim as the exact source of truth.
 metadata:
   internal: true
 ---
@@ -24,7 +24,11 @@ Follow this workflow for the current repository.
 
 ## Release after explicit OK
 
-Treat the `Unreleased` section at OK time as the single source of truth. Do not regenerate or overwrite that content.
+- The only allowed `CHANGELOG.md` edits after OK are:
+  - insert the new version heading with today's date directly below `## [Unreleased]`
+  - place the captured `Unreleased` body under that new heading unchanged
+  - leave `## [Unreleased]` empty
+  - update the bottom compare links for `Unreleased` and the new version
 
 1. Run `npm version --no-git-tag-version patch`.
 2. Move current `Unreleased` content into a new version section with today's date.
