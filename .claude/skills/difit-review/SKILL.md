@@ -38,13 +38,14 @@ The detailed procedure is as follows.
   - Use `pnpm run dev <target> [compare-with]` to specify the target diff.
   - Do not insert `--` after `pnpm run dev` in this repository. `pnpm run dev -- ...` breaks argument parsing here.
   - For uncommitted changes use `pnpm run dev .`, for working tree changes use `pnpm run dev working`, and for staged changes use `pnpm run dev staging`.
-  - For PRs use `pnpm run dev --pr <URL>`. For stdin input, use a form such as `diff -u file1.txt file2.txt | pnpm run dev`.
+  - For stdin input, use a form such as `diff -u file1.txt file2.txt | pnpm run dev`.
 - **Comment arguments**
   - Use `type: "thread"` for each comment.
   - Write comment bodies in the language the user is using.
   - Use `position.side: "new"` for lines that exist on the target side of the diff.
   - Use `position.side: "old"` for lines that exist only on the deleted side.
   - Use range comments for issues that span multiple lines.
+  - Never copy secrets, tokens, passwords, API keys, private keys, or other credential-like material from the diff into `--comment` bodies or any command-line arguments.
 - **Additional argument for files not yet added to git**
   - For uncommitted changes, if you decide files not yet added to git should also appear in the diff, add `--include-untracked`.
 
