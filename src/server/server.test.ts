@@ -80,6 +80,7 @@ vi.mock('./git-diff.js', () => {
     getRevisionOptions = vi.fn().mockResolvedValue({
       branches: [{ name: 'main', current: true }],
       commits: [{ hash: 'abc1234', shortHash: 'abc1234', message: 'Test commit' }],
+      originDefaultBranch: 'origin/main',
       resolvedBase: 'abc1234',
       resolvedTarget: 'def5678',
     });
@@ -717,6 +718,7 @@ describe('Server Integration Tests', () => {
       expect(data.commits).toEqual([
         { hash: 'abc1234', shortHash: 'abc1234', message: 'Test commit' },
       ]);
+      expect(data.originDefaultBranch).toBe('origin/main');
       expect(data.resolvedBase).toBe('abc1234');
       expect(data.resolvedTarget).toBe('def5678');
     });

@@ -210,6 +210,7 @@ export interface RevisionsResponse {
   specialOptions: RevisionOption[];
   branches: BranchInfo[];
   commits: CommitInfo[];
+  originDefaultBranch?: string;
   resolvedBase?: string;
   resolvedTarget?: string;
 }

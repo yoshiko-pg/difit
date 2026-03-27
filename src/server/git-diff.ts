@@ -582,19 +582,49 @@ export class GitDiffParser {
     return null;
   }
 
+  async getOriginDefaultBranch(): Promise<string | null> {
+    try {
+      const result = await this.git.raw(['symbolic-ref', 'refs/remotes/origin/HEAD']);
+      const match = result.trim().match(/refs\/remotes\/origin\/(.+)/);
+      if (match) {
+        return `origin/${match[1]}`;
+      }
+    } catch {
+      const commonDefaults = ['main', 'master'];
+
+      for (const defaultName of commonDefaults) {
+        try {
+          await this.git.raw([
+            'show-ref',
+            '--verify',
+            '--quiet',
+            `refs/remotes/origin/${defaultName}`,
+          ]);
+          return `origin/${defaultName}`;
+        } catch {
+          // Ignore missing refs and continue checking common defaults.
+        }
+      }
+    }
+
+    return null;
+  }
+
   async getRevisionOptions(
     currentBase?: string,
     currentTarget?: string,
   ): Promise<{
     branches: Array<{ name: string; current: boolean }>;
     commits: Array<{ hash: string; shortHash: string; message: string }>;
+    originDefaultBranch?: string;
     resolvedBase?: string;
     resolvedTarget?: string;
   }> {
-    const [branchResult, logResult, defaultBranch] = await Promise.all([
+    const [branchResult, logResult, defaultBranch, originDefaultBranch] = await Promise.all([
       this.git.branchLocal(),
       this.git.log({ maxCount: 20 }),
       this.getDefaultBranch(),
+      this.getOriginDefaultBranch(),
     ]);
 
     const branches = Object.entries(branchResult.branches).map(([name, data]) => ({
@@ -639,6 +669,12 @@ export class GitDiffParser {
       }
     }
 
-    return { branches, commits, resolvedBase, resolvedTarget };
+    return {
+      branches,
+      commits,
+      originDefaultBranch: originDefaultBranch ?? undefined,
+      resolvedBase,
+      resolvedTarget,
+    };
   }
 }

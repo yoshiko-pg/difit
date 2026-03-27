@@ -18,6 +18,7 @@ const options = {
       message: 'chore: release v3.1.5',
     },
   ],
+  originDefaultBranch: 'origin/main',
 };
 
 describe('getPreviousCommitPreset', () => {
@@ -101,6 +102,7 @@ describe('DiffQuickMenu', () => {
 
     expect(screen.getByRole('button', { name: 'HEAD...Uncommitted' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'main...Uncommitted' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'origin/main...Uncommitted' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'HEAD' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'HEAD...Staging' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Staging...Working' })).not.toBeInTheDocument();
@@ -123,5 +125,23 @@ describe('DiffQuickMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'HEAD' }));
 
     expect(onSelectDiff).toHaveBeenCalledWith('HEAD^', 'HEAD');
+  });
+
+  it('selects origin/main quick preset when available', () => {
+    const onSelectDiff = vi.fn();
+    render(
+      createElement(DiffQuickMenu, {
+        options,
+        baseRevision: 'HEAD',
+        targetRevision: '.',
+        onSelectDiff,
+        onOpenAdvanced: vi.fn(),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'origin/main...Uncommitted' }));
+
+    expect(onSelectDiff).toHaveBeenCalledWith('origin/main', '.');
   });
 });

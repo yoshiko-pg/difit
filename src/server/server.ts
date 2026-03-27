@@ -261,10 +261,8 @@ export async function startServer(
     }
 
     try {
-      const { branches, commits, resolvedBase, resolvedTarget } = await parser.getRevisionOptions(
-        currentBaseCommitish,
-        currentTargetCommitish,
-      );
+      const { branches, commits, originDefaultBranch, resolvedBase, resolvedTarget } =
+        await parser.getRevisionOptions(currentBaseCommitish, currentTargetCommitish);
 
       const response: RevisionsResponse = {
         specialOptions: [
@@ -274,6 +272,7 @@ export async function startServer(
         ],
         branches,
         commits,
+        originDefaultBranch,
         resolvedBase,
         resolvedTarget,
       };

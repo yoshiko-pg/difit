@@ -191,6 +191,7 @@ export function DiffQuickMenu({
   );
 
   const hasMainBranch = Boolean(mainBranch);
+  const originDefaultBranch = options.originDefaultBranch;
   const headPreset = useMemo(() => ({ base: 'HEAD^', target: 'HEAD' }), []);
   const previousCommitPreset = useMemo(
     () => getPreviousCommitPreset(targetRevision),
@@ -295,6 +296,14 @@ export function DiffQuickMenu({
                     {mainBranch.name}...Uncommitted
                   </button>
                 </>
+              )}
+              {originDefaultBranch && (
+                <button
+                  onClick={() => handleSelect(originDefaultBranch, '.')}
+                  className={getItemClasses(isPresetActive(originDefaultBranch, '.'), false)}
+                >
+                  {originDefaultBranch}...Uncommitted
+                </button>
               )}
               <button
                 onClick={() => handleSelect(headPreset.base, headPreset.target)}
