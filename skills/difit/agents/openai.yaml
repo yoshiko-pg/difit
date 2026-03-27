@@ -1,4 +1,4 @@
 interface:
   display_name: 'Difit'
   short_description: 'Request user review or open difit from agents.'
-  default_prompt: 'Use $difit to ask the user for a review through difit after code changes.'
+  default_prompt: 'Use $difit to ask the user for a review through difit if available, otherwise npx difit after code changes.'

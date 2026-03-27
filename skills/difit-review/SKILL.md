@@ -9,13 +9,18 @@ description: A skill for reviewing a specific diff and showing the findings as c
 
 This skill launches a requested git diff in a viewer that is easy for humans to read. At the same time, the agent can attach arbitrary comments via the `--comment` option.
 This comment mechanism is well suited for code review findings and code explanations.
+Before running commands, choose `<difit-command>` using the following rule:
+
+- If `command -v difit` succeeds, use `difit`.
+- Otherwise, use `npx difit`.
+- If falling back to `npx difit` would require network access in a sandboxed environment without network permission, request escalated permissions and user approval before running it.
 
 ## Steps
 
 The final command typically looks like this:
 
 ```bash
-difit <target> [compare-with] \
+<difit-command> <target> [compare-with] \
   --comment '{"type":"thread","filePath":"src/foobar.ts","position":{"side":"old","line":102},"body":"line 1\nline 2"}' \
   --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":{"start":36,"end":39}},"body":"Range comment for L36-L39"}'
 ```
@@ -31,9 +36,9 @@ The detailed procedure is as follows.
 2. Attach the prepared comments and launch difit.
 
 - **difit launch options**
-  - Use `difit <target> [compare-with]` to specify the target diff.
-  - For uncommitted changes use `difit .`, for working tree changes use `difit working`, and for staged changes use `difit staging`.
-  - For PRs use `difit --pr <URL>`. For stdin input, use a form such as `diff -u file1.txt file2.txt | difit`.
+  - Use `<difit-command> <target> [compare-with]` to specify the target diff.
+  - For uncommitted changes use `<difit-command> .`, for working tree changes use `<difit-command> working`, and for staged changes use `<difit-command> staging`.
+  - For PRs use `<difit-command> --pr <URL>`. For stdin input, use a form such as `diff -u file1.txt file2.txt | <difit-command>`.
 - **Comment arguments**
   - Use `type: "thread"` for each comment.
   - Write comment bodies in the language the user is using.
