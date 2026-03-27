@@ -42,6 +42,7 @@ export class GitDiffParser {
     targetCommitish: string,
     baseCommitish: string,
     ignoreWhitespace = false,
+    contextLines?: number,
   ): Promise<DiffResponse> {
     try {
       // Validate arguments
@@ -78,6 +79,10 @@ export class GitDiffParser {
 
       if (ignoreWhitespace) {
         diffArgs.push('-w');
+      }
+
+      if (contextLines !== undefined) {
+        diffArgs.push(`-U${contextLines}`);
       }
 
       // Ignore external diff-tools to unify output.

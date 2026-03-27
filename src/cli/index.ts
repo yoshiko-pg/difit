@@ -60,6 +60,7 @@ interface CliOptions {
   clean?: boolean;
   includeUntracked?: boolean;
   keepAlive?: boolean;
+  context?: number;
 }
 
 const program = new Command();
@@ -97,12 +98,21 @@ program
   .option('--clean', 'start with a clean slate by clearing all existing comments')
   .option('--include-untracked', 'automatically include untracked files in diff')
   .option('--keep-alive', 'keep server running even after browser disconnects')
+  .option('--context <lines>', 'number of context lines shown around each change', parseInt)
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
       let stdinDiff: string | undefined;
       let stdinReviewLabel = 'diff from stdin';
       let manualCommentImports: CommentImport[] = [];
       let commentImports: CommentImport[] = [];
+
+      if (
+        options.context !== undefined &&
+        (!Number.isInteger(options.context) || options.context < 0)
+      ) {
+        console.error('Error: --context must be a non-negative integer');
+        process.exit(1);
+      }
 
       try {
         manualCommentImports = parseCommentOptions(options.comment);
@@ -122,6 +132,11 @@ program
 
         if (options.tui) {
           console.error('Error: --pr option cannot be used with --tui');
+          process.exit(1);
+        }
+
+        if (options.context !== undefined) {
+          console.error('Error: --context option cannot be used with --pr');
           process.exit(1);
         }
 
@@ -153,6 +168,10 @@ program
         });
 
         if (readFromStdin) {
+          if (options.context !== undefined) {
+            console.error('Error: --context option cannot be used with stdin diff');
+            process.exit(1);
+          }
           // Read unified diff from stdin
           stdinDiff = await readStdin();
           if (!stdinDiff.trim()) {
@@ -240,6 +259,7 @@ program
             baseCommitish,
             mode: options.mode,
             repoPath,
+            contextLines: options.context,
           }),
         );
         return;
@@ -260,6 +280,7 @@ program
         mode: options.mode,
         clearComments: options.clean,
         keepAlive: options.keepAlive,
+        contextLines: options.context,
         diffMode: determineDiffMode(targetCommitish, compareWith),
         repoPath,
         ...(commentImports.length > 0 ? { commentImports } : {}),

@@ -7,6 +7,7 @@ export async function loadGitDiff(
   targetCommitish: string,
   baseCommitish: string,
   repoPath?: string,
+  contextLines?: number,
 ): Promise<FileDiff[]> {
   // Validate arguments
   const validation = validateDiffArguments(targetCommitish, baseCommitish);
@@ -53,6 +54,8 @@ export async function loadGitDiff(
       return { status, path };
     });
 
+  const contextArgs = contextLines !== undefined ? [`-U${contextLines}`] : [];
+
   // Get diff for each file individually
   const fileDiffs: FileDiff[] = await Promise.all(
     fileChanges.map(async ({ status, path }) => {
@@ -61,24 +64,25 @@ export async function loadGitDiff(
       // Handle individual file diffs (base is always a regular commit)
       if (targetCommitish === 'working') {
         // Show unstaged changes (working vs staged)
-        fileDiff = await git.diff(['--', path]);
+        fileDiff = await git.diff([...contextArgs, '--', path]);
       } else if (targetCommitish === 'staged') {
         // Show staged changes against base commit
-        fileDiff = await git.diff(['--cached', baseCommitish, '--', path]);
+        fileDiff = await git.diff(['--cached', baseCommitish, ...contextArgs, '--', path]);
       } else if (targetCommitish === '.') {
         // Show all uncommitted changes against base commit
-        fileDiff = await git.diff([baseCommitish, '--', path]);
+        fileDiff = await git.diff([baseCommitish, ...contextArgs, '--', path]);
       } else {
         try {
           // Both are regular commits: standard commit-to-commit comparison
           fileDiff = await git.diff([
             createCommitRangeString(baseCommitish, targetCommitish),
+            ...contextArgs,
             '--',
             path,
           ]);
         } catch {
           // For new files or if parent doesn't exist
-          fileDiff = await git.diff([targetCommitish, '--', path]);
+          fileDiff = await git.diff([targetCommitish, ...contextArgs, '--', path]);
         }
       }
 
