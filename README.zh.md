@@ -28,8 +28,13 @@ difit  # 在 WebUI 中查看最新提交的差异
 使其可供 AI 代理使用
 
 ```bash
-npx skills add yoshiko-pg/difit # 为代理添加 Skill
+npx skills add yoshiko-pg/difit # 为代理添加 Skills
 ```
+
+安装后包含的主要 Skill：
+
+- `difit`：在代码修改后通过 difit 向用户请求审查
+- `difit-review`：审查特定 diff 或 PR，并启动一个已预载评论或说明的 difit
 
 ## 🚀 使用方法
 
@@ -172,13 +177,18 @@ src/components/Button.tsx:L42-L48   # 此行自动添加
 
 ## 🤖 从代理调用
 
-你可以通过以下命令安装 Skill，以便使用 difit 向用户请求审查：
+你可以通过以下命令安装这些 Skill，以便从 AI 代理中使用 difit：
 
 ```sh
 npx skills add yoshiko-pg/difit
 ```
 
-代理编辑代码后，将会启动 difit 服务器。
+安装后包含的主要 Skill：
+
+- `difit`：在代码修改后通过 difit 向用户请求审查
+- `difit-review`：审查特定 diff 或 PR，并启动一个已预载评论或说明的 difit
+
+在代码修改后或自动审查时，代理可以根据目的使用对应的 Skill 来启动 difit 服务器。
 
 ## 🎨 语法高亮语言
 
