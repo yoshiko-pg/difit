@@ -616,10 +616,6 @@ export async function startServer(
     // Find client files relative to the CLI executable location
     const distPath = join(__dirname, '..', 'client');
     app.use(express.static(distPath));
-
-    app.get('/{*splat}', (_req, res) => {
-      res.sendFile(join(distPath, 'index.html'));
-    });
   } else {
     app.get('/', (_req, res) => {
       res.send(`

@@ -25,6 +25,8 @@ describe('isGeneratedFile', () => {
       expect(isGeneratedFile('api.gen.go').isGenerated).toBe(true);
       expect(isGeneratedFile('service.pb.go').isGenerated).toBe(true);
       expect(isGeneratedFile('schema.graphql.ts').isGenerated).toBe(true);
+      expect(isGeneratedFile('mock_service.go').isGenerated).toBe(true);
+      expect(isGeneratedFile('src/mocks/service.go').isGenerated).toBe(true);
     });
 
     it('detects generated directories', () => {

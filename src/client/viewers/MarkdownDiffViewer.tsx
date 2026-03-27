@@ -239,7 +239,14 @@ const isReferenceDefinitionLine = (line: string) => /^\s*\[[^\]]+\]:\s+\S+/.test
 
 const isFootnoteDefinitionLine = (line: string) => /^\s*\[\^[^\]]+\]:\s+/.test(line);
 
-const isHtmlCommentLine = (line: string) => /^\s*<!--.*-->\s*$/.test(line);
+const isHtmlCommentLine = (line: string) => {
+  const trimmedLine = line.trim();
+  return (
+    trimmedLine.length >= '<!---->'.length &&
+    trimmedLine.startsWith('<!--') &&
+    trimmedLine.endsWith('-->')
+  );
+};
 
 const isNonRenderableLine = (line: string) =>
   line.trim() === '' ||
