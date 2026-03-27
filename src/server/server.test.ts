@@ -9,6 +9,7 @@ import type { CommentImport } from '../types/diff.js';
 // Add fetch polyfill for Node.js test environment
 const { fetch } = await import('undici');
 globalThis.fetch = fetch as any;
+const parserInstances = vi.hoisted(() => [] as any[]);
 
 // Helper function to get available port
 async function getAvailablePort(preferredPort: number): Promise<number> {
@@ -32,6 +33,10 @@ async function getAvailablePort(preferredPort: number): Promise<number> {
 // Mock GitDiffParser
 vi.mock('./git-diff.js', () => {
   class GitDiffParserMock {
+    constructor() {
+      parserInstances.push(this);
+    }
+
     validateCommit = vi.fn().mockResolvedValue(true);
     parseDiff = vi.fn().mockResolvedValue({
       targetCommit: 'abc123',
@@ -187,6 +192,7 @@ describe('Server Integration Tests', () => {
     // Mock process.exit to prevent tests from actually exiting
     originalProcessExit = process.exit;
     process.exit = vi.fn() as any;
+    parserInstances.length = 0;
   });
 
   afterEach(async () => {
@@ -256,6 +262,19 @@ describe('Server Integration Tests', () => {
 
       expect(result.url).toContain('http://localhost:'); // Display host conversion
     });
+
+    it('passes context lines to the initial diff load', async () => {
+      const result = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9025,
+        contextLines: 4,
+      });
+      servers.push(result.server);
+
+      const parser = parserInstances.at(-1);
+      expect(parser?.parseDiff).toHaveBeenCalledWith('HEAD', 'HEAD^', false, 4);
+    });
   });
 
   describe('API endpoints', () => {
@@ -291,6 +310,26 @@ describe('Server Integration Tests', () => {
 
       expect(response.ok).toBe(true);
       expect(data).toHaveProperty('ignoreWhitespace', true);
+    });
+
+    it('GET /api/diff preserves context lines when recalculating revisions', async () => {
+      const result = await startServer({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        preferredPort: 9031,
+        contextLines: 2,
+      });
+      servers.push(result.server);
+
+      const parser = parserInstances.at(-1);
+      parser?.parseDiff.mockClear();
+
+      const response = await fetch(
+        `http://localhost:${result.port}/api/diff?base=main&target=feature&ignoreWhitespace=true`,
+      );
+
+      expect(response.ok).toBe(true);
+      expect(parser?.parseDiff).toHaveBeenCalledWith('feature', 'main', true, 2);
     });
 
     it('GET /api/diff returns comment import payload when configured', async () => {

@@ -136,20 +136,21 @@ git diff --cached | difit -
 
 ## ⚙️ CLI 选项
 
-| 标志                  | 默认值    | 描述                                                                   |
-| --------------------- | --------- | ---------------------------------------------------------------------- |
-| `<target>`            | HEAD      | 提交哈希、标签、HEAD~n、分支或特殊参数                                 |
-| `[compare-with]`      | -         | 要比较的可选第二个提交（显示两者之间的差异）                           |
-| `--pr <url>`          | -         | 要审查的 GitHub PR URL（例如：https://github.com/owner/repo/pull/123） |
-| `--comment <json>`    | -         | 注入初始评论（可重复指定；接受 JSON object 或 array）                  |
-| `--port`              | 4966      | 首选端口；如果被占用则回退到 +1                                        |
-| `--host`              | 127.0.0.1 | 绑定服务器的主机地址（使用 0.0.0.0 进行外部访问）                      |
-| `--no-open`           | false     | 不自动打开浏览器                                                       |
-| `--mode`              | split     | 显示模式：`unified` 或 `split`                                         |
-| `--tui`               | false     | 使用终端 UI 模式而不是 WebUI                                           |
-| `--clean`             | false     | 启动时清除所有现有评论和已查看的文件                                   |
-| `--include-untracked` | false     | 自动将 untracked 文件包含在 diff 中（仅在 `.` 或 `working` 时有效）    |
-| `--keep-alive`        | false     | 浏览器断开后保持服务器运行（使用 Ctrl+C 手动停止）                     |
+| 标志                  | 默认值         | 描述                                                                              |
+| --------------------- | -------------- | --------------------------------------------------------------------------------- |
+| `<target>`            | HEAD           | 提交哈希、标签、HEAD~n、分支或特殊参数                                            |
+| `[compare-with]`      | -              | 要比较的可选第二个提交（显示两者之间的差异）                                      |
+| `--pr <url>`          | -              | 要审查的 GitHub PR URL（例如：https://github.com/owner/repo/pull/123）            |
+| `--comment <json>`    | -              | 注入初始评论（可重复指定；接受 JSON object 或 array）                             |
+| `--port`              | 4966           | 首选端口；如果被占用则回退到 +1                                                   |
+| `--host`              | 127.0.0.1      | 绑定服务器的主机地址（使用 0.0.0.0 进行外部访问）                                 |
+| `--no-open`           | false          | 不自动打开浏览器                                                                  |
+| `--mode`              | split          | 显示模式：`unified` 或 `split`                                                    |
+| `--tui`               | false          | 使用终端 UI 模式而不是 WebUI                                                      |
+| `--clean`             | false          | 启动时清除所有现有评论和已查看的文件                                              |
+| `--include-untracked` | false          | 自动将 untracked 文件包含在 diff 中（仅在 `.` 或 `working` 时有效）               |
+| `--keep-alive`        | false          | 浏览器断开后保持服务器运行（使用 Ctrl+C 手动停止）                                |
+| `--context <lines>`   | Git 默认值 (3) | 限制每处变更周围的上下文行数（`0` 仅显示变更行；不可与 `--pr` 或 stdin 一起使用） |
 
 ## 💬 评论系统
 

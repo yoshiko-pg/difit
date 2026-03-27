@@ -1271,6 +1271,30 @@ index abc123..def456 100644
   });
 
   describe('parseDiff', () => {
+    it('passes context lines through to git diff', async () => {
+      const gitDiff = (parser as any).git.diff;
+      const gitRevparse = (parser as any).git.revparse;
+
+      gitRevparse
+        .mockResolvedValueOnce('1234567890abcdef1234567890abcdef12345678')
+        .mockResolvedValueOnce('abcdef1234567890abcdef1234567890abcdef12');
+      gitDiff.mockResolvedValue('');
+
+      const response = await parser.parseDiff('HEAD', 'HEAD~1', false, 5);
+
+      expect(gitDiff).toHaveBeenCalledWith([
+        'abcdef1...1234567',
+        '-U5',
+        '--no-ext-diff',
+        '--color=never',
+      ]);
+      expect(response).toEqual({
+        commit: 'abcdef1...1234567',
+        files: [],
+        isEmpty: true,
+      });
+    });
+
     it('accepts branch refs with revision suffixes', async () => {
       const gitDiff = (parser as any).git.diff;
       const gitRevparse = (parser as any).git.revparse;

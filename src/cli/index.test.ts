@@ -25,8 +25,13 @@ vi.mock('./github.js', () => ({
 
 const { simpleGit } = await import('simple-git');
 const { startServer } = await import('../server/server.js');
-const { promptUser, findUntrackedFiles, markFilesIntentToAdd, parseCommentOptions } =
-  await import('./utils.js');
+const {
+  promptUser,
+  findUntrackedFiles,
+  markFilesIntentToAdd,
+  parseCommentOptions,
+  shouldReadStdin,
+} = await import('./utils.js');
 const { getPrPatch, getPrCommentImports } = await import('./github.js');
 
 describe('CLI index.ts', () => {
@@ -232,6 +237,11 @@ describe('CLI index.ts', () => {
         args: ['--keep-alive'],
         expectedOptions: { keepAlive: true },
       },
+      {
+        name: '--context option',
+        args: ['--context', '5'],
+        expectedOptions: { context: 5 },
+      },
     ])('$name', async ({ args, expectedOptions }) => {
       mockFindUntrackedFiles.mockResolvedValue([]);
 
@@ -248,6 +258,7 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .option('--keep-alive', 'keep server running even after browser disconnects')
+        .option('--context <lines>', 'context', parseInt)
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           let targetCommitish = commitish;
           let baseCommitish = commitish + '^';
@@ -261,6 +272,7 @@ describe('CLI index.ts', () => {
             mode: options.mode,
             clearComments: options.clean,
             keepAlive: options.keepAlive,
+            contextLines: options.context,
           });
         });
 
@@ -275,9 +287,112 @@ describe('CLI index.ts', () => {
         mode: expectedOptions.mode || 'split',
         clearComments: expectedOptions.clean,
         keepAlive: expectedOptions.keepAlive,
+        contextLines: expectedOptions.context,
       };
 
       expect(mockStartServer).toHaveBeenCalledWith(expectedCall);
+    });
+  });
+
+  describe('--context option', () => {
+    it('rejects negative values', async () => {
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--context <lines>', 'context', parseInt)
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          if (
+            options.context !== undefined &&
+            (!Number.isInteger(options.context) || options.context < 0)
+          ) {
+            console.error('Error: --context must be a non-negative integer');
+            process.exit(1);
+            return;
+          }
+
+          await startServer({
+            targetCommitish: commitish,
+            baseCommitish: `${commitish}^`,
+            contextLines: options.context,
+          });
+        });
+
+      await program.parseAsync(['--context', '-1'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith('Error: --context must be a non-negative integer');
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockStartServer).not.toHaveBeenCalled();
+    });
+
+    it('rejects --context with --pr', async () => {
+      const prUrl = 'https://github.com/owner/repo/pull/123';
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--context <lines>', 'context', parseInt)
+        .option('--pr <url>', 'pr')
+        .action(async (_commitish: string, _compareWith: string | undefined, options: any) => {
+          if (options.pr && options.context !== undefined) {
+            console.error('Error: --context option cannot be used with --pr');
+            process.exit(1);
+            return;
+          }
+
+          await startServer({
+            stdinDiff: getPrPatch(options.pr),
+            contextLines: options.context,
+          });
+        });
+
+      await program.parseAsync(['--pr', prUrl, '--context', '3'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: --context option cannot be used with --pr',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockGetPrPatch).not.toHaveBeenCalled();
+      expect(mockStartServer).not.toHaveBeenCalled();
+    });
+
+    it('rejects --context with stdin diff', async () => {
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--context <lines>', 'context', parseInt)
+        .option('--tui', 'tui')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          const readFromStdin = shouldReadStdin({
+            commitish,
+            hasPositionalArgs: program.args.length > 0,
+            hasPrOption: false,
+            hasTuiOption: Boolean(options.tui),
+          });
+
+          if (readFromStdin && options.context !== undefined) {
+            console.error('Error: --context option cannot be used with stdin diff');
+            process.exit(1);
+            return;
+          }
+
+          await startServer({
+            stdinDiff: 'diff --git a/file.ts b/file.ts',
+            contextLines: options.context,
+          });
+        });
+
+      await program.parseAsync(['-', '--context', '3'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: --context option cannot be used with stdin diff',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockStartServer).not.toHaveBeenCalled();
     });
   });
 
@@ -1298,6 +1413,50 @@ describe('CLI index.ts', () => {
           targetCommitish: 'main',
           baseCommitish: 'main^',
           mode: 'split',
+        },
+      });
+    });
+
+    it('passes context option to TUI app', async () => {
+      mockFindUntrackedFiles.mockResolvedValue([]);
+
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--port <port>', 'port', parseInt)
+        .option('--host <host>', 'host', '')
+        .option('--no-open', 'no-open')
+        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--context <lines>', 'context', parseInt)
+        .option('--tui', 'tui')
+        .option('--pr <url>', 'pr')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          if (options.tui) {
+            const { render } = await import('ink');
+            const { default: TuiApp } = await import('../tui/App.js');
+
+            render(
+              React.createElement(TuiApp, {
+                targetCommitish: commitish,
+                baseCommitish: commitish + '^',
+                mode: options.mode,
+                contextLines: options.context,
+              }),
+            );
+          }
+        });
+
+      await program.parseAsync(['--tui', '--context', '2'], { from: 'user' });
+
+      expect(mockRender).toHaveBeenCalledWith({
+        component: mockTuiApp,
+        props: {
+          targetCommitish: 'HEAD',
+          baseCommitish: 'HEAD^',
+          mode: 'split',
+          contextLines: 2,
         },
       });
     });
