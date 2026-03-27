@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Difit Review'
+  short_description: 'Review diffs and open difit with inline findings.'
+  default_prompt: 'Use $difit-review to review a diff or PR, convert concrete findings into --comment entries, and open it locally with pnpm run dev.'

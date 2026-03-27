@@ -28,8 +28,13 @@ difit  # 最新コミットのdiffをWebUIで表示
 AIエージェントから使えるようにする
 
 ```bash
-npx skills add yoshiko-pg/difit # エージェントにスキルを追加
+npx skills add yoshiko-pg/difit # エージェントにスキル群を追加
 ```
+
+インストールされる主な skill:
+
+- `difit`: コード変更後に difit を使ってユーザーへレビューを依頼する
+- `difit-review`: 特定の diff や PR をレビューし、指摘や解説をコメントとして事前投入した difit を起動する
 
 ## 🚀 使い方
 
@@ -172,13 +177,18 @@ src/components/Button.tsx:L42-L48   # この行が自動的に追加されます
 
 ## 🤖 エージェントからの呼び出し
 
-difitを利用してユーザーにレビューを依頼するSkillを以下でインストールできます。
+AIエージェントから difit を使うための skill 群を以下でインストールできます。
 
 ```sh
 npx skills add yoshiko-pg/difit
 ```
 
-エージェントがコードを編集したあと、difitサーバーを立ち上げるようになります。
+インストールされる主な skill:
+
+- `difit`: コード変更後に difit を使ってユーザーへレビューを依頼する
+- `difit-review`: 特定の diff や PR をレビューし、指摘や解説をコメントとして事前投入した difit を起動する
+
+コード編集後や自動レビュー時に、目的に応じた skill で difit サーバーを起動できます。
 
 ## 🎨 シンタックスハイライト対応言語
 

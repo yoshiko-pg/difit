@@ -28,8 +28,13 @@ difit  # View the latest commit diff in WebUI
 Enable use from AI agents
 
 ```bash
-npx skills add yoshiko-pg/difit # Add the Skill to your agent
+npx skills add yoshiko-pg/difit # Add the Skills to your agent
 ```
+
+Installed skills include:
+
+- `difit`: ask the user for a review through difit after code changes
+- `difit-review`: review a specific diff or PR and launch difit with findings or explanations preloaded as comments
 
 ## 🚀 Usage
 
@@ -172,13 +177,18 @@ This section is unnecessary
 
 ## 🤖 Calling from Agents
 
-You can install the following Skill to request reviews from users with difit.
+You can install the following Skills to work with difit from AI agents.
 
 ```sh
 npx skills add yoshiko-pg/difit
 ```
 
-After an agent edits code, it will start the difit server.
+Installed skills include:
+
+- `difit`: ask the user for a review through difit after code changes
+- `difit-review`: review a specific diff or PR and launch difit with findings or explanations preloaded as comments
+
+After code edits or automated review, the agent can start the difit server with the appropriate skill.
 
 ## 🎨 Syntax Highlighting Languages
 
