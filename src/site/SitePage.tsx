@@ -465,12 +465,11 @@ function SitePage() {
       </section>
 
       <section className="w-[90vw] max-w-[1000px] mx-auto mt-6 space-y-2">
-        <Comment>Or install skills</Comment>
+        <Comment>Recommended: Install skills</Comment>
         <div className="flex items-center gap-2">
           <Prompt>
-            <span className="text-[#f1e927]">npx</span>{' '}
-            <span className="text-github-text-primary">skills</span> add{' '}
-            <span className="text-github-text-secondary">yoshiko-pg/difit</span>
+            <span className="text-github-text-primary">npx skills add </span>
+            <span className="text-[#f1e927]">yoshiko-pg/difit</span>
           </Prompt>
           <CopyBtn text="npx skills add yoshiko-pg/difit" />
         </div>
