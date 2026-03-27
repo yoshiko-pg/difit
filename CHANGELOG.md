@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-03-27
+
+### Added
+
+- Add threaded diff comments (#249)
+- Import startup review comments for difit reviews (#269)
+- Import unresolved GitHub PR review threads into PR diffs (#270)
+- Add difit-review skill for shared and local review workflows (#274)
+
+### Changed
+
+- Update dependencies (#272)
+
+### Fixed
+
+- Collapse auto-viewed files after initial load
+- Preserve fenced code blocks in markdown diff preview (#275)
+- Fix code scanning alerts (#271 #276 #277)
+
 ## [3.1.18] - 2026-03-25
 
 ### Added
@@ -1048,7 +1067,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v3.1.18...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/yoshiko-pg/difit/compare/v3.1.18...v4.0.0
 [3.1.18]: https://github.com/yoshiko-pg/difit/compare/v3.1.17...v3.1.18
 [3.1.17]: https://github.com/yoshiko-pg/difit/compare/v3.1.16...v3.1.17
 [3.1.16]: https://github.com/yoshiko-pg/difit/compare/v3.1.15...v3.1.16
