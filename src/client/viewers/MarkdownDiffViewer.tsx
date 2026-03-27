@@ -20,6 +20,30 @@ type PreviewBlock = {
   lines: string[];
 };
 
+type PreviewLineEntry = {
+  type: PreviewBlockType;
+  content: string;
+};
+
+type MarkdownRenderBlock = {
+  kind: 'markdown';
+  type: PreviewBlockType;
+  lines: string[];
+};
+
+type FencedCodeRenderBlock = {
+  kind: 'fenced-code';
+  lines: PreviewLineEntry[];
+};
+
+type PreviewRenderBlock = MarkdownRenderBlock | FencedCodeRenderBlock;
+
+type FenceInfo = {
+  marker: '`' | '~';
+  length: number;
+  raw: string;
+};
+
 const isFetchableRef = (ref?: string) => Boolean(ref && ref !== 'stdin');
 
 const headingStyles = [
@@ -256,6 +280,115 @@ const isNonRenderableLine = (line: string) =>
 
 const isPlainPreviewBlock = (lines: string[]) => lines.every(isNonRenderableLine);
 
+const parseFenceStart = (line: string): FenceInfo | null => {
+  const match = line.match(/^\s{0,3}(`{3,}|~{3,})(.*)$/);
+  if (!match) return null;
+
+  const marker = match[1];
+  if (!marker) return null;
+
+  return {
+    marker: marker[0] as '`' | '~',
+    length: marker.length,
+    raw: line,
+  };
+};
+
+const isFenceEnd = (line: string, fence: FenceInfo) => {
+  const match = line.match(/^\s{0,3}(`{3,}|~{3,})\s*$/);
+  if (!match?.[1]) return false;
+
+  return match[1][0] === fence.marker && match[1].length >= fence.length;
+};
+
+const buildRenderBlocks = (blocks: PreviewBlock[]): PreviewRenderBlock[] => {
+  const renderBlocks: PreviewRenderBlock[] = [];
+  let currentMarkdownBlock: MarkdownRenderBlock | null = null;
+  let currentFence: { fence: FenceInfo; lines: PreviewLineEntry[] } | null = null;
+
+  const flushMarkdownBlock = () => {
+    if (!currentMarkdownBlock) return;
+    renderBlocks.push(currentMarkdownBlock);
+    currentMarkdownBlock = null;
+  };
+
+  const pushMarkdownLine = (type: PreviewBlockType, line: string) => {
+    if (currentMarkdownBlock?.type === type) {
+      currentMarkdownBlock.lines.push(line);
+      return;
+    }
+
+    flushMarkdownBlock();
+    currentMarkdownBlock = {
+      kind: 'markdown',
+      type,
+      lines: [line],
+    };
+  };
+
+  const flushFence = (closingFenceLine?: string) => {
+    if (!currentFence) return;
+
+    const hasOnlyContextLines = currentFence.lines.every((line) => line.type === 'context');
+
+    if (closingFenceLine && hasOnlyContextLines) {
+      pushMarkdownLine('context', currentFence.fence.raw);
+      currentFence.lines.forEach((line) => {
+        pushMarkdownLine('context', line.content);
+      });
+      pushMarkdownLine('context', closingFenceLine);
+    } else {
+      flushMarkdownBlock();
+      renderBlocks.push({
+        kind: 'fenced-code',
+        lines: currentFence.lines,
+      });
+    }
+
+    currentFence = null;
+  };
+
+  blocks.forEach((block) => {
+    block.lines.forEach((line) => {
+      if (currentFence) {
+        if (isFenceEnd(line, currentFence.fence)) {
+          flushFence(line);
+          return;
+        }
+
+        currentFence.lines.push({ type: block.type, content: line });
+        return;
+      }
+
+      const fence = parseFenceStart(line);
+      if (fence) {
+        flushMarkdownBlock();
+        currentFence = { fence, lines: [] };
+        return;
+      }
+
+      pushMarkdownLine(block.type, line);
+    });
+  });
+
+  flushFence();
+  flushMarkdownBlock();
+
+  return renderBlocks;
+};
+
+const getCodeLineClass = (type: PreviewBlockType) => {
+  switch (type) {
+    case 'add':
+    case 'change':
+      return 'border-l-4 border-diff-addition-border bg-diff-addition-bg';
+    case 'delete':
+      return 'border-l-4 border-diff-deletion-border bg-diff-deletion-bg';
+    default:
+      return 'border-l-4 border-transparent';
+  }
+};
+
 const MarkdownDiffPreview = ({
   blocks,
   syntaxTheme,
@@ -264,10 +397,28 @@ const MarkdownDiffPreview = ({
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
+  const renderBlocks = useMemo(() => buildRenderBlocks(blocks), [blocks]);
 
   return (
     <div className="space-y-4">
-      {blocks.map((block, index) => {
+      {renderBlocks.map((block, index) => {
+        if (block.kind === 'fenced-code') {
+          return (
+            <div key={`preview-block-${index}`} className="px-4">
+              <div className="markdown-preview-code overflow-x-auto rounded border border-github-border bg-github-bg-secondary text-sm font-mono text-github-text-primary">
+                {block.lines.map((line, lineIndex) => (
+                  <div
+                    key={`preview-code-line-${index}-${lineIndex}`}
+                    className={`${getCodeLineClass(line.type)} whitespace-pre px-3 py-1`}
+                  >
+                    {line.content || ' '}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
         const rawContent = block.lines.join('\n');
         const trimmedContent = rawContent.trim();
         if (!trimmedContent) return null;
