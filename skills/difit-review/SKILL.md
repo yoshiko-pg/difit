@@ -1,46 +1,47 @@
 ---
 name: difit-review
-description: 特定の diff をレビューし、その指摘事項を difit（diff viewer）上のコメントとして表示する skill。ブランチ差分、コミット差分、GitHub PR をレビューして、見つけた問題点やコードの解説を `--comment` で difit に事前投入してユーザー向けに起動する。
+description: A skill for reviewing a specific diff and showing the findings as comments inside difit (the diff viewer). Use it to review branch diffs, commit diffs, or GitHub PRs, then preload findings or code explanations into difit with `--comment` before launching it for the user.
 ---
 
 # Difit Review
 
-## 概要
+## Overview
 
-指定された git diff を人間向けに見やすいviewerで起動できる。その際、 --comment optionでエージェントから任意のコメントを付与できる。
-このコメント機能はコードレビューの指摘やコードの解説に適している。
+This skill launches a requested git diff in a viewer that is easy for humans to read. At the same time, the agent can attach arbitrary comments via the `--comment` option.
+This comment mechanism is well suited for code review findings and code explanations.
 
-## 手順
+## Steps
 
-最終的なコマンド例は以下となる。
+The final command typically looks like this:
 
 ```bash
 difit <target> [compare-with] \
-  --comment '{"type":"thread","filePath":"src/foobar.ts","position":{"side":"old","line":102},"body":"1行目\n2行目"}' \
-  --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":{"start":36,"end":39}},"body":"L36-L39 への範囲コメント"}'
+  --comment '{"type":"thread","filePath":"src/foobar.ts","position":{"side":"old","line":102},"body":"line 1\nline 2"}' \
+  --comment '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":{"start":36,"end":39}},"body":"Range comment for L36-L39"}'
 ```
 
-以下に詳細な手順を示す。
+The detailed procedure is as follows.
 
-1. 対象diffを特定し、内容を確認する。
+1. Identify the target diff and review its contents.
 
-- ユーザーから指示を受けたdiffを確認する。localのgit revision、GitHub URL、patchファイルなどが考えられる。
-- 通常通りdiffの内容を把握し、必要であれば周辺コードも確認して、レビューや解説などの指示に対する回答を思考する。
-- PR レビューの場合、PR をローカルで確認し、レビュー結果はdifitへの出力にとどめる。リモートのGitHub へコメント投稿はしない。
+- Inspect the diff specified by the user. This may be a local git revision, a GitHub URL, a patch file, or something similar.
+- Understand the diff normally, inspect surrounding code when needed, and think through the response required by the user's request, whether that is review findings, explanations, or something else.
+- For PR reviews, inspect the PR locally and keep the review result limited to difit output. Do not post comments back to remote GitHub.
 
-2. 用意した回答を付与してdifitを起動する。
+2. Attach the prepared comments and launch difit.
 
-- **difit自体の起動オプション**
-  - `difit <target> [compare-with]` で対象diffを指定する。
-  - Uncommitted Changeは `difit .`、workingは `difit working`、stagingは `difit staging` を指定する。
-  - PRの場合は `difit --pr <URL>`、stdinの場合は `diff -u file1.txt file2.txt | difit` のように指定できる。
-- **コメント引数**
-  - 各コメントごとに `type: "thread"` を使う。
-  - diff の target 側に存在する行には `position.side: "new"` を使う。
-  - 削除された側にしか存在しない行には `position.side: "old"` を使う。
-  - 複数行にまたがる問題は範囲コメントにする。
-- **git追加されていないファイルの追加引数**
-  - Uncommitted Changeの場合、gitにまだ追加されていないファイルもdiffに表示すべきと判断した場合は `--include-untracked` を付与する。
+- **difit launch options**
+  - Use `difit <target> [compare-with]` to specify the target diff.
+  - For uncommitted changes use `difit .`, for working tree changes use `difit working`, and for staged changes use `difit staging`.
+  - For PRs use `difit --pr <URL>`. For stdin input, use a form such as `diff -u file1.txt file2.txt | difit`.
+- **Comment arguments**
+  - Use `type: "thread"` for each comment.
+  - Use `position.side: "new"` for lines that exist on the target side of the diff.
+  - Use `position.side: "old"` for lines that exist only on the deleted side.
+  - Use range comments for issues that span multiple lines.
+- **Additional argument for files not yet added to git**
+  - For uncommitted changes, if you decide files not yet added to git should also appear in the diff, add `--include-untracked`.
 
-5. difitの起動URLを案内し、コメントが無く付けなかった場合はその旨を併記して回答を終了する。
-   - 起動したdifitページの動作確認は不要。
+3. Share the difit URL and finish the response.
+   - If there were no comments to attach, explicitly say so.
+   - No manual verification of the launched difit page is required.
