@@ -6,16 +6,16 @@
   "categories": [
     "Other"
   ],
-  "homepage": "https://github.com/yoshiko-pg/difit",
+  "homepage": "https://github.com/DoskoiYuta/difit",
   "bugs": {
-    "url": "https://github.com/yoshiko-pg/difit/issues"
+    "url": "https://github.com/DoskoiYuta/difit/issues"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yoshiko-pg/difit.git"
+    "url": "https://github.com/DoskoiYuta/difit.git"
   },
-  "publisher": "yoshiko-pg",
+  "publisher": "DoskoiYuta",
   "main": "./dist/extension.js",
   "scripts": {
     "build": "tsc -p .",

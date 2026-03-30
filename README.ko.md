@@ -28,7 +28,7 @@ difit  # WebUI에서 최신 커밋 diff 보기
 AI 에이전트에서 사용할 수 있도록 설정
 
 ```bash
-npx skills add yoshiko-pg/difit # 에이전트에 Skill들 추가
+npx skills add DoskoiYuta/difit # 에이전트에 Skill들 추가
 ```
 
 설치되는 주요 Skill:
@@ -181,7 +181,7 @@ src/components/Button.tsx:L42-L48   # 이 줄은 자동으로 추가됩니다
 AI 에이전트에서 difit을 사용하기 위한 Skill들은 아래 명령으로 설치할 수 있습니다:
 
 ```sh
-npx skills add yoshiko-pg/difit
+npx skills add DoskoiYuta/difit
 ```
 
 설치되는 주요 Skill:

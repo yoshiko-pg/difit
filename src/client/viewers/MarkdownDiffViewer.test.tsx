@@ -122,13 +122,13 @@ const codeFenceDiffChunks: MergedChunk[] = [
       { type: 'context', content: '```bash', oldLineNumber: 3, newLineNumber: 3 },
       {
         type: 'delete',
-        content: 'npx skills add yoshiko-pg/difit # エージェントにスキルを追加',
+        content: 'npx skills add DoskoiYuta/difit # エージェントにスキルを追加',
         oldLineNumber: 4,
         newLineNumber: undefined,
       },
       {
         type: 'add',
-        content: 'npx skills add yoshiko-pg/difit # エージェントにスキル群を追加',
+        content: 'npx skills add DoskoiYuta/difit # エージェントにスキル群を追加',
         oldLineNumber: undefined,
         newLineNumber: 4,
       },
@@ -257,10 +257,10 @@ describe('MarkdownDiffViewer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
 
     const oldLine = screen.getByText(
-      'npx skills add yoshiko-pg/difit # エージェントにスキルを追加',
+      'npx skills add DoskoiYuta/difit # エージェントにスキルを追加',
     );
     const newLine = screen.getByText(
-      'npx skills add yoshiko-pg/difit # エージェントにスキル群を追加',
+      'npx skills add DoskoiYuta/difit # エージェントにスキル群を追加',
     );
 
     expect(oldLine.closest('.markdown-preview-code')).toContainElement(newLine);

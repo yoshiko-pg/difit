@@ -86,7 +86,7 @@ export class GitDiffParser {
       }
 
       // Ignore external diff-tools to unify output.
-      // https://github.com/yoshiko-pg/difit/issues/19
+      // https://github.com/DoskoiYuta/difit/issues/19
       diffArgs.push('--no-ext-diff', '--color=never');
 
       // Single git invocation for better startup latency on large repositories.

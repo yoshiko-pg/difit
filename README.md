@@ -28,7 +28,7 @@ difit  # View the latest commit diff in WebUI
 Enable use from AI agents
 
 ```bash
-npx skills add yoshiko-pg/difit # Add the Skills to your agent
+npx skills add DoskoiYuta/difit # Add the Skills to your agent
 ```
 
 Installed skills include:
@@ -181,7 +181,7 @@ This section is unnecessary
 You can install the following Skills to work with difit from AI agents.
 
 ```sh
-npx skills add yoshiko-pg/difit
+npx skills add DoskoiYuta/difit
 ```
 
 Installed skills include:

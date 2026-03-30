@@ -2,7 +2,7 @@
 
 Open difit with one click and render it in a VS Code tab using Simple Browser.
 
-- Project: https://github.com/yoshiko-pg/difit
+- Project: https://github.com/DoskoiYuta/difit
 
 ## Requirements
 

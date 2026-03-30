@@ -13,15 +13,15 @@
     "review",
     "tailwind"
   ],
-  "homepage": "https://github.com/yoshiko-pg/difit",
+  "homepage": "https://github.com/DoskoiYuta/difit",
   "bugs": {
-    "url": "https://github.com/yoshiko-pg/difit/issues"
+    "url": "https://github.com/DoskoiYuta/difit/issues"
   },
   "license": "MIT",
-  "author": "yoshiko-pg",
+  "author": "DoskoiYuta",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yoshiko-pg/difit.git"
+    "url": "https://github.com/DoskoiYuta/difit.git"
   },
   "bin": {
     "difit": "./dist/cli/index.js"
@@ -32,9 +32,7 @@
   ],
   "type": "module",
   "main": "./dist/cli/index.js",
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": true,
   "scripts": {
     "dev": "node scripts/dev.js",
     "dev:cli": "tsc --project tsconfig.cli.json && NODE_ENV=development node dist/cli/index.js",
@@ -50,7 +48,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "lefthook install",
-    "prepublishOnly": "NODE_ENV=production pnpm run build",
     "perf": "node scripts/measure-performance.js",
     "perf:small": "node scripts/measure-performance.js --size small",
     "perf:medium": "node scripts/measure-performance.js --size medium",

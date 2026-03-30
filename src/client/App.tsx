@@ -1023,7 +1023,7 @@ function App() {
                     <span className="text-sm">Shortcuts</span>
                   </button>
                   <a
-                    href="https://github.com/yoshiko-pg/difit"
+                    href="https://github.com/DoskoiYuta/difit"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-github-text-secondary hover:text-github-text-primary transition-colors"

@@ -28,7 +28,7 @@ difit  # 最新コミットのdiffをWebUIで表示
 AIエージェントから使えるようにする
 
 ```bash
-npx skills add yoshiko-pg/difit # エージェントにスキル群を追加
+npx skills add DoskoiYuta/difit # エージェントにスキル群を追加
 ```
 
 インストールされる主な skill:
@@ -181,7 +181,7 @@ src/components/Button.tsx:L42-L48   # この行が自動的に追加されます
 AIエージェントから difit を使うための skill 群を以下でインストールできます。
 
 ```sh
-npx skills add yoshiko-pg/difit
+npx skills add DoskoiYuta/difit
 ```
 
 インストールされる主な skill:
