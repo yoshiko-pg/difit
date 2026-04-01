@@ -1340,18 +1340,17 @@ describe('CLI index.ts', () => {
     let mockRender: any;
     let mockTuiApp: any;
 
-    beforeEach(async () => {
-      // Mock ink and TUI components
+    const expectRenderedTuiProps = (props: Record<string, unknown>) => {
+      expect(mockRender).toHaveBeenCalledTimes(1);
+      expect(mockRender).toHaveBeenCalledWith({
+        component: mockTuiApp,
+        props,
+      });
+    };
+
+    beforeEach(() => {
       mockRender = vi.fn();
       mockTuiApp = vi.fn();
-
-      vi.doMock('ink', async () => ({
-        render: mockRender,
-      }));
-
-      vi.doMock('../tui/App.js', async () => ({
-        default: mockTuiApp,
-      }));
 
       // Mock React.createElement for testing
       vi.spyOn(React, 'createElement').mockImplementation(
@@ -1366,8 +1365,6 @@ describe('CLI index.ts', () => {
     });
 
     afterEach(() => {
-      vi.doUnmock('ink');
-      vi.doUnmock('../tui/App.js');
       vi.restoreAllMocks();
     });
 
@@ -1392,8 +1389,8 @@ describe('CLI index.ts', () => {
               process.exit(1);
             }
 
-            const { render } = await import('ink');
-            const { default: TuiApp } = await import('../tui/App.js');
+            const render = mockRender;
+            const TuiApp = mockTuiApp;
 
             render(
               React.createElement(TuiApp, {
@@ -1407,13 +1404,10 @@ describe('CLI index.ts', () => {
 
       await program.parseAsync(['main', '--tui'], { from: 'user' });
 
-      expect(mockRender).toHaveBeenCalledWith({
-        component: mockTuiApp,
-        props: {
-          targetCommitish: 'main',
-          baseCommitish: 'main^',
-          mode: 'split',
-        },
+      expectRenderedTuiProps({
+        targetCommitish: 'main',
+        baseCommitish: 'main^',
+        mode: 'split',
       });
     });
 
@@ -1434,8 +1428,8 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (options.tui) {
-            const { render } = await import('ink');
-            const { default: TuiApp } = await import('../tui/App.js');
+            const render = mockRender;
+            const TuiApp = mockTuiApp;
 
             render(
               React.createElement(TuiApp, {
@@ -1450,14 +1444,11 @@ describe('CLI index.ts', () => {
 
       await program.parseAsync(['--tui', '--context', '2'], { from: 'user' });
 
-      expect(mockRender).toHaveBeenCalledWith({
-        component: mockTuiApp,
-        props: {
-          targetCommitish: 'HEAD',
-          baseCommitish: 'HEAD^',
-          mode: 'split',
-          contextLines: 2,
-        },
+      expectRenderedTuiProps({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        mode: 'split',
+        contextLines: 2,
       });
     });
 
@@ -1482,8 +1473,8 @@ describe('CLI index.ts', () => {
               process.exit(1);
             }
 
-            const { render } = await import('ink');
-            const { default: TuiApp } = await import('../tui/App.js');
+            const render = mockRender;
+            const TuiApp = mockTuiApp;
 
             render(
               React.createElement(TuiApp, {
@@ -1497,13 +1488,10 @@ describe('CLI index.ts', () => {
 
       await program.parseAsync(['--tui', '--mode', 'unified'], { from: 'user' });
 
-      expect(mockRender).toHaveBeenCalledWith({
-        component: mockTuiApp,
-        props: {
-          targetCommitish: 'HEAD',
-          baseCommitish: 'HEAD^',
-          mode: 'unified',
-        },
+      expectRenderedTuiProps({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD^',
+        mode: 'unified',
       });
     });
 
@@ -1523,8 +1511,8 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (options.tui) {
-            const { render } = await import('ink');
-            const { default: TuiApp } = await import('../tui/App.js');
+            const render = mockRender;
+            const TuiApp = mockTuiApp;
 
             let targetCommitish = commitish;
             let baseCommitish: string;
@@ -1549,13 +1537,10 @@ describe('CLI index.ts', () => {
 
       await program.parseAsync(['working', '--tui', '--mode', 'unified'], { from: 'user' });
 
-      expect(mockRender).toHaveBeenCalledWith({
-        component: mockTuiApp,
-        props: {
-          targetCommitish: 'working',
-          baseCommitish: 'staged',
-          mode: 'unified',
-        },
+      expectRenderedTuiProps({
+        targetCommitish: 'working',
+        baseCommitish: 'staged',
+        mode: 'unified',
       });
     });
 
