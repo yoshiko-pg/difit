@@ -146,7 +146,7 @@ git diff --cached | difit -
 | `--host`              | 127.0.0.1       | サーバーをバインドするホストアドレス（外部からアクセスしたい場合は0.0.0.0を指定）          |
 | `--no-open`           | false           | ブラウザを自動的に開かない                                                                 |
 | `--mode`              | split           | 表示モード。`unified`または`split`                                                         |
-| `--tui`               | false           | WebUIの代わりにターミナルUIを使用                                                          |
+| `--tui` (deprecated)  | false           | WebUIの代わりにターミナルUIを使用                                                          |
 | `--clean`             | false           | 起動時に既存コメントと閲覧済みファイルをすべてクリア                                       |
 | `--include-untracked` | false           | diffにuntrackedファイルを自動的に含める（`.`または`working`のみ有効）                      |
 | `--keep-alive`        | false           | ブラウザ切断後もサーバーを終了せず起動したままにする（Ctrl+Cで手動停止）                   |

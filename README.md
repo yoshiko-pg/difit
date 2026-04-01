@@ -146,7 +146,7 @@ Stdin mode is selected with intent-first rules:
 | `--host`              | 127.0.0.1       | Host address to bind server to (use 0.0.0.0 for external access)                                        |
 | `--no-open`           | false           | Don't automatically open browser                                                                        |
 | `--mode`              | split           | Display mode: `unified` or `split`                                                                      |
-| `--tui`               | false           | Use terminal UI mode instead of WebUI                                                                   |
+| `--tui` (deprecated)  | false           | Use terminal UI mode instead of WebUI                                                                   |
 | `--clean`             | false           | Clear all existing comments and viewed files on startup                                                 |
 | `--include-untracked` | false           | Automatically include untracked files in diff (only with `.` or `working`)                              |
 | `--keep-alive`        | false           | Keep server running after browser disconnects (stop manually with Ctrl+C)                               |

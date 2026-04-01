@@ -146,7 +146,7 @@ git diff --cached | difit -
 | `--host`              | 127.0.0.1      | 绑定服务器的主机地址（使用 0.0.0.0 进行外部访问）                                 |
 | `--no-open`           | false          | 不自动打开浏览器                                                                  |
 | `--mode`              | split          | 显示模式：`unified` 或 `split`                                                    |
-| `--tui`               | false          | 使用终端 UI 模式而不是 WebUI                                                      |
+| `--tui` (deprecated)  | false          | 使用终端 UI 模式而不是 WebUI                                                      |
 | `--clean`             | false          | 启动时清除所有现有评论和已查看的文件                                              |
 | `--include-untracked` | false          | 自动将 untracked 文件包含在 diff 中（仅在 `.` 或 `working` 时有效）               |
 | `--keep-alive`        | false          | 浏览器断开后保持服务器运行（使用 Ctrl+C 手动停止）                                |
