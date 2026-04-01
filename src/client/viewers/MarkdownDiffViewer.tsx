@@ -244,6 +244,24 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
       </code>
     );
   },
+  table: ({ children }: { children?: React.ReactNode }) => (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: { children?: React.ReactNode }) => (
+    <thead className="bg-github-bg-secondary">{children}</thead>
+  ),
+  tbody: ({ children }: { children?: React.ReactNode }) => <tbody>{children}</tbody>,
+  tr: ({ children }: { children?: React.ReactNode }) => (
+    <tr className="border-b border-github-border">{children}</tr>
+  ),
+  th: ({ children }: { children?: React.ReactNode }) => (
+    <th className="px-3 py-2 text-left font-semibold border border-github-border">{children}</th>
+  ),
+  td: ({ children }: { children?: React.ReactNode }) => (
+    <td className="px-3 py-2 border border-github-border">{children}</td>
+  ),
 });
 
 const getBlockStyle = (type: PreviewBlockType) => {
