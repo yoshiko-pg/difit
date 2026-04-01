@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.2] - 2026-04-02
+
+### Deprecated
+
+- Deprecate TUI startup and show a warning before launch (#288)
+
+### Changed
+
+- Update dependencies (#287 #282 #285 #279 #280)
+
+### Fixed
+
+- Add table styling for markdown diff preview (#281)
+- Avoid `crypto.randomUUID` for comment ids (#284)
+- Fix clipboard copying on insecure contexts (#286)
+
+### Thanks
+
+- [@harunonsystem](https://github.com/harunonsystem) for improving markdown table styling (#281)
+
 ## [4.0.1] - 2026-03-28
 
 ### Added
@@ -1078,7 +1098,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.1...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.2...HEAD
+[4.0.2]: https://github.com/yoshiko-pg/difit/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/yoshiko-pg/difit/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/yoshiko-pg/difit/compare/v3.1.18...v4.0.0
 [3.1.18]: https://github.com/yoshiko-pg/difit/compare/v3.1.17...v3.1.18
