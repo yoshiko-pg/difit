@@ -251,6 +251,42 @@ describe('MarkdownDiffViewer', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders tables with borders and padding in Diff Preview', () => {
+    const tableChunks: MergedChunk[] = [
+      {
+        header: '@@ -1,3 +1,3 @@',
+        oldStart: 1,
+        oldLines: 3,
+        newStart: 1,
+        newLines: 3,
+        lines: [
+          { type: 'context', content: '| Name | Value |', oldLineNumber: 1, newLineNumber: 1 },
+          { type: 'context', content: '| --- | --- |', oldLineNumber: 2, newLineNumber: 2 },
+          { type: 'context', content: '| foo | 1 |', oldLineNumber: 3, newLineNumber: 3 },
+        ],
+        originalIndices: [0, 1, 2],
+        hiddenLinesBefore: 0,
+        hiddenLinesAfter: 0,
+      },
+    ];
+
+    const { container } = renderViewer({ mergedChunks: tableChunks });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+
+    const table = container.querySelector('table');
+    expect(table).toBeInTheDocument();
+    expect(table).toHaveClass('border-collapse');
+
+    const ths = container.querySelectorAll('th');
+    expect(ths).toHaveLength(2);
+    expect(ths[0]).toHaveClass('border', 'border-github-border', 'px-3', 'py-2');
+
+    const tds = container.querySelectorAll('td');
+    expect(tds).toHaveLength(2);
+    expect(tds[0]).toHaveClass('border', 'border-github-border', 'px-3', 'py-2');
+  });
+
   it('renders changed fenced code blocks without dropping surrounding markdown in Diff Preview', () => {
     renderViewer({ mergedChunks: codeFenceDiffChunks });
 
