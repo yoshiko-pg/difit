@@ -12,6 +12,7 @@ import {
 import { useState } from 'react';
 
 import type { DiffFile } from '../../types/diff';
+import { copyTextToClipboard } from '../utils/clipboard';
 
 interface DiffViewerHeaderProps {
   file: DiffFile;
@@ -77,8 +78,7 @@ export const DiffViewerHeader = ({
               : 'text-github-text-secondary hover:text-github-text-primary'
           }`}
           onClick={() => {
-            navigator.clipboard
-              .writeText(file.path)
+            void copyTextToClipboard(file.path)
               .then(() => {
                 console.log('File path copied to clipboard:', file.path);
                 setIsCopied(true);
