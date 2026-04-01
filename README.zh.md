@@ -131,7 +131,7 @@ git diff --cached | difit -
 标准输入模式按“意图优先”规则选择：
 
 - `-` 会显式启用标准输入模式
-- 当提供 positional 参数（`<target>` / `[compare-with]`）、`--pr` 或 `--tui` 时，difit 会按 Git/PR/TUI 模式处理，不会自动读取 stdin
+- 当提供 positional 参数（`<target>` / `[compare-with]`）或 `--pr` 时，difit 会按 Git/PR 模式处理，不会自动读取 stdin
 - 只有在未显式选择模式且 stdin 为 pipe/file/socket 时，才会自动进入标准输入模式
 
 ## ⚙️ CLI 选项
@@ -146,7 +146,7 @@ git diff --cached | difit -
 | `--host`              | 127.0.0.1      | 绑定服务器的主机地址（使用 0.0.0.0 进行外部访问）                                 |
 | `--no-open`           | false          | 不自动打开浏览器                                                                  |
 | `--mode`              | split          | 显示模式：`unified` 或 `split`                                                    |
-| `--tui`               | false          | 使用终端 UI 模式而不是 WebUI                                                      |
+| `--tui` (deprecated)  | false          | 使用终端 UI 模式而不是 WebUI                                                      |
 | `--clean`             | false          | 启动时清除所有现有评论和已查看的文件                                              |
 | `--include-untracked` | false          | 自动将 untracked 文件包含在 diff 中（仅在 `.` 或 `working` 时有效）               |
 | `--keep-alive`        | false          | 浏览器断开后保持服务器运行（使用 Ctrl+C 手动停止）                                |

@@ -131,7 +131,7 @@ git diff --cached | difit -
 표준 입력 모드는 의도 우선 규칙으로 선택됩니다:
 
 - `-`를 지정하면 표준 입력 모드가 명시적으로 활성화됩니다
-- positional 인수(`<target>` / `[compare-with]`), `--pr`, `--tui` 중 하나라도 지정되면 Git/PR/TUI 모드로 처리하고 stdin 자동 읽기를 하지 않습니다
+- positional 인수(`<target>` / `[compare-with]`) 또는 `--pr`이 지정되면 Git/PR 모드로 처리하고 stdin 자동 읽기를 하지 않습니다
 - 명시적 모드 지정이 없고 stdin이 pipe/file/socket 인 경우에만 자동으로 표준 입력 모드가 됩니다
 
 ## ⚙️ CLI 옵션
@@ -146,7 +146,7 @@ git diff --cached | difit -
 | `--host`              | 127.0.0.1      | 서버를 바인딩할 호스트 주소 (외부 액세스는 0.0.0.0 사용)                                      |
 | `--no-open`           | false          | 브라우저를 자동으로 열지 않음                                                                 |
 | `--mode`              | split          | 표시 모드: `unified` 또는 `split`                                                             |
-| `--tui`               | false          | WebUI 대신 터미널 UI 모드 사용                                                                |
+| `--tui` (deprecated)  | false          | WebUI 대신 터미널 UI 모드 사용                                                                |
 | `--clean`             | false          | 시작 시 모든 기존 코멘트와 열람된 파일 표시 초기화                                            |
 | `--include-untracked` | false          | diff에 untracked 파일 자동 포함 (`.` 또는 `working`에서만 유효)                               |
 | `--keep-alive`        | false          | 브라우저 연결이 끊겨도 서버 유지 (Ctrl+C로 수동 종료)                                         |
