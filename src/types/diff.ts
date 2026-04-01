@@ -94,7 +94,7 @@ export interface LineSelection {
 }
 
 export interface LegacyDiffComment {
-  id: string; // UUID format recommended
+  id: string;
   filePath: string;
   body: string;
   author?: string;
@@ -116,7 +116,7 @@ export interface DiffCommentMessage {
 
 // New data structures for enhanced comment and viewed state management
 export interface DiffCommentThread {
-  id: string; // UUID format recommended
+  id: string;
   filePath: string;
   createdAt: string; // ISO 8601 format
   updatedAt: string; // ISO 8601 format
