@@ -2,6 +2,7 @@ import { Check, Copy, Edit2, MessageSquareReply, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 
 import { type CommentThread, type DiffCommentMessage } from '../../types/diff';
+import { copyTextToClipboard } from '../utils/clipboard';
 
 import { CommentBodyRenderer } from './CommentBodyRenderer';
 import { CommentForm } from './CommentForm';
@@ -160,7 +161,7 @@ export function CommentThreadCard({
     e.stopPropagation();
     try {
       const prompt = onGeneratePrompt(thread);
-      await navigator.clipboard.writeText(prompt);
+      await copyTextToClipboard(prompt);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {

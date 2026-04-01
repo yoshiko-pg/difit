@@ -34,6 +34,7 @@ import { useLazyDiffRendering } from './hooks/useLazyDiffRendering';
 import { useViewedFiles } from './hooks/useViewedFiles';
 import { useViewport } from './hooks/useViewport';
 import { hasMultipleCommentAuthors } from './utils/commentAuthors';
+import { copyTextToClipboard } from './utils/clipboard';
 import { getFileElementId } from './utils/domUtils';
 import { findCommentPosition } from './utils/navigation/positionHelpers';
 import { resolveEventSourceUrl } from './utils/eventSourceUrl';
@@ -670,7 +671,7 @@ function App() {
   const handleCopyAllComments = async () => {
     try {
       const prompt = generateAllCommentsPrompt();
-      await navigator.clipboard.writeText(prompt);
+      await copyTextToClipboard(prompt);
       setIsCopiedAll(true);
       setTimeout(() => setIsCopiedAll(false), 2000);
     } catch (error) {
