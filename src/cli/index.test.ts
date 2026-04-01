@@ -1338,24 +1338,19 @@ describe('CLI index.ts', () => {
 
   describe('TUI mode', () => {
     let mockRender: any;
+    let mockTuiApp: any;
 
     const expectRenderedTuiProps = (props: Record<string, unknown>) => {
       expect(mockRender).toHaveBeenCalledTimes(1);
-      expect(mockRender).toHaveBeenCalledWith(
-        expect.objectContaining({
-          component: expect.any(Function),
-          props,
-        }),
-      );
+      expect(mockRender).toHaveBeenCalledWith({
+        component: mockTuiApp,
+        props,
+      });
     };
 
-    beforeEach(async () => {
-      // Mock ink and TUI components
+    beforeEach(() => {
       mockRender = vi.fn();
-
-      vi.doMock('ink', async () => ({
-        render: mockRender,
-      }));
+      mockTuiApp = vi.fn();
 
       // Mock React.createElement for testing
       vi.spyOn(React, 'createElement').mockImplementation(
@@ -1370,7 +1365,6 @@ describe('CLI index.ts', () => {
     });
 
     afterEach(() => {
-      vi.doUnmock('ink');
       vi.restoreAllMocks();
     });
 
@@ -1395,8 +1389,8 @@ describe('CLI index.ts', () => {
               process.exit(1);
             }
 
-            const { render } = await import('ink');
-            const { default: TuiApp } = await import('../tui/App.js');
+            const render = mockRender;
+            const TuiApp = mockTuiApp;
 
             render(
               React.createElement(TuiApp, {
@@ -1434,8 +1428,8 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (options.tui) {
-            const { render } = await import('ink');
-            const { default: TuiApp } = await import('../tui/App.js');
+            const render = mockRender;
+            const TuiApp = mockTuiApp;
 
             render(
               React.createElement(TuiApp, {
@@ -1479,8 +1473,8 @@ describe('CLI index.ts', () => {
               process.exit(1);
             }
 
-            const { render } = await import('ink');
-            const { default: TuiApp } = await import('../tui/App.js');
+            const render = mockRender;
+            const TuiApp = mockTuiApp;
 
             render(
               React.createElement(TuiApp, {
@@ -1517,8 +1511,8 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (options.tui) {
-            const { render } = await import('ink');
-            const { default: TuiApp } = await import('../tui/App.js');
+            const render = mockRender;
+            const TuiApp = mockTuiApp;
 
             let targetCommitish = commitish;
             let baseCommitish: string;
