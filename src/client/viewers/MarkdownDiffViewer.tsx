@@ -244,33 +244,21 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
       </code>
     );
   },
-  table: ({
-    children,
-    className,
-    ...props
-  }: React.TableHTMLAttributes<HTMLTableElement>) => (
+  table: ({ children, className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) => (
     <div className="overflow-x-auto">
-      <table
-        {...props}
-        className={`w-full border-collapse text-sm ${className ?? ''}`.trim()}
-      >
+      <table {...props} className={`w-full border-collapse text-sm ${className ?? ''}`.trim()}>
         {children}
       </table>
     </div>
   ),
-  thead: ({
-    children,
-    className,
-    ...props
-  }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+  thead: ({ children, className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
     <thead {...props} className={`bg-github-bg-secondary ${className ?? ''}`.trim()}>
       {children}
     </thead>
   ),
-  tbody: ({
-    children,
-    ...props
-  }: React.HTMLAttributes<HTMLTableSectionElement>) => <tbody {...props}>{children}</tbody>,
+  tbody: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <tbody {...props}>{children}</tbody>
+  ),
   tr: ({ children, className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) => (
     <tr {...props} className={`border-b border-github-border ${className ?? ''}`.trim()}>
       {children}
@@ -285,10 +273,7 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
     </th>
   ),
   td: ({ children, className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
-    <td
-      {...props}
-      className={`px-3 py-2 border border-github-border ${className ?? ''}`.trim()}
-    >
+    <td {...props} className={`px-3 py-2 border border-github-border ${className ?? ''}`.trim()}>
       {children}
     </td>
   ),
