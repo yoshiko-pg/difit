@@ -8,8 +8,8 @@ export const TUI_DEPRECATION_NOTICE_LINES = [
 ];
 
 export const TUI_DEPRECATION_PROMPT = [
-  '⚠️ Press Enter to start TUI mode.',
-  '⚠️ Enterを押すとtuiモードを起動します。',
+  'Press Enter to start TUI mode.',
+  'Enterを押すとtuiモードを起動します。',
 ].join('\n');
 
 export async function warnAboutTuiDeprecation(
@@ -19,5 +19,5 @@ export async function warnAboutTuiDeprecation(
     console.warn(line);
   }
 
-  await waitForEnterFn(`${TUI_DEPRECATION_PROMPT}\n`);
+  await waitForEnterFn(`\n${TUI_DEPRECATION_PROMPT}\n`);
 }

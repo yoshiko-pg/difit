@@ -19,7 +19,7 @@ describe('TUI deprecation warning', () => {
 
     expect(consoleWarn).toHaveBeenNthCalledWith(1, TUI_DEPRECATION_NOTICE_LINES[0]);
     expect(consoleWarn).toHaveBeenNthCalledWith(2, TUI_DEPRECATION_NOTICE_LINES[1]);
-    expect(waitForEnter).toHaveBeenCalledWith(`${TUI_DEPRECATION_PROMPT}\n`);
+    expect(waitForEnter).toHaveBeenCalledWith(`\n${TUI_DEPRECATION_PROMPT}\n`);
     expect(consoleWarn.mock.invocationCallOrder[1]).toBeLessThan(
       waitForEnter.mock.invocationCallOrder[0]!,
     );
