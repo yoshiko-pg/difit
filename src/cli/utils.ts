@@ -242,3 +242,21 @@ export async function promptUser(message: string): Promise<boolean> {
   const trimmed = answer.trim().toLowerCase();
   return trimmed === '' || ['y', 'yes'].includes(trimmed);
 }
+
+export async function waitForEnter(message: string): Promise<void> {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    while (true) {
+      const answer = await rl.question(message);
+      if (answer.trim() === '') {
+        return;
+      }
+    }
+  } finally {
+    rl.close();
+  }
+}

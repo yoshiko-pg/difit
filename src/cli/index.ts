@@ -20,6 +20,7 @@ import {
   getGitRoot,
 } from './utils.js';
 import { getPrPatch, getPrCommentImports } from './github.js';
+import { warnAboutTuiDeprecation } from './tuiDeprecation.js';
 
 type SpecialArg = 'working' | 'staged' | '.';
 
@@ -248,6 +249,8 @@ program
           console.error('Try running the command directly in your terminal without piping.');
           process.exit(1);
         }
+
+        await warnAboutTuiDeprecation();
 
         // Dynamic import for TUI mode
         const { render } = await import('ink');
