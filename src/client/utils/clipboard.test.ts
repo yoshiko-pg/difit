@@ -1,26 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { copyTextToClipboard } from './clipboard';
 
 describe('copyTextToClipboard', () => {
-  beforeEach(() => {
-    Object.defineProperty(globalThis, 'isSecureContext', {
-      configurable: true,
-      value: false,
-    });
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('uses navigator.clipboard in secure contexts', async () => {
+  it('uses navigator.clipboard when writeText succeeds', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     const execCommand = vi.fn(() => true);
-    Object.defineProperty(globalThis, 'isSecureContext', {
-      configurable: true,
-      value: true,
-    });
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText },
@@ -36,12 +25,12 @@ describe('copyTextToClipboard', () => {
     expect(execCommand).not.toHaveBeenCalled();
   });
 
-  it('falls back to execCommand in insecure contexts', async () => {
+  it('falls back to execCommand when writeText rejects', async () => {
     const execCommand = vi.fn(() => true);
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: {
-        writeText: vi.fn().mockResolvedValue(undefined),
+        writeText: vi.fn().mockRejectedValue(new Error('insecure context')),
       },
     });
     Object.defineProperty(document, 'execCommand', {

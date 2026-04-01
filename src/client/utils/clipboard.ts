@@ -39,14 +39,15 @@ function fallbackCopyTextToClipboard(text: string): void {
 }
 
 export async function copyTextToClipboard(text: string): Promise<void> {
-  if (
-    globalThis.isSecureContext &&
-    typeof navigator !== 'undefined' &&
-    typeof navigator.clipboard?.writeText === 'function'
-  ) {
+  try {
+    if (typeof navigator === 'undefined' || typeof navigator.clipboard?.writeText !== 'function') {
+      throw new Error('Modern clipboard API is unavailable');
+    }
+
+    // Some browsers expose navigator.clipboard on insecure contexts but reject writeText().
     await navigator.clipboard.writeText(text);
     return;
+  } catch {
+    fallbackCopyTextToClipboard(text);
   }
-
-  fallbackCopyTextToClipboard(text);
 }
