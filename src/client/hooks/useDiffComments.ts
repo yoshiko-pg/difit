@@ -12,6 +12,7 @@ import {
   formatCommentThreadPrompt,
   formatAllCommentThreadsPrompt,
 } from '../../utils/commentFormatting';
+import { createId } from '../../utils/createId';
 import { mergeCommentImports } from '../../utils/commentImports';
 import { storageService } from '../services/StorageService';
 import { getLanguageFromPath } from '../utils/diffUtils';
@@ -163,7 +164,7 @@ export function useDiffComments(
   const addThread = useCallback(
     (params: AddThreadParams): DiffCommentThread => {
       const now = new Date().toISOString();
-      const threadId = crypto.randomUUID();
+      const threadId = createId();
       const newThread: DiffCommentThread = {
         id: threadId,
         filePath: params.filePath,
@@ -218,7 +219,7 @@ export function useDiffComments(
               messages: [
                 ...thread.messages,
                 {
-                  id: crypto.randomUUID(),
+                  id: createId(),
                   body,
                   author: 'User',
                   createdAt: now,

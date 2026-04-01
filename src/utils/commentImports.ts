@@ -8,6 +8,7 @@ import type {
   ReplyCommentImport,
   ThreadCommentImport,
 } from '../types/diff.js';
+import { createId } from './createId.js';
 
 interface MergeCommentImportsResult {
   threads: DiffCommentThread[];
@@ -249,7 +250,7 @@ function sortByNewestThread(left: DiffCommentThread, right: DiffCommentThread): 
 
 function createImportedThread(commentImport: ThreadCommentImport, now: string): DiffCommentThread {
   const { createdAt, updatedAt } = toThreadTimestamp(commentImport, now);
-  const threadId = commentImport.id ?? crypto.randomUUID();
+  const threadId = commentImport.id ?? createId();
 
   return {
     id: threadId,
@@ -274,7 +275,7 @@ function createImportedReply(commentImport: ReplyCommentImport, now: string): Di
   const { createdAt, updatedAt } = toThreadTimestamp(commentImport, now);
 
   return {
-    id: commentImport.id ?? crypto.randomUUID(),
+    id: commentImport.id ?? createId(),
     body: commentImport.body,
     author: commentImport.author,
     createdAt,
