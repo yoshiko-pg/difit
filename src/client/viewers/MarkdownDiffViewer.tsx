@@ -244,38 +244,23 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
       </code>
     );
   },
-  table: ({ children, className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) => (
+  table: ({ children }: { children?: React.ReactNode }) => (
     <div className="overflow-x-auto">
-      <table {...props} className={`w-full border-collapse text-sm ${className ?? ''}`.trim()}>
-        {children}
-      </table>
+      <table className="w-full border-collapse text-sm">{children}</table>
     </div>
   ),
-  thead: ({ children, className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
-    <thead {...props} className={`bg-github-bg-secondary ${className ?? ''}`.trim()}>
-      {children}
-    </thead>
+  thead: ({ children }: { children?: React.ReactNode }) => (
+    <thead className="bg-github-bg-secondary">{children}</thead>
   ),
-  tbody: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
-    <tbody {...props}>{children}</tbody>
+  tbody: ({ children }: { children?: React.ReactNode }) => <tbody>{children}</tbody>,
+  tr: ({ children }: { children?: React.ReactNode }) => (
+    <tr className="border-b border-github-border">{children}</tr>
   ),
-  tr: ({ children, className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) => (
-    <tr {...props} className={`border-b border-github-border ${className ?? ''}`.trim()}>
-      {children}
-    </tr>
+  th: ({ children }: { children?: React.ReactNode }) => (
+    <th className="px-3 py-2 text-left font-semibold border border-github-border">{children}</th>
   ),
-  th: ({ children, className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
-    <th
-      {...props}
-      className={`px-3 py-2 text-left font-semibold border border-github-border ${className ?? ''}`.trim()}
-    >
-      {children}
-    </th>
-  ),
-  td: ({ children, className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
-    <td {...props} className={`px-3 py-2 border border-github-border ${className ?? ''}`.trim()}>
-      {children}
-    </td>
+  td: ({ children }: { children?: React.ReactNode }) => (
+    <td className="px-3 py-2 border border-github-border">{children}</td>
   ),
 });
 
