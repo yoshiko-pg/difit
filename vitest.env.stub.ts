@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 const env = {
   MODE: process.env.MODE ?? 'test',
   DEV: false,
