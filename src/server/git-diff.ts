@@ -54,6 +54,13 @@ export class GitDiffParser {
       let resolvedCommit: string;
       let diffArgs: string[];
 
+      // Resolve merge-base shorthand before any other processing
+      if (baseCommitish === 'merge-base') {
+        const originBranch = await this.getOriginDefaultBranch();
+        if (!originBranch) throw new Error('No origin default branch found for merge-base');
+        baseCommitish = (await this.git.raw(['merge-base', 'HEAD', originBranch])).trim();
+      }
+
       // Handle target special chars (base is always a regular commit)
       if (targetCommitish === 'working') {
         // Show unstaged changes (working vs staged)
@@ -541,6 +548,13 @@ export class GitDiffParser {
     const cached = this.resolvedCommitCache.get(commitish);
     if (cached && cached.expiresAt > now) {
       return cached.value;
+    }
+
+    if (commitish === 'merge-base') {
+      const originBranch = await this.getOriginDefaultBranch();
+      if (originBranch) {
+        commitish = (await this.git.raw(['merge-base', 'HEAD', originBranch])).trim();
+      }
     }
 
     const hash = await this.git.revparse([commitish]);

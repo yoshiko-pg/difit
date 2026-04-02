@@ -269,6 +269,9 @@ export async function startServer(
           { value: '.', label: 'All Uncommitted Changes' },
           { value: 'staged', label: 'Staging Area' },
           { value: 'working', label: 'Working Directory' },
+          ...(originDefaultBranch
+            ? [{ value: 'merge-base', label: `${originDefaultBranch} (merge-base)` }]
+            : []),
         ],
         branches,
         commits,

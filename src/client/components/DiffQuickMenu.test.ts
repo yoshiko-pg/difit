@@ -164,4 +164,60 @@ describe('DiffQuickMenu', () => {
 
     expect(onSelectDiff).toHaveBeenCalledWith('origin/main', '.');
   });
+
+  it('shows merge-base preset button when originDefaultBranch is available', () => {
+    render(
+      createElement(DiffQuickMenu, {
+        options,
+        baseRevision: 'HEAD',
+        targetRevision: '.',
+        onSelectDiff: vi.fn(),
+        onOpenAdvanced: vi.fn(),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
+
+    expect(
+      screen.getByRole('button', { name: 'origin/main (merge-base)...Uncommitted' }),
+    ).toBeInTheDocument();
+  });
+
+  it('selects merge-base preset when clicked', () => {
+    const onSelectDiff = vi.fn();
+    render(
+      createElement(DiffQuickMenu, {
+        options,
+        baseRevision: 'HEAD',
+        targetRevision: '.',
+        onSelectDiff,
+        onOpenAdvanced: vi.fn(),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'origin/main (merge-base)...Uncommitted' }),
+    );
+
+    expect(onSelectDiff).toHaveBeenCalledWith('merge-base', '.');
+  });
+
+  it('does not show merge-base preset when originDefaultBranch is absent', () => {
+    render(
+      createElement(DiffQuickMenu, {
+        options: { ...options, originDefaultBranch: undefined },
+        baseRevision: 'HEAD',
+        targetRevision: '.',
+        onSelectDiff: vi.fn(),
+        onOpenAdvanced: vi.fn(),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
+
+    expect(
+      screen.queryByRole('button', { name: /merge-base/ }),
+    ).not.toBeInTheDocument();
+  });
 });

@@ -314,6 +314,14 @@ export function DiffQuickMenu({
                   {originDefaultBranch}...Uncommitted
                 </button>
               )}
+              {originDefaultBranch && (
+                <button
+                  onClick={() => handleSelect('merge-base', '.')}
+                  className={getItemClasses(isPresetActive('merge-base', '.'), false)}
+                >
+                  {originDefaultBranch} (merge-base)...Uncommitted
+                </button>
+              )}
             </div>
 
             <div className="border-b border-github-border">
