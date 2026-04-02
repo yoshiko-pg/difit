@@ -2,7 +2,13 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 import { isAbsolute, resolve, sep } from 'path';
 
 import { validateDiffArguments, shortHash, createCommitRangeString } from '../cli/utils.js';
-import { type DiffFile, type DiffChunk, type DiffLine, type DiffResponse } from '../types/diff.js';
+import {
+  type DiffChunk,
+  type DiffFile,
+  type DiffLine,
+  type DiffResponse,
+  type DiffSelection,
+} from '../types/diff.js';
 
 import { isGeneratedFile } from './generated-file-check.js';
 
@@ -39,11 +45,12 @@ export class GitDiffParser {
   }
 
   async parseDiff(
-    targetCommitish: string,
-    baseCommitish: string,
+    selection: DiffSelection,
     ignoreWhitespace = false,
     contextLines?: number,
   ): Promise<DiffResponse> {
+    const { targetCommitish, baseCommitish } = selection;
+
     try {
       // Validate arguments
       const validation = validateDiffArguments(targetCommitish, baseCommitish);

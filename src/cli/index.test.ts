@@ -173,8 +173,7 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            targetCommitish,
-            baseCommitish,
+            selection: { targetCommitish, baseCommitish },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -185,8 +184,7 @@ describe('CLI index.ts', () => {
       await program.parseAsync([...args], { from: 'user' });
 
       expect(mockStartServer).toHaveBeenCalledWith({
-        targetCommitish: expectedTarget,
-        baseCommitish: expectedBase,
+        selection: { targetCommitish: expectedTarget, baseCommitish: expectedBase },
         preferredPort: undefined,
         host: '',
         openBrowser: true,
@@ -264,8 +262,7 @@ describe('CLI index.ts', () => {
           let baseCommitish = commitish + '^';
 
           await startServer({
-            targetCommitish,
-            baseCommitish,
+            selection: { targetCommitish, baseCommitish },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -279,8 +276,7 @@ describe('CLI index.ts', () => {
       await program.parseAsync([...args], { from: 'user' });
 
       const expectedCall = {
-        targetCommitish: 'HEAD',
-        baseCommitish: 'HEAD^',
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
         preferredPort: expectedOptions.port,
         host: expectedOptions.host || '',
         openBrowser: expectedOptions.open !== false,
@@ -313,8 +309,7 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: `${commitish}^`,
+            selection: { targetCommitish: commitish, baseCommitish: `${commitish}^` },
             contextLines: options.context,
           });
         });
@@ -456,8 +451,7 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: 'staged',
+            selection: { targetCommitish: commitish, baseCommitish: 'staged' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -491,8 +485,7 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -532,8 +525,7 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: 'staged',
+            selection: { targetCommitish: commitish, baseCommitish: 'staged' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -575,8 +567,7 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: 'staged',
+            selection: { targetCommitish: commitish, baseCommitish: 'staged' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -848,8 +839,7 @@ describe('CLI index.ts', () => {
         .action(async (commitish: string, options: any) => {
           const commentImports = actualParseCommentOptions(options.comment);
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: `${commitish}^`,
+            selection: { targetCommitish: commitish, baseCommitish: `${commitish}^` },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -867,8 +857,7 @@ describe('CLI index.ts', () => {
       );
 
       expect(mockStartServer).toHaveBeenCalledWith({
-        targetCommitish: 'HEAD',
-        baseCommitish: 'HEAD^',
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
         preferredPort: undefined,
         host: '',
         openBrowser: true,
@@ -977,8 +966,7 @@ describe('CLI index.ts', () => {
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url } = await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1028,8 +1016,7 @@ describe('CLI index.ts', () => {
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url } = await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1082,8 +1069,7 @@ describe('CLI index.ts', () => {
         .option('--keep-alive', 'keep server running even after browser disconnects')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url } = await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1135,8 +1121,7 @@ describe('CLI index.ts', () => {
         .option('--keep-alive', 'keep server running even after browser disconnects')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url } = await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1188,8 +1173,7 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url, isEmpty } = await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1238,8 +1222,7 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url, isEmpty } = await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1283,8 +1266,7 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1317,8 +1299,7 @@ describe('CLI index.ts', () => {
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: commitish + '^',
+            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1394,8 +1375,7 @@ describe('CLI index.ts', () => {
 
             render(
               React.createElement(TuiApp, {
-                targetCommitish: commitish,
-                baseCommitish: commitish + '^',
+                selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
                 mode: options.mode,
               }),
             );
@@ -1405,8 +1385,7 @@ describe('CLI index.ts', () => {
       await program.parseAsync(['main', '--tui'], { from: 'user' });
 
       expectRenderedTuiProps({
-        targetCommitish: 'main',
-        baseCommitish: 'main^',
+        selection: { targetCommitish: 'main', baseCommitish: 'main^' },
         mode: 'split',
       });
     });
@@ -1433,8 +1412,7 @@ describe('CLI index.ts', () => {
 
             render(
               React.createElement(TuiApp, {
-                targetCommitish: commitish,
-                baseCommitish: commitish + '^',
+                selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
                 mode: options.mode,
                 contextLines: options.context,
               }),
@@ -1445,8 +1423,7 @@ describe('CLI index.ts', () => {
       await program.parseAsync(['--tui', '--context', '2'], { from: 'user' });
 
       expectRenderedTuiProps({
-        targetCommitish: 'HEAD',
-        baseCommitish: 'HEAD^',
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
         mode: 'split',
         contextLines: 2,
       });
@@ -1478,8 +1455,7 @@ describe('CLI index.ts', () => {
 
             render(
               React.createElement(TuiApp, {
-                targetCommitish: commitish,
-                baseCommitish: commitish + '^',
+                selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
                 mode: options.mode,
               }),
             );
@@ -1489,8 +1465,7 @@ describe('CLI index.ts', () => {
       await program.parseAsync(['--tui', '--mode', 'unified'], { from: 'user' });
 
       expectRenderedTuiProps({
-        targetCommitish: 'HEAD',
-        baseCommitish: 'HEAD^',
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
         mode: 'unified',
       });
     });
@@ -1527,8 +1502,7 @@ describe('CLI index.ts', () => {
 
             render(
               React.createElement(TuiApp, {
-                targetCommitish,
-                baseCommitish,
+                selection: { targetCommitish, baseCommitish },
                 mode: options.mode,
               }),
             );
@@ -1538,8 +1512,7 @@ describe('CLI index.ts', () => {
       await program.parseAsync(['working', '--tui', '--mode', 'unified'], { from: 'user' });
 
       expectRenderedTuiProps({
-        targetCommitish: 'working',
-        baseCommitish: 'staged',
+        selection: { targetCommitish: 'working', baseCommitish: 'staged' },
         mode: 'unified',
       });
     });
@@ -1649,8 +1622,10 @@ describe('CLI index.ts', () => {
             }
 
             await startServer({
-              targetCommitish: commitish,
-              baseCommitish: compareWith || commitish + '^',
+              selection: {
+                targetCommitish: commitish,
+                baseCommitish: compareWith || commitish + '^',
+              },
               preferredPort: options.port,
               host: options.host,
               openBrowser: options.open,
@@ -1699,8 +1674,10 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: compareWith || commitish + '^',
+            selection: {
+              targetCommitish: commitish,
+              baseCommitish: compareWith || commitish + '^',
+            },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1714,8 +1691,7 @@ describe('CLI index.ts', () => {
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
           diffMode: 'default', // HEAD with comparison is still DEFAULT mode
-          targetCommitish: 'HEAD',
-          baseCommitish: 'main',
+          selection: { targetCommitish: 'HEAD', baseCommitish: 'main' },
         }),
       );
     });
@@ -1750,8 +1726,10 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            targetCommitish: commitish,
-            baseCommitish: compareWith || commitish + '^',
+            selection: {
+              targetCommitish: commitish,
+              baseCommitish: compareWith || commitish + '^',
+            },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -1765,8 +1743,7 @@ describe('CLI index.ts', () => {
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
           diffMode: 'dot', // Dot with comparison should still be DOT mode (watch enabled)
-          targetCommitish: '.',
-          baseCommitish: 'origin/main',
+          selection: { targetCommitish: '.', baseCommitish: 'origin/main' },
         }),
       );
     });

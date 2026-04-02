@@ -24,25 +24,25 @@ const options = {
 describe('getPreviousCommitPreset', () => {
   it.each(['', '.', 'staged', 'working'])('uses HEAD as target for %s', (targetRevision) => {
     expect(getPreviousCommitPreset(targetRevision)).toEqual({
-      base: 'HEAD^',
-      target: 'HEAD',
+      baseCommitish: 'HEAD^',
+      targetCommitish: 'HEAD',
     });
   });
 
   it('uses selected target when it is already a commit-ish', () => {
     expect(getPreviousCommitPreset('HEAD')).toEqual({
-      base: 'HEAD^^',
-      target: 'HEAD^',
+      baseCommitish: 'HEAD^^',
+      targetCommitish: 'HEAD^',
     });
 
     expect(getPreviousCommitPreset('main')).toEqual({
-      base: 'main^^',
-      target: 'main^',
+      baseCommitish: 'main^^',
+      targetCommitish: 'main^',
     });
 
     expect(getPreviousCommitPreset('abc1234')).toEqual({
-      base: 'abc1234^^',
-      target: 'abc1234^',
+      baseCommitish: 'abc1234^^',
+      targetCommitish: 'abc1234^',
     });
   });
 });
@@ -52,8 +52,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD^^',
-        targetRevision: 'HEAD^',
+        selection: { baseCommitish: 'HEAD^^', targetCommitish: 'HEAD^' },
         resolvedBaseRevision: '88aabb0',
         resolvedTargetRevision: '1f23cd1',
         onSelectDiff: vi.fn(),
@@ -68,8 +67,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD^^',
-        targetRevision: 'HEAD^',
+        selection: { baseCommitish: 'HEAD^^', targetCommitish: 'HEAD^' },
         resolvedBaseRevision: '88aabb0',
         resolvedTargetRevision: '1f23cd1',
         onSelectDiff: vi.fn(),
@@ -91,8 +89,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD',
-        targetRevision: '.',
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
         onSelectDiff: vi.fn(),
         onOpenAdvanced: vi.fn(),
       }),
@@ -113,8 +110,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD',
-        targetRevision: '.',
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
         onSelectDiff: vi.fn(),
         onOpenAdvanced: vi.fn(),
       }),
@@ -134,8 +130,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD',
-        targetRevision: '.',
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
         onSelectDiff,
         onOpenAdvanced: vi.fn(),
       }),
@@ -144,7 +139,10 @@ describe('DiffQuickMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
     fireEvent.click(screen.getByRole('button', { name: 'HEAD' }));
 
-    expect(onSelectDiff).toHaveBeenCalledWith('HEAD^', 'HEAD');
+    expect(onSelectDiff).toHaveBeenCalledWith({
+      baseCommitish: 'HEAD^',
+      targetCommitish: 'HEAD',
+    });
   });
 
   it('selects origin/main quick preset when available', () => {
@@ -152,8 +150,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD',
-        targetRevision: '.',
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
         onSelectDiff,
         onOpenAdvanced: vi.fn(),
       }),
@@ -162,6 +159,9 @@ describe('DiffQuickMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
     fireEvent.click(screen.getByRole('button', { name: 'origin/main...Uncommitted' }));
 
-    expect(onSelectDiff).toHaveBeenCalledWith('origin/main', '.');
+    expect(onSelectDiff).toHaveBeenCalledWith({
+      baseCommitish: 'origin/main',
+      targetCommitish: '.',
+    });
   });
 });

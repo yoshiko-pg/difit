@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import {
   type DiffResponse,
+  type DiffSelection,
   type DiffViewMode,
   type DiffSide,
   type LineNumber,
@@ -10,6 +11,11 @@ import {
   type RevisionsResponse,
 } from '../types/diff';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode';
+import {
+  createDiffSelection,
+  diffSelectionsEqual,
+  getDiffSelectionKey,
+} from '../utils/diffSelection';
 
 import { Checkbox } from './components/Checkbox';
 import { CommentsDropdown } from './components/CommentsDropdown';
@@ -101,8 +107,9 @@ function App() {
 
   // Revision selector state
   const [revisionOptions, setRevisionOptions] = useState<RevisionsResponse | null>(null);
-  const [baseRevision, setBaseRevision] = useState<string>('');
-  const [targetRevision, setTargetRevision] = useState<string>('');
+  const [selectedRevision, setSelectedRevision] = useState<DiffSelection>(
+    createDiffSelection('', ''),
+  );
   const [resolvedBaseRevision, setResolvedBaseRevision] = useState<string>('');
   const [resolvedTargetRevision, setResolvedTargetRevision] = useState<string>('');
   const hasUserSelectedRevisionRef = useRef(false);
@@ -461,13 +468,13 @@ function App() {
   };
 
   const fetchDiffData = useCallback(
-    async (base?: string, target?: string) => {
+    async (selection?: DiffSelection) => {
       try {
         const params = new URLSearchParams({
           ignoreWhitespace: String(ignoreWhitespace),
         });
-        if (base) params.set('base', base);
-        if (target) params.set('target', target);
+        if (selection?.baseCommitish) params.set('base', selection.baseCommitish);
+        if (selection?.targetCommitish) params.set('target', selection.targetCommitish);
 
         const response = await fetch(`/api/diff?${params}`);
         if (!response.ok) throw new Error('Failed to fetch diff data');
@@ -481,8 +488,9 @@ function App() {
         if (!hasUserSelectedRevisionRef.current) {
           const requestedBase = data.requestedBaseCommitish ?? data.baseCommitish;
           const requestedTarget = data.requestedTargetCommitish ?? data.targetCommitish;
-          if (requestedBase) setBaseRevision(requestedBase);
-          if (requestedTarget) setTargetRevision(requestedTarget);
+          if (requestedBase && requestedTarget) {
+            setSelectedRevision(createDiffSelection(requestedBase, requestedTarget));
+          }
         }
 
         // Set diff mode from server response if provided
@@ -544,18 +552,17 @@ function App() {
 
   // Handle revision change
   const handleRevisionChange = useCallback(
-    async (newBase: string, newTarget: string) => {
+    async (nextSelection: DiffSelection) => {
       // Skip if no actual change
-      if (newBase === baseRevision && newTarget === targetRevision) return;
+      if (diffSelectionsEqual(nextSelection, selectedRevision)) return;
 
       hasUserSelectedRevisionRef.current = true;
-      setBaseRevision(newBase);
-      setTargetRevision(newTarget);
+      setSelectedRevision(nextSelection);
       setLoading(true);
       setError(null);
-      await fetchDiffData(newBase, newTarget);
+      await fetchDiffData(nextSelection);
     },
-    [baseRevision, targetRevision, fetchDiffData],
+    [fetchDiffData, selectedRevision],
   );
 
   // Clear comments and viewed files on initial load if requested via CLI flag
@@ -925,11 +932,10 @@ function App() {
               {revisionOptions ? (
                 <DiffQuickMenu
                   options={revisionOptions}
-                  baseRevision={baseRevision}
-                  targetRevision={targetRevision}
+                  selection={selectedRevision}
                   resolvedBaseRevision={resolvedBaseRevision}
                   resolvedTargetRevision={resolvedTargetRevision}
-                  onSelectDiff={(base, target) => void handleRevisionChange(base, target)}
+                  onSelectDiff={(selection) => void handleRevisionChange(selection)}
                   onOpenAdvanced={() => setIsRevisionModalOpen(true)}
                   compact={!isDesktop}
                 />
@@ -955,15 +961,14 @@ function App() {
         </header>
         {revisionOptions && (
           <RevisionDetailModal
-            key={isRevisionModalOpen ? `${baseRevision}:${targetRevision}` : 'closed'}
+            key={isRevisionModalOpen ? getDiffSelectionKey(selectedRevision) : 'closed'}
             isOpen={isRevisionModalOpen}
             onClose={() => setIsRevisionModalOpen(false)}
             options={revisionOptions}
-            baseRevision={baseRevision}
-            targetRevision={targetRevision}
+            selection={selectedRevision}
             resolvedBaseRevision={resolvedBaseRevision}
             resolvedTargetRevision={resolvedTargetRevision}
-            onApply={(base, target) => void handleRevisionChange(base, target)}
+            onApply={(selection) => void handleRevisionChange(selection)}
           />
         )}
 

@@ -51,7 +51,7 @@ describe('loadGitDiff', () => {
         .mockResolvedValueOnce('M\tsrc/file.ts')
         .mockResolvedValueOnce('@@ -1 +1 @@\n-old line\n+new line\n');
 
-      const result = await loadGitDiff(targetCommitish, baseCommitish, '/repo', 5);
+      const result = await loadGitDiff({ targetCommitish, baseCommitish }, '/repo', 5);
 
       expect(mockSimpleGit).toHaveBeenCalledWith('/repo');
       expect(mockDiff).toHaveBeenNthCalledWith(1, expectedListArgs);

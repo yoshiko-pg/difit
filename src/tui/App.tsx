@@ -2,7 +2,7 @@ import { Box, Text, useApp, useInput } from 'ink';
 import React, { useState, useEffect } from 'react';
 
 import { loadGitDiff } from '../server/git-diff-tui.js';
-import { type DiffViewMode, type FileDiff } from '../types/diff.js';
+import { type DiffSelection, type DiffViewMode, type FileDiff } from '../types/diff.js';
 import { normalizeDiffViewMode } from '../utils/diffMode.js';
 
 import DiffViewer from './components/DiffViewer.js';
@@ -11,20 +11,14 @@ import SideBySideDiffViewer from './components/SideBySideDiffViewer.js';
 import StatusBar from './components/StatusBar.js';
 
 interface AppProps {
-  targetCommitish: string;
-  baseCommitish: string;
+  selection: DiffSelection;
   mode?: string;
   repoPath?: string;
   contextLines?: number;
 }
 
-const App: React.FC<AppProps> = ({
-  targetCommitish,
-  baseCommitish,
-  mode,
-  repoPath,
-  contextLines,
-}) => {
+const App: React.FC<AppProps> = ({ selection, mode, repoPath, contextLines }) => {
+  const { targetCommitish, baseCommitish } = selection;
   const [files, setFiles] = useState<FileDiff[]>([]);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -37,7 +31,7 @@ const App: React.FC<AppProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const fileDiffs = await loadGitDiff(targetCommitish, baseCommitish, repoPath, contextLines);
+      const fileDiffs = await loadGitDiff(selection, repoPath, contextLines);
       setFiles(fileDiffs);
       setLoading(false);
     } catch (err) {
@@ -50,7 +44,7 @@ const App: React.FC<AppProps> = ({
     // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: trigger initial diff load when revisions change
     void loadDiff();
     // oxlint-disable-next-line react/exhaustive-deps
-  }, [targetCommitish, baseCommitish]);
+  }, [baseCommitish, targetCommitish]);
 
   useInput(
     (input, key) => {

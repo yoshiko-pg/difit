@@ -51,6 +51,11 @@ export interface DiffCommentCodeSnapshot {
   language?: string;
 }
 
+export interface DiffSelection {
+  baseCommitish: string;
+  targetCommitish: string;
+}
+
 export interface DiffResponse {
   commit: string;
   files: DiffFile[];

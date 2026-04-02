@@ -6,7 +6,8 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 
 import pkg from '../../package.json' with { type: 'json' };
 import { startServer } from '../server/server.js';
-import { type CommentImport, type DiffViewMode } from '../types/diff.js';
+import { type CommentImport, type DiffSelection, type DiffViewMode } from '../types/diff.js';
+import { createDiffSelection } from '../utils/diffSelection.js';
 import { DiffMode } from '../types/watch.js';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 
@@ -28,7 +29,25 @@ function isSpecialArg(arg: string): arg is SpecialArg {
   return arg === 'working' || arg === 'staged' || arg === '.';
 }
 
-function determineDiffMode(targetCommitish: string, compareWith?: string): DiffMode {
+function resolveDiffSelection(commitish: string, compareWith?: string): DiffSelection {
+  let baseCommitish: string;
+
+  if (compareWith) {
+    baseCommitish = compareWith;
+  } else if (commitish === 'working') {
+    baseCommitish = 'staged';
+  } else if (isSpecialArg(commitish)) {
+    baseCommitish = 'HEAD';
+  } else {
+    baseCommitish = commitish + '^';
+  }
+
+  return createDiffSelection(baseCommitish, commitish);
+}
+
+function determineDiffMode(selection: DiffSelection, compareWith?: string): DiffMode {
+  const { targetCommitish } = selection;
+
   // If comparing specific commits/branches (not involving HEAD), no watching needed
   // Exception: allow watching when targetCommitish is '.' even with compareWith
   if (compareWith && targetCommitish !== 'HEAD' && targetCommitish !== '.') {
@@ -213,26 +232,9 @@ program
         repoPath = undefined;
       }
 
-      // Determine target and base commitish
-      let targetCommitish = commitish;
-      let baseCommitish: string;
+      const selection = resolveDiffSelection(commitish, compareWith);
 
-      if (compareWith) {
-        // If compareWith is provided, use it as base
-        baseCommitish = compareWith;
-      } else {
-        // Handle special arguments
-        if (commitish === 'working') {
-          // working compares working directory with staging area
-          baseCommitish = 'staged';
-        } else if (isSpecialArg(commitish)) {
-          baseCommitish = 'HEAD';
-        } else {
-          baseCommitish = commitish + '^';
-        }
-      }
-
-      if (commitish === 'working' || commitish === '.') {
+      if (selection.targetCommitish === 'working' || selection.targetCommitish === '.') {
         const git = simpleGit(repoPath);
         await handleUntrackedFiles(git, options.includeUntracked);
       }
@@ -258,8 +260,7 @@ program
 
         render(
           React.createElement(TuiApp, {
-            targetCommitish,
-            baseCommitish,
+            selection,
             mode: options.mode,
             repoPath,
             contextLines: options.context,
@@ -268,15 +269,14 @@ program
         return;
       }
 
-      const validation = validateDiffArguments(targetCommitish, compareWith);
+      const validation = validateDiffArguments(selection.targetCommitish, compareWith);
       if (!validation.valid) {
         console.error(`Error: ${validation.error}`);
         process.exit(1);
       }
 
       const { url, port, isEmpty } = await startServer({
-        targetCommitish,
-        baseCommitish,
+        selection,
         preferredPort: options.port,
         host: options.host,
         openBrowser: options.open,
@@ -284,13 +284,13 @@ program
         clearComments: options.clean,
         keepAlive: options.keepAlive,
         contextLines: options.context,
-        diffMode: determineDiffMode(targetCommitish, compareWith),
+        diffMode: determineDiffMode(selection, compareWith),
         repoPath,
         ...(commentImports.length > 0 ? { commentImports } : {}),
       });
 
       console.log(`\n🚀 difit server started on ${url}`);
-      console.log(`📋 Reviewing: ${targetCommitish}`);
+      console.log(`📋 Reviewing: ${selection.targetCommitish}`);
 
       if (options.keepAlive) {
         console.log('🔒 Keep-alive mode: server will stay running after browser disconnects');

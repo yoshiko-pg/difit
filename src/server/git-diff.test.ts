@@ -1144,7 +1144,10 @@ index abc123..def456 100644
       const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
       getBlobContentSpy.mockResolvedValue(Buffer.from('// @generated\nconst x = 1;'));
 
-      const response = await parser.parseDiff('HEAD', 'HEAD~1');
+      const response = await parser.parseDiff({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD~1',
+      });
 
       expect(response.files[0].path).toBe(file);
       expect(response.files[0].isGenerated).toBe(false);
@@ -1280,7 +1283,14 @@ index abc123..def456 100644
         .mockResolvedValueOnce('abcdef1234567890abcdef1234567890abcdef12');
       gitDiff.mockResolvedValue('');
 
-      const response = await parser.parseDiff('HEAD', 'HEAD~1', false, 5);
+      const response = await parser.parseDiff(
+        {
+          targetCommitish: 'HEAD',
+          baseCommitish: 'HEAD~1',
+        },
+        false,
+        5,
+      );
 
       expect(gitDiff).toHaveBeenCalledWith([
         'abcdef1...1234567',
@@ -1304,7 +1314,10 @@ index abc123..def456 100644
         .mockResolvedValueOnce('abcdef1234567890abcdef1234567890abcdef12');
       gitDiff.mockResolvedValue('');
 
-      const response = await parser.parseDiff('codex/comment-thread', 'codex/comment-thread^');
+      const response = await parser.parseDiff({
+        targetCommitish: 'codex/comment-thread',
+        baseCommitish: 'codex/comment-thread^',
+      });
 
       expect(gitRevparse).toHaveBeenNthCalledWith(1, ['codex/comment-thread']);
       expect(gitRevparse).toHaveBeenNthCalledWith(2, ['codex/comment-thread^']);

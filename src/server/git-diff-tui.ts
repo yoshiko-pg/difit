@@ -1,14 +1,15 @@
 import simpleGit from 'simple-git';
 
 import { validateDiffArguments, createCommitRangeString } from '../cli/utils.js';
-import type { FileDiff } from '../types/diff.js';
+import type { DiffSelection, FileDiff } from '../types/diff.js';
 
 export async function loadGitDiff(
-  targetCommitish: string,
-  baseCommitish: string,
+  selection: DiffSelection,
   repoPath?: string,
   contextLines?: number,
 ): Promise<FileDiff[]> {
+  const { targetCommitish, baseCommitish } = selection;
+
   // Validate arguments
   const validation = validateDiffArguments(targetCommitish, baseCommitish);
   if (!validation.valid) {

@@ -2,7 +2,8 @@ import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 
-import { type RevisionsResponse } from '../../types/diff';
+import { type DiffSelection, type RevisionsResponse } from '../../types/diff';
+import { createDiffSelection } from '../../utils/diffSelection';
 
 import { RevisionSelector } from './RevisionSelector';
 
@@ -10,26 +11,29 @@ interface RevisionDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   options: RevisionsResponse;
-  baseRevision: string;
-  targetRevision: string;
+  selection: DiffSelection;
   resolvedBaseRevision?: string;
   resolvedTargetRevision?: string;
-  onApply: (base: string, target: string) => void;
+  onApply: (selection: DiffSelection) => void;
 }
 
 export function RevisionDetailModal({
   isOpen,
   onClose,
   options,
-  baseRevision,
-  targetRevision,
+  selection,
   resolvedBaseRevision,
   resolvedTargetRevision,
   onApply,
 }: RevisionDetailModalProps) {
-  const [localBase, setLocalBase] = useState(baseRevision);
-  const [localTarget, setLocalTarget] = useState(targetRevision);
+  const [localSelection, setLocalSelection] = useState(selection);
   const { enableScope, disableScope } = useHotkeysContext();
+  const localBase = localSelection.baseCommitish;
+  const localTarget = localSelection.targetCommitish;
+
+  useEffect(() => {
+    setLocalSelection(selection);
+  }, [selection]);
 
   useEffect(() => {
     if (isOpen) {
@@ -77,7 +81,7 @@ export function RevisionDetailModal({
   if (!isOpen) return null;
 
   const handleApply = () => {
-    onApply(localBase, localTarget);
+    onApply(localSelection);
     onClose();
   };
 
@@ -101,7 +105,9 @@ export function RevisionDetailModal({
               label="Base"
               value={localBase}
               resolvedValue={resolvedBaseRevision}
-              onChange={setLocalBase}
+              onChange={(value) =>
+                setLocalSelection(createDiffSelection(value, localSelection.targetCommitish))
+              }
               options={options}
               disabledValues={baseDisabledValues}
             />
@@ -110,7 +116,9 @@ export function RevisionDetailModal({
               label="Target"
               value={localTarget}
               resolvedValue={resolvedTargetRevision}
-              onChange={setLocalTarget}
+              onChange={(value) =>
+                setLocalSelection(createDiffSelection(localSelection.baseCommitish, value))
+              }
               options={options}
               disabledValues={targetDisabledValues}
             />
