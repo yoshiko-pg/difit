@@ -45,6 +45,11 @@ import { copyTextToClipboard } from './utils/clipboard';
 import { getFileElementId } from './utils/domUtils';
 import { findCommentPosition } from './utils/navigation/positionHelpers';
 import { resolveEventSourceUrl } from './utils/eventSourceUrl';
+import {
+  EMPTY_MERGED_CHUNKS_STATE,
+  buildMergedChunksState,
+  getMergedChunksForVersion,
+} from './utils/mergedChunks';
 
 const EMPTY_COMMENT_THREADS: CommentThread[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
@@ -88,6 +93,7 @@ const getInitialFileTreeOpen = () => {
 
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
+  const [diffDataVersion, setDiffDataVersion] = useState(0);
   const [diffMode, setDiffMode] = useState<DiffViewMode>(DEFAULT_DIFF_VIEW_MODE);
   const hasUserSetDiffModeRef = useRef(false);
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
@@ -304,7 +310,6 @@ function App() {
     expandAllBetweenChunks,
     prefetchFileContent,
     getMergedChunks,
-    lastUpdatedFilePath,
     lastUpdatedAt,
   } = useExpandedLines({
     baseCommitish: diffData?.baseCommitish,
@@ -316,9 +321,7 @@ function App() {
     getMergedChunksRef.current = getMergedChunks;
   }, [getMergedChunks]);
 
-  const [mergedChunksByFile, setMergedChunksByFile] = useState<Map<string, MergedChunk[]>>(
-    new Map(),
-  );
+  const [mergedChunksState, setMergedChunksState] = useState(EMPTY_MERGED_CHUNKS_STATE);
   const filesByPath = useMemo(() => {
     const map = new Map<string, DiffResponse['files'][number]>();
     diffData?.files.forEach((file) => {
@@ -327,61 +330,29 @@ function App() {
     return map;
   }, [diffData]);
 
-  // Compute merged chunks only for currently rendered files
+  // Recompute merged chunks for the current fetched diff only.
   useEffect(() => {
     if (!diffData) {
-      setMergedChunksByFile(new Map());
+      setMergedChunksState(EMPTY_MERGED_CHUNKS_STATE);
       return;
     }
 
-    setMergedChunksByFile((prev) => {
-      let changed = false;
-      const next = new Map(prev);
-      const validPaths = new Set(diffData.files.map((file) => file.path));
-
-      next.forEach((_value, path) => {
-        if (!validPaths.has(path)) {
-          next.delete(path);
-          changed = true;
-        }
-      });
-
-      renderedFilePaths.forEach((path) => {
-        if (next.has(path)) return;
-        const file = filesByPath.get(path);
-        if (!file) return;
-        next.set(path, getMergedChunksRef.current(file));
-        changed = true;
-      });
-
-      return changed ? next : prev;
-    });
-  }, [diffData, filesByPath, renderedFilePaths]);
-
-  // Recompute merged chunks only for the file that changed
-  useEffect(() => {
-    if (!diffData || !lastUpdatedFilePath) return;
-    const file = filesByPath.get(lastUpdatedFilePath);
-    if (!file) return;
-
-    setMergedChunksByFile((prev) => {
-      if (!prev.has(file.path)) {
-        return prev;
-      }
-      const next = new Map(prev);
-      next.set(file.path, getMergedChunksRef.current(file));
-      return next;
-    });
-  }, [diffData, filesByPath, lastUpdatedFilePath, lastUpdatedAt]);
+    setMergedChunksState(
+      buildMergedChunksState(diffDataVersion, renderedFilePaths, filesByPath, (file) =>
+        getMergedChunksRef.current(file),
+      ),
+    );
+  }, [diffData, diffDataVersion, filesByPath, renderedFilePaths, lastUpdatedAt]);
 
   // Create files with merged chunks for keyboard navigation
   const navigableFiles = useMemo(() => {
     if (!diffData) return [];
     return diffData.files.map((file) => ({
       ...file,
-      chunks: mergedChunksByFile.get(file.path) || file.chunks,
+      chunks:
+        getMergedChunksForVersion(mergedChunksState, diffDataVersion, file.path) || file.chunks,
     }));
-  }, [diffData, mergedChunksByFile]);
+  }, [diffData, diffDataVersion, mergedChunksState]);
 
   // State to trigger comment creation from keyboard
   const [commentTrigger, setCommentTrigger] = useState<{
@@ -499,6 +470,7 @@ function App() {
         if (!response.ok) throw new Error('Failed to fetch diff data');
         const data = (await response.json()) as DiffResponse;
         setDiffData(data);
+        setDiffDataVersion((prev) => prev + 1);
 
         // Update resolved revision state from server response
         setResolvedBaseRevision(
@@ -1086,7 +1058,9 @@ function App() {
           >
             {diffData.files.map((file, fileIndex) => {
               const fileThreads = threadsByFile.get(file.path) ?? EMPTY_COMMENT_THREADS;
-              const mergedChunks = mergedChunksByFile.get(file.path) ?? EMPTY_MERGED_CHUNKS;
+              const mergedChunks =
+                getMergedChunksForVersion(mergedChunksState, diffDataVersion, file.path) ??
+                EMPTY_MERGED_CHUNKS;
               const isRendered = renderedFilePaths.has(file.path);
               return (
                 <div
