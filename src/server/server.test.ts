@@ -376,6 +376,40 @@ describe('Server Integration Tests', () => {
       expect(data.requestedBaseCommitish).toBe('origin/main');
     });
 
+    it('GET /api/diff caches results per revision pair instead of reusing the last request', async () => {
+      const result = await startServer({
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
+        preferredPort: 9032,
+      });
+      servers.push(result.server);
+
+      const parser = parserInstances.at(-1);
+      parser?.parseDiff.mockClear();
+
+      const firstResponse = await fetch(
+        `http://localhost:${result.port}/api/diff?base=main&target=feature`,
+      );
+      expect(firstResponse.ok).toBe(true);
+
+      const secondResponse = await fetch(
+        `http://localhost:${result.port}/api/diff?base=HEAD%5E&target=HEAD`,
+      );
+      expect(secondResponse.ok).toBe(true);
+
+      const thirdResponse = await fetch(
+        `http://localhost:${result.port}/api/diff?base=main&target=feature`,
+      );
+      expect(thirdResponse.ok).toBe(true);
+
+      expect(parser?.parseDiff).toHaveBeenCalledTimes(1);
+      expect(parser?.parseDiff).toHaveBeenNthCalledWith(
+        1,
+        { targetCommitish: 'feature', baseCommitish: 'main' },
+        false,
+        undefined,
+      );
+    });
+
     it('GET /api/diff returns comment import payload when configured', async () => {
       const importedComments: CommentImport[] = [
         {

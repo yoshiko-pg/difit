@@ -30,7 +30,11 @@ import {
   type GeneratedStatusResponse,
   type RevisionsResponse,
 } from '@/types/diff.js';
-import { createDiffSelection, diffSelectionsEqual } from '../utils/diffSelection.js';
+import {
+  createDiffSelection,
+  diffSelectionsEqual,
+  getDiffSelectionKey,
+} from '../utils/diffSelection.js';
 
 interface ServerOptions {
   selection?: DiffSelection;
@@ -50,6 +54,13 @@ interface ServerOptions {
 
 const GENERATED_STATUS_CACHE_TTL_MS = 60_000;
 
+function createDiffCacheKey(
+  selection: DiffSelection,
+  ignoreWhitespace: boolean,
+) {
+  return `${getDiffSelectionKey(selection)}\u0000${ignoreWhitespace ? '1' : '0'}`;
+}
+
 export async function startServer(
   options: ServerOptions,
 ): Promise<{ port: number; url: string; isEmpty?: boolean; server?: Server }> {
@@ -68,9 +79,8 @@ export async function startServer(
     string,
     { value: GeneratedStatusResponse; expiresAt: number }
   >();
-
-  let diffDataCache: DiffResponse | null = null;
-  let currentIgnoreWhitespace = options.ignoreWhitespace || false;
+  const diffDataCache = new Map<string, DiffResponse>();
+  const initialIgnoreWhitespace = options.ignoreWhitespace || false;
   const diffMode = normalizeDiffViewMode(options.mode);
   const parseBaseMode = (value: unknown): BaseMode | undefined => {
     if (value === 'merge-base') {
@@ -99,20 +109,25 @@ export async function startServer(
   }
 
   // Generate initial diff data for isEmpty check
+  let initialDiffData: DiffResponse;
   if (options.stdinDiff) {
     // Parse stdin diff directly
-    diffDataCache = parser.parseStdinDiff(options.stdinDiff);
+    initialDiffData = parser.parseStdinDiff(options.stdinDiff);
   } else {
-    diffDataCache = await parser.parseDiff(
+    initialDiffData = await parser.parseDiff(
       initialSelection,
-      currentIgnoreWhitespace,
+      initialIgnoreWhitespace,
       options.contextLines,
+    );
+    diffDataCache.set(
+      createDiffCacheKey(initialSelection, initialIgnoreWhitespace),
+      initialDiffData,
     );
   }
 
   // Function to invalidate cache when file changes are detected
   const invalidateCache = () => {
-    diffDataCache = null;
+    diffDataCache.clear();
     generatedStatusCache.clear();
     parser.clearResolvedCommitCache();
   };
@@ -160,36 +175,40 @@ export async function startServer(
     const shouldIncludeCommentImports =
       initialCommentImports.length > 0 &&
       (Boolean(options.stdinDiff) || diffSelectionsEqual(requestedSelection, initialSelection));
+    currentSelection = requestedSelection;
 
-    // Check if revisions or whitespace setting changed
-    const revisionsChanged = !diffSelectionsEqual(requestedSelection, currentSelection);
-    const whitespaceChanged = ignoreWhitespace !== currentIgnoreWhitespace;
-
-    // Regenerate diff data if cache is invalid or settings changed
-    if (!diffDataCache || ((revisionsChanged || whitespaceChanged) && !options.stdinDiff)) {
-      currentIgnoreWhitespace = ignoreWhitespace;
-      currentSelection = requestedSelection;
-      diffDataCache = await parser.parseDiff(
-        requestedSelection,
-        ignoreWhitespace,
-        options.contextLines,
-      );
-      generatedStatusCache.clear();
+    let responseDiffData = initialDiffData;
+    if (!options.stdinDiff) {
+      const cacheKey = createDiffCacheKey(requestedSelection, ignoreWhitespace);
+      const cached = diffDataCache.get(cacheKey);
+      if (cached) {
+        responseDiffData = cached;
+      } else {
+        responseDiffData = await parser.parseDiff(
+          requestedSelection,
+          ignoreWhitespace,
+          options.contextLines,
+        );
+        diffDataCache.set(cacheKey, responseDiffData);
+        generatedStatusCache.clear();
+      }
     }
 
-    const baseCommitish = diffDataCache.baseCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
+    const baseCommitish =
+      responseDiffData.baseCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
     const targetCommitish =
-      diffDataCache.targetCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
+      responseDiffData.targetCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
     const requestedBaseCommitish =
-      diffDataCache.requestedBaseCommitish ??
-      (currentSelection.baseCommitish || (options.stdinDiff ? 'stdin' : undefined));
+      responseDiffData.requestedBaseCommitish ??
+      (requestedSelection.baseCommitish || (options.stdinDiff ? 'stdin' : undefined));
     const requestedTargetCommitish =
-      diffDataCache.requestedTargetCommitish ??
-      (currentSelection.targetCommitish || (options.stdinDiff ? 'stdin' : undefined));
-    const requestedBaseMode = diffDataCache.requestedBaseMode ?? currentSelection.baseMode;
+      responseDiffData.requestedTargetCommitish ??
+      (requestedSelection.targetCommitish || (options.stdinDiff ? 'stdin' : undefined));
+    const requestedBaseMode =
+      responseDiffData.requestedBaseMode ?? requestedSelection.baseMode;
 
     res.json({
-      ...diffDataCache,
+      ...responseDiffData,
       ignoreWhitespace,
       mode: diffMode,
       openInEditorAvailable: !options.stdinDiff,
@@ -662,7 +681,7 @@ export async function startServer(
   }
 
   // Check if diff is empty and skip browser opening
-  if (diffDataCache?.isEmpty) {
+  if (initialDiffData.isEmpty) {
     // Don't open browser if no differences found
   } else if (options.openBrowser) {
     try {
@@ -672,7 +691,7 @@ export async function startServer(
     }
   }
 
-  return { port, url, isEmpty: diffDataCache?.isEmpty || false, server };
+  return { port, url, isEmpty: initialDiffData.isEmpty || false, server };
 }
 
 async function startServerWithFallback(

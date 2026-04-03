@@ -122,6 +122,10 @@ function App() {
   const hasUserSelectedRevisionRef = useRef(false);
   const currentRequestedBaseModeRef = useRef(selectedRevision.baseMode);
   currentRequestedBaseModeRef.current = diffData?.requestedBaseMode ?? selectedRevision.baseMode;
+  const selectedRevisionRef = useRef(selectedRevision);
+  selectedRevisionRef.current = selectedRevision;
+  const diffRequestIdRef = useRef(0);
+  const activeDiffAbortControllerRef = useRef<AbortController | null>(null);
   const resolvedSelection = useMemo<DiffSelection | null>(() => {
     if (!diffData?.baseCommitish || !diffData?.targetCommitish) {
       return null;
@@ -458,17 +462,32 @@ function App() {
 
   const fetchDiffData = useCallback(
     async (selection?: DiffSelection) => {
+      const requestId = diffRequestIdRef.current + 1;
+      diffRequestIdRef.current = requestId;
+      activeDiffAbortControllerRef.current?.abort();
+      const controller = new AbortController();
+      activeDiffAbortControllerRef.current = controller;
       try {
+        const requestedSelection =
+          selection ??
+          (hasUserSelectedRevisionRef.current ? selectedRevisionRef.current : undefined);
         const params = new URLSearchParams({
           ignoreWhitespace: String(ignoreWhitespace),
         });
-        if (selection?.baseCommitish) params.set('base', selection.baseCommitish);
-        if (selection?.targetCommitish) params.set('target', selection.targetCommitish);
-        if (selection?.baseMode === 'merge-base') params.set('baseMode', selection.baseMode);
+        if (requestedSelection?.baseCommitish) params.set('base', requestedSelection.baseCommitish);
+        if (requestedSelection?.targetCommitish)
+          params.set('target', requestedSelection.targetCommitish);
+        if (requestedSelection?.baseMode === 'merge-base')
+          params.set('baseMode', requestedSelection.baseMode);
 
-        const response = await fetch(`/api/diff?${params}`);
+        const response = await fetch(`/api/diff?${params}`, {
+          signal: controller.signal,
+        });
         if (!response.ok) throw new Error('Failed to fetch diff data');
         const data = (await response.json()) as DiffResponse;
+        if (diffRequestIdRef.current !== requestId) {
+          return;
+        }
         setDiffData(data);
         setDiffDataVersion((prev) => prev + 1);
 
@@ -495,9 +514,20 @@ function App() {
 
         // Lock files are now automatically marked as viewed by useViewedFiles hook
       } catch (err) {
+        if ((err as { name?: string } | null)?.name === 'AbortError') {
+          return;
+        }
+        if (diffRequestIdRef.current !== requestId) {
+          return;
+        }
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
-        setLoading(false);
+        if (activeDiffAbortControllerRef.current === controller) {
+          activeDiffAbortControllerRef.current = null;
+        }
+        if (diffRequestIdRef.current === requestId) {
+          setLoading(false);
+        }
       }
     },
     [ignoreWhitespace],
@@ -506,6 +536,12 @@ function App() {
   useEffect(() => {
     void fetchDiffData();
   }, [fetchDiffData]);
+
+  useEffect(() => {
+    return () => {
+      activeDiffAbortControllerRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (isMobile && diffMode !== 'unified') {
@@ -555,6 +591,7 @@ function App() {
       if (diffSelectionsEqual(nextSelection, selectedRevision)) return;
 
       hasUserSelectedRevisionRef.current = true;
+      selectedRevisionRef.current = nextSelection;
       setSelectedRevision(nextSelection);
       setLoading(true);
       setError(null);
