@@ -410,6 +410,48 @@ describe('Server Integration Tests', () => {
       );
     });
 
+    it('GET /api/diff evicts least recently used cached diff responses', async () => {
+      const result = await startServer({
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
+        preferredPort: 9033,
+      });
+      servers.push(result.server);
+
+      const parser = parserInstances.at(-1);
+      parser?.parseDiff.mockClear();
+
+      const revisionPairs = [
+        ['base-a', 'target-a'],
+        ['base-b', 'target-b'],
+        ['base-c', 'target-c'],
+        ['base-d', 'target-d'],
+        ['base-e', 'target-e'],
+        ['base-f', 'target-f'],
+        ['base-g', 'target-g'],
+        ['base-h', 'target-h'],
+        ['base-i', 'target-i'],
+      ] as const;
+
+      for (const [base, target] of revisionPairs) {
+        const response = await fetch(
+          `http://localhost:${result.port}/api/diff?base=${base}&target=${target}`,
+        );
+        expect(response.ok).toBe(true);
+      }
+
+      const revisitedResponse = await fetch(
+        `http://localhost:${result.port}/api/diff?base=base-a&target=target-a`,
+      );
+      expect(revisitedResponse.ok).toBe(true);
+
+      expect(parser?.parseDiff).toHaveBeenCalledTimes(10);
+      expect(parser?.parseDiff).toHaveBeenLastCalledWith(
+        { targetCommitish: 'target-a', baseCommitish: 'base-a' },
+        false,
+        undefined,
+      );
+    });
+
     it('GET /api/diff returns comment import payload when configured', async () => {
       const importedComments: CommentImport[] = [
         {

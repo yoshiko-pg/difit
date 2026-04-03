@@ -53,12 +53,43 @@ interface ServerOptions {
 }
 
 const GENERATED_STATUS_CACHE_TTL_MS = 60_000;
+const MAX_DIFF_CACHE_ENTRIES = 8;
 
 function createDiffCacheKey(
   selection: DiffSelection,
   ignoreWhitespace: boolean,
 ) {
   return `${getDiffSelectionKey(selection)}\u0000${ignoreWhitespace ? '1' : '0'}`;
+}
+
+function getCachedDiffResponse(
+  cache: Map<string, DiffResponse>,
+  key: string,
+): DiffResponse | undefined {
+  const cached = cache.get(key);
+  if (!cached) {
+    return undefined;
+  }
+
+  // Refresh insertion order to keep the most recently used entry.
+  cache.delete(key);
+  cache.set(key, cached);
+  return cached;
+}
+
+function setCachedDiffResponse(cache: Map<string, DiffResponse>, key: string, value: DiffResponse) {
+  if (cache.has(key)) {
+    cache.delete(key);
+  }
+  cache.set(key, value);
+
+  while (cache.size > MAX_DIFF_CACHE_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+    if (typeof oldestKey !== 'string') {
+      break;
+    }
+    cache.delete(oldestKey);
+  }
 }
 
 export async function startServer(
@@ -119,7 +150,8 @@ export async function startServer(
       initialIgnoreWhitespace,
       options.contextLines,
     );
-    diffDataCache.set(
+    setCachedDiffResponse(
+      diffDataCache,
       createDiffCacheKey(initialSelection, initialIgnoreWhitespace),
       initialDiffData,
     );
@@ -180,7 +212,7 @@ export async function startServer(
     let responseDiffData = initialDiffData;
     if (!options.stdinDiff) {
       const cacheKey = createDiffCacheKey(requestedSelection, ignoreWhitespace);
-      const cached = diffDataCache.get(cacheKey);
+      const cached = getCachedDiffResponse(diffDataCache, cacheKey);
       if (cached) {
         responseDiffData = cached;
       } else {
@@ -189,7 +221,7 @@ export async function startServer(
           ignoreWhitespace,
           options.contextLines,
         );
-        diffDataCache.set(cacheKey, responseDiffData);
+        setCachedDiffResponse(diffDataCache, cacheKey, responseDiffData);
         generatedStatusCache.clear();
       }
     }
