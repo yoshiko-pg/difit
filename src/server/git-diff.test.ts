@@ -7,6 +7,7 @@ vi.mock('simple-git', () => ({
   simpleGit: vi.fn(() => ({
     revparse: vi.fn(),
     diff: vi.fn(),
+    raw: vi.fn(),
   })),
 }));
 
@@ -1302,6 +1303,11 @@ index abc123..def456 100644
         commit: 'abcdef1...1234567',
         files: [],
         isEmpty: true,
+        baseCommitish: 'abcdef1',
+        targetCommitish: '1234567',
+        requestedBaseCommitish: 'HEAD~1',
+        requestedTargetCommitish: 'HEAD',
+        requestedBaseMode: undefined,
       });
     });
 
@@ -1326,6 +1332,44 @@ index abc123..def456 100644
         commit: 'abcdef1...1234567',
         files: [],
         isEmpty: true,
+        baseCommitish: 'abcdef1',
+        targetCommitish: '1234567',
+        requestedBaseCommitish: 'codex/comment-thread^',
+        requestedTargetCommitish: 'codex/comment-thread',
+        requestedBaseMode: undefined,
+      });
+    });
+
+    it('uses merge-base when baseMode is merge-base', async () => {
+      const gitDiff = (parser as any).git.diff;
+      const gitRevparse = (parser as any).git.revparse;
+      const gitRaw = (parser as any).git.raw;
+
+      gitRaw.mockResolvedValue('fedcba9876543210fedcba9876543210fedcba98\n');
+      gitRevparse.mockResolvedValueOnce('fedcba9876543210fedcba9876543210fedcba98');
+      gitDiff.mockResolvedValue('');
+
+      const response = await parser.parseDiff({
+        targetCommitish: '.',
+        baseCommitish: 'origin/main',
+        baseMode: 'merge-base',
+      });
+
+      expect(gitRaw).toHaveBeenCalledWith(['merge-base', 'HEAD', 'origin/main']);
+      expect(gitDiff).toHaveBeenCalledWith([
+        'fedcba9876543210fedcba9876543210fedcba98',
+        '--no-ext-diff',
+        '--color=never',
+      ]);
+      expect(response).toEqual({
+        commit: 'fedcba9 vs Working Directory (all uncommitted changes)',
+        files: [],
+        isEmpty: true,
+        baseCommitish: 'fedcba9',
+        targetCommitish: '.',
+        requestedBaseCommitish: 'origin/main',
+        requestedTargetCommitish: '.',
+        requestedBaseMode: 'merge-base',
       });
     });
   });

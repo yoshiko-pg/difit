@@ -20,6 +20,7 @@ import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
 
 import {
+  type BaseMode,
   type CommentImport,
   type Comment,
   type CommentThread,
@@ -71,6 +72,13 @@ export async function startServer(
   let diffDataCache: DiffResponse | null = null;
   let currentIgnoreWhitespace = options.ignoreWhitespace || false;
   const diffMode = normalizeDiffViewMode(options.mode);
+  const parseBaseMode = (value: unknown): BaseMode | undefined => {
+    if (value === 'merge-base') {
+      return 'merge-base';
+    }
+
+    return undefined;
+  };
 
   app.use(express.json());
   app.use(express.text()); // For sendBeacon text/plain requests
@@ -137,9 +145,17 @@ export async function startServer(
 
   app.get('/api/diff', async (req, res) => {
     const ignoreWhitespace = req.query.ignoreWhitespace === 'true';
+    const hasBase = typeof req.query.base === 'string';
+    const hasTarget = typeof req.query.target === 'string';
+    const hasBaseMode = typeof req.query.baseMode === 'string';
     const requestedSelection = createDiffSelection(
-      (req.query.base as string) || initialSelection.baseCommitish,
-      (req.query.target as string) || initialSelection.targetCommitish,
+      hasBase ? (req.query.base as string) : currentSelection.baseCommitish,
+      hasTarget ? (req.query.target as string) : currentSelection.targetCommitish,
+      hasBaseMode
+        ? parseBaseMode(req.query.baseMode)
+        : hasBase || hasTarget
+          ? undefined
+          : currentSelection.baseMode,
     );
     const shouldIncludeCommentImports =
       initialCommentImports.length > 0 &&
@@ -161,46 +177,27 @@ export async function startServer(
       generatedStatusCache.clear();
     }
 
-    // Resolve symbolic refs like HEAD/HEAD^ to actual hashes for the UI
-    let resolvedBase = currentSelection.baseCommitish || 'stdin';
-    let resolvedTarget = currentSelection.targetCommitish || 'stdin';
-
-    if (
-      !options.stdinDiff &&
-      currentSelection.baseCommitish &&
-      !['working', 'staged', '.'].includes(currentSelection.baseCommitish)
-    ) {
-      try {
-        resolvedBase = await parser.resolveCommitish(currentSelection.baseCommitish);
-      } catch {
-        // If resolution fails, keep original value
-      }
-    }
-
-    if (
-      !options.stdinDiff &&
-      currentSelection.targetCommitish &&
-      !['working', 'staged', '.'].includes(currentSelection.targetCommitish)
-    ) {
-      try {
-        resolvedTarget = await parser.resolveCommitish(currentSelection.targetCommitish);
-      } catch {
-        // If resolution fails, keep original value
-      }
-    }
-
-    const requestedBaseCommitish = currentSelection.baseCommitish || 'stdin';
-    const requestedTargetCommitish = currentSelection.targetCommitish || 'stdin';
+    const baseCommitish = diffDataCache.baseCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
+    const targetCommitish =
+      diffDataCache.targetCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
+    const requestedBaseCommitish =
+      diffDataCache.requestedBaseCommitish ??
+      (currentSelection.baseCommitish || (options.stdinDiff ? 'stdin' : undefined));
+    const requestedTargetCommitish =
+      diffDataCache.requestedTargetCommitish ??
+      (currentSelection.targetCommitish || (options.stdinDiff ? 'stdin' : undefined));
+    const requestedBaseMode = diffDataCache.requestedBaseMode ?? currentSelection.baseMode;
 
     res.json({
       ...diffDataCache,
       ignoreWhitespace,
       mode: diffMode,
       openInEditorAvailable: !options.stdinDiff,
-      baseCommitish: resolvedBase,
-      targetCommitish: resolvedTarget,
+      baseCommitish,
+      targetCommitish,
       requestedBaseCommitish,
       requestedTargetCommitish,
+      requestedBaseMode,
       clearComments: options.clearComments,
       repositoryId,
       commentImports: shouldIncludeCommentImports ? initialCommentImports : undefined,

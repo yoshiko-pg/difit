@@ -2,6 +2,7 @@ import simpleGit from 'simple-git';
 
 import { validateDiffArguments, createCommitRangeString } from '../cli/utils.js';
 import type { DiffSelection, FileDiff } from '../types/diff.js';
+import { getMergeBaseTargetRef, normalizeBaseMode } from '../utils/diffSelection.js';
 
 export async function loadGitDiff(
   selection: DiffSelection,
@@ -17,6 +18,12 @@ export async function loadGitDiff(
   }
 
   const git = simpleGit(repoPath);
+  const effectiveBaseCommitish =
+    normalizeBaseMode(selection.baseMode) === 'merge-base'
+      ? (
+          await git.raw(['merge-base', getMergeBaseTargetRef(targetCommitish), baseCommitish])
+        ).trim()
+      : baseCommitish;
   let diff: string;
 
   // Handle target special chars (base is always a regular commit)
@@ -25,14 +32,14 @@ export async function loadGitDiff(
     diff = await git.diff(['--name-status']);
   } else if (targetCommitish === 'staged') {
     // Show staged changes against base commit
-    diff = await git.diff(['--cached', baseCommitish, '--name-status']);
+    diff = await git.diff(['--cached', effectiveBaseCommitish, '--name-status']);
   } else if (targetCommitish === '.') {
     // Show all uncommitted changes against base commit
-    diff = await git.diff([baseCommitish, '--name-status']);
+    diff = await git.diff([effectiveBaseCommitish, '--name-status']);
   } else {
     // Both are regular commits: standard commit-to-commit comparison
     diff = await git.diff([
-      createCommitRangeString(baseCommitish, targetCommitish),
+      createCommitRangeString(effectiveBaseCommitish, targetCommitish),
       '--name-status',
     ]);
 
@@ -68,15 +75,15 @@ export async function loadGitDiff(
         fileDiff = await git.diff([...contextArgs, '--', path]);
       } else if (targetCommitish === 'staged') {
         // Show staged changes against base commit
-        fileDiff = await git.diff(['--cached', baseCommitish, ...contextArgs, '--', path]);
+        fileDiff = await git.diff(['--cached', effectiveBaseCommitish, ...contextArgs, '--', path]);
       } else if (targetCommitish === '.') {
         // Show all uncommitted changes against base commit
-        fileDiff = await git.diff([baseCommitish, ...contextArgs, '--', path]);
+        fileDiff = await git.diff([effectiveBaseCommitish, ...contextArgs, '--', path]);
       } else {
         try {
           // Both are regular commits: standard commit-to-commit comparison
           fileDiff = await git.diff([
-            createCommitRangeString(baseCommitish, targetCommitish),
+            createCommitRangeString(effectiveBaseCommitish, targetCommitish),
             ...contextArgs,
             '--',
             path,

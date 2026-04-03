@@ -100,6 +100,9 @@ describe('DiffQuickMenu', () => {
     expect(screen.getByRole('button', { name: 'HEAD...Uncommitted' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'main...Uncommitted' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'origin/main...Uncommitted' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'origin/main (merge-base)...Uncommitted' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'HEAD' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'HEAD...Staging' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Staging...Working' })).not.toBeInTheDocument();
@@ -163,5 +166,43 @@ describe('DiffQuickMenu', () => {
       baseCommitish: 'origin/main',
       targetCommitish: '.',
     });
+  });
+
+  it('selects merge-base quick preset when available', () => {
+    const onSelectDiff = vi.fn();
+    render(
+      createElement(DiffQuickMenu, {
+        options,
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
+        onSelectDiff,
+        onOpenAdvanced: vi.fn(),
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'origin/main (merge-base)...Uncommitted' }));
+
+    expect(onSelectDiff).toHaveBeenCalledWith({
+      baseCommitish: 'origin/main',
+      targetCommitish: '.',
+      baseMode: 'merge-base',
+    });
+  });
+
+  it('shows merge-base in the current label', () => {
+    render(
+      createElement(DiffQuickMenu, {
+        options,
+        selection: { baseCommitish: 'origin/main', targetCommitish: '.', baseMode: 'merge-base' },
+        onSelectDiff: vi.fn(),
+        onOpenAdvanced: vi.fn(),
+      }),
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Revision menu: origin/main (merge-base)...Uncommitted Changes',
+      }),
+    ).toBeInTheDocument();
   });
 });

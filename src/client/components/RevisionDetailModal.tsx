@@ -81,7 +81,7 @@ export function RevisionDetailModal({
   if (!isOpen) return null;
 
   const handleApply = () => {
-    onApply(localSelection);
+    onApply(createDiffSelection(localSelection.baseCommitish, localSelection.targetCommitish));
     onClose();
   };
 

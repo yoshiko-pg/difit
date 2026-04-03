@@ -41,6 +41,11 @@ vi.mock('./git-diff.js', () => {
     parseDiff = vi.fn().mockResolvedValue({
       targetCommit: 'abc123',
       baseCommit: 'def456',
+      baseCommitish: 'def4567',
+      targetCommitish: 'abc1234',
+      requestedBaseCommitish: 'HEAD^',
+      requestedTargetCommitish: 'HEAD',
+      requestedBaseMode: undefined,
       targetMessage: 'Test commit',
       baseMessage: 'Previous commit',
       files: [
@@ -301,6 +306,8 @@ describe('Server Integration Tests', () => {
       expect(data.files[0]).toHaveProperty('path', 'test.js');
       expect(data).toHaveProperty('ignoreWhitespace', false);
       expect(data).toHaveProperty('openInEditorAvailable', true);
+      expect(data).toHaveProperty('requestedBaseCommitish', 'HEAD^');
+      expect(data).toHaveProperty('requestedTargetCommitish', 'HEAD');
     });
 
     it('GET /api/diff?ignoreWhitespace=true handles whitespace ignore', async () => {
@@ -332,6 +339,41 @@ describe('Server Integration Tests', () => {
         true,
         2,
       );
+    });
+
+    it('GET /api/diff passes baseMode through to the parser', async () => {
+      const parser = parserInstances.at(-1);
+      parser?.parseDiff.mockClear();
+      parser?.parseDiff.mockResolvedValueOnce({
+        targetCommit: 'abc123',
+        baseCommit: 'def456',
+        baseCommitish: 'fedcba9',
+        targetCommitish: '.',
+        requestedBaseCommitish: 'origin/main',
+        requestedTargetCommitish: '.',
+        requestedBaseMode: 'merge-base',
+        files: [],
+        isEmpty: true,
+      });
+
+      const response = await fetch(
+        `http://localhost:${port}/api/diff?base=origin%2Fmain&target=.&baseMode=merge-base`,
+      );
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(parser?.parseDiff).toHaveBeenCalledWith(
+        {
+          targetCommitish: '.',
+          baseCommitish: 'origin/main',
+          baseMode: 'merge-base',
+        },
+        false,
+        undefined,
+      );
+      expect(data.requestedBaseMode).toBe('merge-base');
+      expect(data.baseCommitish).toBe('fedcba9');
+      expect(data.requestedBaseCommitish).toBe('origin/main');
     });
 
     it('GET /api/diff returns comment import payload when configured', async () => {

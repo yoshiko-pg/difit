@@ -113,6 +113,27 @@ function App() {
   const [resolvedBaseRevision, setResolvedBaseRevision] = useState<string>('');
   const [resolvedTargetRevision, setResolvedTargetRevision] = useState<string>('');
   const hasUserSelectedRevisionRef = useRef(false);
+  const requestedSelection = useMemo<DiffSelection | null>(() => {
+    if (!diffData) {
+      return null;
+    }
+
+    const baseCommitish = diffData.requestedBaseCommitish ?? diffData.baseCommitish;
+    const targetCommitish = diffData.requestedTargetCommitish ?? diffData.targetCommitish;
+
+    if (!baseCommitish || !targetCommitish) {
+      return null;
+    }
+
+    return createDiffSelection(baseCommitish, targetCommitish, diffData.requestedBaseMode);
+  }, [diffData]);
+  const requestedSelectionKey = useMemo(() => {
+    if (!requestedSelection) {
+      return null;
+    }
+
+    return getDiffSelectionKey(requestedSelection);
+  }, [requestedSelection]);
 
   const { settings, updateSettings } = useAppearanceSettings();
   const { isMobile, isDesktop } = useViewport();
@@ -130,11 +151,12 @@ function App() {
     generateThreadPrompt,
     generateAllCommentsPrompt,
   } = useDiffComments(
-    diffData?.baseCommitish,
-    diffData?.targetCommitish,
+    requestedSelection?.baseCommitish,
+    requestedSelection?.targetCommitish,
     diffData?.commit, // Using commit as currentCommitHash
     undefined, // branchToHash map - could be populated from server data
     diffData?.repositoryId, // Repository identifier for storage isolation
+    requestedSelection?.baseMode,
   );
 
   const normalizedThreads = useMemo<CommentThread[]>(
@@ -176,24 +198,20 @@ function App() {
   // Viewed files management
   const { viewedFiles, hasLoadedInitialViewedFiles, toggleFileViewed, clearViewedFiles } =
     useViewedFiles(
-      diffData?.baseCommitish,
-      diffData?.targetCommitish,
+      requestedSelection?.baseCommitish,
+      requestedSelection?.targetCommitish,
       diffData?.commit,
       undefined,
       diffData?.files,
       diffData?.repositoryId, // Repository identifier for storage isolation
       settings.autoViewedPatterns,
+      requestedSelection?.baseMode,
     );
 
   // Reset initialization flag when diff context changes
   useEffect(() => {
     collapsedInitializedRef.current = false;
-  }, [
-    diffData?.repositoryId,
-    diffData?.baseCommitish,
-    diffData?.targetCommitish,
-    diffData?.commit,
-  ]);
+  }, [diffData?.repositoryId, requestedSelectionKey, diffData?.commit]);
 
   // Initialize collapsed files from viewed files (only once per diff)
   useEffect(() => {
@@ -475,6 +493,7 @@ function App() {
         });
         if (selection?.baseCommitish) params.set('base', selection.baseCommitish);
         if (selection?.targetCommitish) params.set('target', selection.targetCommitish);
+        if (selection?.baseMode === 'merge-base') params.set('baseMode', selection.baseMode);
 
         const response = await fetch(`/api/diff?${params}`);
         if (!response.ok) throw new Error('Failed to fetch diff data');
@@ -482,14 +501,18 @@ function App() {
         setDiffData(data);
 
         // Update resolved revision state from server response
-        if (data.baseCommitish) setResolvedBaseRevision(data.baseCommitish);
+        if (data.baseCommitish && data.requestedBaseMode !== 'merge-base') {
+          setResolvedBaseRevision(data.baseCommitish);
+        }
         if (data.targetCommitish) setResolvedTargetRevision(data.targetCommitish);
 
         if (!hasUserSelectedRevisionRef.current) {
           const requestedBase = data.requestedBaseCommitish ?? data.baseCommitish;
           const requestedTarget = data.requestedTargetCommitish ?? data.targetCommitish;
           if (requestedBase && requestedTarget) {
-            setSelectedRevision(createDiffSelection(requestedBase, requestedTarget));
+            setSelectedRevision(
+              createDiffSelection(requestedBase, requestedTarget, data.requestedBaseMode),
+            );
           }
         }
 

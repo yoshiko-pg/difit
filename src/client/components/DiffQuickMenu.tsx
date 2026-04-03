@@ -18,7 +18,11 @@ import { ChevronDown, ChevronLeft, GitBranch } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { type CommitInfo, type DiffSelection, type RevisionsResponse } from '../../types/diff';
-import { createDiffSelection, diffSelectionsEqual } from '../../utils/diffSelection';
+import {
+  createDiffSelection,
+  diffSelectionsEqual,
+  normalizeBaseMode,
+} from '../../utils/diffSelection';
 
 interface DiffQuickMenuProps {
   options: RevisionsResponse;
@@ -45,6 +49,10 @@ export const getPreviousCommitPreset = (targetRevision: string): DiffSelection =
 };
 
 const isPreviousPair = (selection: DiffSelection) => {
+  if (normalizeBaseMode(selection.baseMode) === 'merge-base') {
+    return false;
+  }
+
   return (
     Boolean(selection.targetCommitish) &&
     selection.baseCommitish === `${selection.targetCommitish}^`
@@ -182,7 +190,9 @@ export function DiffQuickMenu({
       selection.targetCommitish,
       resolvedTargetRevision,
     );
-    return `${baseLabel}...${targetLabel}`;
+    const mergeBaseSuffix =
+      normalizeBaseMode(selection.baseMode) === 'merge-base' ? ' (merge-base)' : '';
+    return `${baseLabel}${mergeBaseSuffix}...${targetLabel}`;
   }, [options, selection, resolvedBaseRevision, resolvedTargetRevision]);
 
   const mainBranch = useMemo(
@@ -201,6 +211,11 @@ export function DiffQuickMenu({
   );
   const originUncommittedPreset = useMemo(
     () => (originDefaultBranch ? createDiffSelection(originDefaultBranch, '.') : null),
+    [originDefaultBranch],
+  );
+  const originMergeBaseUncommittedPreset = useMemo(
+    () =>
+      originDefaultBranch ? createDiffSelection(originDefaultBranch, '.', 'merge-base') : null,
     [originDefaultBranch],
   );
   const previousCommitPreset = useMemo(
@@ -320,6 +335,17 @@ export function DiffQuickMenu({
                   className={getItemClasses(isPresetActive(originUncommittedPreset), false)}
                 >
                   {originDefaultBranch}...Uncommitted
+                </button>
+              )}
+              {originDefaultBranch && originMergeBaseUncommittedPreset && (
+                <button
+                  onClick={() => handleSelect(originMergeBaseUncommittedPreset)}
+                  className={getItemClasses(
+                    isPresetActive(originMergeBaseUncommittedPreset),
+                    false,
+                  )}
+                >
+                  {originDefaultBranch} (merge-base)...Uncommitted
                 </button>
               )}
             </div>

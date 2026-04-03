@@ -9,6 +9,7 @@ import {
   type DiffResponse,
   type DiffSelection,
 } from '../types/diff.js';
+import { getMergeBaseTargetRef, normalizeBaseMode } from '../utils/diffSelection.js';
 
 import { isGeneratedFile } from './generated-file-check.js';
 
@@ -44,12 +45,24 @@ export class GitDiffParser {
     return normalizedFilepath;
   }
 
+  private async resolveBaseCommitish(selection: DiffSelection): Promise<string> {
+    if (normalizeBaseMode(selection.baseMode) !== 'merge-base') {
+      return selection.baseCommitish;
+    }
+
+    const targetRef = getMergeBaseTargetRef(selection.targetCommitish);
+    const mergeBase = await this.git.raw(['merge-base', targetRef, selection.baseCommitish]);
+    return mergeBase.trim();
+  }
+
   async parseDiff(
     selection: DiffSelection,
     ignoreWhitespace = false,
     contextLines?: number,
   ): Promise<DiffResponse> {
     const { targetCommitish, baseCommitish } = selection;
+    const requestedBaseMode =
+      normalizeBaseMode(selection.baseMode) === 'merge-base' ? 'merge-base' : undefined;
 
     try {
       // Validate arguments
@@ -58,8 +71,11 @@ export class GitDiffParser {
         throw new Error(validation.error);
       }
 
+      const effectiveBaseCommitish = await this.resolveBaseCommitish(selection);
       let resolvedCommit: string;
       let diffArgs: string[];
+      let resolvedBaseCommitish = effectiveBaseCommitish;
+      let resolvedTargetCommitish = targetCommitish;
 
       // Handle target special chars (base is always a regular commit)
       if (targetCommitish === 'working') {
@@ -68,19 +84,23 @@ export class GitDiffParser {
         diffArgs = [];
       } else if (targetCommitish === 'staged') {
         // Show staged changes against base commit
-        const baseHash = await this.git.revparse([baseCommitish]);
+        const baseHash = await this.git.revparse([effectiveBaseCommitish]);
         resolvedCommit = `${shortHash(baseHash)} vs Staging Area (staged changes)`;
-        diffArgs = ['--cached', baseCommitish];
+        resolvedBaseCommitish = shortHash(baseHash);
+        diffArgs = ['--cached', effectiveBaseCommitish];
       } else if (targetCommitish === '.') {
         // Show all uncommitted changes against base commit
-        const baseHash = await this.git.revparse([baseCommitish]);
+        const baseHash = await this.git.revparse([effectiveBaseCommitish]);
         resolvedCommit = `${shortHash(baseHash)} vs Working Directory (all uncommitted changes)`;
-        diffArgs = [baseCommitish];
+        resolvedBaseCommitish = shortHash(baseHash);
+        diffArgs = [effectiveBaseCommitish];
       } else {
         // Both are regular commits: standard commit-to-commit comparison
         const targetHash = await this.git.revparse([targetCommitish]);
-        const baseHash = await this.git.revparse([baseCommitish]);
+        const baseHash = await this.git.revparse([effectiveBaseCommitish]);
         resolvedCommit = createCommitRangeString(shortHash(baseHash), shortHash(targetHash));
+        resolvedBaseCommitish = shortHash(baseHash);
+        resolvedTargetCommitish = shortHash(targetHash);
         diffArgs = [resolvedCommit];
       }
 
@@ -104,6 +124,11 @@ export class GitDiffParser {
         commit: resolvedCommit,
         files,
         isEmpty: files.length === 0,
+        baseCommitish: resolvedBaseCommitish,
+        targetCommitish: resolvedTargetCommitish,
+        requestedBaseCommitish: baseCommitish,
+        requestedTargetCommitish: targetCommitish,
+        requestedBaseMode,
       };
     } catch (error) {
       throw new Error(
