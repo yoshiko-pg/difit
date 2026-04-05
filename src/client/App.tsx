@@ -501,9 +501,9 @@ function App() {
         setDiffData(data);
 
         // Update resolved revision state from server response
-        if (data.baseCommitish && data.requestedBaseMode !== 'merge-base') {
-          setResolvedBaseRevision(data.baseCommitish);
-        }
+        setResolvedBaseRevision(
+          data.baseCommitish && data.requestedBaseMode !== 'merge-base' ? data.baseCommitish : '',
+        );
         if (data.targetCommitish) setResolvedTargetRevision(data.targetCommitish);
 
         if (!hasUserSelectedRevisionRef.current) {

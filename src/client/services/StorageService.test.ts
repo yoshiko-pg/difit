@@ -313,6 +313,11 @@ describe('StorageService - Repository Isolation', () => {
       expect(
         service.getComments('origin/main', '.', 'abc123', undefined, 'repo-1', 'merge-base'),
       ).toEqual(mergeBaseComments);
+
+      const keys = (localStorage as any)._keys;
+      expect(keys).toContain('difit-storage-v1/repo-1/abc123-WORKING');
+      expect(keys).toContain('difit-storage-v1/repo-1/abc123-WORKING-merge-base');
+      expect(keys.some((key: string) => key.endsWith('-direct'))).toBe(false);
     });
   });
 });

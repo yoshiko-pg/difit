@@ -60,7 +60,20 @@ export class StorageService {
         return `_${char.charCodeAt(0).toString(16)}_`;
       });
 
-    return `${encode(baseCommitish)}-${encode(targetCommitish)}-${encode(normalizeBaseMode(baseMode))}`;
+    const baseKey = `${encode(baseCommitish)}-${encode(targetCommitish)}`;
+
+    if (normalizeBaseMode(baseMode) === 'merge-base') {
+      return `${baseKey}-merge-base`;
+    }
+
+    return baseKey;
+  }
+
+  private getFullStorageKey(repositoryId: string | undefined, key: string): string {
+    if (repositoryId) {
+      return `${STORAGE_KEY_PREFIX}/${repositoryId}/${key}`;
+    }
+    return `${STORAGE_KEY_PREFIX}/${key}`;
   }
 
   /**
@@ -122,27 +135,21 @@ export class StorageService {
     repositoryId?: string,
     baseMode?: BaseMode,
   ): string {
-    let normalizedBase: string;
-    let normalizedTarget: string;
-
-    // Special handling for working/staged diffs
-    if (targetCommitish === '.' || targetCommitish === 'working') {
-      normalizedBase = currentCommitHash || baseCommitish;
-      normalizedTarget = 'WORKING';
-    } else if (targetCommitish === 'staged') {
-      normalizedBase = currentCommitHash || baseCommitish;
-      normalizedTarget = 'STAGED';
-    } else {
-      normalizedBase = this.normalizeCommitish(baseCommitish, currentCommitHash, branchToHash);
-      normalizedTarget = this.normalizeCommitish(targetCommitish, currentCommitHash, branchToHash);
-    }
+    const normalizedBase = this.normalizeStorageBase(
+      baseCommitish,
+      targetCommitish,
+      currentCommitHash,
+      branchToHash,
+    );
+    const normalizedTarget = this.normalizeStorageTarget(
+      baseCommitish,
+      targetCommitish,
+      currentCommitHash,
+      branchToHash,
+    );
 
     const key = this.generateStorageKey(normalizedBase, normalizedTarget, baseMode);
-    // Include repository ID in the key for isolation between projects
-    if (repositoryId) {
-      return `${STORAGE_KEY_PREFIX}/${repositoryId}/${key}`;
-    }
-    return `${STORAGE_KEY_PREFIX}/${key}`;
+    return this.getFullStorageKey(repositoryId, key);
   }
 
   /**
@@ -193,6 +200,36 @@ export class StorageService {
       console.error('Error reading diff context data:', error);
       return null;
     }
+  }
+
+  private normalizeStorageBase(
+    baseCommitish: string,
+    targetCommitish: string,
+    currentCommitHash?: string,
+    branchToHash?: Map<string, string>,
+  ): string {
+    if (targetCommitish === '.' || targetCommitish === 'working' || targetCommitish === 'staged') {
+      return currentCommitHash || baseCommitish;
+    }
+
+    return this.normalizeCommitish(baseCommitish, currentCommitHash, branchToHash);
+  }
+
+  private normalizeStorageTarget(
+    _baseCommitish: string,
+    targetCommitish: string,
+    currentCommitHash?: string,
+    branchToHash?: Map<string, string>,
+  ): string {
+    if (targetCommitish === '.' || targetCommitish === 'working') {
+      return 'WORKING';
+    }
+
+    if (targetCommitish === 'staged') {
+      return 'STAGED';
+    }
+
+    return this.normalizeCommitish(targetCommitish, currentCommitHash, branchToHash);
   }
 
   /**

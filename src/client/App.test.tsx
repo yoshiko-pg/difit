@@ -565,6 +565,99 @@ describe('App Component - Diff Mode Persistence', () => {
   });
 });
 
+describe('App Component - Merge-base selection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockConfirm.mockReturnValue(false);
+  });
+
+  it('clears the resolved base revision after switching to a merge-base quick diff', async () => {
+    const initialDiffResponse: DiffResponse = {
+      ...mockDiffResponse,
+      baseCommitish: '88aabb0',
+      targetCommitish: '.',
+      requestedBaseCommitish: 'HEAD',
+      requestedTargetCommitish: '.',
+    };
+    const mergeBaseDiffResponse: DiffResponse = {
+      ...mockDiffResponse,
+      baseCommitish: '1122334',
+      targetCommitish: '.',
+      requestedBaseCommitish: 'origin/main',
+      requestedTargetCommitish: '.',
+      requestedBaseMode: 'merge-base',
+    };
+    const revisionsResponse = {
+      specialOptions: [{ value: '.', label: 'All Uncommitted Changes' }],
+      branches: [],
+      commits: [
+        {
+          hash: '88aabb0fffff1111222233334444555566667777',
+          shortHash: '88aabb0',
+          message: 'stale direct base',
+        },
+        {
+          hash: '1122334fffff1111222233334444555566667777',
+          shortHash: '1122334',
+          message: 'merge base',
+        },
+      ],
+      originDefaultBranch: 'origin/main',
+    };
+
+    vi.mocked(global.fetch).mockImplementation((input) => {
+      const url = String(input);
+
+      if (url.includes('/api/revisions')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => revisionsResponse,
+        } as Response);
+      }
+
+      if (url.includes('/api/diff')) {
+        const response =
+          url.includes('base=origin%2Fmain') && url.includes('baseMode=merge-base')
+            ? mergeBaseDiffResponse
+            : initialDiffResponse;
+
+        return Promise.resolve({
+          ok: true,
+          json: async () => response,
+          blob: async () => ({ size: 1024 }),
+        } as Response);
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+    });
+
+    renderApp();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Revision menu:/ }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'origin/main...Uncommitted (merge-base)' }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', {
+          name: 'Revision menu: origin/main...Uncommitted Changes (merge-base)',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Revision menu: 88aabb0...Uncommitted Changes (merge-base)',
+      }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('Client mode handling logic', () => {
   it('validates DiffResponse interface includes mode', () => {
     // Test that DiffResponse interface supports mode property
