@@ -10,6 +10,8 @@ import { DiffMode } from '../types/watch';
 import { normalizeDiffViewMode } from '../utils/diffMode';
 
 import App from './App';
+import { useDiffComments } from './hooks/useDiffComments';
+import { useViewedFiles } from './hooks/useViewedFiles';
 import { useViewport } from './hooks/useViewport';
 
 // Mock the useViewport hook
@@ -655,6 +657,42 @@ describe('App Component - Merge-base selection', () => {
         name: 'Revision menu: 88aabb0...Uncommitted Changes (merge-base)',
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it('uses resolved revisions for persisted diff state identity', async () => {
+    const response: DiffResponse = {
+      ...mockDiffResponse,
+      baseCommitish: '1234567',
+      targetCommitish: '98664e1',
+      requestedBaseCommitish: '98664e1^',
+      requestedTargetCommitish: '98664e1',
+    };
+
+    mockFetch(response);
+
+    renderApp();
+
+    await waitFor(() => {
+      expect(vi.mocked(useDiffComments)).toHaveBeenCalledWith(
+        '1234567',
+        '98664e1',
+        'abc123',
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+
+    expect(vi.mocked(useViewedFiles)).toHaveBeenCalledWith(
+      '1234567',
+      '98664e1',
+      'abc123',
+      undefined,
+      response.files,
+      undefined,
+      [],
+      undefined,
+    );
   });
 });
 

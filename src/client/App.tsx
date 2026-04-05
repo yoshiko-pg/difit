@@ -113,27 +113,24 @@ function App() {
   const [resolvedBaseRevision, setResolvedBaseRevision] = useState<string>('');
   const [resolvedTargetRevision, setResolvedTargetRevision] = useState<string>('');
   const hasUserSelectedRevisionRef = useRef(false);
-  const requestedSelection = useMemo<DiffSelection | null>(() => {
-    if (!diffData) {
+  const resolvedSelection = useMemo<DiffSelection | null>(() => {
+    if (!diffData?.baseCommitish || !diffData?.targetCommitish) {
       return null;
     }
 
-    const baseCommitish = diffData.requestedBaseCommitish ?? diffData.baseCommitish;
-    const targetCommitish = diffData.requestedTargetCommitish ?? diffData.targetCommitish;
-
-    if (!baseCommitish || !targetCommitish) {
-      return null;
-    }
-
-    return createDiffSelection(baseCommitish, targetCommitish, diffData.requestedBaseMode);
+    return createDiffSelection(
+      diffData.baseCommitish,
+      diffData.targetCommitish,
+      diffData.requestedBaseMode,
+    );
   }, [diffData]);
-  const requestedSelectionKey = useMemo(() => {
-    if (!requestedSelection) {
+  const resolvedSelectionKey = useMemo(() => {
+    if (!resolvedSelection) {
       return null;
     }
 
-    return getDiffSelectionKey(requestedSelection);
-  }, [requestedSelection]);
+    return getDiffSelectionKey(resolvedSelection);
+  }, [resolvedSelection]);
 
   const { settings, updateSettings } = useAppearanceSettings();
   const { isMobile, isDesktop } = useViewport();
@@ -151,12 +148,12 @@ function App() {
     generateThreadPrompt,
     generateAllCommentsPrompt,
   } = useDiffComments(
-    requestedSelection?.baseCommitish,
-    requestedSelection?.targetCommitish,
+    resolvedSelection?.baseCommitish,
+    resolvedSelection?.targetCommitish,
     diffData?.commit, // Using commit as currentCommitHash
     undefined, // branchToHash map - could be populated from server data
     diffData?.repositoryId, // Repository identifier for storage isolation
-    requestedSelection?.baseMode,
+    resolvedSelection?.baseMode,
   );
 
   const normalizedThreads = useMemo<CommentThread[]>(
@@ -198,20 +195,20 @@ function App() {
   // Viewed files management
   const { viewedFiles, hasLoadedInitialViewedFiles, toggleFileViewed, clearViewedFiles } =
     useViewedFiles(
-      requestedSelection?.baseCommitish,
-      requestedSelection?.targetCommitish,
+      resolvedSelection?.baseCommitish,
+      resolvedSelection?.targetCommitish,
       diffData?.commit,
       undefined,
       diffData?.files,
       diffData?.repositoryId, // Repository identifier for storage isolation
       settings.autoViewedPatterns,
-      requestedSelection?.baseMode,
+      resolvedSelection?.baseMode,
     );
 
   // Reset initialization flag when diff context changes
   useEffect(() => {
     collapsedInitializedRef.current = false;
-  }, [diffData?.repositoryId, requestedSelectionKey, diffData?.commit]);
+  }, [diffData?.repositoryId, resolvedSelectionKey, diffData?.commit]);
 
   // Initialize collapsed files from viewed files (only once per diff)
   useEffect(() => {
