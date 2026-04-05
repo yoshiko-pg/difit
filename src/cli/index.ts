@@ -29,7 +29,11 @@ function isSpecialArg(arg: string): arg is SpecialArg {
   return arg === 'working' || arg === 'staged' || arg === '.';
 }
 
-function resolveDiffSelection(commitish: string, compareWith?: string): DiffSelection {
+function resolveDiffSelection(
+  commitish: string,
+  compareWith?: string,
+  mergeBase?: boolean,
+): DiffSelection {
   let baseCommitish: string;
 
   if (compareWith) {
@@ -42,7 +46,7 @@ function resolveDiffSelection(commitish: string, compareWith?: string): DiffSele
     baseCommitish = commitish + '^';
   }
 
-  return createDiffSelection(baseCommitish, commitish);
+  return createDiffSelection(baseCommitish, commitish, mergeBase ? 'merge-base' : undefined);
 }
 
 function determineDiffMode(selection: DiffSelection, compareWith?: string): DiffMode {
@@ -81,6 +85,7 @@ interface CliOptions {
   includeUntracked?: boolean;
   keepAlive?: boolean;
   context?: number;
+  mergeBase?: boolean;
 }
 
 const program = new Command();
@@ -119,6 +124,10 @@ program
   .option('--include-untracked', 'automatically include untracked files in diff')
   .option('--keep-alive', 'keep server running even after browser disconnects')
   .option('--context <lines>', 'number of context lines shown around each change', parseInt)
+  .option(
+    '--merge-base',
+    'resolve the base revision with git merge-base before diffing (Git revision mode only)',
+  )
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
       let stdinDiff: string | undefined;
@@ -147,6 +156,11 @@ program
       if (options.pr) {
         if (commitish !== 'HEAD' || compareWith) {
           console.error('Error: --pr option cannot be used with positional arguments');
+          process.exit(1);
+        }
+
+        if (options.mergeBase) {
+          console.error('Error: --merge-base option cannot be used with --pr');
           process.exit(1);
         }
 
@@ -192,6 +206,10 @@ program
             console.error('Error: --context option cannot be used with stdin diff');
             process.exit(1);
           }
+          if (options.mergeBase) {
+            console.error('Error: --merge-base option cannot be used with stdin diff');
+            process.exit(1);
+          }
           // Read unified diff from stdin
           stdinDiff = await readStdin();
           if (!stdinDiff.trim()) {
@@ -232,7 +250,14 @@ program
         repoPath = undefined;
       }
 
-      const selection = resolveDiffSelection(commitish, compareWith);
+      const selection = resolveDiffSelection(commitish, compareWith, options.mergeBase);
+
+      if (options.mergeBase && isSpecialArg(selection.baseCommitish)) {
+        console.error(
+          `Error: --merge-base requires a commit-ish base, but resolved base was "${selection.baseCommitish}"`,
+        );
+        process.exit(1);
+      }
 
       if (selection.targetCommitish === 'working' || selection.targetCommitish === '.') {
         const git = simpleGit(repoPath);

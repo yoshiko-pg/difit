@@ -43,6 +43,7 @@ npx skills add yoshiko-pg/difit # エージェントにスキル群を追加
 ```bash
 difit <target>                    # 単一コミットのdiffを表示
 difit <target> [compare-with]     # 2つのコミット/ブランチを比較
+difit <target> [compare-with] --merge-base
 ```
 
 ### 単一コミットのレビュー
@@ -59,7 +60,10 @@ difit feature  # featureブランチの最新コミット
 difit @ main         # mainブランチと比較（@はHEADのエイリアス）
 difit feature main   # ブランチ間を比較
 difit . origin/main  # 作業ディレクトリとリモートmainを比較
+difit . origin/main --merge-base  # HEAD と origin/main の merge-base を基準に作業ディレクトリを比較
 ```
+
+`--merge-base` を付けると、比較の基準側を `git merge-base` で解決します。`<target>` が `.` / `staged` / `working` の場合、merge-base 計算の target ref には `HEAD` を使います。このオプションは Git revision モード専用で、stdin と `--pr` では使えません。
 
 ### 特別な引数
 
@@ -140,6 +144,7 @@ git diff --cached | difit -
 | --------------------- | --------------- | ------------------------------------------------------------------------------------------ |
 | `<target>`            | HEAD            | コミットハッシュ、タグ、HEAD~n、ブランチ、または特別な引数                                 |
 | `[compare-with]`      | -               | 比較対象の2番目のコミット（2つの間のdiffを表示）                                           |
+| `--merge-base`        | false           | diff 計算前に `git merge-base` で基準側を解決する（Git revision モード専用）               |
 | `--pr <url>`          | -               | レビューするGitHub PRのURL（例：https://github.com/owner/repo/pull/123）                   |
 | `--comment <json>`    | -               | 起動時に初期コメントを注入（複数指定可。JSON object または array を受け付ける）            |
 | `--port`              | 4966            | 優先ポート。使用中の場合は+1にフォールバック                                               |

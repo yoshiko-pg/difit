@@ -101,40 +101,43 @@ describe('CLI index.ts', () => {
       {
         name: 'default arguments',
         args: [],
-        expectedTarget: 'HEAD',
-        expectedBase: 'HEAD^',
+        expectedSelection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
       },
       {
         name: 'single commit argument',
         args: ['main'],
-        expectedTarget: 'main',
-        expectedBase: 'main^',
+        expectedSelection: { targetCommitish: 'main', baseCommitish: 'main^' },
       },
       {
         name: 'two commit arguments',
         args: ['main', 'develop'],
-        expectedTarget: 'main',
-        expectedBase: 'develop',
+        expectedSelection: { targetCommitish: 'main', baseCommitish: 'develop' },
       },
       {
         name: 'special: working',
         args: ['working'],
-        expectedTarget: 'working',
-        expectedBase: 'staged',
+        expectedSelection: { targetCommitish: 'working', baseCommitish: 'staged' },
       },
       {
         name: 'special: staged',
         args: ['staged'],
-        expectedTarget: 'staged',
-        expectedBase: 'HEAD',
+        expectedSelection: { targetCommitish: 'staged', baseCommitish: 'HEAD' },
       },
       {
         name: 'special: dot',
         args: ['.'],
-        expectedTarget: '.',
-        expectedBase: 'HEAD',
+        expectedSelection: { targetCommitish: '.', baseCommitish: 'HEAD' },
       },
-    ])('$name', async ({ args, expectedTarget, expectedBase }) => {
+      {
+        name: 'merge-base comparison',
+        args: ['.', 'origin/main', '--merge-base'],
+        expectedSelection: {
+          targetCommitish: '.',
+          baseCommitish: 'origin/main',
+          baseMode: 'merge-base',
+        },
+      },
+    ])('$name', async ({ args, expectedSelection }) => {
       mockFindUntrackedFiles.mockResolvedValue([]);
 
       const program = new Command();
@@ -147,6 +150,7 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
+        .option('--merge-base', 'merge-base')
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -173,7 +177,9 @@ describe('CLI index.ts', () => {
           }
 
           await startServer({
-            selection: { targetCommitish, baseCommitish },
+            selection: options.mergeBase
+              ? { targetCommitish, baseCommitish, baseMode: 'merge-base' }
+              : { targetCommitish, baseCommitish },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -184,7 +190,7 @@ describe('CLI index.ts', () => {
       await program.parseAsync([...args], { from: 'user' });
 
       expect(mockStartServer).toHaveBeenCalledWith({
-        selection: { targetCommitish: expectedTarget, baseCommitish: expectedBase },
+        selection: expectedSelection,
         preferredPort: undefined,
         host: '',
         openBrowser: true,
@@ -240,6 +246,11 @@ describe('CLI index.ts', () => {
         args: ['--context', '5'],
         expectedOptions: { context: 5 },
       },
+      {
+        name: '--merge-base option',
+        args: ['--merge-base'],
+        expectedOptions: { mergeBase: true },
+      },
     ])('$name', async ({ args, expectedOptions }) => {
       mockFindUntrackedFiles.mockResolvedValue([]);
 
@@ -254,6 +265,7 @@ describe('CLI index.ts', () => {
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
+        .option('--merge-base', 'merge-base')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .option('--keep-alive', 'keep server running even after browser disconnects')
         .option('--context <lines>', 'context', parseInt)
@@ -262,7 +274,9 @@ describe('CLI index.ts', () => {
           let baseCommitish = commitish + '^';
 
           await startServer({
-            selection: { targetCommitish, baseCommitish },
+            selection: options.mergeBase
+              ? { targetCommitish, baseCommitish, baseMode: 'merge-base' }
+              : { targetCommitish, baseCommitish },
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
@@ -276,7 +290,9 @@ describe('CLI index.ts', () => {
       await program.parseAsync([...args], { from: 'user' });
 
       const expectedCall = {
-        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
+        selection: expectedOptions.mergeBase
+          ? { targetCommitish: 'HEAD', baseCommitish: 'HEAD^', baseMode: 'merge-base' }
+          : { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
         preferredPort: expectedOptions.port,
         host: expectedOptions.host || '',
         openBrowser: expectedOptions.open !== false,
@@ -385,6 +401,124 @@ describe('CLI index.ts', () => {
 
       expect(console.error).toHaveBeenCalledWith(
         'Error: --context option cannot be used with stdin diff',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockStartServer).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('--merge-base option', () => {
+    it('rejects --merge-base with --pr', async () => {
+      const prUrl = 'https://github.com/owner/repo/pull/123';
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--merge-base', 'merge-base')
+        .option('--pr <url>', 'pr')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          if (options.pr && commitish === 'HEAD' && !_compareWith && options.mergeBase) {
+            console.error('Error: --merge-base option cannot be used with --pr');
+            process.exit(1);
+            return;
+          }
+
+          await startServer({
+            stdinDiff: getPrPatch(options.pr),
+          });
+        });
+
+      await program.parseAsync(['--pr', prUrl, '--merge-base'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: --merge-base option cannot be used with --pr',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockGetPrPatch).not.toHaveBeenCalled();
+      expect(mockStartServer).not.toHaveBeenCalled();
+    });
+
+    it('rejects --merge-base with stdin diff', async () => {
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--merge-base', 'merge-base')
+        .option('--tui', 'tui')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          const readFromStdin = shouldReadStdin({
+            commitish,
+            hasPositionalArgs: program.args.length > 0,
+            hasPrOption: false,
+            hasTuiOption: Boolean(options.tui),
+          });
+
+          if (readFromStdin && options.mergeBase) {
+            console.error('Error: --merge-base option cannot be used with stdin diff');
+            process.exit(1);
+            return;
+          }
+
+          await startServer({
+            stdinDiff: 'diff --git a/file.ts b/file.ts',
+          });
+        });
+
+      await program.parseAsync(['-', '--merge-base'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: --merge-base option cannot be used with stdin diff',
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockStartServer).not.toHaveBeenCalled();
+    });
+
+    it('rejects --merge-base when the resolved base is a special argument', async () => {
+      const program = new Command();
+
+      program
+        .argument('[commit-ish]', 'commit-ish', 'HEAD')
+        .argument('[compare-with]', 'compare-with')
+        .option('--merge-base', 'merge-base')
+        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
+          let baseCommitish: string;
+
+          if (_compareWith) {
+            baseCommitish = _compareWith;
+          } else if (commitish === 'working') {
+            baseCommitish = 'staged';
+          } else if (commitish === 'staged' || commitish === '.') {
+            baseCommitish = 'HEAD';
+          } else {
+            baseCommitish = commitish + '^';
+          }
+
+          const selection = options.mergeBase
+            ? { targetCommitish: commitish, baseCommitish, baseMode: 'merge-base' as const }
+            : { targetCommitish: commitish, baseCommitish };
+
+          if (
+            options.mergeBase &&
+            (selection.baseCommitish === 'working' ||
+              selection.baseCommitish === 'staged' ||
+              selection.baseCommitish === '.')
+          ) {
+            console.error(
+              `Error: --merge-base requires a commit-ish base, but resolved base was "${selection.baseCommitish}"`,
+            );
+            process.exit(1);
+            return;
+          }
+
+          await startServer({ selection });
+        });
+
+      await program.parseAsync(['working', '--merge-base'], { from: 'user' });
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Error: --merge-base requires a commit-ish base, but resolved base was "staged"',
       );
       expect(process.exit).toHaveBeenCalledWith(1);
       expect(mockStartServer).not.toHaveBeenCalled();

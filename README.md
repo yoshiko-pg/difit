@@ -43,6 +43,7 @@ Installed skills include:
 ```bash
 difit <target>                    # View single commit diff
 difit <target> [compare-with]     # Compare two commits/branches
+difit <target> [compare-with] --merge-base
 ```
 
 ### Single commit review
@@ -59,7 +60,13 @@ difit feature  # Latest commit on feature branch
 difit @ main         # Compare with main branch (@ is alias for HEAD)
 difit feature main   # Compare branches
 difit . origin/main  # Compare working directory with remote main
+difit . origin/main --merge-base  # Compare working directory using the HEAD...origin/main merge base
 ```
+
+Use `--merge-base` to resolve the effective base with `git merge-base`.
+When `<target>` is `.`, `staged`, or `working`, difit uses `HEAD` as the target ref
+for the merge-base calculation. This option is available only in Git revision mode,
+not with stdin or `--pr`.
 
 ### Special Arguments
 
@@ -140,6 +147,7 @@ Stdin mode is selected with intent-first rules:
 | --------------------- | --------------- | ------------------------------------------------------------------------------------------------------- |
 | `<target>`            | HEAD            | Commit hash, tag, HEAD~n, branch, or special arguments                                                  |
 | `[compare-with]`      | -               | Optional second commit to compare with (shows diff between the two)                                     |
+| `--merge-base`        | false           | Resolve the base revision with `git merge-base` before diffing (Git revision mode only)                 |
 | `--pr <url>`          | -               | GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)                                  |
 | `--comment <json>`    | -               | Inject initial comments (repeatable; accepts a JSON object or array)                                    |
 | `--port`              | 4966            | Preferred port; falls back to +1 if occupied                                                            |
