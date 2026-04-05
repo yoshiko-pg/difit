@@ -694,6 +694,84 @@ describe('App Component - Merge-base selection', () => {
       undefined,
     );
   });
+
+  it('ignores stale resolvedBase from /api/revisions on initial merge-base load', async () => {
+    const mergeBaseDiffResponse: DiffResponse = {
+      ...mockDiffResponse,
+      baseCommitish: '1122334',
+      targetCommitish: '.',
+      requestedBaseCommitish: 'origin/main',
+      requestedTargetCommitish: '.',
+      requestedBaseMode: 'merge-base',
+    };
+    const revisionsResponse = {
+      specialOptions: [{ value: '.', label: 'All Uncommitted Changes' }],
+      branches: [],
+      commits: [
+        {
+          hash: '88aabb0fffff1111222233334444555566667777',
+          shortHash: '88aabb0',
+          message: 'stale direct base',
+        },
+      ],
+      originDefaultBranch: 'origin/main',
+      resolvedBase: '88aabb0',
+      resolvedTarget: '1122334',
+    };
+
+    let resolveRevisions: (() => void) | null = null;
+
+    vi.mocked(global.fetch).mockImplementation((input) => {
+      const url = String(input);
+
+      if (url.includes('/api/revisions')) {
+        return new Promise<Response>((resolve) => {
+          resolveRevisions = () =>
+            resolve({
+              ok: true,
+              json: async () => revisionsResponse,
+            } as Response);
+        });
+      }
+
+      if (url.includes('/api/diff')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mergeBaseDiffResponse,
+          blob: async () => ({ size: 1024 }),
+        } as Response);
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+    });
+
+    renderApp();
+
+    await waitFor(() => {
+      expect(screen.getByText('Reviewing:')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      resolveRevisions?.();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', {
+          name: 'Revision menu: origin/main...Uncommitted Changes (merge-base)',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Revision menu: 88aabb0...Uncommitted Changes (merge-base)',
+      }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('Client mode handling logic', () => {

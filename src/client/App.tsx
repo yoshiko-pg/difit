@@ -15,6 +15,7 @@ import {
   createDiffSelection,
   diffSelectionsEqual,
   getDiffSelectionKey,
+  normalizeBaseMode,
 } from '../utils/diffSelection';
 
 import { Checkbox } from './components/Checkbox';
@@ -113,6 +114,8 @@ function App() {
   const [resolvedBaseRevision, setResolvedBaseRevision] = useState<string>('');
   const [resolvedTargetRevision, setResolvedTargetRevision] = useState<string>('');
   const hasUserSelectedRevisionRef = useRef(false);
+  const currentRequestedBaseModeRef = useRef(selectedRevision.baseMode);
+  currentRequestedBaseModeRef.current = diffData?.requestedBaseMode ?? selectedRevision.baseMode;
   const resolvedSelection = useMemo<DiffSelection | null>(() => {
     if (!diffData?.baseCommitish || !diffData?.targetCommitish) {
       return null;
@@ -560,7 +563,10 @@ function App() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data: RevisionsResponse | null) => {
         setRevisionOptions(data);
-        if (data?.resolvedBase) {
+        if (
+          data?.resolvedBase &&
+          normalizeBaseMode(currentRequestedBaseModeRef.current) !== 'merge-base'
+        ) {
           setResolvedBaseRevision((prev) => prev || data.resolvedBase || '');
         }
         if (data?.resolvedTarget) {
