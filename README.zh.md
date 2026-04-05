@@ -43,7 +43,6 @@ npx skills add yoshiko-pg/difit # 为代理添加 Skills
 ```bash
 difit <target>                    # 查看单个提交差异
 difit <target> [compare-with]     # 比较两个提交/分支
-difit <target> [compare-with] --merge-base
 ```
 
 ### 单个提交审查
@@ -60,10 +59,7 @@ difit feature  # feature 分支上的最新提交
 difit @ main         # 与 main 分支比较（@ 是 HEAD 的别名）
 difit feature main   # 比较分支
 difit . origin/main  # 比较工作目录与远程 main
-difit . origin/main --merge-base  # 以 HEAD 和 origin/main 的 merge-base 为基准比较工作目录
 ```
-
-加上 `--merge-base` 后，difit 会先用 `git merge-base` 解析实际的基准 revision。若 `<target>` 是 `.`, `staged`, `working`，merge-base 计算中的 target ref 会使用 `HEAD`。该选项仅适用于 Git revision 模式，不支持 stdin 和 `--pr`。
 
 ### 特殊参数
 

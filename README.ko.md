@@ -43,7 +43,6 @@ npx skills add yoshiko-pg/difit # 에이전트에 Skill들 추가
 ```bash
 difit <target>                    # 단일 커밋 diff 보기
 difit <target> [compare-with]     # 두 커밋/브랜치 비교
-difit <target> [compare-with] --merge-base
 ```
 
 ### 단일 커밋 검토
@@ -60,13 +59,7 @@ difit feature  # feature 브랜치의 최신 커밋
 difit @ main         # main 브랜치와 비교 (@는 HEAD의 별칭)
 difit feature main   # 브랜치 간 비교
 difit . origin/main  # 작업 디렉토리와 원격 main 비교
-difit . origin/main --merge-base  # HEAD...origin/main merge-base 기준으로 작업 디렉토리 비교
 ```
-
-`--merge-base` 를 사용하면 비교 기준 쪽을 `git merge-base` 로 해석합니다.
-`<target>` 이 `.`, `staged`, `working` 이면 merge-base 계산의 target ref 로
-`HEAD` 를 사용합니다. 이 옵션은 Git revision 모드에서만 사용할 수 있으며
-stdin 및 `--pr` 에서는 지원하지 않습니다.
 
 ### 특수 인수
 

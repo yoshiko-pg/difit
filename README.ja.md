@@ -43,7 +43,6 @@ npx skills add yoshiko-pg/difit # エージェントにスキル群を追加
 ```bash
 difit <target>                    # 単一コミットのdiffを表示
 difit <target> [compare-with]     # 2つのコミット/ブランチを比較
-difit <target> [compare-with] --merge-base
 ```
 
 ### 単一コミットのレビュー
@@ -60,10 +59,7 @@ difit feature  # featureブランチの最新コミット
 difit @ main         # mainブランチと比較（@はHEADのエイリアス）
 difit feature main   # ブランチ間を比較
 difit . origin/main  # 作業ディレクトリとリモートmainを比較
-difit . origin/main --merge-base  # HEAD と origin/main の merge-base を基準に作業ディレクトリを比較
 ```
-
-`--merge-base` を付けると、比較の基準側を `git merge-base` で解決します。`<target>` が `.` / `staged` / `working` の場合、merge-base 計算の target ref には `HEAD` を使います。このオプションは Git revision モード専用で、stdin と `--pr` では使えません。
 
 ### 特別な引数
 
