@@ -55,10 +55,7 @@ interface ServerOptions {
 const GENERATED_STATUS_CACHE_TTL_MS = 60_000;
 const MAX_DIFF_CACHE_ENTRIES = 8;
 
-function createDiffCacheKey(
-  selection: DiffSelection,
-  ignoreWhitespace: boolean,
-) {
+function createDiffCacheKey(selection: DiffSelection, ignoreWhitespace: boolean) {
   return `${getDiffSelectionKey(selection)}\u0000${ignoreWhitespace ? '1' : '0'}`;
 }
 
@@ -236,8 +233,7 @@ export async function startServer(
     const requestedTargetCommitish =
       responseDiffData.requestedTargetCommitish ??
       (requestedSelection.targetCommitish || (options.stdinDiff ? 'stdin' : undefined));
-    const requestedBaseMode =
-      responseDiffData.requestedBaseMode ?? requestedSelection.baseMode;
+    const requestedBaseMode = responseDiffData.requestedBaseMode ?? requestedSelection.baseMode;
 
     res.json({
       ...responseDiffData,
