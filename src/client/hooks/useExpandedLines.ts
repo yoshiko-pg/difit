@@ -13,6 +13,7 @@ const DEFAULT_EXPAND_COUNT = 20;
 interface UseExpandedLinesOptions {
   baseCommitish?: string;
   targetCommitish?: string;
+  diffIdentity?: string | number;
 }
 
 export interface MergedChunk extends DiffChunk {
@@ -85,6 +86,7 @@ async function fetchLineCount(
 export function useExpandedLines({
   baseCommitish,
   targetCommitish,
+  diffIdentity,
 }: UseExpandedLinesOptions): UseExpandedLinesResult {
   const [expandedState, setExpandedState] = useState<ExpandedLinesState>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -105,7 +107,7 @@ export function useExpandedLines({
     setIsLoading(false);
     setLastUpdatedFilePath(null);
     setLastUpdatedAt(0);
-  }, [baseCommitish, targetCommitish]);
+  }, [baseCommitish, targetCommitish, diffIdentity]);
 
   const ensureFileContent = useCallback(
     async (file: DiffFile): Promise<FileExpandedState | null> => {

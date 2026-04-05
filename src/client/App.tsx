@@ -318,6 +318,7 @@ function App() {
   } = useExpandedLines({
     baseCommitish: diffData?.baseCommitish,
     targetCommitish: diffData?.targetCommitish,
+    diffIdentity: diffDataVersion,
   });
 
   const getMergedChunksRef = useRef(getMergedChunks);

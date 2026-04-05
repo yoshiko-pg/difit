@@ -822,6 +822,7 @@ describe('Server Integration Tests', () => {
 
       expect(response.ok).toBe(true);
       expect(data.specialOptions).toHaveLength(3);
+      expect(data.specialOptions).not.toContainEqual({ value: 'merge-base', label: 'Merge Base' });
       expect(data.branches).toEqual([{ name: 'main', current: true }]);
       expect(data.commits).toEqual([
         { hash: 'abc1234', shortHash: 'abc1234', message: 'Test commit' },
