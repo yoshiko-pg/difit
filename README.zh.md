@@ -140,6 +140,7 @@ git diff --cached | difit -
 | --------------------- | -------------- | --------------------------------------------------------------------------------- |
 | `<target>`            | HEAD           | 提交哈希、标签、HEAD~n、分支或特殊参数                                            |
 | `[compare-with]`      | -              | 要比较的可选第二个提交（显示两者之间的差异）                                      |
+| `--merge-base`        | false          | 在 diff 前先用 `git merge-base` 解析基准 revision（仅限 Git revision 模式）       |
 | `--pr <url>`          | -              | 要审查的 GitHub PR URL（例如：https://github.com/owner/repo/pull/123）            |
 | `--comment <json>`    | -              | 注入初始评论（可重复指定；接受 JSON object 或 array）                             |
 | `--port`              | 4966           | 首选端口；如果被占用则回退到 +1                                                   |

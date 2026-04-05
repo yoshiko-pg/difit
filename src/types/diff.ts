@@ -51,6 +51,14 @@ export interface DiffCommentCodeSnapshot {
   language?: string;
 }
 
+export type BaseMode = 'direct' | 'merge-base';
+
+export interface DiffSelection {
+  baseCommitish: string;
+  targetCommitish: string;
+  baseMode?: BaseMode;
+}
+
 export interface DiffResponse {
   commit: string;
   files: DiffFile[];
@@ -62,6 +70,7 @@ export interface DiffResponse {
   targetCommitish?: string;
   requestedBaseCommitish?: string;
   requestedTargetCommitish?: string;
+  requestedBaseMode?: BaseMode;
   clearComments?: boolean;
   repositoryId?: string;
   commentImports?: CommentImport[];
@@ -170,6 +179,7 @@ export interface DiffContextStorage {
   version: 2; // Schema version
   baseCommitish: string;
   targetCommitish: string;
+  baseMode?: BaseMode;
   createdAt: string; // ISO 8601 format
   lastModifiedAt: string; // ISO 8601 format
 

@@ -7,6 +7,7 @@ vi.mock('simple-git', () => ({
   simpleGit: vi.fn(() => ({
     revparse: vi.fn(),
     diff: vi.fn(),
+    raw: vi.fn(),
   })),
 }));
 
@@ -1144,7 +1145,10 @@ index abc123..def456 100644
       const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
       getBlobContentSpy.mockResolvedValue(Buffer.from('// @generated\nconst x = 1;'));
 
-      const response = await parser.parseDiff('HEAD', 'HEAD~1');
+      const response = await parser.parseDiff({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD~1',
+      });
 
       expect(response.files[0].path).toBe(file);
       expect(response.files[0].isGenerated).toBe(false);
@@ -1280,7 +1284,14 @@ index abc123..def456 100644
         .mockResolvedValueOnce('abcdef1234567890abcdef1234567890abcdef12');
       gitDiff.mockResolvedValue('');
 
-      const response = await parser.parseDiff('HEAD', 'HEAD~1', false, 5);
+      const response = await parser.parseDiff(
+        {
+          targetCommitish: 'HEAD',
+          baseCommitish: 'HEAD~1',
+        },
+        false,
+        5,
+      );
 
       expect(gitDiff).toHaveBeenCalledWith([
         'abcdef1...1234567',
@@ -1292,6 +1303,11 @@ index abc123..def456 100644
         commit: 'abcdef1...1234567',
         files: [],
         isEmpty: true,
+        baseCommitish: 'abcdef1',
+        targetCommitish: '1234567',
+        requestedBaseCommitish: 'HEAD~1',
+        requestedTargetCommitish: 'HEAD',
+        requestedBaseMode: undefined,
       });
     });
 
@@ -1304,7 +1320,10 @@ index abc123..def456 100644
         .mockResolvedValueOnce('abcdef1234567890abcdef1234567890abcdef12');
       gitDiff.mockResolvedValue('');
 
-      const response = await parser.parseDiff('codex/comment-thread', 'codex/comment-thread^');
+      const response = await parser.parseDiff({
+        targetCommitish: 'codex/comment-thread',
+        baseCommitish: 'codex/comment-thread^',
+      });
 
       expect(gitRevparse).toHaveBeenNthCalledWith(1, ['codex/comment-thread']);
       expect(gitRevparse).toHaveBeenNthCalledWith(2, ['codex/comment-thread^']);
@@ -1313,6 +1332,44 @@ index abc123..def456 100644
         commit: 'abcdef1...1234567',
         files: [],
         isEmpty: true,
+        baseCommitish: 'abcdef1',
+        targetCommitish: '1234567',
+        requestedBaseCommitish: 'codex/comment-thread^',
+        requestedTargetCommitish: 'codex/comment-thread',
+        requestedBaseMode: undefined,
+      });
+    });
+
+    it('uses merge-base when baseMode is merge-base', async () => {
+      const gitDiff = (parser as any).git.diff;
+      const gitRevparse = (parser as any).git.revparse;
+      const gitRaw = (parser as any).git.raw;
+
+      gitRaw.mockResolvedValue('fedcba9876543210fedcba9876543210fedcba98\n');
+      gitRevparse.mockResolvedValueOnce('fedcba9876543210fedcba9876543210fedcba98');
+      gitDiff.mockResolvedValue('');
+
+      const response = await parser.parseDiff({
+        targetCommitish: '.',
+        baseCommitish: 'origin/main',
+        baseMode: 'merge-base',
+      });
+
+      expect(gitRaw).toHaveBeenCalledWith(['merge-base', 'HEAD', 'origin/main']);
+      expect(gitDiff).toHaveBeenCalledWith([
+        'fedcba9876543210fedcba9876543210fedcba98',
+        '--no-ext-diff',
+        '--color=never',
+      ]);
+      expect(response).toEqual({
+        commit: 'fedcba9 vs Working Directory (all uncommitted changes)',
+        files: [],
+        isEmpty: true,
+        baseCommitish: 'fedcba9',
+        targetCommitish: '.',
+        requestedBaseCommitish: 'origin/main',
+        requestedTargetCommitish: '.',
+        requestedBaseMode: 'merge-base',
       });
     });
   });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import {
+  type BaseMode,
   type CommentImport,
   type CommentThread,
   type DiffContextStorage,
@@ -86,6 +87,7 @@ export function useDiffComments(
   currentCommitHash?: string,
   branchToHash?: Map<string, string>,
   repositoryId?: string,
+  baseMode?: BaseMode,
 ): UseDiffCommentsReturn {
   const [threads, setThreads] = useState<DiffCommentThread[]>([]);
 
@@ -100,8 +102,9 @@ export function useDiffComments(
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
-  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId]);
+  }, [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId, baseMode]);
 
   const createEmptyDiffContext = useCallback((): DiffContextStorage | null => {
     if (!baseCommitish || !targetCommitish) {
@@ -113,13 +116,14 @@ export function useDiffComments(
       version: 2,
       baseCommitish,
       targetCommitish,
+      baseMode,
       createdAt: now,
       lastModifiedAt: now,
       threads: [],
       viewedFiles: [],
       appliedCommentImportIds: [],
     };
-  }, [baseCommitish, targetCommitish]);
+  }, [baseCommitish, targetCommitish, baseMode]);
 
   useEffect(() => {
     if (!baseCommitish || !targetCommitish) return;
@@ -132,6 +136,7 @@ export function useDiffComments(
         currentCommitHash,
         branchToHash,
         repositoryId,
+        baseMode,
       );
     // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: sync state from external storage on prop change
     setThreads(loadedThreads);
@@ -141,6 +146,7 @@ export function useDiffComments(
     currentCommitHash,
     branchToHash,
     repositoryId,
+    baseMode,
     loadDiffContextData,
   ]);
 
@@ -155,10 +161,11 @@ export function useDiffComments(
         currentCommitHash,
         branchToHash,
         repositoryId,
+        baseMode,
       );
       setThreads(newThreads);
     },
-    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId],
+    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId, baseMode],
   );
 
   const addThread = useCallback(
@@ -334,6 +341,7 @@ export function useDiffComments(
         currentCommitHash,
         branchToHash,
         repositoryId,
+        baseMode,
       );
       setThreads([]);
     },
@@ -346,6 +354,7 @@ export function useDiffComments(
       currentCommitHash,
       loadDiffContextData,
       repositoryId,
+      baseMode,
     ],
   );
 
@@ -379,6 +388,7 @@ export function useDiffComments(
         currentCommitHash,
         branchToHash,
         repositoryId,
+        baseMode,
       );
       setThreads(merged.threads);
       return merged.warnings;
@@ -391,6 +401,7 @@ export function useDiffComments(
       currentCommitHash,
       loadDiffContextData,
       repositoryId,
+      baseMode,
     ],
   );
 

@@ -1,10 +1,12 @@
 import {
+  type BaseMode,
   type DiffCommentThread,
   type ViewedFileRecord,
   type DiffContextStorage,
   type LegacyDiffContextStorage,
   type LegacyDiffComment,
 } from '../../types/diff';
+import { normalizeBaseMode } from '../../utils/diffSelection';
 
 const STORAGE_KEY_PREFIX = 'difit-storage-v1';
 
@@ -48,13 +50,30 @@ export class StorageService {
   /**
    * Generate a filesystem-safe storage key from commitish references
    */
-  private generateStorageKey(baseCommitish: string, targetCommitish: string): string {
+  private generateStorageKey(
+    baseCommitish: string,
+    targetCommitish: string,
+    baseMode?: BaseMode,
+  ): string {
     const encode = (str: string) =>
       str.replace(/[^a-zA-Z0-9-_]/g, (char) => {
         return `_${char.charCodeAt(0).toString(16)}_`;
       });
 
-    return `${encode(baseCommitish)}-${encode(targetCommitish)}`;
+    const baseKey = `${encode(baseCommitish)}-${encode(targetCommitish)}`;
+
+    if (normalizeBaseMode(baseMode) === 'merge-base') {
+      return `${baseKey}-merge-base`;
+    }
+
+    return baseKey;
+  }
+
+  private getFullStorageKey(repositoryId: string | undefined, key: string): string {
+    if (repositoryId) {
+      return `${STORAGE_KEY_PREFIX}/${repositoryId}/${key}`;
+    }
+    return `${STORAGE_KEY_PREFIX}/${key}`;
   }
 
   /**
@@ -114,28 +133,23 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): string {
-    let normalizedBase: string;
-    let normalizedTarget: string;
+    const normalizedBase = this.normalizeStorageBase(
+      baseCommitish,
+      targetCommitish,
+      currentCommitHash,
+      branchToHash,
+    );
+    const normalizedTarget = this.normalizeStorageTarget(
+      baseCommitish,
+      targetCommitish,
+      currentCommitHash,
+      branchToHash,
+    );
 
-    // Special handling for working/staged diffs
-    if (targetCommitish === '.' || targetCommitish === 'working') {
-      normalizedBase = currentCommitHash || baseCommitish;
-      normalizedTarget = 'WORKING';
-    } else if (targetCommitish === 'staged') {
-      normalizedBase = currentCommitHash || baseCommitish;
-      normalizedTarget = 'STAGED';
-    } else {
-      normalizedBase = this.normalizeCommitish(baseCommitish, currentCommitHash, branchToHash);
-      normalizedTarget = this.normalizeCommitish(targetCommitish, currentCommitHash, branchToHash);
-    }
-
-    const key = this.generateStorageKey(normalizedBase, normalizedTarget);
-    // Include repository ID in the key for isolation between projects
-    if (repositoryId) {
-      return `${STORAGE_KEY_PREFIX}/${repositoryId}/${key}`;
-    }
-    return `${STORAGE_KEY_PREFIX}/${key}`;
+    const key = this.generateStorageKey(normalizedBase, normalizedTarget, baseMode);
+    return this.getFullStorageKey(repositoryId, key);
   }
 
   /**
@@ -147,6 +161,7 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): DiffContextStorage | null {
     try {
       const key = this.getStorageKey(
@@ -155,6 +170,7 @@ export class StorageService {
         currentCommitHash,
         branchToHash,
         repositoryId,
+        baseMode,
       );
       const data = localStorage.getItem(key);
 
@@ -186,6 +202,36 @@ export class StorageService {
     }
   }
 
+  private normalizeStorageBase(
+    baseCommitish: string,
+    targetCommitish: string,
+    currentCommitHash?: string,
+    branchToHash?: Map<string, string>,
+  ): string {
+    if (targetCommitish === '.' || targetCommitish === 'working' || targetCommitish === 'staged') {
+      return currentCommitHash || baseCommitish;
+    }
+
+    return this.normalizeCommitish(baseCommitish, currentCommitHash, branchToHash);
+  }
+
+  private normalizeStorageTarget(
+    _baseCommitish: string,
+    targetCommitish: string,
+    currentCommitHash?: string,
+    branchToHash?: Map<string, string>,
+  ): string {
+    if (targetCommitish === '.' || targetCommitish === 'working') {
+      return 'WORKING';
+    }
+
+    if (targetCommitish === 'staged') {
+      return 'STAGED';
+    }
+
+    return this.normalizeCommitish(targetCommitish, currentCommitHash, branchToHash);
+  }
+
   /**
    * Save diff context data to localStorage
    */
@@ -196,6 +242,7 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): void {
     try {
       const key = this.getStorageKey(
@@ -204,6 +251,7 @@ export class StorageService {
         currentCommitHash,
         branchToHash,
         repositoryId,
+        baseMode,
       );
       // Ensure data includes original commitish values
       const dataToSave: DiffContextStorage = {
@@ -211,6 +259,7 @@ export class StorageService {
         version: 2,
         baseCommitish,
         targetCommitish,
+        baseMode,
         lastModifiedAt: new Date().toISOString(),
         appliedCommentImportIds: data.appliedCommentImportIds || [],
       };
@@ -234,6 +283,7 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): DiffCommentThread[] {
     const data = this.getDiffContextData(
       baseCommitish,
@@ -241,6 +291,7 @@ export class StorageService {
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
     return data?.threads || [];
   }
@@ -254,6 +305,7 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): LegacyDiffComment[] {
     return this.getCommentThreads(
       baseCommitish,
@@ -261,6 +313,7 @@ export class StorageService {
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     )
       .map((thread) => normalizeRootComment(thread))
       .filter((comment): comment is LegacyDiffComment => comment !== null);
@@ -276,6 +329,7 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): void {
     const existingData = this.getDiffContextData(
       baseCommitish,
@@ -283,11 +337,13 @@ export class StorageService {
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
     const data: DiffContextStorage = existingData || {
       version: 2,
       baseCommitish,
       targetCommitish,
+      baseMode,
       createdAt: new Date().toISOString(),
       lastModifiedAt: new Date().toISOString(),
       threads: [],
@@ -303,6 +359,7 @@ export class StorageService {
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
   }
 
@@ -316,6 +373,7 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): void {
     this.saveCommentThreads(
       baseCommitish,
@@ -324,6 +382,7 @@ export class StorageService {
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
   }
 
@@ -336,6 +395,7 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): ViewedFileRecord[] {
     const data = this.getDiffContextData(
       baseCommitish,
@@ -343,6 +403,7 @@ export class StorageService {
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
     return data?.viewedFiles || [];
   }
@@ -357,6 +418,7 @@ export class StorageService {
     currentCommitHash?: string,
     branchToHash?: Map<string, string>,
     repositoryId?: string,
+    baseMode?: BaseMode,
   ): void {
     const existingData = this.getDiffContextData(
       baseCommitish,
@@ -364,11 +426,13 @@ export class StorageService {
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
     const data: DiffContextStorage = existingData || {
       version: 2,
       baseCommitish,
       targetCommitish,
+      baseMode,
       createdAt: new Date().toISOString(),
       lastModifiedAt: new Date().toISOString(),
       threads: [],
@@ -384,6 +448,7 @@ export class StorageService {
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
   }
 

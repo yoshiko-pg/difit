@@ -140,6 +140,7 @@ git diff --cached | difit -
 | --------------------- | -------------- | --------------------------------------------------------------------------------------------- |
 | `<target>`            | HEAD           | 커밋 해시, 태그, HEAD~n, 브랜치 또는 특수 인수                                                |
 | `[compare-with]`      | -              | 비교할 선택적 두 번째 커밋 (둘 사이의 diff 표시)                                              |
+| `--merge-base`        | false          | diff 전에 `git merge-base` 로 기준 쪽을 해석 (Git revision 모드 전용)                         |
 | `--pr <url>`          | -              | 검토할 GitHub PR URL (예: https://github.com/owner/repo/pull/123)                             |
 | `--comment <json>`    | -              | 초기 코멘트 주입 (반복 가능; JSON object 또는 array 허용)                                     |
 | `--port`              | 4966           | 선호 포트; 사용 중인 경우 +1로 대체                                                           |

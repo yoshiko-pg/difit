@@ -140,6 +140,7 @@ git diff --cached | difit -
 | --------------------- | --------------- | ------------------------------------------------------------------------------------------ |
 | `<target>`            | HEAD            | コミットハッシュ、タグ、HEAD~n、ブランチ、または特別な引数                                 |
 | `[compare-with]`      | -               | 比較対象の2番目のコミット（2つの間のdiffを表示）                                           |
+| `--merge-base`        | false           | diff 計算前に `git merge-base` で基準側を解決する（Git revision モード専用）               |
 | `--pr <url>`          | -               | レビューするGitHub PRのURL（例：https://github.com/owner/repo/pull/123）                   |
 | `--comment <json>`    | -               | 起動時に初期コメントを注入（複数指定可。JSON object または array を受け付ける）            |
 | `--port`              | 4966            | 優先ポート。使用中の場合は+1にフォールバック                                               |

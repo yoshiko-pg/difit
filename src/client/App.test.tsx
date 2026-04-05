@@ -10,6 +10,8 @@ import { DiffMode } from '../types/watch';
 import { normalizeDiffViewMode } from '../utils/diffMode';
 
 import App from './App';
+import { useDiffComments } from './hooks/useDiffComments';
+import { useViewedFiles } from './hooks/useViewedFiles';
 import { useViewport } from './hooks/useViewport';
 
 // Mock the useViewport hook
@@ -562,6 +564,213 @@ describe('App Component - Diff Mode Persistence', () => {
     });
     mockWatchState.shouldReload = false;
     mockWatchState.lastChangeType = null;
+  });
+});
+
+describe('App Component - Merge-base selection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockConfirm.mockReturnValue(false);
+  });
+
+  it('clears the resolved base revision after switching to a merge-base quick diff', async () => {
+    const initialDiffResponse: DiffResponse = {
+      ...mockDiffResponse,
+      baseCommitish: '88aabb0',
+      targetCommitish: '.',
+      requestedBaseCommitish: 'HEAD',
+      requestedTargetCommitish: '.',
+    };
+    const mergeBaseDiffResponse: DiffResponse = {
+      ...mockDiffResponse,
+      baseCommitish: '1122334',
+      targetCommitish: '.',
+      requestedBaseCommitish: 'origin/main',
+      requestedTargetCommitish: '.',
+      requestedBaseMode: 'merge-base',
+    };
+    const revisionsResponse = {
+      specialOptions: [{ value: '.', label: 'All Uncommitted Changes' }],
+      branches: [],
+      commits: [
+        {
+          hash: '88aabb0fffff1111222233334444555566667777',
+          shortHash: '88aabb0',
+          message: 'stale direct base',
+        },
+        {
+          hash: '1122334fffff1111222233334444555566667777',
+          shortHash: '1122334',
+          message: 'merge base',
+        },
+      ],
+      originDefaultBranch: 'origin/main',
+    };
+
+    vi.mocked(global.fetch).mockImplementation((input) => {
+      const url = String(input);
+
+      if (url.includes('/api/revisions')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => revisionsResponse,
+        } as Response);
+      }
+
+      if (url.includes('/api/diff')) {
+        const response =
+          url.includes('base=origin%2Fmain') && url.includes('baseMode=merge-base')
+            ? mergeBaseDiffResponse
+            : initialDiffResponse;
+
+        return Promise.resolve({
+          ok: true,
+          json: async () => response,
+          blob: async () => ({ size: 1024 }),
+        } as Response);
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+    });
+
+    renderApp();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Revision menu:/ }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'origin/main...Uncommitted (merge-base)' }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', {
+          name: 'Revision menu: origin/main...Uncommitted Changes (merge-base)',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Revision menu: 88aabb0...Uncommitted Changes (merge-base)',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('uses resolved revisions for persisted diff state identity', async () => {
+    const response: DiffResponse = {
+      ...mockDiffResponse,
+      baseCommitish: '1234567',
+      targetCommitish: '98664e1',
+      requestedBaseCommitish: '98664e1^',
+      requestedTargetCommitish: '98664e1',
+    };
+
+    mockFetch(response);
+
+    renderApp();
+
+    await waitFor(() => {
+      expect(vi.mocked(useDiffComments)).toHaveBeenCalledWith(
+        '1234567',
+        '98664e1',
+        'abc123',
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+
+    expect(vi.mocked(useViewedFiles)).toHaveBeenCalledWith(
+      '1234567',
+      '98664e1',
+      'abc123',
+      undefined,
+      response.files,
+      undefined,
+      [],
+      undefined,
+    );
+  });
+
+  it('ignores stale resolvedBase from /api/revisions on initial merge-base load', async () => {
+    const mergeBaseDiffResponse: DiffResponse = {
+      ...mockDiffResponse,
+      baseCommitish: '1122334',
+      targetCommitish: '.',
+      requestedBaseCommitish: 'origin/main',
+      requestedTargetCommitish: '.',
+      requestedBaseMode: 'merge-base',
+    };
+    const revisionsResponse = {
+      specialOptions: [{ value: '.', label: 'All Uncommitted Changes' }],
+      branches: [],
+      commits: [
+        {
+          hash: '88aabb0fffff1111222233334444555566667777',
+          shortHash: '88aabb0',
+          message: 'stale direct base',
+        },
+      ],
+      originDefaultBranch: 'origin/main',
+      resolvedBase: '88aabb0',
+      resolvedTarget: '1122334',
+    };
+
+    let resolveRevisions: (() => void) | null = null;
+
+    vi.mocked(global.fetch).mockImplementation((input) => {
+      const url = String(input);
+
+      if (url.includes('/api/revisions')) {
+        return new Promise<Response>((resolve) => {
+          resolveRevisions = () =>
+            resolve({
+              ok: true,
+              json: async () => revisionsResponse,
+            } as Response);
+        });
+      }
+
+      if (url.includes('/api/diff')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mergeBaseDiffResponse,
+          blob: async () => ({ size: 1024 }),
+        } as Response);
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+    });
+
+    renderApp();
+
+    await waitFor(() => {
+      expect(screen.getByText('Reviewing:')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      resolveRevisions?.();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', {
+          name: 'Revision menu: origin/main...Uncommitted Changes (merge-base)',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Revision menu: 88aabb0...Uncommitted Changes (merge-base)',
+      }),
+    ).not.toBeInTheDocument();
   });
 });
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
-import { type ViewedFileRecord, type DiffFile } from '../../types/diff';
+import { type BaseMode, type ViewedFileRecord, type DiffFile } from '../../types/diff';
+import { getDiffSelectionKey } from '../../utils/diffSelection';
 import { storageService } from '../services/StorageService';
 import { matchesAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import { generateDiffHash, getDiffContentForHashing } from '../utils/diffUtils';
@@ -22,13 +23,18 @@ export function useViewedFiles(
   initialFiles?: DiffFile[],
   repositoryId?: string,
   autoViewedPatterns: string[] = [],
+  baseMode?: BaseMode,
 ): UseViewedFilesReturn {
   const [viewedFileRecords, setViewedFileRecords] = useState<ViewedFileRecord[]>([]);
   const [loadedViewedFilesKey, setLoadedViewedFilesKey] = useState<string | null>(null);
   const [fileHashes, setFileHashes] = useState<Map<string, string>>(new Map());
   const viewedFilesKey =
     baseCommitish && targetCommitish
-      ? `${repositoryId ?? 'default'}:${baseCommitish}:${targetCommitish}:${currentCommitHash ?? 'no-commit'}`
+      ? `${repositoryId ?? 'default'}:${getDiffSelectionKey({
+          baseCommitish,
+          targetCommitish,
+          baseMode,
+        })}:${currentCommitHash ?? 'no-commit'}`
       : null;
   const hasLoadedInitialViewedFiles =
     viewedFilesKey !== null && loadedViewedFilesKey === viewedFilesKey;
@@ -45,6 +51,7 @@ export function useViewedFiles(
       currentCommitHash,
       branchToHash,
       repositoryId,
+      baseMode,
     );
 
     // Auto-mark generated, deleted, or pattern-matched files as viewed if they
@@ -92,6 +99,7 @@ export function useViewedFiles(
             currentCommitHash,
             branchToHash,
             repositoryId,
+            baseMode,
           );
           if (!cancelled) {
             setViewedFileRecords(updatedRecords);
@@ -119,6 +127,7 @@ export function useViewedFiles(
     branchToHash,
     repositoryId,
     viewedFilesKey,
+    baseMode,
   ]); // initialFiles and autoViewedPatterns intentionally omitted to run only on diff init
 
   // Save viewed files to storage
@@ -133,10 +142,11 @@ export function useViewedFiles(
         currentCommitHash,
         branchToHash,
         repositoryId,
+        baseMode,
       );
       setViewedFileRecords(newRecords);
     },
-    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId],
+    [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId, baseMode],
   );
 
   // Convert records to Set of file paths for easy checking

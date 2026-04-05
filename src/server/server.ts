@@ -20,18 +20,20 @@ import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
 
 import {
+  type BaseMode,
   type CommentImport,
   type Comment,
   type CommentThread,
   type DiffCommentThread,
   type DiffResponse,
+  type DiffSelection,
   type GeneratedStatusResponse,
   type RevisionsResponse,
 } from '@/types/diff.js';
+import { createDiffSelection, diffSelectionsEqual } from '../utils/diffSelection.js';
 
 interface ServerOptions {
-  targetCommitish?: string;
-  baseCommitish?: string;
+  selection?: DiffSelection;
   stdinDiff?: string;
   preferredPort?: number;
   host?: string;
@@ -55,8 +57,7 @@ export async function startServer(
   const repositoryPath = resolve(options.repoPath ?? process.cwd());
   const repositoryId = createHash('sha256').update(repositoryPath).digest('hex');
   const initialCommentImports = options.commentImports || [];
-  const initialBaseCommitish = options.baseCommitish ?? '';
-  const initialTargetCommitish = options.targetCommitish ?? '';
+  const initialSelection = options.selection ?? createDiffSelection('', '');
   const commentImportId =
     initialCommentImports.length > 0
       ? createHash('sha256').update(serializeCommentImports(initialCommentImports)).digest('hex')
@@ -71,6 +72,13 @@ export async function startServer(
   let diffDataCache: DiffResponse | null = null;
   let currentIgnoreWhitespace = options.ignoreWhitespace || false;
   const diffMode = normalizeDiffViewMode(options.mode);
+  const parseBaseMode = (value: unknown): BaseMode | undefined => {
+    if (value === 'merge-base') {
+      return 'merge-base';
+    }
+
+    return undefined;
+  };
 
   app.use(express.json());
   app.use(express.text()); // For sendBeacon text/plain requests
@@ -84,9 +92,9 @@ export async function startServer(
 
   // Skip validation if using stdin diff
   if (!options.stdinDiff) {
-    const isValidCommit = await parser.validateCommit(options.targetCommitish ?? '');
+    const isValidCommit = await parser.validateCommit(initialSelection.targetCommitish);
     if (!isValidCommit) {
-      throw new Error(`Invalid or non-existent commit: ${options.targetCommitish}`);
+      throw new Error(`Invalid or non-existent commit: ${initialSelection.targetCommitish}`);
     }
   }
 
@@ -96,8 +104,7 @@ export async function startServer(
     diffDataCache = parser.parseStdinDiff(options.stdinDiff);
   } else {
     diffDataCache = await parser.parseDiff(
-      options.targetCommitish ?? '',
-      options.baseCommitish ?? '',
+      initialSelection,
       currentIgnoreWhitespace,
       options.contextLines,
     );
@@ -111,8 +118,7 @@ export async function startServer(
   };
 
   // Track current revisions for cache invalidation
-  let currentBaseCommitish = options.baseCommitish ?? '';
-  let currentTargetCommitish = options.targetCommitish ?? '';
+  let currentSelection = initialSelection;
 
   function parseRepositoryRelativePath(
     filepath: unknown,
@@ -139,72 +145,59 @@ export async function startServer(
 
   app.get('/api/diff', async (req, res) => {
     const ignoreWhitespace = req.query.ignoreWhitespace === 'true';
-    const requestedBase = (req.query.base as string) || options.baseCommitish || '';
-    const requestedTarget = (req.query.target as string) || options.targetCommitish || '';
+    const hasBase = typeof req.query.base === 'string';
+    const hasTarget = typeof req.query.target === 'string';
+    const hasBaseMode = typeof req.query.baseMode === 'string';
+    const requestedSelection = createDiffSelection(
+      hasBase ? (req.query.base as string) : currentSelection.baseCommitish,
+      hasTarget ? (req.query.target as string) : currentSelection.targetCommitish,
+      hasBaseMode
+        ? parseBaseMode(req.query.baseMode)
+        : hasBase || hasTarget
+          ? undefined
+          : currentSelection.baseMode,
+    );
     const shouldIncludeCommentImports =
       initialCommentImports.length > 0 &&
-      (Boolean(options.stdinDiff) ||
-        (requestedBase === initialBaseCommitish && requestedTarget === initialTargetCommitish));
+      (Boolean(options.stdinDiff) || diffSelectionsEqual(requestedSelection, initialSelection));
 
     // Check if revisions or whitespace setting changed
-    const revisionsChanged =
-      requestedBase !== currentBaseCommitish || requestedTarget !== currentTargetCommitish;
+    const revisionsChanged = !diffSelectionsEqual(requestedSelection, currentSelection);
     const whitespaceChanged = ignoreWhitespace !== currentIgnoreWhitespace;
 
     // Regenerate diff data if cache is invalid or settings changed
     if (!diffDataCache || ((revisionsChanged || whitespaceChanged) && !options.stdinDiff)) {
       currentIgnoreWhitespace = ignoreWhitespace;
-      currentBaseCommitish = requestedBase;
-      currentTargetCommitish = requestedTarget;
+      currentSelection = requestedSelection;
       diffDataCache = await parser.parseDiff(
-        requestedTarget,
-        requestedBase,
+        requestedSelection,
         ignoreWhitespace,
         options.contextLines,
       );
       generatedStatusCache.clear();
     }
 
-    // Resolve symbolic refs like HEAD/HEAD^ to actual hashes for the UI
-    let resolvedBase = currentBaseCommitish || 'stdin';
-    let resolvedTarget = currentTargetCommitish || 'stdin';
-
-    if (
-      !options.stdinDiff &&
-      currentBaseCommitish &&
-      !['working', 'staged', '.'].includes(currentBaseCommitish)
-    ) {
-      try {
-        resolvedBase = await parser.resolveCommitish(currentBaseCommitish);
-      } catch {
-        // If resolution fails, keep original value
-      }
-    }
-
-    if (
-      !options.stdinDiff &&
-      currentTargetCommitish &&
-      !['working', 'staged', '.'].includes(currentTargetCommitish)
-    ) {
-      try {
-        resolvedTarget = await parser.resolveCommitish(currentTargetCommitish);
-      } catch {
-        // If resolution fails, keep original value
-      }
-    }
-
-    const requestedBaseCommitish = currentBaseCommitish || 'stdin';
-    const requestedTargetCommitish = currentTargetCommitish || 'stdin';
+    const baseCommitish = diffDataCache.baseCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
+    const targetCommitish =
+      diffDataCache.targetCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
+    const requestedBaseCommitish =
+      diffDataCache.requestedBaseCommitish ??
+      (currentSelection.baseCommitish || (options.stdinDiff ? 'stdin' : undefined));
+    const requestedTargetCommitish =
+      diffDataCache.requestedTargetCommitish ??
+      (currentSelection.targetCommitish || (options.stdinDiff ? 'stdin' : undefined));
+    const requestedBaseMode = diffDataCache.requestedBaseMode ?? currentSelection.baseMode;
 
     res.json({
       ...diffDataCache,
       ignoreWhitespace,
       mode: diffMode,
       openInEditorAvailable: !options.stdinDiff,
-      baseCommitish: resolvedBase,
-      targetCommitish: resolvedTarget,
+      baseCommitish,
+      targetCommitish,
       requestedBaseCommitish,
       requestedTargetCommitish,
+      requestedBaseMode,
       clearComments: options.clearComments,
       repositoryId,
       commentImports: shouldIncludeCommentImports ? initialCommentImports : undefined,
@@ -226,7 +219,7 @@ export async function startServer(
       }
       const normalizedFilepath = filepathResult.path;
 
-      const ref = (req.query.ref as string) || currentTargetCommitish || 'HEAD';
+      const ref = (req.query.ref as string) || currentSelection.targetCommitish || 'HEAD';
       const cacheKey = `${ref}:${normalizedFilepath}`;
       const now = Date.now();
       const cached = generatedStatusCache.get(cacheKey);
@@ -262,7 +255,10 @@ export async function startServer(
 
     try {
       const { branches, commits, originDefaultBranch, resolvedBase, resolvedTarget } =
-        await parser.getRevisionOptions(currentBaseCommitish, currentTargetCommitish);
+        await parser.getRevisionOptions(
+          currentSelection.baseCommitish,
+          currentSelection.targetCommitish,
+        );
 
       const response: RevisionsResponse = {
         specialOptions: [

@@ -273,5 +273,51 @@ describe('StorageService - Repository Isolation', () => {
       const data = service.getDiffContextData('base', 'target');
       expect(data?.appliedCommentImportIds).toEqual(['import-bundle-1']);
     });
+
+    it('separates direct and merge-base diff contexts', () => {
+      const directComments = [
+        {
+          id: 'direct-comment',
+          filePath: 'test.ts',
+          body: 'Direct diff comment',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          position: { side: 'new' as const, line: 10 },
+        },
+      ];
+      const mergeBaseComments = [
+        {
+          id: 'merge-base-comment',
+          filePath: 'test.ts',
+          body: 'Merge-base diff comment',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          position: { side: 'new' as const, line: 12 },
+        },
+      ];
+
+      service.saveComments('origin/main', '.', directComments, 'abc123', undefined, 'repo-1');
+      service.saveComments(
+        'origin/main',
+        '.',
+        mergeBaseComments,
+        'abc123',
+        undefined,
+        'repo-1',
+        'merge-base',
+      );
+
+      expect(service.getComments('origin/main', '.', 'abc123', undefined, 'repo-1')).toEqual(
+        directComments,
+      );
+      expect(
+        service.getComments('origin/main', '.', 'abc123', undefined, 'repo-1', 'merge-base'),
+      ).toEqual(mergeBaseComments);
+
+      const keys = (localStorage as any)._keys;
+      expect(keys).toContain('difit-storage-v1/repo-1/abc123-WORKING');
+      expect(keys).toContain('difit-storage-v1/repo-1/abc123-WORKING-merge-base');
+      expect(keys.some((key: string) => key.endsWith('-direct'))).toBe(false);
+    });
   });
 });

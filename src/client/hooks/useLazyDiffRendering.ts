@@ -45,7 +45,7 @@ export function useLazyDiffRendering({
       return;
     }
 
-    const revisionKey = `${diffData.requestedBaseCommitish ?? ''}:${diffData.requestedTargetCommitish ?? ''}`;
+    const revisionKey = `${diffData.requestedBaseCommitish ?? ''}:${diffData.requestedTargetCommitish ?? ''}:${diffData.requestedBaseMode ?? 'direct'}`;
     if (renderedRevisionKeyRef.current === revisionKey) {
       return;
     }
@@ -256,7 +256,7 @@ export function useLazyDiffRendering({
     if (!diffData || diffData.targetCommitish === 'stdin') return;
 
     const ref = diffData.targetCommitish || 'HEAD';
-    const generatedStatusRevisionKey = `${diffData.requestedBaseCommitish ?? ''}...${diffData.requestedTargetCommitish ?? ''}`;
+    const generatedStatusRevisionKey = `${diffData.requestedBaseCommitish ?? ''}...${diffData.requestedTargetCommitish ?? ''}:${diffData.requestedBaseMode ?? 'direct'}`;
 
     diffData.files.forEach((file) => {
       if (
@@ -283,7 +283,8 @@ export function useLazyDiffRendering({
             if (!prev) return prev;
             if (
               prev.requestedBaseCommitish !== diffData.requestedBaseCommitish ||
-              prev.requestedTargetCommitish !== diffData.requestedTargetCommitish
+              prev.requestedTargetCommitish !== diffData.requestedTargetCommitish ||
+              prev.requestedBaseMode !== diffData.requestedBaseMode
             ) {
               return prev;
             }

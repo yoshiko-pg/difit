@@ -24,25 +24,25 @@ const options = {
 describe('getPreviousCommitPreset', () => {
   it.each(['', '.', 'staged', 'working'])('uses HEAD as target for %s', (targetRevision) => {
     expect(getPreviousCommitPreset(targetRevision)).toEqual({
-      base: 'HEAD^',
-      target: 'HEAD',
+      baseCommitish: 'HEAD^',
+      targetCommitish: 'HEAD',
     });
   });
 
   it('uses selected target when it is already a commit-ish', () => {
     expect(getPreviousCommitPreset('HEAD')).toEqual({
-      base: 'HEAD^^',
-      target: 'HEAD^',
+      baseCommitish: 'HEAD^^',
+      targetCommitish: 'HEAD^',
     });
 
     expect(getPreviousCommitPreset('main')).toEqual({
-      base: 'main^^',
-      target: 'main^',
+      baseCommitish: 'main^^',
+      targetCommitish: 'main^',
     });
 
     expect(getPreviousCommitPreset('abc1234')).toEqual({
-      base: 'abc1234^^',
-      target: 'abc1234^',
+      baseCommitish: 'abc1234^^',
+      targetCommitish: 'abc1234^',
     });
   });
 });
@@ -52,8 +52,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD^^',
-        targetRevision: 'HEAD^',
+        selection: { baseCommitish: 'HEAD^^', targetCommitish: 'HEAD^' },
         resolvedBaseRevision: '88aabb0',
         resolvedTargetRevision: '1f23cd1',
         onSelectDiff: vi.fn(),
@@ -68,8 +67,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD^^',
-        targetRevision: 'HEAD^',
+        selection: { baseCommitish: 'HEAD^^', targetCommitish: 'HEAD^' },
         resolvedBaseRevision: '88aabb0',
         resolvedTargetRevision: '1f23cd1',
         onSelectDiff: vi.fn(),
@@ -91,8 +89,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD',
-        targetRevision: '.',
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
         onSelectDiff: vi.fn(),
         onOpenAdvanced: vi.fn(),
       }),
@@ -100,9 +97,15 @@ describe('DiffQuickMenu', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
 
-    expect(screen.getByRole('button', { name: 'HEAD...Uncommitted' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'main...Uncommitted' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'origin/main...Uncommitted' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'HEAD...Uncommitted (merge-base)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'main...Uncommitted (merge-base)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'origin/main...Uncommitted (merge-base)' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'HEAD' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'HEAD...Staging' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Staging...Working' })).not.toBeInTheDocument();
@@ -113,8 +116,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD',
-        targetRevision: '.',
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
         onSelectDiff: vi.fn(),
         onOpenAdvanced: vi.fn(),
       }),
@@ -134,8 +136,7 @@ describe('DiffQuickMenu', () => {
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD',
-        targetRevision: '.',
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
         onSelectDiff,
         onOpenAdvanced: vi.fn(),
       }),
@@ -144,24 +145,47 @@ describe('DiffQuickMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
     fireEvent.click(screen.getByRole('button', { name: 'HEAD' }));
 
-    expect(onSelectDiff).toHaveBeenCalledWith('HEAD^', 'HEAD');
+    expect(onSelectDiff).toHaveBeenCalledWith({
+      baseCommitish: 'HEAD^',
+      targetCommitish: 'HEAD',
+    });
   });
 
-  it('selects origin/main quick preset when available', () => {
+  it('selects origin/main merge-base quick preset when available', () => {
     const onSelectDiff = vi.fn();
     render(
       createElement(DiffQuickMenu, {
         options,
-        baseRevision: 'HEAD',
-        targetRevision: '.',
+        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
         onSelectDiff,
         onOpenAdvanced: vi.fn(),
       }),
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'origin/main...Uncommitted' }));
+    fireEvent.click(screen.getByRole('button', { name: 'origin/main...Uncommitted (merge-base)' }));
 
-    expect(onSelectDiff).toHaveBeenCalledWith('origin/main', '.');
+    expect(onSelectDiff).toHaveBeenCalledWith({
+      baseCommitish: 'origin/main',
+      targetCommitish: '.',
+      baseMode: 'merge-base',
+    });
+  });
+
+  it('shows merge-base in the current label', () => {
+    render(
+      createElement(DiffQuickMenu, {
+        options,
+        selection: { baseCommitish: 'origin/main', targetCommitish: '.', baseMode: 'merge-base' },
+        onSelectDiff: vi.fn(),
+        onOpenAdvanced: vi.fn(),
+      }),
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Revision menu: origin/main...Uncommitted Changes (merge-base)',
+      }),
+    ).toBeInTheDocument();
   });
 });

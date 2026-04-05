@@ -17,15 +17,19 @@ import {
 import { ChevronDown, ChevronLeft, GitBranch } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { type CommitInfo, type RevisionsResponse } from '../../types/diff';
+import { type CommitInfo, type DiffSelection, type RevisionsResponse } from '../../types/diff';
+import {
+  createDiffSelection,
+  diffSelectionsEqual,
+  normalizeBaseMode,
+} from '../../utils/diffSelection';
 
 interface DiffQuickMenuProps {
   options: RevisionsResponse;
-  baseRevision: string;
-  targetRevision: string;
+  selection: DiffSelection;
   resolvedBaseRevision?: string;
   resolvedTargetRevision?: string;
-  onSelectDiff: (base: string, target: string) => void;
+  onSelectDiff: (selection: DiffSelection) => void;
   onOpenAdvanced: () => void;
   compact?: boolean;
 }
@@ -38,19 +42,21 @@ const SPECIAL_LABEL_OVERRIDES: Record<string, string> = {
 
 const UNCOMMITTED_TARGETS = new Set(['.', 'staged', 'working']);
 
-export const getPreviousCommitPreset = (
-  targetRevision: string,
-): { base: string; target: string } => {
+export const getPreviousCommitPreset = (targetRevision: string): DiffSelection => {
   const target =
     !targetRevision || UNCOMMITTED_TARGETS.has(targetRevision) ? 'HEAD' : `${targetRevision}^`;
-  return {
-    base: `${target}^`,
-    target,
-  };
+  return createDiffSelection(`${target}^`, target);
 };
 
-const isPreviousPair = (baseRevision: string, targetRevision: string) => {
-  return Boolean(targetRevision) && baseRevision === `${targetRevision}^`;
+const isPreviousPair = (selection: DiffSelection) => {
+  if (normalizeBaseMode(selection.baseMode) === 'merge-base') {
+    return false;
+  }
+
+  return (
+    Boolean(selection.targetCommitish) &&
+    selection.baseCommitish === `${selection.targetCommitish}^`
+  );
 };
 
 const matchesCommitish = (value: string | undefined, commit: CommitInfo) => {
@@ -100,8 +106,7 @@ const resolveDisplayLabel = (
 
 export function DiffQuickMenu({
   options,
-  baseRevision,
-  targetRevision,
+  selection,
   resolvedBaseRevision,
   resolvedTargetRevision,
   onSelectDiff,
@@ -166,11 +171,12 @@ export function DiffQuickMenu({
   }, [isOpen]);
 
   const currentLabel = useMemo(() => {
-    const currentSelectionIsPreviousPair = isPreviousPair(baseRevision, targetRevision);
+    const currentSelectionIsPreviousPair = isPreviousPair(selection);
     const commitMatch = options.commits.find((commit) => {
       if (!currentSelectionIsPreviousPair) return false;
       return (
-        matchesCommitish(targetRevision, commit) || matchesCommitish(resolvedTargetRevision, commit)
+        matchesCommitish(selection.targetCommitish, commit) ||
+        matchesCommitish(resolvedTargetRevision, commit)
       );
     });
 
@@ -178,10 +184,16 @@ export function DiffQuickMenu({
       return `${commitMatch.shortHash} ${commitMatch.message}`;
     }
 
-    const baseLabel = resolveDisplayLabel(options, baseRevision, resolvedBaseRevision);
-    const targetLabel = resolveDisplayLabel(options, targetRevision, resolvedTargetRevision);
-    return `${baseLabel}...${targetLabel}`;
-  }, [options, baseRevision, targetRevision, resolvedBaseRevision, resolvedTargetRevision]);
+    const baseLabel = resolveDisplayLabel(options, selection.baseCommitish, resolvedBaseRevision);
+    const targetLabel = resolveDisplayLabel(
+      options,
+      selection.targetCommitish,
+      resolvedTargetRevision,
+    );
+    const mergeBaseSuffix =
+      normalizeBaseMode(selection.baseMode) === 'merge-base' ? ' (merge-base)' : '';
+    return `${baseLabel}...${targetLabel}${mergeBaseSuffix}`;
+  }, [options, selection, resolvedBaseRevision, resolvedTargetRevision]);
 
   const mainBranch = useMemo(
     () =>
@@ -190,16 +202,25 @@ export function DiffQuickMenu({
     [options.branches],
   );
 
-  const hasMainBranch = Boolean(mainBranch);
   const originDefaultBranch = options.originDefaultBranch;
-  const headPreset = useMemo(() => ({ base: 'HEAD^', target: 'HEAD' }), []);
+  const headPreset = useMemo(() => createDiffSelection('HEAD^', 'HEAD'), []);
+  const headUncommittedPreset = useMemo(() => createDiffSelection('HEAD', '.', 'merge-base'), []);
+  const mainUncommittedPreset = useMemo(
+    () => (mainBranch ? createDiffSelection(mainBranch.name, '.', 'merge-base') : null),
+    [mainBranch],
+  );
+  const originUncommittedPreset = useMemo(
+    () =>
+      originDefaultBranch ? createDiffSelection(originDefaultBranch, '.', 'merge-base') : null,
+    [originDefaultBranch],
+  );
   const previousCommitPreset = useMemo(
-    () => getPreviousCommitPreset(targetRevision),
-    [targetRevision],
+    () => getPreviousCommitPreset(selection.targetCommitish),
+    [selection.targetCommitish],
   );
 
-  const handleSelect = (base: string, target: string) => {
-    onSelectDiff(base, target);
+  const handleSelect = (nextSelection: DiffSelection) => {
+    onSelectDiff(nextSelection);
     setIsCommitMenuOpen(false);
     setIsOpen(false);
   };
@@ -227,14 +248,15 @@ export function DiffQuickMenu({
     ].join(' ');
   };
 
-  const isPresetActive = (base: string, target: string) => {
-    return baseRevision === base && targetRevision === target;
+  const isPresetActive = (preset: DiffSelection) => {
+    return diffSelectionsEqual(selection, preset);
   };
 
   const isCommitActive = (commit: CommitInfo) => {
-    if (!isPreviousPair(baseRevision, targetRevision)) return false;
+    if (!isPreviousPair(selection)) return false;
     return (
-      matchesCommitish(targetRevision, commit) || matchesCommitish(resolvedTargetRevision, commit)
+      matchesCommitish(selection.targetCommitish, commit) ||
+      matchesCommitish(resolvedTargetRevision, commit)
     );
   };
 
@@ -282,47 +304,41 @@ export function DiffQuickMenu({
                 Quick Diffs
               </div>
               <button
-                onClick={() => handleSelect(headPreset.base, headPreset.target)}
-                className={getItemClasses(
-                  isPresetActive(headPreset.base, headPreset.target),
-                  false,
-                )}
+                onClick={() => handleSelect(headPreset)}
+                className={getItemClasses(isPresetActive(headPreset), false)}
               >
                 HEAD
               </button>
               <button
-                onClick={() => handleSelect('HEAD', '.')}
-                className={getItemClasses(isPresetActive('HEAD', '.'), false)}
+                onClick={() => handleSelect(headUncommittedPreset)}
+                className={getItemClasses(isPresetActive(headUncommittedPreset), false)}
               >
-                HEAD...Uncommitted
+                HEAD...Uncommitted (merge-base)
               </button>
-              {hasMainBranch && mainBranch && (
+              {mainBranch && mainUncommittedPreset && (
                 <>
                   <button
-                    onClick={() => handleSelect(mainBranch.name, '.')}
-                    className={getItemClasses(isPresetActive(mainBranch.name, '.'), false)}
+                    onClick={() => handleSelect(mainUncommittedPreset)}
+                    className={getItemClasses(isPresetActive(mainUncommittedPreset), false)}
                   >
-                    {mainBranch.name}...Uncommitted
+                    {mainBranch.name}...Uncommitted (merge-base)
                   </button>
                 </>
               )}
-              {originDefaultBranch && (
+              {originDefaultBranch && originUncommittedPreset && (
                 <button
-                  onClick={() => handleSelect(originDefaultBranch, '.')}
-                  className={getItemClasses(isPresetActive(originDefaultBranch, '.'), false)}
+                  onClick={() => handleSelect(originUncommittedPreset)}
+                  className={getItemClasses(isPresetActive(originUncommittedPreset), false)}
                 >
-                  {originDefaultBranch}...Uncommitted
+                  {originDefaultBranch}...Uncommitted (merge-base)
                 </button>
               )}
             </div>
 
             <div className="border-b border-github-border">
               <button
-                onClick={() => handleSelect(previousCommitPreset.base, previousCommitPreset.target)}
-                className={getItemClasses(
-                  isPresetActive(previousCommitPreset.base, previousCommitPreset.target),
-                  false,
-                )}
+                onClick={() => handleSelect(previousCommitPreset)}
+                className={getItemClasses(isPresetActive(previousCommitPreset), false)}
                 type="button"
               >
                 Previous commit
@@ -371,7 +387,9 @@ export function DiffQuickMenu({
             {options.commits.map((commit) => (
               <button
                 key={commit.hash}
-                onClick={() => handleSelect(`${commit.shortHash}^`, commit.shortHash)}
+                onClick={() =>
+                  handleSelect(createDiffSelection(`${commit.shortHash}^`, commit.shortHash))
+                }
                 className={getItemClasses(isCommitActive(commit), false)}
                 type="button"
               >

@@ -336,6 +336,7 @@ describe('useViewedFiles', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
     });
   });
