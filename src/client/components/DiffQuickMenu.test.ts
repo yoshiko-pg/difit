@@ -97,11 +97,14 @@ describe('DiffQuickMenu', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
 
-    expect(screen.getByRole('button', { name: 'HEAD...Uncommitted' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'main...Uncommitted' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'origin/main...Uncommitted' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'origin/main (merge-base)...Uncommitted' }),
+      screen.getByRole('button', { name: 'HEAD...Uncommitted (merge-base)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'main...Uncommitted (merge-base)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'origin/main...Uncommitted (merge-base)' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'HEAD' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'HEAD...Staging' })).not.toBeInTheDocument();
@@ -148,7 +151,7 @@ describe('DiffQuickMenu', () => {
     });
   });
 
-  it('selects origin/main quick preset when available', () => {
+  it('selects origin/main merge-base quick preset when available', () => {
     const onSelectDiff = vi.fn();
     render(
       createElement(DiffQuickMenu, {
@@ -160,27 +163,7 @@ describe('DiffQuickMenu', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'origin/main...Uncommitted' }));
-
-    expect(onSelectDiff).toHaveBeenCalledWith({
-      baseCommitish: 'origin/main',
-      targetCommitish: '.',
-    });
-  });
-
-  it('selects merge-base quick preset when available', () => {
-    const onSelectDiff = vi.fn();
-    render(
-      createElement(DiffQuickMenu, {
-        options,
-        selection: { baseCommitish: 'HEAD', targetCommitish: '.' },
-        onSelectDiff,
-        onOpenAdvanced: vi.fn(),
-      }),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'origin/main (merge-base)...Uncommitted' }));
+    fireEvent.click(screen.getByRole('button', { name: 'origin/main...Uncommitted (merge-base)' }));
 
     expect(onSelectDiff).toHaveBeenCalledWith({
       baseCommitish: 'origin/main',
@@ -201,7 +184,7 @@ describe('DiffQuickMenu', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'Revision menu: origin/main (merge-base)...Uncommitted Changes',
+        name: 'Revision menu: origin/main...Uncommitted Changes (merge-base)',
       }),
     ).toBeInTheDocument();
   });

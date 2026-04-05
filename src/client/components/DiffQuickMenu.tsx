@@ -192,7 +192,7 @@ export function DiffQuickMenu({
     );
     const mergeBaseSuffix =
       normalizeBaseMode(selection.baseMode) === 'merge-base' ? ' (merge-base)' : '';
-    return `${baseLabel}${mergeBaseSuffix}...${targetLabel}`;
+    return `${baseLabel}...${targetLabel}${mergeBaseSuffix}`;
   }, [options, selection, resolvedBaseRevision, resolvedTargetRevision]);
 
   const mainBranch = useMemo(
@@ -204,16 +204,12 @@ export function DiffQuickMenu({
 
   const originDefaultBranch = options.originDefaultBranch;
   const headPreset = useMemo(() => createDiffSelection('HEAD^', 'HEAD'), []);
-  const headUncommittedPreset = useMemo(() => createDiffSelection('HEAD', '.'), []);
+  const headUncommittedPreset = useMemo(() => createDiffSelection('HEAD', '.', 'merge-base'), []);
   const mainUncommittedPreset = useMemo(
-    () => (mainBranch ? createDiffSelection(mainBranch.name, '.') : null),
+    () => (mainBranch ? createDiffSelection(mainBranch.name, '.', 'merge-base') : null),
     [mainBranch],
   );
   const originUncommittedPreset = useMemo(
-    () => (originDefaultBranch ? createDiffSelection(originDefaultBranch, '.') : null),
-    [originDefaultBranch],
-  );
-  const originMergeBaseUncommittedPreset = useMemo(
     () =>
       originDefaultBranch ? createDiffSelection(originDefaultBranch, '.', 'merge-base') : null,
     [originDefaultBranch],
@@ -317,7 +313,7 @@ export function DiffQuickMenu({
                 onClick={() => handleSelect(headUncommittedPreset)}
                 className={getItemClasses(isPresetActive(headUncommittedPreset), false)}
               >
-                HEAD...Uncommitted
+                HEAD...Uncommitted (merge-base)
               </button>
               {mainBranch && mainUncommittedPreset && (
                 <>
@@ -325,7 +321,7 @@ export function DiffQuickMenu({
                     onClick={() => handleSelect(mainUncommittedPreset)}
                     className={getItemClasses(isPresetActive(mainUncommittedPreset), false)}
                   >
-                    {mainBranch.name}...Uncommitted
+                    {mainBranch.name}...Uncommitted (merge-base)
                   </button>
                 </>
               )}
@@ -334,18 +330,7 @@ export function DiffQuickMenu({
                   onClick={() => handleSelect(originUncommittedPreset)}
                   className={getItemClasses(isPresetActive(originUncommittedPreset), false)}
                 >
-                  {originDefaultBranch}...Uncommitted
-                </button>
-              )}
-              {originDefaultBranch && originMergeBaseUncommittedPreset && (
-                <button
-                  onClick={() => handleSelect(originMergeBaseUncommittedPreset)}
-                  className={getItemClasses(
-                    isPresetActive(originMergeBaseUncommittedPreset),
-                    false,
-                  )}
-                >
-                  {originDefaultBranch} (merge-base)...Uncommitted
+                  {originDefaultBranch}...Uncommitted (merge-base)
                 </button>
               )}
             </div>
