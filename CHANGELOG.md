@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.3] - 2026-04-06
+
+### Added
+
+- Add merge-base diff selection mode across CLI and web flows (#293)
+
+### Changed
+
+- Update dependencies (#290)
+
+### Fixed
+
+- Fix stale revision diff state when switching comparisons (#294)
+
 ## [4.0.2] - 2026-04-02
 
 ### Deprecated
@@ -1098,7 +1112,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.2...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.3...HEAD
+[4.0.3]: https://github.com/yoshiko-pg/difit/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/yoshiko-pg/difit/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/yoshiko-pg/difit/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/yoshiko-pg/difit/compare/v3.1.18...v4.0.0
