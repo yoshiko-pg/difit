@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 import {
   type DiffFile,
@@ -13,6 +13,7 @@ const DEFAULT_EXPAND_COUNT = 20;
 interface UseExpandedLinesOptions {
   baseCommitish?: string;
   targetCommitish?: string;
+  diffIdentity?: string | number;
 }
 
 export interface MergedChunk extends DiffChunk {
@@ -85,27 +86,42 @@ async function fetchLineCount(
 export function useExpandedLines({
   baseCommitish,
   targetCommitish,
+  diffIdentity,
 }: UseExpandedLinesOptions): UseExpandedLinesResult {
   const [expandedState, setExpandedState] = useState<ExpandedLinesState>({});
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdatedFilePath, setLastUpdatedFilePath] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(0);
   // Track pending fetch promises to allow waiting for in-flight requests (#2)
-  const pendingFetchesRef = useRef<Map<string, Promise<FileExpandedState>>>(new Map());
+  const pendingFetchesRef = useRef<Map<string, Promise<FileExpandedState | null>>>(new Map());
   // Use ref to access current state without causing dependency loop (#2)
   const expandedStateRef = useRef<ExpandedLinesState>({});
   expandedStateRef.current = expandedState;
+  const revisionGenerationRef = useRef(0);
+
+  useEffect(() => {
+    revisionGenerationRef.current += 1;
+    pendingFetchesRef.current.clear();
+    expandedStateRef.current = {};
+    setExpandedState({});
+    setIsLoading(false);
+    setLastUpdatedFilePath(null);
+    setLastUpdatedAt(0);
+  }, [baseCommitish, targetCommitish, diffIdentity]);
 
   const ensureFileContent = useCallback(
-    async (file: DiffFile): Promise<FileExpandedState> => {
+    async (file: DiffFile): Promise<FileExpandedState | null> => {
+      const revisionGeneration = revisionGenerationRef.current;
+      const pendingFetchKey = `${revisionGeneration}:${file.path}`;
+
       // Check if fetch is already in progress - wait for it instead of returning stale data
-      const pendingFetch = pendingFetchesRef.current.get(file.path);
+      const pendingFetch = pendingFetchesRef.current.get(pendingFetchKey);
       if (pendingFetch) {
         return pendingFetch;
       }
 
       // Create the fetch promise
-      const fetchPromise = (async (): Promise<FileExpandedState> => {
+      const fetchPromise = (async (): Promise<FileExpandedState | null> => {
         // Read current state via ref to avoid dependency on expandedState
         const existingState = expandedStateRef.current[file.path];
 
@@ -123,6 +139,9 @@ export function useExpandedLines({
           const oldPath = file.oldPath || file.path;
           try {
             const { lines, totalLines } = await fetchFileContent(oldPath, baseCommitish);
+            if (revisionGenerationRef.current !== revisionGeneration) {
+              return null;
+            }
             state.oldContent = lines;
             state.oldTotalLines = totalLines;
           } catch (error) {
@@ -136,6 +155,9 @@ export function useExpandedLines({
         if (file.status !== 'deleted' && targetCommitish) {
           try {
             const { lines, totalLines } = await fetchFileContent(file.path, targetCommitish);
+            if (revisionGenerationRef.current !== revisionGeneration) {
+              return null;
+            }
             state.newContent = lines;
             state.newTotalLines = totalLines;
           } catch (error) {
@@ -148,12 +170,12 @@ export function useExpandedLines({
         return state;
       })();
 
-      pendingFetchesRef.current.set(file.path, fetchPromise);
+      pendingFetchesRef.current.set(pendingFetchKey, fetchPromise);
 
       try {
         return await fetchPromise;
       } finally {
-        pendingFetchesRef.current.delete(file.path);
+        pendingFetchesRef.current.delete(pendingFetchKey);
       }
     },
     [baseCommitish, targetCommitish],
@@ -171,9 +193,13 @@ export function useExpandedLines({
       direction: 'up' | 'down',
       count: number = DEFAULT_EXPAND_COUNT,
     ) => {
+      const revisionGeneration = revisionGenerationRef.current;
       setIsLoading(true);
       try {
         const fileState = await ensureFileContent(file);
+        if (!fileState || revisionGenerationRef.current !== revisionGeneration) {
+          return;
+        }
 
         // Use functional update to ensure we're working with the latest state
         setExpandedState((prev) => {
@@ -223,9 +249,13 @@ export function useExpandedLines({
 
   const expandAllBetweenChunks = useCallback(
     async (file: DiffFile, chunkIndex: number, hiddenLines: number) => {
+      const revisionGeneration = revisionGenerationRef.current;
       setIsLoading(true);
       try {
         const fileState = await ensureFileContent(file);
+        if (!fileState || revisionGenerationRef.current !== revisionGeneration) {
+          return;
+        }
 
         // Use functional update to ensure we're working with the latest state
         setExpandedState((prev) => {
@@ -307,6 +337,7 @@ export function useExpandedLines({
   // Pre-fetch only line counts (lightweight) to show bottom expand button
   const prefetchFileContent = useCallback(
     async (file: DiffFile) => {
+      const revisionGeneration = revisionGenerationRef.current;
       // Skip if we already have total lines info
       const existing = expandedStateRef.current[file.path];
       if (existing?.oldTotalLines !== undefined || existing?.newTotalLines !== undefined) {
@@ -325,6 +356,9 @@ export function useExpandedLines({
           newRef,
           file.oldPath,
         );
+        if (revisionGenerationRef.current !== revisionGeneration) {
+          return;
+        }
 
         setExpandedState((prev) => {
           const current = prev[file.path];

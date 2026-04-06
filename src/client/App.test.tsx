@@ -774,6 +774,82 @@ describe('App Component - Merge-base selection', () => {
   });
 });
 
+describe('App Component - Revision-aware refetching', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockConfirm.mockReturnValue(false);
+  });
+
+  it('keeps the selected revisions when refetching without explicit revision params', async () => {
+    const diffResponse: DiffResponse = {
+      ...mockDiffResponse,
+      requestedBaseCommitish: 'HEAD^',
+      requestedTargetCommitish: 'HEAD',
+    };
+
+    vi.mocked(global.fetch).mockImplementation((input: string | URL | Request) => {
+      const url =
+        typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+
+      if (url.includes('/api/revisions')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            specialOptions: [],
+            branches: [],
+            commits: [
+              {
+                hash: 'abc1234',
+                shortHash: 'abc1234',
+                message: 'Test commit',
+              },
+            ],
+          }),
+        } as Response);
+      }
+
+      if (url.includes('/api/comments')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response);
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => diffResponse,
+        blob: async () => ({ size: 1024 }),
+      } as Response);
+    });
+
+    renderApp();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Revision menu:/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Previous commit' }));
+
+    await waitFor(() => {
+      const diffCalls = vi
+        .mocked(global.fetch)
+        .mock.calls.filter(([url]) => typeof url === 'string' && url.startsWith('/api/diff'));
+      expect(diffCalls).toHaveLength(2);
+      expect(String(diffCalls[1]?.[0])).toContain('base=HEAD%5E%5E');
+      expect(String(diffCalls[1]?.[0])).toContain('target=HEAD%5E');
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Ignore Whitespace' }));
+
+    await waitFor(() => {
+      const diffCalls = vi
+        .mocked(global.fetch)
+        .mock.calls.filter(([url]) => typeof url === 'string' && url.startsWith('/api/diff'));
+      expect(diffCalls).toHaveLength(3);
+      expect(String(diffCalls[2]?.[0])).toContain('base=HEAD%5E%5E');
+      expect(String(diffCalls[2]?.[0])).toContain('target=HEAD%5E');
+    });
+  });
+});
+
 describe('Client mode handling logic', () => {
   it('validates DiffResponse interface includes mode', () => {
     // Test that DiffResponse interface supports mode property

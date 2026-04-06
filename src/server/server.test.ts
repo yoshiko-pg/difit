@@ -376,6 +376,82 @@ describe('Server Integration Tests', () => {
       expect(data.requestedBaseCommitish).toBe('origin/main');
     });
 
+    it('GET /api/diff caches results per revision pair instead of reusing the last request', async () => {
+      const result = await startServer({
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
+        preferredPort: 9032,
+      });
+      servers.push(result.server);
+
+      const parser = parserInstances.at(-1);
+      parser?.parseDiff.mockClear();
+
+      const firstResponse = await fetch(
+        `http://localhost:${result.port}/api/diff?base=main&target=feature`,
+      );
+      expect(firstResponse.ok).toBe(true);
+
+      const secondResponse = await fetch(
+        `http://localhost:${result.port}/api/diff?base=HEAD%5E&target=HEAD`,
+      );
+      expect(secondResponse.ok).toBe(true);
+
+      const thirdResponse = await fetch(
+        `http://localhost:${result.port}/api/diff?base=main&target=feature`,
+      );
+      expect(thirdResponse.ok).toBe(true);
+
+      expect(parser?.parseDiff).toHaveBeenCalledTimes(1);
+      expect(parser?.parseDiff).toHaveBeenNthCalledWith(
+        1,
+        { targetCommitish: 'feature', baseCommitish: 'main' },
+        false,
+        undefined,
+      );
+    });
+
+    it('GET /api/diff evicts least recently used cached diff responses', async () => {
+      const result = await startServer({
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
+        preferredPort: 9033,
+      });
+      servers.push(result.server);
+
+      const parser = parserInstances.at(-1);
+      parser?.parseDiff.mockClear();
+
+      const revisionPairs = [
+        ['base-a', 'target-a'],
+        ['base-b', 'target-b'],
+        ['base-c', 'target-c'],
+        ['base-d', 'target-d'],
+        ['base-e', 'target-e'],
+        ['base-f', 'target-f'],
+        ['base-g', 'target-g'],
+        ['base-h', 'target-h'],
+        ['base-i', 'target-i'],
+      ] as const;
+
+      for (const [base, target] of revisionPairs) {
+        const response = await fetch(
+          `http://localhost:${result.port}/api/diff?base=${base}&target=${target}`,
+        );
+        expect(response.ok).toBe(true);
+      }
+
+      const revisitedResponse = await fetch(
+        `http://localhost:${result.port}/api/diff?base=base-a&target=target-a`,
+      );
+      expect(revisitedResponse.ok).toBe(true);
+
+      expect(parser?.parseDiff).toHaveBeenCalledTimes(10);
+      expect(parser?.parseDiff).toHaveBeenLastCalledWith(
+        { targetCommitish: 'target-a', baseCommitish: 'base-a' },
+        false,
+        undefined,
+      );
+    });
+
     it('GET /api/diff returns comment import payload when configured', async () => {
       const importedComments: CommentImport[] = [
         {
@@ -746,6 +822,7 @@ describe('Server Integration Tests', () => {
 
       expect(response.ok).toBe(true);
       expect(data.specialOptions).toHaveLength(3);
+      expect(data.specialOptions).not.toContainEqual({ value: 'merge-base', label: 'Merge Base' });
       expect(data.branches).toEqual([{ name: 'main', current: true }]);
       expect(data.commits).toEqual([
         { hash: 'abc1234', shortHash: 'abc1234', message: 'Test commit' },

@@ -58,4 +58,22 @@ describe('RevisionSelector', () => {
     expect(branchButton).toHaveClass('border-l-diff-selected-border');
     expect(commitButton).toHaveClass('border-l-diff-selected-border');
   });
+
+  it('hides reserved quick preset values from the special options list', () => {
+    render(
+      <RevisionSelector
+        label="Base"
+        value="main"
+        onChange={vi.fn()}
+        options={{
+          ...options,
+          specialOptions: [...options.specialOptions, { value: 'merge-base', label: 'Merge Base' }],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Base:/ }));
+
+    expect(screen.queryByRole('button', { name: 'Merge Base' })).not.toBeInTheDocument();
+  });
 });
