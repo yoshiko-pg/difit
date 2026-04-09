@@ -15,6 +15,7 @@ import {
 import { memo, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 
 import { type DiffFile, type CommentThread } from '../../types/diff';
+import { isSafariBrowser } from '../utils/browser';
 
 import { Checkbox } from './Checkbox';
 
@@ -161,6 +162,10 @@ export const FileList = memo(function FileList({
   selectedFileIndex,
 }: FileListProps) {
   const fileTree = useMemo(() => buildFileTree(files), [files]);
+  const shouldUseStickyDirectoryHeaders = useMemo(
+    () => !isSafariBrowser(typeof navigator === 'undefined' ? '' : navigator.userAgent),
+    [],
+  );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dirContainerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const stickyContainerStyle = {
@@ -266,6 +271,11 @@ export const FileList = memo(function FileList({
   };
 
   const handleDirectoryClick = (event: MouseEvent<HTMLDivElement>, path: string) => {
+    if (!shouldUseStickyDirectoryHeaders) {
+      toggleDirectory(path);
+      return;
+    }
+
     const container = scrollContainerRef.current;
     const row = event.currentTarget;
 
@@ -323,7 +333,7 @@ export const FileList = memo(function FileList({
         >
           {node.name && (
             <div
-              className={`sticky flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer ${
+              className={`${shouldUseStickyDirectoryHeaders ? 'sticky ' : ''}flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer ${
                 isReviewed ? 'opacity-70' : ''
               }`}
               data-dir-header="true"
@@ -331,8 +341,10 @@ export const FileList = memo(function FileList({
               data-depth={depth}
               style={{
                 paddingLeft: getTreeRowPaddingLeft(depth),
-                top: `calc(${depth} * var(--dir-row-height))`,
-                zIndex: 1000 - depth,
+                top: shouldUseStickyDirectoryHeaders
+                  ? `calc(${depth} * var(--dir-row-height))`
+                  : undefined,
+                zIndex: shouldUseStickyDirectoryHeaders ? 1000 - depth : undefined,
               }}
               onClick={(event) => handleDirectoryClick(event, node.path)}
             >
