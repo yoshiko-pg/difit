@@ -109,6 +109,11 @@ function stripRevisionSuffix(commitish: string): string {
       continue;
     }
 
+    if (current === '~') {
+      suffixStart--;
+      continue;
+    }
+
     if (!isAsciiDigit(current)) {
       break;
     }
