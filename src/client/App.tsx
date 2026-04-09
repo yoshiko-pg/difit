@@ -302,6 +302,10 @@ function App() {
     [diffData],
   );
 
+  const handleMobileFileSelected = useCallback(() => {
+    setIsFileTreeOpen(false);
+  }, []);
+
   const handleDiffModeChange = useCallback((mode: DiffViewMode) => {
     hasUserSetDiffModeRef.current = true;
     setDiffMode(mode);
@@ -1047,7 +1051,7 @@ function App() {
                 <FileList
                   files={diffData.files}
                   onScrollToFile={scrollFileIntoDiffContainer}
-                  onFileSelected={isMobile ? () => setIsFileTreeOpen(false) : undefined}
+                  onFileSelected={isMobile ? handleMobileFileSelected : undefined}
                   comments={normalizedThreads}
                   reviewedFiles={viewedFiles}
                   onToggleReviewed={toggleFileReviewed}

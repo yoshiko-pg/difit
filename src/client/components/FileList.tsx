@@ -12,7 +12,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
 } from 'lucide-react';
-import { useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { memo, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 
 import { type DiffFile, type CommentThread } from '../../types/diff';
 
@@ -118,7 +118,7 @@ function buildFileTree(files: DiffFile[]): TreeNode {
   return collapseDirectories(root);
 }
 
-export function FileList({
+export const FileList = memo(function FileList({
   files,
   onScrollToFile,
   onFileSelected,
@@ -409,4 +409,4 @@ export function FileList({
       </div>
     </div>
   );
-}
+});
