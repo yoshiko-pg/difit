@@ -50,16 +50,29 @@ describe('createCommentCommand', () => {
   });
 });
 
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function textResponse(body: string, status = 200): Response {
+  return new Response(body, {
+    status,
+    headers: { 'Content-Type': 'text/plain' },
+  });
+}
+
 describe('comment subcommand integration', () => {
-  let originalFetch: typeof globalThis.fetch;
-  let mockFetch: ReturnType<typeof vi.fn>;
+  const originalFetch = globalThis.fetch;
+  let mockFetch: ReturnType<typeof vi.fn<typeof fetch>>;
   let originalProcessExit: typeof process.exit;
   let consoleOutput: string[];
   let consoleErrors: string[];
 
   beforeEach(() => {
-    originalFetch = globalThis.fetch;
-    mockFetch = vi.fn();
+    mockFetch = vi.fn<typeof fetch>();
     globalThis.fetch = mockFetch;
 
     originalProcessExit = process.exit;
@@ -83,10 +96,7 @@ describe('comment subcommand integration', () => {
 
   describe('add', () => {
     it('sends comment imports to the server', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true, importId: 'abc123', count: 1 }),
-      });
+      mockFetch.mockResolvedValue(jsonResponse({ success: true, importId: 'abc123', count: 1 }));
 
       const command = createCommentCommand();
       await command.parseAsync([
@@ -118,10 +128,7 @@ describe('comment subcommand integration', () => {
     });
 
     it('handles server error response', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Bad request' }),
-      });
+      mockFetch.mockResolvedValue(jsonResponse({ error: 'Bad request' }, 400));
 
       const command = createCommentCommand();
       await command.parseAsync([
@@ -159,10 +166,7 @@ describe('comment subcommand integration', () => {
 
   describe('get', () => {
     it('fetches comments in text format by default', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve('Comments output text'),
-      });
+      mockFetch.mockResolvedValue(textResponse('Comments output text'));
 
       const command = createCommentCommand();
       await command.parseAsync(['node', 'difit', 'get', '--port', '4966']);
@@ -172,10 +176,7 @@ describe('comment subcommand integration', () => {
     });
 
     it('fetches comments in json format', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ threads: [{ id: '1' }] }),
-      });
+      mockFetch.mockResolvedValue(jsonResponse({ threads: [{ id: '1' }] }));
 
       const command = createCommentCommand();
       await command.parseAsync(['node', 'difit', 'get', '--port', '4966', '--format', 'json']);
@@ -195,10 +196,7 @@ describe('comment subcommand integration', () => {
     });
 
     it('handles empty text output silently', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve('  '),
-      });
+      mockFetch.mockResolvedValue(textResponse('  '));
 
       const command = createCommentCommand();
       await command.parseAsync(['node', 'difit', 'get', '--port', '4966']);
