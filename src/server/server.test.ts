@@ -663,6 +663,180 @@ describe('Server Integration Tests', () => {
       expect(output).toContain('Total comments: 2');
     });
 
+    it('POST /api/comment-imports accepts valid comment imports', async () => {
+      const imports = [
+        {
+          type: 'thread',
+          filePath: 'src/example.ts',
+          position: { side: 'new', line: 10 },
+          body: 'Review comment',
+        },
+      ];
+
+      const response = await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(imports),
+      });
+
+      expect(response.ok).toBe(true);
+      const data = (await response.json()) as any;
+      expect(data.success).toBe(true);
+      expect(data.importId).toEqual(expect.any(String));
+      expect(data.count).toBe(1);
+    });
+
+    it('POST /api/comment-imports accepts a single object', async () => {
+      const singleImport = {
+        type: 'thread',
+        filePath: 'src/example.ts',
+        position: { side: 'new', line: 5 },
+        body: 'Single object import',
+      };
+
+      const response = await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(singleImport),
+      });
+
+      expect(response.ok).toBe(true);
+      const data = (await response.json()) as any;
+      expect(data.success).toBe(true);
+      expect(data.count).toBe(1);
+    });
+
+    it('POST /api/comment-imports rejects invalid data', async () => {
+      const response = await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invalid: true }),
+      });
+
+      expect(response.status).toBe(400);
+      const data = (await response.json()) as any;
+      expect(data).toHaveProperty('error');
+    });
+
+    it('GET /api/comments-json returns empty threads by default', async () => {
+      const response = await fetch(`http://localhost:${port}/api/comments-json`);
+
+      expect(response.ok).toBe(true);
+      const data = (await response.json()) as any;
+      expect(data).toHaveProperty('threads');
+      expect(data.threads).toEqual([]);
+    });
+
+    it('GET /api/comments-json returns threads after posting comments', async () => {
+      const comments = [{ file: 'test.js', line: 10, body: 'JSON test comment' }];
+
+      await fetch(`http://localhost:${port}/api/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments }),
+      });
+
+      const response = await fetch(`http://localhost:${port}/api/comments-json`);
+
+      expect(response.ok).toBe(true);
+      const data = (await response.json()) as any;
+      expect(data.threads).toHaveLength(1);
+      expect(data.threads[0].messages[0].body).toBe('JSON test comment');
+    });
+
+    it('POST /api/comment-imports merges into server-side threads for comments-output', async () => {
+      const imports = [
+        {
+          type: 'thread',
+          filePath: 'src/example.ts',
+          position: { side: 'new', line: 42 },
+          body: 'Merged server-side comment',
+        },
+      ];
+
+      await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(imports),
+      });
+
+      const outputResponse = await fetch(`http://localhost:${port}/api/comments-output`);
+      const output = await outputResponse.text();
+
+      expect(output).toContain('src/example.ts:L42');
+      expect(output).toContain('Merged server-side comment');
+    });
+
+    it('POST /api/comment-imports merges reply into existing thread', async () => {
+      // First add a thread
+      await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([
+          {
+            type: 'thread',
+            filePath: 'src/reply-test.ts',
+            position: { side: 'new', line: 5 },
+            body: 'Original comment',
+            author: 'User',
+          },
+        ]),
+      });
+
+      // Then add a reply
+      await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([
+          {
+            type: 'reply',
+            filePath: 'src/reply-test.ts',
+            position: { side: 'new', line: 5 },
+            body: 'Reply to comment',
+            author: 'AI',
+          },
+        ]),
+      });
+
+      const jsonResponse = await fetch(`http://localhost:${port}/api/comments-json`);
+      const data = (await jsonResponse.json()) as any;
+
+      const thread = data.threads.find((t: any) => t.file === 'src/reply-test.ts');
+      expect(thread).toBeDefined();
+      expect(thread.messages).toHaveLength(2);
+      expect(thread.messages[0].body).toBe('Original comment');
+      expect(thread.messages[1].body).toBe('Reply to comment');
+    });
+
+    it('POST /api/comment-imports deduplicates identical imports', async () => {
+      const imports = [
+        {
+          type: 'thread',
+          filePath: 'src/dedup.ts',
+          position: { side: 'new', line: 1 },
+          body: 'Unique comment',
+        },
+      ];
+
+      // Send the same import twice
+      await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(imports),
+      });
+      await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(imports),
+      });
+
+      const jsonResponse = await fetch(`http://localhost:${port}/api/comments-json`);
+      const data = (await jsonResponse.json()) as any;
+
+      const threads = data.threads.filter((t: any) => t.file === 'src/dedup.ts');
+      expect(threads).toHaveLength(1);
+    });
+
     it.skip('GET /api/heartbeat returns SSE headers', async () => {
       // Skipped due to connection reset issues in test environment
       // SSE endpoint functionality is verified through manual testing
