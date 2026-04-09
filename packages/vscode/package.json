@@ -27,7 +27,7 @@
     "@types/node": "^24.0.8",
     "@types/vscode": "^1.98.0",
     "@vscode/vsce": "^3.6.2",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.0"
   },
   "contributes": {
     "commands": [
