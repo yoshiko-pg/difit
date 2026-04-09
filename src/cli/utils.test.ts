@@ -220,16 +220,20 @@ describe('CLI Utils', () => {
 
     it('should validate HEAD references', () => {
       expect(validateCommitish('HEAD')).toBe(true);
+      expect(validateCommitish('HEAD~')).toBe(true);
       expect(validateCommitish('HEAD~1')).toBe(true);
       expect(validateCommitish('HEAD~10')).toBe(true);
+      expect(validateCommitish('HEAD~~')).toBe(true);
       expect(validateCommitish('HEAD^')).toBe(true);
       expect(validateCommitish('HEAD^1')).toBe(true);
       expect(validateCommitish('HEAD^2')).toBe(true);
+      expect(validateCommitish('HEAD~^')).toBe(true);
       expect(validateCommitish('HEAD~2^1')).toBe(true);
     });
 
     it('should validate @ references (Git alias for HEAD)', () => {
       expect(validateCommitish('@')).toBe(true);
+      expect(validateCommitish('@~')).toBe(true);
       expect(validateCommitish('@~1')).toBe(true);
       expect(validateCommitish('@~10')).toBe(true);
       expect(validateCommitish('@^')).toBe(true);
@@ -259,6 +263,7 @@ describe('CLI Utils', () => {
 
     it('should validate branch and remote refs with revision suffixes', () => {
       expect(validateCommitish('main^')).toBe(true);
+      expect(validateCommitish('main~')).toBe(true);
       expect(validateCommitish('origin/main~2')).toBe(true);
       expect(validateCommitish('codex/comment-thread^')).toBe(true);
       expect(validateCommitish('feature/new-feature^2')).toBe(true);
@@ -272,7 +277,6 @@ describe('CLI Utils', () => {
     it('should reject invalid input', () => {
       expect(validateCommitish('')).toBe(false);
       expect(validateCommitish('   ')).toBe(false);
-      expect(validateCommitish('HEAD~')).toBe(false);
       expect(validateCommitish('abc')).toBe(true); // short hashes are valid
 
       // Invalid branch names according to git rules
@@ -308,6 +312,7 @@ describe('CLI Utils', () => {
     describe('format validation', () => {
       it('should accept valid commitish formats', () => {
         expect(validateDiffArguments('HEAD', 'HEAD^')).toEqual({ valid: true });
+        expect(validateDiffArguments('HEAD~', 'HEAD~^')).toEqual({ valid: true });
         expect(validateDiffArguments('main', 'develop')).toEqual({ valid: true });
         expect(validateDiffArguments('abc123', 'def456')).toEqual({ valid: true });
         expect(validateDiffArguments('working')).toEqual({ valid: true });
