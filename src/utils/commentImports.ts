@@ -149,7 +149,7 @@ function normalizeCommentImportEntry(value: unknown): CommentImport {
   return normalized as CommentImport;
 }
 
-function normalizeCommentImports(input: unknown): CommentImport[] {
+export function normalizeCommentImports(input: unknown): CommentImport[] {
   if (Array.isArray(input)) {
     return input.map((entry) => normalizeCommentImportEntry(entry));
   }
