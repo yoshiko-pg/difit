@@ -356,14 +356,14 @@ describe('App Component - Clear Comments Functionality', () => {
       vi.mocked(global.fetch).mockImplementation((input) => {
         const url = String(input);
 
-        if (url === '/api/comments-json') {
+        if (url.startsWith('/api/comments-json')) {
           return Promise.resolve({
             ok: true,
             json: async () => ({ threads: serverThreads }),
           } as Response);
         }
 
-        if (url === '/api/comments') {
+        if (url.startsWith('/api/comments')) {
           return Promise.resolve({
             ok: true,
             json: async () => ({ success: true }),
@@ -389,6 +389,10 @@ describe('App Component - Clear Comments Functionality', () => {
       await waitFor(() => {
         expect(mockReplaceThreads).toHaveBeenCalledWith(serverThreads);
       });
+
+      expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+        '/api/comments-json?base=HEAD%5E&target=HEAD',
+      );
     });
   });
 });
@@ -463,10 +467,13 @@ describe('App Component - Comment sync', () => {
     const { rerender } = renderApp();
 
     await waitFor(() => {
-      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) => url === '/api/comments');
+      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) =>
+        String(url).startsWith('/api/comments?'),
+      );
       expect(commentCalls).toHaveLength(1);
 
-      const [, request] = commentCalls[0] as [string, RequestInit];
+      const [url, request] = commentCalls[0] as [string, RequestInit];
+      expect(url).toBe('/api/comments?base=HEAD%5E&target=HEAD');
       expect(request.method).toBe('POST');
       expect(JSON.parse(String(request.body))).toEqual({
         threads: [
@@ -494,10 +501,13 @@ describe('App Component - Comment sync', () => {
     );
 
     await waitFor(() => {
-      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) => url === '/api/comments');
+      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) =>
+        String(url).startsWith('/api/comments?'),
+      );
       expect(commentCalls).toHaveLength(2);
 
-      const [, request] = commentCalls[1] as [string, RequestInit];
+      const [url, request] = commentCalls[1] as [string, RequestInit];
+      expect(url).toBe('/api/comments?base=HEAD%5E&target=HEAD');
       expect(request.method).toBe('POST');
       expect(JSON.parse(String(request.body))).toEqual({ threads: [] });
     });
@@ -520,7 +530,7 @@ describe('App Component - Comment sync', () => {
     beforeUnloadHandler?.();
 
     expect(navigator.sendBeacon).toHaveBeenCalledWith(
-      '/api/comments',
+      '/api/comments?base=HEAD%5E&target=HEAD',
       JSON.stringify({ threads: [] }),
     );
     addEventListenerSpy.mockRestore();
@@ -839,7 +849,7 @@ describe('App Component - Revision-aware refetching', () => {
         } as Response);
       }
 
-      if (url.includes('/api/comments')) {
+      if (url.startsWith('/api/comments?')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({ success: true }),

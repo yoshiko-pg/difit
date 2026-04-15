@@ -208,12 +208,36 @@ function App() {
   }, [normalizedThreads]);
   const showMobileCommentsBar = isMobile && threads.length > 0;
   const commentsContextKey = useMemo(() => {
-    if (!resolvedSelectionKey || !diffData?.commit) {
+    if (!resolvedSelectionKey) {
       return null;
     }
 
-    return `${diffData.repositoryId ?? 'default'}:${resolvedSelectionKey}:${diffData.commit}`;
-  }, [diffData?.commit, diffData?.repositoryId, resolvedSelectionKey]);
+    return `${diffData?.repositoryId ?? 'default'}:${resolvedSelectionKey}`;
+  }, [diffData?.repositoryId, resolvedSelectionKey]);
+  const commentSessionQueryString = useMemo(() => {
+    if (!resolvedSelection) {
+      return null;
+    }
+
+    const params = new URLSearchParams({
+      base: resolvedSelection.baseCommitish,
+      target: resolvedSelection.targetCommitish,
+    });
+    if (resolvedSelection.baseMode === 'merge-base') {
+      params.set('baseMode', resolvedSelection.baseMode);
+    }
+
+    return params.toString();
+  }, [resolvedSelection]);
+  const getCommentApiUrl = useCallback(
+    (path: string) => {
+      if (!commentSessionQueryString) {
+        return path;
+      }
+      return `${path}?${commentSessionQueryString}`;
+    },
+    [commentSessionQueryString],
+  );
   const [bootstrappedCommentsKey, setBootstrappedCommentsKey] = useState<string | null>(null);
   const hasBootstrappedComments =
     commentsContextKey !== null && commentsContextKey === bootstrappedCommentsKey;
@@ -228,22 +252,25 @@ function App() {
   }, [bootstrappedCommentsKey, commentsContextKey]);
 
   const fetchServerThreads = useCallback(async (): Promise<DiffCommentThread[]> => {
-    const response = await fetch('/api/comments-json');
+    const response = await fetch(getCommentApiUrl('/api/comments-json'));
     if (!response.ok) {
       throw new Error(`Failed to fetch comments: ${response.status} ${response.statusText}`);
     }
 
     const payload = (await response.json()) as { threads?: DiffCommentThread[] };
     return Array.isArray(payload.threads) ? payload.threads : [];
-  }, []);
+  }, [getCommentApiUrl]);
 
-  const syncThreadsToServer = useCallback(async (nextThreads: DiffCommentThread[]) => {
-    await fetch('/api/comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ threads: nextThreads }),
-    });
-  }, []);
+  const syncThreadsToServer = useCallback(
+    async (nextThreads: DiffCommentThread[]) => {
+      await fetch(getCommentApiUrl('/api/comments'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threads: nextThreads }),
+      });
+    },
+    [getCommentApiUrl],
+  );
 
   // Viewed files management
   const { viewedFiles, hasLoadedInitialViewedFiles, toggleFileViewed, clearViewedFiles } =
@@ -770,11 +797,12 @@ function App() {
     }
 
     const data = JSON.stringify({ threads });
+    const commentsApiUrl = getCommentApiUrl('/api/comments');
 
     // Also handle page unload
     const sendCommentsBeforeUnload = () => {
       // Use sendBeacon for reliable delivery during page unload, including empty states.
-      navigator.sendBeacon('/api/comments', data);
+      navigator.sendBeacon(commentsApiUrl, data);
     };
 
     window.addEventListener('beforeunload', sendCommentsBeforeUnload);
@@ -793,7 +821,7 @@ function App() {
     return () => {
       window.removeEventListener('beforeunload', sendCommentsBeforeUnload);
     };
-  }, [hasBootstrappedComments, syncThreadsToServer, threads]);
+  }, [getCommentApiUrl, hasBootstrappedComments, syncThreadsToServer, threads]);
 
   // Establish SSE connection for tab close detection
   useEffect(() => {
