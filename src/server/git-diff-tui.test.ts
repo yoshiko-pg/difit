@@ -43,8 +43,8 @@ describe('loadGitDiff', () => {
       name: 'commit comparisons',
       targetCommitish: 'HEAD',
       baseCommitish: 'HEAD^',
-      expectedListArgs: ['HEAD^...HEAD', '--name-status'],
-      expectedFileArgs: ['HEAD^...HEAD', '-U5', '--', 'src/file.ts'],
+      expectedListArgs: ['HEAD^', 'HEAD', '--name-status'],
+      expectedFileArgs: ['HEAD^', 'HEAD', '-U5', '--', 'src/file.ts'],
     },
   ])(
     'passes context lines for $name',

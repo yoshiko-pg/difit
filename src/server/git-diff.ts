@@ -101,7 +101,7 @@ export class GitDiffParser {
         resolvedCommit = createCommitRangeString(shortHash(baseHash), shortHash(targetHash));
         resolvedBaseCommitish = shortHash(baseHash);
         resolvedTargetCommitish = shortHash(targetHash);
-        diffArgs = [resolvedCommit];
+        diffArgs = [baseHash, targetHash];
       }
 
       if (ignoreWhitespace) {

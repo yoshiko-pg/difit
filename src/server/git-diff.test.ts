@@ -1294,7 +1294,8 @@ index abc123..def456 100644
       );
 
       expect(gitDiff).toHaveBeenCalledWith([
-        'abcdef1...1234567',
+        'abcdef1234567890abcdef1234567890abcdef12',
+        '1234567890abcdef1234567890abcdef12345678',
         '-U5',
         '--no-ext-diff',
         '--color=never',
@@ -1327,7 +1328,12 @@ index abc123..def456 100644
 
       expect(gitRevparse).toHaveBeenNthCalledWith(1, ['codex/comment-thread']);
       expect(gitRevparse).toHaveBeenNthCalledWith(2, ['codex/comment-thread^']);
-      expect(gitDiff).toHaveBeenCalledWith(['abcdef1...1234567', '--no-ext-diff', '--color=never']);
+      expect(gitDiff).toHaveBeenCalledWith([
+        'abcdef1234567890abcdef1234567890abcdef12',
+        '1234567890abcdef1234567890abcdef12345678',
+        '--no-ext-diff',
+        '--color=never',
+      ]);
       expect(response).toEqual({
         commit: 'abcdef1...1234567',
         files: [],
