@@ -2,6 +2,7 @@ import { Columns, AlignLeft, Settings, PanelLeftClose, PanelLeft, Keyboard } fro
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import {
+  type CommentImport,
   type DiffResponse,
   type DiffSelection,
   type DiffViewMode,
@@ -370,10 +371,19 @@ function App() {
     lineIndex: number;
   } | null>(null);
 
+  // Handle comment imports received via SSE
+  const handleCommentImports = useCallback(
+    (imports: CommentImport[], importId: string) => {
+      const warnings = applyCommentImports(imports, importId);
+      warnings.forEach((warning) => console.warn(warning));
+    },
+    [applyCommentImports],
+  );
+
   // File watch for reload functionality - initialize with callback
   const { shouldReload, reload, watchState } = useFileWatch(async () => {
     await fetchDiffData();
-  });
+  }, handleCommentImports);
 
   const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition } = useKeyboardNavigation({
     files: navigableFiles,
