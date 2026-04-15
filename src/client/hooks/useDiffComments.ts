@@ -32,8 +32,10 @@ interface ReplyToThreadParams {
 }
 
 interface UseDiffCommentsReturn {
+  hasLoadedComments: boolean;
   comments: LegacyDiffComment[];
   threads: DiffCommentThread[];
+  replaceThreads: (threads: DiffCommentThread[]) => void;
   addComment: (params: AddThreadParams) => LegacyDiffComment;
   addThread: (params: AddThreadParams) => DiffCommentThread;
   removeComment: (commentId: string) => void;
@@ -90,6 +92,7 @@ export function useDiffComments(
   baseMode?: BaseMode,
 ): UseDiffCommentsReturn {
   const [threads, setThreads] = useState<DiffCommentThread[]>([]);
+  const [hasLoadedComments, setHasLoadedComments] = useState(false);
 
   const loadDiffContextData = useCallback(() => {
     if (!baseCommitish || !targetCommitish) {
@@ -126,7 +129,12 @@ export function useDiffComments(
   }, [baseCommitish, targetCommitish, baseMode]);
 
   useEffect(() => {
-    if (!baseCommitish || !targetCommitish) return;
+    if (!baseCommitish || !targetCommitish) {
+      // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: clear diff-scoped state when selection is unavailable
+      setThreads([]);
+      setHasLoadedComments(false);
+      return;
+    }
 
     const loadedThreads =
       loadDiffContextData()?.threads ||
@@ -138,8 +146,8 @@ export function useDiffComments(
         repositoryId,
         baseMode,
       );
-    // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: sync state from external storage on prop change
     setThreads(loadedThreads);
+    setHasLoadedComments(true);
   }, [
     baseCommitish,
     targetCommitish,
@@ -164,8 +172,16 @@ export function useDiffComments(
         baseMode,
       );
       setThreads(newThreads);
+      setHasLoadedComments(true);
     },
     [baseCommitish, targetCommitish, currentCommitHash, branchToHash, repositoryId, baseMode],
+  );
+
+  const replaceThreads = useCallback(
+    (newThreads: DiffCommentThread[]) => {
+      saveThreads(newThreads);
+    },
+    [saveThreads],
   );
 
   const addThread = useCallback(
@@ -431,8 +447,10 @@ export function useDiffComments(
     .filter((comment): comment is LegacyDiffComment => comment !== null);
 
   return {
+    hasLoadedComments,
     comments,
     threads,
+    replaceThreads,
     addComment,
     addThread,
     removeComment,

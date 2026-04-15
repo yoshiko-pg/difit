@@ -2,7 +2,7 @@ import { Columns, AlignLeft, Settings, PanelLeftClose, PanelLeft, Keyboard } fro
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import {
-  type CommentImport,
+  type DiffCommentThread,
   type DiffResponse,
   type DiffSelection,
   type DiffViewMode,
@@ -12,6 +12,7 @@ import {
   type RevisionsResponse,
 } from '../types/diff';
 import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode';
+import { mergeCommentThreads } from '../utils/commentImports';
 import {
   createDiffSelection,
   diffSelectionsEqual,
@@ -151,14 +152,15 @@ function App() {
 
   // New diff-aware comment system
   const {
+    hasLoadedComments,
     threads,
+    replaceThreads,
     addThread,
     replyToThread,
     removeThread,
     removeMessage,
     updateMessage,
     clearAllComments,
-    applyCommentImports,
     generateThreadPrompt,
     generateAllCommentsPrompt,
   } = useDiffComments(
@@ -205,6 +207,70 @@ function App() {
     return map;
   }, [normalizedThreads]);
   const showMobileCommentsBar = isMobile && threads.length > 0;
+  const commentsContextKey = useMemo(() => {
+    if (!resolvedSelectionKey) {
+      return null;
+    }
+
+    return `${diffData?.repositoryId ?? 'default'}:${resolvedSelectionKey}`;
+  }, [diffData?.repositoryId, resolvedSelectionKey]);
+  const commentSessionQueryString = useMemo(() => {
+    if (!resolvedSelection) {
+      return null;
+    }
+
+    const params = new URLSearchParams({
+      base: resolvedSelection.baseCommitish,
+      target: resolvedSelection.targetCommitish,
+    });
+    if (resolvedSelection.baseMode === 'merge-base') {
+      params.set('baseMode', resolvedSelection.baseMode);
+    }
+
+    return params.toString();
+  }, [resolvedSelection]);
+  const getCommentApiUrl = useCallback(
+    (path: string) => {
+      if (!commentSessionQueryString) {
+        return path;
+      }
+      return `${path}?${commentSessionQueryString}`;
+    },
+    [commentSessionQueryString],
+  );
+  const [bootstrappedCommentsKey, setBootstrappedCommentsKey] = useState<string | null>(null);
+  const hasBootstrappedComments =
+    commentsContextKey !== null && commentsContextKey === bootstrappedCommentsKey;
+  const bootstrappingCommentsKeyRef = useRef<string | null>(null);
+  const skipNextCommentSyncRef = useRef(false);
+  const pendingBootstrapAfterLocalResetRef = useRef(false);
+
+  useEffect(() => {
+    if (commentsContextKey !== bootstrappedCommentsKey) {
+      skipNextCommentSyncRef.current = false;
+    }
+  }, [bootstrappedCommentsKey, commentsContextKey]);
+
+  const fetchServerThreads = useCallback(async (): Promise<DiffCommentThread[]> => {
+    const response = await fetch(getCommentApiUrl('/api/comments-json'));
+    if (!response.ok) {
+      throw new Error(`Failed to fetch comments: ${response.status} ${response.statusText}`);
+    }
+
+    const payload = (await response.json()) as { threads?: DiffCommentThread[] };
+    return Array.isArray(payload.threads) ? payload.threads : [];
+  }, [getCommentApiUrl]);
+
+  const syncThreadsToServer = useCallback(
+    async (nextThreads: DiffCommentThread[]) => {
+      await fetch(getCommentApiUrl('/api/comments'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threads: nextThreads }),
+      });
+    },
+    [getCommentApiUrl],
+  );
 
   // Viewed files management
   const { viewedFiles, hasLoadedInitialViewedFiles, toggleFileViewed, clearViewedFiles } =
@@ -370,20 +436,28 @@ function App() {
     chunkIndex: number;
     lineIndex: number;
   } | null>(null);
-
-  // Handle comment imports received via SSE
-  const handleCommentImports = useCallback(
-    (imports: CommentImport[], importId: string) => {
-      const warnings = applyCommentImports(imports, importId);
-      warnings.forEach((warning) => console.warn(warning));
-    },
-    [applyCommentImports],
-  );
+  const fetchDiffDataRef = useRef<((selection?: DiffSelection) => Promise<void>) | null>(null);
+  const handleWatchReload = useCallback(async () => {
+    await fetchDiffDataRef.current?.();
+  }, []);
+  const handleCommentsChanged = useCallback(async () => {
+    try {
+      const serverThreads = await fetchServerThreads();
+      skipNextCommentSyncRef.current = true;
+      replaceThreads(serverThreads);
+      if (commentsContextKey) {
+        setBootstrappedCommentsKey(commentsContextKey);
+      }
+    } catch (commentsError) {
+      console.error('Failed to refresh comments from server:', commentsError);
+    }
+  }, [commentsContextKey, fetchServerThreads, replaceThreads]);
 
   // File watch for reload functionality - initialize with callback
-  const { shouldReload, reload, watchState } = useFileWatch(async () => {
-    await fetchDiffData();
-  }, handleCommentImports);
+  const { shouldReload, reload, watchState } = useFileWatch(
+    handleWatchReload,
+    handleCommentsChanged,
+  );
 
   const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition } = useKeyboardNavigation({
     files: navigableFiles,
@@ -547,6 +621,7 @@ function App() {
     },
     [ignoreWhitespace],
   );
+  fetchDiffDataRef.current = fetchDiffData;
 
   useEffect(() => {
     void fetchDiffData();
@@ -620,6 +695,7 @@ function App() {
   useEffect(() => {
     if (diffData?.clearComments && !hasCleanedRef.current) {
       hasCleanedRef.current = true;
+      pendingBootstrapAfterLocalResetRef.current = true;
       clearAllComments({ resetAppliedCommentImportIds: true });
       clearViewedFiles();
       console.log(
@@ -629,13 +705,71 @@ function App() {
   }, [diffData?.clearComments, clearAllComments, clearViewedFiles]);
 
   useEffect(() => {
-    if (!diffData?.commentImportId || !diffData.commentImports?.length) {
+    if (!commentsContextKey || !hasLoadedComments) {
       return;
     }
 
-    const warnings = applyCommentImports(diffData.commentImports, diffData.commentImportId);
-    warnings.forEach((warning) => console.warn(warning));
-  }, [applyCommentImports, diffData?.commentImportId, diffData?.commentImports]);
+    if (bootstrappedCommentsKey === commentsContextKey) {
+      return;
+    }
+
+    if (bootstrappingCommentsKeyRef.current === commentsContextKey) {
+      return;
+    }
+
+    if (pendingBootstrapAfterLocalResetRef.current) {
+      pendingBootstrapAfterLocalResetRef.current = false;
+      return;
+    }
+
+    bootstrappingCommentsKeyRef.current = commentsContextKey;
+    let cancelled = false;
+
+    const bootstrapComments = async () => {
+      try {
+        const serverThreads = await fetchServerThreads();
+        const mergedThreads = mergeCommentThreads(serverThreads, threads).threads;
+        if (cancelled) {
+          return;
+        }
+
+        skipNextCommentSyncRef.current = true;
+        replaceThreads(mergedThreads);
+
+        if (JSON.stringify(serverThreads) !== JSON.stringify(mergedThreads)) {
+          await syncThreadsToServer(mergedThreads);
+        }
+      } catch (commentsError) {
+        if (!cancelled) {
+          console.error('Failed to bootstrap comments from server:', commentsError);
+        }
+      } finally {
+        if (!cancelled) {
+          setBootstrappedCommentsKey(commentsContextKey);
+        }
+        if (bootstrappingCommentsKeyRef.current === commentsContextKey) {
+          bootstrappingCommentsKeyRef.current = null;
+        }
+      }
+    };
+
+    void bootstrapComments();
+
+    return () => {
+      cancelled = true;
+      if (bootstrappingCommentsKeyRef.current === commentsContextKey) {
+        bootstrappingCommentsKeyRef.current = null;
+      }
+    };
+  }, [
+    bootstrappedCommentsKey,
+    commentsContextKey,
+    fetchServerThreads,
+    hasLoadedComments,
+    replaceThreads,
+    syncThreadsToServer,
+    threads,
+  ]);
 
   // Trigger sparkle animation when all files are viewed
   useEffect(() => {
@@ -658,28 +792,36 @@ function App() {
 
   // Send comments to server whenever they change and before page unload
   useEffect(() => {
-    const data = JSON.stringify({ threads: normalizedThreads });
+    if (!hasBootstrappedComments) {
+      return;
+    }
 
-    fetch('/api/comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: data,
-    }).catch((error) => {
-      console.error('Failed to sync comments:', error);
-    });
+    const data = JSON.stringify({ threads });
+    const commentsApiUrl = getCommentApiUrl('/api/comments');
 
     // Also handle page unload
     const sendCommentsBeforeUnload = () => {
       // Use sendBeacon for reliable delivery during page unload, including empty states.
-      navigator.sendBeacon('/api/comments', data);
+      navigator.sendBeacon(commentsApiUrl, data);
     };
 
     window.addEventListener('beforeunload', sendCommentsBeforeUnload);
 
+    if (skipNextCommentSyncRef.current) {
+      skipNextCommentSyncRef.current = false;
+      return () => {
+        window.removeEventListener('beforeunload', sendCommentsBeforeUnload);
+      };
+    }
+
+    syncThreadsToServer(threads).catch((syncError) => {
+      console.error('Failed to sync comments:', syncError);
+    });
+
     return () => {
       window.removeEventListener('beforeunload', sendCommentsBeforeUnload);
     };
-  }, [normalizedThreads]);
+  }, [getCommentApiUrl, hasBootstrappedComments, syncThreadsToServer, threads]);
 
   // Establish SSE connection for tab close detection
   useEffect(() => {
