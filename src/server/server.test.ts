@@ -801,7 +801,7 @@ describe('Server Integration Tests', () => {
       const jsonResponse = await fetch(`http://localhost:${port}/api/comments-json`);
       const data = (await jsonResponse.json()) as any;
 
-      const thread = data.threads.find((t: any) => t.file === 'src/reply-test.ts');
+      const thread = data.threads.find((t: any) => t.filePath === 'src/reply-test.ts');
       expect(thread).toBeDefined();
       expect(thread.messages).toHaveLength(2);
       expect(thread.messages[0].body).toBe('Original comment');
@@ -833,7 +833,7 @@ describe('Server Integration Tests', () => {
       const jsonResponse = await fetch(`http://localhost:${port}/api/comments-json`);
       const data = (await jsonResponse.json()) as any;
 
-      const threads = data.threads.filter((t: any) => t.file === 'src/dedup.ts');
+      const threads = data.threads.filter((t: any) => t.filePath === 'src/dedup.ts');
       expect(threads).toHaveLength(1);
     });
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { spawn } from 'child_process';
 import { Command } from 'commander';
 import React from 'react';
 import { simpleGit, type SimpleGit } from 'simple-git';
@@ -75,6 +76,88 @@ function determineDiffMode(selection: DiffSelection, compareWith?: string): Diff
   return DiffMode.DEFAULT;
 }
 
+async function startBackgroundProcess(): Promise<void> {
+  const scriptPath = process.argv[1];
+  if (!scriptPath) {
+    throw new Error('Unable to determine difit entrypoint for background process');
+  }
+
+  const childArgs = process.argv.slice(2).filter((arg) => arg !== '--background');
+  if (!childArgs.includes('--keep-alive')) {
+    childArgs.push('--keep-alive');
+  }
+  if (!childArgs.includes('--no-open')) {
+    childArgs.push('--no-open');
+  }
+
+  const child = spawn(process.execPath, [scriptPath, ...childArgs], {
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      [BACKGROUND_CHILD_ENV]: '1',
+    },
+  });
+
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Timed out while starting background difit server'));
+    }, 10_000);
+    let stderr = '';
+    let settled = false;
+
+    const finish = (callback: () => void) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      callback();
+    };
+
+    child.stdout.on('data', (chunk: string) => {
+      const line = chunk
+        .split(/\r?\n/u)
+        .map((value) => value.trim())
+        .find((value) => value.length > 0);
+
+      if (!line) {
+        return;
+      }
+
+      finish(() => {
+        console.log(line);
+        child.unref();
+        resolve();
+      });
+    });
+
+    child.stderr.on('data', (chunk: string) => {
+      stderr += chunk;
+    });
+
+    child.once('error', (error) => {
+      finish(() => {
+        reject(error);
+      });
+    });
+
+    child.once('exit', (code) => {
+      finish(() => {
+        const trimmedStderr = stderr.trim();
+        reject(
+          new Error(
+            trimmedStderr || `Background difit server exited early (code ${code ?? 'unknown'})`,
+          ),
+        );
+      });
+    });
+  });
+}
+
 interface CliOptions {
   port?: number;
   host?: string;
@@ -86,10 +169,12 @@ interface CliOptions {
   clean?: boolean;
   includeUntracked?: boolean;
   keepAlive?: boolean;
+  background?: boolean;
   context?: number;
   mergeBase?: boolean;
-  background?: boolean;
 }
+
+const BACKGROUND_CHILD_ENV = 'DIFIT_BACKGROUND_CHILD';
 
 const program = new Command();
 
@@ -98,6 +183,7 @@ program
   .description('A lightweight Git diff viewer with GitHub-like interface')
   .version(pkg.version, '-v, --version', 'output the version number')
   .enablePositionalOptions()
+  .addCommand(createCommentCommand())
   .argument(
     '[commit-ish]',
     'Git commit, tag, branch, HEAD~n reference, or "working"/"staged"/"."',
@@ -127,20 +213,16 @@ program
   .option('--clean', 'start with a clean slate by clearing all existing comments')
   .option('--include-untracked', 'automatically include untracked files in diff')
   .option('--keep-alive', 'keep server running even after browser disconnects')
+  .option('--background', 'keep the server running in the background and output JSON info')
   .option('--context <lines>', 'number of context lines shown around each change', parseInt)
   .option(
     '--merge-base',
     'resolve the base revision with git merge-base before diffing (Git revision mode only)',
   )
-  .option('--background', 'start server in background and output JSON with port info')
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
-      // --background implies --keep-alive and --no-open
-      if (options.background) {
-        options.keepAlive = true;
-        options.open = false;
-      }
-
+      const isBackgroundChild = process.env[BACKGROUND_CHILD_ENV] === '1';
+      const backgroundMode = options.background || isBackgroundChild;
       let stdinDiff: string | undefined;
       let stdinReviewLabel = 'diff from stdin';
       let manualCommentImports: CommentImport[] = [];
@@ -154,6 +236,11 @@ program
         process.exit(1);
       }
 
+      if (options.background && !isBackgroundChild) {
+        await startBackgroundProcess();
+        return;
+      }
+
       try {
         manualCommentImports = parseCommentOptions(options.comment);
         commentImports = manualCommentImports;
@@ -162,6 +249,11 @@ program
           `Error: ${error instanceof Error ? error.message : 'Invalid --comment value'}`,
         );
         process.exit(1);
+      }
+
+      if (backgroundMode) {
+        options.keepAlive = true;
+        options.open = false;
       }
 
       if (options.pr) {
@@ -243,7 +335,7 @@ program
           ...(commentImports.length > 0 ? { commentImports } : {}),
         });
 
-        if (options.background) {
+        if (backgroundMode) {
           console.log(JSON.stringify({ port, url, pid: process.pid }));
           return;
         }
@@ -277,10 +369,19 @@ program
 
       if (selection.targetCommitish === 'working' || selection.targetCommitish === '.') {
         const git = simpleGit(repoPath);
-        await handleUntrackedFiles(git, options.includeUntracked);
+        if (isBackgroundChild && !options.includeUntracked) {
+          // Skip interactive prompts in detached background mode.
+        } else {
+          await handleUntrackedFiles(git, options.includeUntracked);
+        }
       }
 
       if (options.tui) {
+        if (backgroundMode) {
+          console.error('Error: --background option cannot be used with --tui');
+          process.exit(1);
+        }
+
         if (commentImports.length > 0) {
           console.error('Error: --comment option cannot be used with --tui');
           process.exit(1);
@@ -330,7 +431,7 @@ program
         ...(commentImports.length > 0 ? { commentImports } : {}),
       });
 
-      if (options.background) {
+      if (backgroundMode) {
         console.log(JSON.stringify({ port, url, pid: process.pid }));
         return;
       }
@@ -381,11 +482,8 @@ program
     }
   });
 
-program.addCommand(createCommentCommand());
+void program.parseAsync();
 
-program.parse();
-
-// Check for untracked files and prompt user to add them for diff visibility
 async function handleUntrackedFiles(git: SimpleGit, addAutomatically?: boolean): Promise<void> {
   const files = await findUntrackedFiles(git);
   if (files.length === 0) {
