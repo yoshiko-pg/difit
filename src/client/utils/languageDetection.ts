@@ -44,6 +44,9 @@ const DIFF_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   ex: 'elixir',
   exs: 'elixir',
   heex: 'elixir',
+  nix: 'nix',
+  hs: 'haskell',
+  lhs: 'haskell',
 };
 
 // Prism syntax highlighting: use Prism language IDs (e.g. tsx -> tsx, scss -> css).
@@ -104,6 +107,9 @@ const PRISM_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   ex: 'elixir',
   exs: 'elixir',
   heex: 'elixir',
+  nix: 'nix',
+  hs: 'haskell',
+  lhs: 'haskell',
 };
 
 const PRISM_FILENAME_LANGUAGE_MAP: Record<string, string> = {
