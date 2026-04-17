@@ -32,6 +32,8 @@ export function loadPrismLanguage(lang: string): Promise<void> {
       hcl: () => import('prismjs/components/prism-hcl.js'),
       perl: () => import('prismjs/components/prism-perl.js'),
       elixir: () => import('prismjs/components/prism-elixir.js'),
+      nix: () => import('prismjs/components/prism-nix.js'),
+      haskell: () => import('prismjs/components/prism-haskell.js'),
     };
 
     const importFn = languageImports[lang];
