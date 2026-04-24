@@ -323,7 +323,9 @@ export const FileList = memo(function FileList({
         >
           {node.name && (
             <div
-              className="sticky flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer"
+              className={`sticky flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer ${
+                isReviewed ? 'opacity-70' : ''
+              }`}
               data-dir-header="true"
               data-tree-row="true"
               data-depth={depth}

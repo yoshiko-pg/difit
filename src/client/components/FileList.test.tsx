@@ -20,6 +20,12 @@ function getTreeRowPaddingLeft(title: string): string {
   return row?.style.paddingLeft ?? '';
 }
 
+function getTreeRow(title: string): HTMLElement {
+  const row = screen.getByTitle(title).closest<HTMLElement>('[data-tree-row="true"]');
+  expect(row).not.toBeNull();
+  return row as HTMLElement;
+}
+
 function getLabel(title: string): HTMLElement {
   return screen.getByTitle(title);
 }
@@ -65,8 +71,11 @@ describe('FileList', () => {
     );
 
     expect(getLabel('src')).not.toHaveClass('line-through');
+    expect(getTreeRow('src')).not.toHaveClass('opacity-70');
     expect(getLabel('cli')).toHaveClass('line-through');
+    expect(getTreeRow('cli')).toHaveClass('opacity-70');
     expect(getLabel('client')).not.toHaveClass('line-through');
+    expect(getTreeRow('client')).not.toHaveClass('opacity-70');
 
     rerender(
       <FileList
@@ -76,7 +85,10 @@ describe('FileList', () => {
     );
 
     expect(getLabel('src')).toHaveClass('line-through');
+    expect(getTreeRow('src')).toHaveClass('opacity-70');
     expect(getLabel('cli')).toHaveClass('line-through');
+    expect(getTreeRow('cli')).toHaveClass('opacity-70');
     expect(getLabel('client')).toHaveClass('line-through');
+    expect(getTreeRow('client')).toHaveClass('opacity-70');
   });
 });
