@@ -36,6 +36,15 @@ interface TreeNode {
   file?: DiffFile;
 }
 
+const TREE_ROW_PADDING_LEFT_PX = 16;
+const TREE_ICON_SIZE_PX = 16;
+const TREE_ROW_GAP_PX = 8;
+const TREE_INDENT_STEP_PX = TREE_ICON_SIZE_PX + TREE_ROW_GAP_PX;
+
+function getTreeRowPaddingLeft(depth: number): string {
+  return `${depth * TREE_INDENT_STEP_PX + TREE_ROW_PADDING_LEFT_PX}px`;
+}
+
 function getAllDirectoryPaths(node: TreeNode): string[] {
   if (!node.isDirectory || !node.children) return [];
   const paths: string[] = [];
@@ -290,7 +299,7 @@ export const FileList = memo(function FileList({
               data-tree-row="true"
               data-depth={depth}
               style={{
-                paddingLeft: `${depth * 16 + 16}px`,
+                paddingLeft: getTreeRowPaddingLeft(depth),
                 top: `calc(${depth} * var(--dir-row-height))`,
                 zIndex: 1000 - depth,
               }}
@@ -330,7 +339,7 @@ export const FileList = memo(function FileList({
           data-file-row="true"
           data-tree-row="true"
           data-depth={depth}
-          style={{ paddingLeft: `${depth * 16 + 16}px` }}
+          style={{ paddingLeft: getTreeRowPaddingLeft(depth) }}
           onClick={() => {
             onScrollToFile(file.path);
             onFileSelected?.();
