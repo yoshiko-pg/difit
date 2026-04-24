@@ -11,11 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 import { type DiffMode } from '../types/watch.js';
 import { formatCommentsOutput } from '../utils/commentFormatting.js';
-import {
-  mergeCommentImports,
-  normalizeCommentImports,
-  serializeCommentImports,
-} from '../utils/commentImports.js';
+import { serializeCommentImports } from '../utils/commentImports.js';
 import { normalizeDiffViewMode } from '../utils/diffMode.js';
 import { resolveEditorOption } from '../utils/editorOptions.js';
 import { getFileExtension } from '../utils/fileUtils.js';
@@ -513,53 +509,6 @@ export async function startServer(
     } else {
       res.send('');
     }
-  });
-
-  function threadToDiffThread(thread: CommentThread): DiffCommentThread {
-    return {
-      id: thread.id,
-      filePath: thread.file,
-      createdAt: thread.createdAt,
-      updatedAt: thread.updatedAt,
-      position: {
-        side: thread.side ?? 'new',
-        line: Array.isArray(thread.line)
-          ? { start: thread.line[0], end: thread.line[1] }
-          : thread.line,
-      },
-      codeSnapshot: thread.codeContent ? { content: thread.codeContent } : undefined,
-      messages: thread.messages,
-    };
-  }
-
-  app.post('/api/comment-imports', (req, res) => {
-    try {
-      const body: unknown =
-        typeof req.body === 'string' ? JSON.parse(req.body as string) : req.body;
-      const imports = normalizeCommentImports(body);
-      const importId = createHash('sha256').update(serializeCommentImports(imports)).digest('hex');
-
-      // Merge imports into server-side threads so they're available via comments-output/comments-json
-      const existingDiffThreads = finalThreads.map(threadToDiffThread);
-      const merged = mergeCommentImports(existingDiffThreads, imports);
-      finalThreads = merged.threads.map(normalizeThreadPayload);
-
-      fileWatcher.broadcastCommentImport({
-        type: 'commentImports',
-        commentImports: imports,
-        commentImportId: importId,
-      });
-
-      res.json({ success: true, importId, count: imports.length });
-    } catch (error) {
-      res.status(400).json({
-        error: error instanceof Error ? error.message : 'Invalid comment import data',
-      });
-    }
-  });
-
-  app.get('/api/comments-json', (_req, res) => {
-    res.json({ threads: finalThreads });
   });
 
   app.post('/api/open-in-editor', async (req, res) => {

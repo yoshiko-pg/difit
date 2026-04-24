@@ -4,7 +4,7 @@ import { subscribe } from '@parcel/watcher';
 import { type Response } from 'express';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
-import { DiffMode, type CommentImportsWatchEvent } from '../types/watch.js';
+import { DiffMode } from '../types/watch.js';
 
 interface FileWatcherConfig {
   watchPath: string;
@@ -249,12 +249,6 @@ export class FileWatcherService {
     if (index > -1) {
       this.clients.splice(index, 1);
     }
-  }
-
-  broadcastCommentImport(event: CommentImportsWatchEvent): void {
-    this.clients.forEach((client) => {
-      this.sendToClient(client, event);
-    });
   }
 
   private broadcastChange(): void {

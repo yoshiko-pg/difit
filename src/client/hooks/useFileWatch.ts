@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { CommentImport } from '../../types/diff.js';
-import {
-  DiffMode,
-  type ClientWatchState,
-  type CommentImportsWatchEvent,
-} from '../../types/watch.js';
+import { DiffMode, type ClientWatchState } from '../../types/watch.js';
 import { resolveEventSourceUrl } from '../utils/eventSourceUrl';
 
 interface FileWatchHook {
@@ -24,17 +19,10 @@ interface WatchEvent {
   message?: string;
 }
 
-type ServerWatchEvent = WatchEvent | CommentImportsWatchEvent;
-
-export function useFileWatch(
-  onReload?: () => Promise<void>,
-  onCommentImports?: (imports: CommentImport[], importId: string) => void,
-): FileWatchHook {
+export function useFileWatch(onReload?: () => Promise<void>): FileWatchHook {
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const onCommentImportsRef = useRef(onCommentImports);
-  onCommentImportsRef.current = onCommentImports;
   const maxReconnectAttempts = 5;
   const reconnectDelay = 3000; // 3 seconds
 
@@ -72,7 +60,7 @@ export function useFileWatch(
       eventSource.onmessage = (event) => {
         try {
           // oxlint-disable-next-line typescript/no-unsafe-assignment
-          const data: ServerWatchEvent = JSON.parse(event.data as string);
+          const data: WatchEvent = JSON.parse(event.data as string);
 
           switch (data.type) {
             case 'connected':
@@ -92,10 +80,6 @@ export function useFileWatch(
                 lastChangeTime: new Date(),
                 lastChangeType: data.changeType,
               }));
-              break;
-
-            case 'commentImports':
-              onCommentImportsRef.current?.(data.commentImports, data.commentImportId);
               break;
 
             case 'error':

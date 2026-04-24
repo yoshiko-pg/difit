@@ -19,9 +19,7 @@ import {
   parseCommentOptions,
   validateDiffArguments,
   getGitRoot,
-  readStdin,
 } from './utils.js';
-import { createCommentCommand } from './comment.js';
 import { getPrPatch, getPrCommentImports } from './github.js';
 import { warnAboutTuiDeprecation } from './tuiDeprecation.js';
 
@@ -88,7 +86,6 @@ interface CliOptions {
   keepAlive?: boolean;
   context?: number;
   mergeBase?: boolean;
-  background?: boolean;
 }
 
 const program = new Command();
@@ -97,7 +94,6 @@ program
   .name('difit')
   .description('A lightweight Git diff viewer with GitHub-like interface')
   .version(pkg.version, '-v, --version', 'output the version number')
-  .enablePositionalOptions()
   .argument(
     '[commit-ish]',
     'Git commit, tag, branch, HEAD~n reference, or "working"/"staged"/"."',
@@ -132,15 +128,8 @@ program
     '--merge-base',
     'resolve the base revision with git merge-base before diffing (Git revision mode only)',
   )
-  .option('--background', 'start server in background and output JSON with port info')
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
-      // --background implies --keep-alive and --no-open
-      if (options.background) {
-        options.keepAlive = true;
-        options.open = false;
-      }
-
       let stdinDiff: string | undefined;
       let stdinReviewLabel = 'diff from stdin';
       let manualCommentImports: CommentImport[] = [];
@@ -232,7 +221,7 @@ program
 
       if (stdinDiff) {
         // Start server with stdin diff (including --pr patch)
-        const { url, port } = await startServer({
+        const { url } = await startServer({
           stdinDiff,
           preferredPort: options.port,
           host: options.host,
@@ -242,11 +231,6 @@ program
           keepAlive: options.keepAlive,
           ...(commentImports.length > 0 ? { commentImports } : {}),
         });
-
-        if (options.background) {
-          console.log(JSON.stringify({ port, url, pid: process.pid }));
-          return;
-        }
 
         console.log(`\n🚀 difit server started on ${url}`);
         console.log(`📋 Reviewing: ${stdinReviewLabel}`);
@@ -330,11 +314,6 @@ program
         ...(commentImports.length > 0 ? { commentImports } : {}),
       });
 
-      if (options.background) {
-        console.log(JSON.stringify({ port, url, pid: process.pid }));
-        return;
-      }
-
       console.log(`\n🚀 difit server started on ${url}`);
       console.log(`📋 Reviewing: ${selection.targetCommitish}`);
 
@@ -381,11 +360,17 @@ program
     }
   });
 
-program.addCommand(createCommentCommand());
-
 program.parse();
 
 // Check for untracked files and prompt user to add them for diff visibility
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 async function handleUntrackedFiles(git: SimpleGit, addAutomatically?: boolean): Promise<void> {
   const files = await findUntrackedFiles(git);
   if (files.length === 0) {
