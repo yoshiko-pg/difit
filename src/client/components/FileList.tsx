@@ -55,6 +55,30 @@ function getAllDirectoryPaths(node: TreeNode): string[] {
   return paths;
 }
 
+function getReviewedDirectoryPaths(node: TreeNode, reviewedFiles: Set<string>): Set<string> {
+  const reviewedDirectoryPaths = new Set<string>();
+
+  const visit = (currentNode: TreeNode): boolean => {
+    if (currentNode.file) {
+      return reviewedFiles.has(currentNode.file.path);
+    }
+
+    if (!currentNode.isDirectory || !currentNode.children || currentNode.children.length === 0) {
+      return false;
+    }
+
+    const childrenReviewed = currentNode.children.map((child) => visit(child));
+    const areAllChildrenReviewed = childrenReviewed.every(Boolean);
+    if (areAllChildrenReviewed && currentNode.path) {
+      reviewedDirectoryPaths.add(currentNode.path);
+    }
+    return areAllChildrenReviewed;
+  };
+
+  visit(node);
+  return reviewedDirectoryPaths;
+}
+
 function buildFileTree(files: DiffFile[]): TreeNode {
   const root: TreeNode = {
     name: '',
@@ -164,6 +188,10 @@ export const FileList = memo(function FileList({
     });
     return indices;
   }, [files]);
+  const reviewedDirectoryPaths = useMemo(
+    () => getReviewedDirectoryPaths(fileTree, reviewedFiles),
+    [fileTree, reviewedFiles],
+  );
 
   // Filter the file tree based on search text
   const filteredFileTree = useMemo(() => {
@@ -278,6 +306,7 @@ export const FileList = memo(function FileList({
   const renderTreeNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
     if (node.isDirectory && node.children) {
       const isExpanded = expandedDirs.has(node.path);
+      const isReviewed = reviewedDirectoryPaths.has(node.path);
 
       return (
         <div
@@ -312,7 +341,9 @@ export const FileList = memo(function FileList({
                 <Folder size={16} className="text-github-text-secondary" />
               )}
               <span
-                className="text-sm text-github-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+                className={`text-sm text-github-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap ${
+                  isReviewed ? 'line-through text-github-text-muted' : ''
+                }`}
                 title={node.name}
               >
                 {node.name}

@@ -20,6 +20,10 @@ function getTreeRowPaddingLeft(title: string): string {
   return row?.style.paddingLeft ?? '';
 }
 
+function getLabel(title: string): HTMLElement {
+  return screen.getByTitle(title);
+}
+
 describe('FileList', () => {
   it('includes the row gap in nested tree indentation', () => {
     render(
@@ -41,5 +45,38 @@ describe('FileList', () => {
     expect(getTreeRowPaddingLeft('src')).toBe('16px');
     expect(getTreeRowPaddingLeft('cli')).toBe('40px');
     expect(getTreeRowPaddingLeft('src/cli/index.ts')).toBe('64px');
+  });
+
+  it('strikes through directories when all descendant files are reviewed', () => {
+    const files = [
+      createFile('src/cli/index.ts'),
+      createFile('src/client/App.tsx'),
+      createFile('README.md'),
+    ];
+    const props = {
+      files,
+      onScrollToFile: vi.fn(),
+      comments: [],
+      onToggleReviewed: vi.fn(),
+      selectedFileIndex: null,
+    };
+    const { rerender } = render(
+      <FileList {...props} reviewedFiles={new Set(['README.md', 'src/cli/index.ts'])} />,
+    );
+
+    expect(getLabel('src')).not.toHaveClass('line-through');
+    expect(getLabel('cli')).toHaveClass('line-through');
+    expect(getLabel('client')).not.toHaveClass('line-through');
+
+    rerender(
+      <FileList
+        {...props}
+        reviewedFiles={new Set(['README.md', 'src/cli/index.ts', 'src/client/App.tsx'])}
+      />,
+    );
+
+    expect(getLabel('src')).toHaveClass('line-through');
+    expect(getLabel('cli')).toHaveClass('line-through');
+    expect(getLabel('client')).toHaveClass('line-through');
   });
 });
