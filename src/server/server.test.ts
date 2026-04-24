@@ -801,7 +801,7 @@ describe('Server Integration Tests', () => {
       const jsonResponse = await fetch(`http://localhost:${port}/api/comments-json`);
       const data = (await jsonResponse.json()) as any;
 
-      const thread = data.threads.find((t: any) => t.filePath === 'src/reply-test.ts');
+      const thread = data.threads.find((t: any) => t.file === 'src/reply-test.ts');
       expect(thread).toBeDefined();
       expect(thread.messages).toHaveLength(2);
       expect(thread.messages[0].body).toBe('Original comment');
@@ -833,101 +833,8 @@ describe('Server Integration Tests', () => {
       const jsonResponse = await fetch(`http://localhost:${port}/api/comments-json`);
       const data = (await jsonResponse.json()) as any;
 
-      const threads = data.threads.filter((t: any) => t.filePath === 'src/dedup.ts');
+      const threads = data.threads.filter((t: any) => t.file === 'src/dedup.ts');
       expect(threads).toHaveLength(1);
-    });
-
-    it('isolates comment sessions between different diff selections', async () => {
-      const importServer = await startServer({
-        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
-        preferredPort: 9039,
-        commentImports: [
-          {
-            type: 'thread',
-            filePath: 'src/cli/comment.test.ts',
-            position: { side: 'new', line: 10 },
-            body: 'Startup comment',
-          },
-        ],
-      });
-      servers.push(importServer.server);
-
-      const parser = parserInstances.at(-1);
-      parser?.parseDiff.mockImplementation(async (selection: any) => ({
-        targetCommit: 'abc123',
-        baseCommit: 'def456',
-        baseCommitish: selection.baseCommitish === 'HEAD^' ? 'def4567' : selection.baseCommitish,
-        targetCommitish:
-          selection.targetCommitish === 'HEAD' ? 'abc1234' : selection.targetCommitish,
-        requestedBaseCommitish: selection.baseCommitish,
-        requestedTargetCommitish: selection.targetCommitish,
-        requestedBaseMode: selection.baseMode,
-        targetMessage: 'Test commit',
-        baseMessage: 'Previous commit',
-        files: [
-          {
-            path: 'src/cli/comment.test.ts',
-            additions: 10,
-            deletions: 5,
-            chunks: [],
-          },
-        ],
-        stats: { additions: 10, deletions: 5 },
-        isEmpty: false,
-      }));
-
-      await fetch(`http://localhost:${importServer.port}/api/comment-imports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([
-          {
-            type: 'thread',
-            filePath: 'src/cli/comment.test.ts',
-            position: { side: 'new', line: 20 },
-            body: 'API comment',
-          },
-        ]),
-      });
-
-      let response = await fetch(`http://localhost:${importServer.port}/api/comments-output`);
-      let output = await response.text();
-      expect(output).toContain('Startup comment');
-      expect(output).toContain('API comment');
-
-      await fetch(
-        `http://localhost:${importServer.port}/api/diff?base=feat%2F292-comment-read-write&target=codex%2Fcomment-session-state`,
-      );
-
-      response = await fetch(`http://localhost:${importServer.port}/api/comments-output`);
-      output = await response.text();
-      expect(output).toBe('');
-
-      await fetch(`http://localhost:${importServer.port}/api/comment-imports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([
-          {
-            type: 'thread',
-            filePath: 'src/cli/comment.test.ts',
-            position: { side: 'new', line: 30 },
-            body: 'Other diff comment',
-          },
-        ]),
-      });
-
-      response = await fetch(`http://localhost:${importServer.port}/api/comments-output`);
-      output = await response.text();
-      expect(output).toContain('Other diff comment');
-      expect(output).not.toContain('Startup comment');
-      expect(output).not.toContain('API comment');
-
-      await fetch(`http://localhost:${importServer.port}/api/diff?base=HEAD%5E&target=HEAD`);
-
-      response = await fetch(`http://localhost:${importServer.port}/api/comments-output`);
-      output = await response.text();
-      expect(output).toContain('Startup comment');
-      expect(output).toContain('API comment');
-      expect(output).not.toContain('Other diff comment');
     });
 
     it.skip('GET /api/heartbeat returns SSE headers', async () => {

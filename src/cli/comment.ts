@@ -2,31 +2,7 @@ import { Command, Option } from 'commander';
 
 import { parseCommentImportValue } from '../utils/commentImports.js';
 
-import { detectStdinSource, readStdin } from './utils.js';
-
-interface CommentImportResponse {
-  success?: boolean;
-  importId?: string;
-  count?: number;
-  warnings?: string[];
-}
-
-async function parseCommentAddInput(json?: string): Promise<string> {
-  if (typeof json === 'string') {
-    return json;
-  }
-
-  if (detectStdinSource() === 'tty') {
-    throw new Error('Provide comment JSON as an argument or via stdin');
-  }
-
-  const stdin = await readStdin();
-  if (!stdin.trim()) {
-    throw new Error('No comment JSON received from stdin');
-  }
-
-  return stdin;
-}
+import { readStdin } from './utils.js';
 
 export function createCommentCommand(): Command {
   const comment = new Command('comment').description(
@@ -40,7 +16,12 @@ export function createCommentCommand(): Command {
     .requiredOption('--port <port>', 'port of the running difit server', parseInt)
     .action(async (json: string | undefined, opts: { port: number }) => {
       try {
-        const input = await parseCommentAddInput(json);
+        const input = json ?? (await readStdin());
+        if (!input.trim()) {
+          console.error('Error: No comment data provided. Pass JSON as argument or via stdin.');
+          process.exit(1);
+        }
+
         const imports = parseCommentImportValue(input);
 
         const response = await fetch(`http://localhost:${opts.port}/api/comment-imports`, {
@@ -50,18 +31,21 @@ export function createCommentCommand(): Command {
         });
 
         if (!response.ok) {
-          const errorBody = (await response.json().catch(() => ({}))) as { error?: string };
-          console.error(`Error: ${errorBody.error ?? 'Failed to add comments'}`);
+          const error = (await response.json()) as { error?: string };
+          console.error(`Error: ${error.error ?? 'Failed to add comments'}`);
           process.exit(1);
         }
 
-        const result = (await response.json()) as CommentImportResponse;
+        const result = (await response.json()) as {
+          success: boolean;
+          importId: string;
+          count: number;
+        };
         console.log(
           JSON.stringify({
-            success: result.success ?? true,
+            success: result.success,
             importId: result.importId,
-            count: result.count ?? imports.length,
-            warnings: result.warnings ?? [],
+            count: result.count,
           }),
         );
       } catch (error) {
@@ -102,14 +86,10 @@ export function createCommentCommand(): Command {
             console.log(text);
           }
         }
-      } catch (error) {
-        if (error instanceof TypeError && error.message.includes('fetch failed')) {
-          console.error(
-            `Error: Cannot connect to difit server on port ${opts.port}. Is the server running?`,
-          );
-        } else {
-          console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
+      } catch {
+        console.error(
+          `Error: Cannot connect to difit server on port ${opts.port}. Is the server running?`,
+        );
         process.exit(1);
       }
     });

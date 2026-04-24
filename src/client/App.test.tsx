@@ -22,10 +22,8 @@ vi.mock('./hooks/useViewport', () => ({
 // Mock the useDiffComments hook
 vi.mock('./hooks/useDiffComments', () => ({
   useDiffComments: vi.fn(() => ({
-    hasLoadedComments: true,
     comments: [],
     threads: mockComments,
-    replaceThreads: mockReplaceThreads,
     addComment: vi.fn(),
     addThread: vi.fn(),
     removeComment: vi.fn(),
@@ -121,7 +119,6 @@ Object.defineProperty(window, 'EventSource', {
 });
 
 let mockComments: DiffCommentThread[] = [];
-const mockReplaceThreads = vi.fn();
 const mockClearAllComments = vi.fn();
 const mockApplyCommentImports = vi.fn(() => []);
 
@@ -172,15 +169,10 @@ beforeEach(() => {
   MockEventSource.clearInstances();
   mockViewedFiles = new Set<string>();
   mockHasLoadedInitialViewedFiles = true;
-  mockReplaceThreads.mockReset();
 });
 
 const mockDiffResponse: DiffResponse = {
   commit: 'abc123',
-  baseCommitish: 'HEAD^',
-  targetCommitish: 'HEAD',
-  requestedBaseCommitish: 'HEAD^',
-  requestedTargetCommitish: 'HEAD',
   files: [
     {
       path: 'test.ts',
@@ -343,56 +335,30 @@ describe('App Component - Clear Comments Functionality', () => {
       consoleLogSpy.mockRestore();
     });
 
-    it('hydrates comments from the server comment session on startup', async () => {
-      const serverThreads = [
-        createMockThread({
-          id: 'imported-thread',
-          filePath: 'test.ts',
-          line: 10,
-          body: 'Imported comment',
-        }),
-      ];
+    it('applies imported comments after loading the diff response', async () => {
+      const responseWithImports: DiffResponse = {
+        ...mockDiffResponse,
+        commentImportId: 'import-bundle-1',
+        commentImports: [
+          {
+            type: 'thread',
+            filePath: 'test.ts',
+            position: { side: 'new', line: 10 },
+            body: 'Imported comment',
+          },
+        ],
+      };
 
-      vi.mocked(global.fetch).mockImplementation((input) => {
-        const url = String(input);
-
-        if (url.startsWith('/api/comments-json')) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ threads: serverThreads }),
-          } as Response);
-        }
-
-        if (url.startsWith('/api/comments')) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ success: true }),
-          } as Response);
-        }
-
-        if (url === '/api/revisions') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => null,
-          } as Response);
-        }
-
-        return Promise.resolve({
-          ok: true,
-          json: async () => mockDiffResponse,
-          blob: async () => ({ size: 1024 }),
-        } as Response);
-      });
+      mockFetch(responseWithImports);
 
       renderApp();
 
       await waitFor(() => {
-        expect(mockReplaceThreads).toHaveBeenCalledWith(serverThreads);
+        expect(mockApplyCommentImports).toHaveBeenCalledWith(
+          responseWithImports.commentImports,
+          'import-bundle-1',
+        );
       });
-
-      expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
-        '/api/comments-json?base=HEAD%5E&target=HEAD',
-      );
     });
   });
 });
@@ -467,20 +433,17 @@ describe('App Component - Comment sync', () => {
     const { rerender } = renderApp();
 
     await waitFor(() => {
-      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) =>
-        String(url).startsWith('/api/comments?'),
-      );
+      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) => url === '/api/comments');
       expect(commentCalls).toHaveLength(1);
 
-      const [url, request] = commentCalls[0] as [string, RequestInit];
-      expect(url).toBe('/api/comments?base=HEAD%5E&target=HEAD');
+      const [, request] = commentCalls[0] as [string, RequestInit];
       expect(request.method).toBe('POST');
       expect(JSON.parse(String(request.body))).toEqual({
         threads: [
           expect.objectContaining({
             id: 'test-1',
-            filePath: 'test.ts',
-            position: { side: 'new', line: 10 },
+            file: 'test.ts',
+            line: 10,
             messages: [
               expect.objectContaining({
                 id: 'test-1',
@@ -501,13 +464,10 @@ describe('App Component - Comment sync', () => {
     );
 
     await waitFor(() => {
-      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) =>
-        String(url).startsWith('/api/comments?'),
-      );
+      const commentCalls = mockGlobalFetch.mock.calls.filter(([url]) => url === '/api/comments');
       expect(commentCalls).toHaveLength(2);
 
-      const [url, request] = commentCalls[1] as [string, RequestInit];
-      expect(url).toBe('/api/comments?base=HEAD%5E&target=HEAD');
+      const [, request] = commentCalls[1] as [string, RequestInit];
       expect(request.method).toBe('POST');
       expect(JSON.parse(String(request.body))).toEqual({ threads: [] });
     });
@@ -515,25 +475,25 @@ describe('App Component - Comment sync', () => {
 
   it('sends an empty comment list on unload when no comments remain', async () => {
     mockComments = [];
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
 
     renderApp();
 
     await waitFor(() => {
-      expect(addEventListenerSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+      expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+        '/api/comments',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ threads: [] }),
+        }),
+      );
     });
 
-    const beforeUnloadHandler = addEventListenerSpy.mock.calls.find(
-      ([eventName]) => eventName === 'beforeunload',
-    )?.[1] as (() => void) | undefined;
-    expect(beforeUnloadHandler).toBeDefined();
-    beforeUnloadHandler?.();
+    fireEvent(window, new Event('beforeunload'));
 
     expect(navigator.sendBeacon).toHaveBeenCalledWith(
-      '/api/comments?base=HEAD%5E&target=HEAD',
+      '/api/comments',
       JSON.stringify({ threads: [] }),
     );
-    addEventListenerSpy.mockRestore();
   });
 
   it('shows author badges in the comments modal when the diff has multiple authors', async () => {
@@ -849,7 +809,7 @@ describe('App Component - Revision-aware refetching', () => {
         } as Response);
       }
 
-      if (url.startsWith('/api/comments?')) {
+      if (url.includes('/api/comments')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({ success: true }),

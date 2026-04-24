@@ -93,29 +93,6 @@ function setCachedDiffResponse(cache: Map<string, DiffResponse>, key: string, va
   }
 }
 
-interface CommentSessionState {
-  threads: DiffCommentThread[];
-  version: number;
-}
-
-function createResolvedCommentSelection(
-  responseDiffData: DiffResponse,
-  fallbackSelection: DiffSelection,
-  stdinDiff: boolean,
-): DiffSelection {
-  const baseCommitish =
-    responseDiffData.baseCommitish ?? (stdinDiff ? 'stdin' : fallbackSelection.baseCommitish);
-  const targetCommitish =
-    responseDiffData.targetCommitish ?? (stdinDiff ? 'stdin' : fallbackSelection.targetCommitish);
-  const baseMode = responseDiffData.requestedBaseMode ?? fallbackSelection.baseMode;
-
-  return createDiffSelection(baseCommitish, targetCommitish, baseMode);
-}
-
-function createCommentSessionKey(selection: DiffSelection): string {
-  return getDiffSelectionKey(selection);
-}
-
 export async function startServer(
   options: ServerOptions,
 ): Promise<{ port: number; url: string; isEmpty?: boolean; server?: Server }> {
@@ -190,11 +167,6 @@ export async function startServer(
 
   // Track current revisions for cache invalidation
   let currentSelection = initialSelection;
-  let currentCommentSelection = createResolvedCommentSelection(
-    initialDiffData,
-    initialSelection,
-    Boolean(options.stdinDiff),
-  );
 
   function parseRepositoryRelativePath(
     filepath: unknown,
@@ -217,50 +189,6 @@ export async function startServer(
     }
 
     return { ok: true, path: normalizedFilepath };
-  }
-
-  const commentSessions = new Map<string, CommentSessionState>();
-  const initialCommentThreads = mergeCommentImports([], initialCommentImports).threads;
-  if (initialCommentThreads.length > 0) {
-    commentSessions.set(createCommentSessionKey(currentCommentSelection), {
-      threads: initialCommentThreads,
-      version: 1,
-    });
-  }
-
-  function getCommentSelectionFromQuery(query: Record<string, unknown>): DiffSelection {
-    const hasBase = typeof query.base === 'string';
-    const hasTarget = typeof query.target === 'string';
-    const hasBaseMode = typeof query.baseMode === 'string';
-
-    if (!hasBase && !hasTarget && !hasBaseMode) {
-      return currentCommentSelection;
-    }
-
-    return createDiffSelection(
-      hasBase ? (query.base as string) : currentCommentSelection.baseCommitish,
-      hasTarget ? (query.target as string) : currentCommentSelection.targetCommitish,
-      hasBaseMode
-        ? parseBaseMode(query.baseMode)
-        : hasBase || hasTarget
-          ? undefined
-          : currentCommentSelection.baseMode,
-    );
-  }
-
-  function getOrCreateCommentSession(selection: DiffSelection): CommentSessionState {
-    const key = createCommentSessionKey(selection);
-    const existing = commentSessions.get(key);
-    if (existing) {
-      return existing;
-    }
-
-    const nextSession: CommentSessionState = {
-      threads: [],
-      version: 0,
-    };
-    commentSessions.set(key, nextSession);
-    return nextSession;
   }
 
   app.get('/api/diff', async (req, res) => {
@@ -298,12 +226,6 @@ export async function startServer(
         generatedStatusCache.clear();
       }
     }
-
-    currentCommentSelection = createResolvedCommentSelection(
-      responseDiffData,
-      requestedSelection,
-      Boolean(options.stdinDiff),
-    );
 
     const baseCommitish =
       responseDiffData.baseCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
@@ -506,68 +428,34 @@ export async function startServer(
     }
   });
 
-  function normalizeLineValue(line: unknown): DiffCommentThread['position']['line'] {
-    if (Array.isArray(line) && line.length === 2) {
-      const start = line[0] as unknown;
-      const end = line[1] as unknown;
-      if (
-        typeof start === 'number' &&
-        typeof end === 'number' &&
-        Number.isInteger(start) &&
-        Number.isInteger(end) &&
-        start > 0 &&
-        end > 0 &&
-        start <= end
-      ) {
-        return { start, end };
-      }
-    }
+  let finalThreads: CommentThread[] = [];
 
-    if (typeof line === 'number' && Number.isInteger(line) && line > 0) {
-      return line;
-    }
-
-    return 1;
-  }
-
-  function normalizeComment(comment: Comment): DiffCommentThread {
-    const now = new Date().toISOString();
-    const timestamp = typeof comment.timestamp === 'string' ? comment.timestamp : now;
-    const threadId =
-      typeof comment.id === 'string' && comment.id.length > 0
-        ? comment.id
-        : createHash('sha256').update(JSON.stringify(comment)).digest('hex').slice(0, 12);
-    const filePath =
-      typeof comment.file === 'string' && comment.file.length > 0 ? comment.file : '<unknown file>';
-
+  function normalizeComment(comment: Comment): CommentThread {
     return {
-      id: threadId,
-      filePath,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      position: {
-        side: comment.side ?? 'new',
-        line: normalizeLineValue(comment.line),
-      },
-      codeSnapshot:
-        typeof comment.codeContent === 'string'
-          ? {
-              content: comment.codeContent,
-            }
-          : undefined,
+      id: comment.id,
+      file: comment.file,
+      line: comment.line,
+      side: comment.side,
+      createdAt: comment.timestamp,
+      updatedAt: comment.timestamp,
+      codeContent: comment.codeContent,
       messages: [
         {
-          id: threadId,
+          id: comment.id,
           body: comment.body,
           author: comment.author,
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: comment.timestamp,
+          updatedAt: comment.timestamp,
         },
       ],
     };
   }
 
-  function toCommentThread(thread: DiffCommentThread): CommentThread {
+  function normalizeThreadPayload(thread: CommentThread | DiffCommentThread): CommentThread {
+    if ('file' in thread && 'line' in thread) {
+      return thread;
+    }
+
     return {
       id: thread.id,
       file: thread.filePath,
@@ -583,60 +471,7 @@ export async function startServer(
     };
   }
 
-  function normalizeThreadPayload(thread: CommentThread | DiffCommentThread): DiffCommentThread {
-    if ('filePath' in thread && 'position' in thread) {
-      return thread;
-    }
-
-    const threadId =
-      typeof thread.id === 'string' && thread.id.length > 0
-        ? thread.id
-        : createHash('sha256').update(JSON.stringify(thread)).digest('hex').slice(0, 12);
-    const now = new Date().toISOString();
-    const messages =
-      Array.isArray(thread.messages) && thread.messages.length > 0
-        ? thread.messages.map((message, index) => ({
-            id:
-              typeof message.id === 'string' && message.id.length > 0
-                ? message.id
-                : `${threadId}:${index}`,
-            body: message.body,
-            author: message.author,
-            createdAt: message.createdAt || thread.createdAt || now,
-            updatedAt: message.updatedAt || message.createdAt || thread.updatedAt || now,
-          }))
-        : [
-            {
-              id: threadId,
-              body: '',
-              createdAt: thread.createdAt || now,
-              updatedAt: thread.updatedAt || thread.createdAt || now,
-            },
-          ];
-    const firstMessage = messages[0];
-    const lastMessage = messages[messages.length - 1];
-
-    return {
-      id: threadId,
-      filePath:
-        typeof thread.file === 'string' && thread.file.length > 0 ? thread.file : '<unknown file>',
-      createdAt: thread.createdAt || firstMessage?.createdAt || now,
-      updatedAt: thread.updatedAt || lastMessage?.updatedAt || thread.createdAt || now,
-      position: {
-        side: thread.side ?? 'new',
-        line: normalizeLineValue(thread.line),
-      },
-      codeSnapshot:
-        typeof thread.codeContent === 'string'
-          ? {
-              content: thread.codeContent,
-            }
-          : undefined,
-      messages,
-    };
-  }
-
-  function parseCommentsPayload(body: unknown): DiffCommentThread[] {
+  function parseCommentsPayload(body: unknown): CommentThread[] {
     const payload =
       typeof body === 'string'
         ? (JSON.parse(body) as {
@@ -659,41 +494,9 @@ export async function startServer(
     return [];
   }
 
-  function parseCommentImportsPayload(body: unknown): CommentImport[] {
-    if (typeof body === 'string') {
-      return normalizeCommentImports(JSON.parse(body));
-    }
-
-    return normalizeCommentImports(body);
-  }
-
-  function updateCommentSession(
-    selection: DiffSelection,
-    nextThreads: DiffCommentThread[],
-  ): boolean {
-    const session = getOrCreateCommentSession(selection);
-    const previous = JSON.stringify(session.threads);
-    const next = JSON.stringify(nextThreads);
-    session.threads = nextThreads;
-
-    if (previous === next) {
-      return false;
-    }
-
-    session.version += 1;
-    fileWatcher.broadcast({
-      type: 'commentsChanged',
-      version: session.version,
-      timestamp: new Date().toISOString(),
-    });
-    return true;
-  }
-
   app.post('/api/comments', (req, res) => {
     try {
-      const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-      const nextThreads = parseCommentsPayload(req.body);
-      updateCommentSession(selection, nextThreads);
+      finalThreads = parseCommentsPayload(req.body);
       res.json({ success: true });
     } catch (error) {
       console.error('Error parsing comments:', error);
@@ -701,50 +504,62 @@ export async function startServer(
     }
   });
 
-  app.post('/api/comment-imports', (req, res) => {
-    try {
-      const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-      const session = getOrCreateCommentSession(selection);
-      const commentImports = parseCommentImportsPayload(req.body);
-      const importId = createHash('sha256')
-        .update(serializeCommentImports(commentImports))
-        .digest('hex');
-      const merged = mergeCommentImports(session.threads, commentImports);
-      const changed = updateCommentSession(selection, merged.threads);
-
-      res.json({
-        success: true,
-        changed,
-        count: commentImports.length,
-        importId,
-        warnings: merged.warnings,
-      });
-    } catch (error) {
-      console.error('Error parsing comment imports:', error);
-      res.status(400).json({ error: 'Invalid comment import data' });
-    }
-  });
-
-  app.get('/api/comments-json', (req, res) => {
-    const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-    const session = getOrCreateCommentSession(selection);
-    res.json({
-      version: session.version,
-      threads: session.threads,
-    });
-  });
-
-  app.get('/api/comments-output', (req, res) => {
-    const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-    const session = getOrCreateCommentSession(selection);
+  app.get('/api/comments-output', (_req, res) => {
     res.type('text/plain');
 
-    if (session.threads.length > 0) {
-      const output = formatCommentsOutput(session.threads.map(toCommentThread));
+    if (finalThreads.length > 0) {
+      const output = formatCommentsOutput(finalThreads);
       res.send(output);
     } else {
       res.send('');
     }
+  });
+
+  function threadToDiffThread(thread: CommentThread): DiffCommentThread {
+    return {
+      id: thread.id,
+      filePath: thread.file,
+      createdAt: thread.createdAt,
+      updatedAt: thread.updatedAt,
+      position: {
+        side: thread.side ?? 'new',
+        line: Array.isArray(thread.line)
+          ? { start: thread.line[0], end: thread.line[1] }
+          : thread.line,
+      },
+      codeSnapshot: thread.codeContent ? { content: thread.codeContent } : undefined,
+      messages: thread.messages,
+    };
+  }
+
+  app.post('/api/comment-imports', (req, res) => {
+    try {
+      const body: unknown =
+        typeof req.body === 'string' ? JSON.parse(req.body as string) : req.body;
+      const imports = normalizeCommentImports(body);
+      const importId = createHash('sha256').update(serializeCommentImports(imports)).digest('hex');
+
+      // Merge imports into server-side threads so they're available via comments-output/comments-json
+      const existingDiffThreads = finalThreads.map(threadToDiffThread);
+      const merged = mergeCommentImports(existingDiffThreads, imports);
+      finalThreads = merged.threads.map(normalizeThreadPayload);
+
+      fileWatcher.broadcastCommentImport({
+        type: 'commentImports',
+        commentImports: imports,
+        commentImportId: importId,
+      });
+
+      res.json({ success: true, importId, count: imports.length });
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Invalid comment import data',
+      });
+    }
+  });
+
+  app.get('/api/comments-json', (_req, res) => {
+    res.json({ threads: finalThreads });
   });
 
   app.post('/api/open-in-editor', async (req, res) => {
@@ -834,9 +649,8 @@ export async function startServer(
 
   // Function to output comments when server shuts down
   function outputFinalComments() {
-    const session = getOrCreateCommentSession(currentCommentSelection);
-    if (session.threads.length > 0) {
-      console.log(formatCommentsOutput(session.threads.map(toCommentThread)));
+    if (finalThreads.length > 0) {
+      console.log(formatCommentsOutput(finalThreads));
     }
   }
 
