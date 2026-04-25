@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.4] - 2026-04-25
+
+### Added
+
+- Add syntax highlighting for Nix and Haskell (#310)
+
+### Changed
+
+- Update dependencies (#295 #296 #297 #298 #299 #307 #309 #315 #316 #317 #318 #319)
+
+### Removed
+
+- Remove obsolete Claude instructions
+
+### Fixed
+
+- Accept implicit git revision suffixes (#303)
+- Use direct commit comparisons for diffs (#306)
+- Fix reviewed directory styling in the file tree (#320)
+- Fix auto theme syntax colors (#322)
+- Improve file list sidebar rendering performance
+
+### Thanks
+
+- [@d-xo](https://github.com/d-xo) for adding Nix and Haskell syntax highlighting (#310)
+
 ## [4.0.3] - 2026-04-06
 
 ### Added
@@ -1112,7 +1138,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.3...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.4...HEAD
+[4.0.4]: https://github.com/yoshiko-pg/difit/compare/v4.0.3...v4.0.4
 [4.0.3]: https://github.com/yoshiko-pg/difit/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/yoshiko-pg/difit/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/yoshiko-pg/difit/compare/v4.0.0...v4.0.1
