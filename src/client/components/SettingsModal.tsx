@@ -5,7 +5,11 @@ import { useHotkeysContext } from 'react-hotkeys-hook';
 import { DEFAULT_EDITOR_ID, EDITOR_OPTIONS, type EditorOptionId } from '../../utils/editorOptions';
 import type { ColorVisionMode } from '../utils/appearanceTheme';
 import { formatAutoViewedPatterns, parseAutoViewedPatterns } from '../utils/autoViewedPatterns';
-import { LIGHT_THEMES, DARK_THEMES } from '../utils/themeLoader';
+import {
+  getFallbackSyntaxTheme,
+  getThemesForResolvedTheme,
+  isSyntaxThemeForResolvedTheme,
+} from '../utils/themeLoader';
 import { Tooltip } from './Tooltip';
 
 interface AppearanceSettings {
@@ -103,8 +107,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
   // Get available themes based on current background color
   const getAvailableThemes = () => {
-    const currentTheme = getCurrentTheme();
-    return currentTheme === 'light' ? LIGHT_THEMES : DARK_THEMES;
+    return getThemesForResolvedTheme(getCurrentTheme());
   };
 
   // Handle theme change and auto-select valid syntax theme
@@ -119,13 +122,11 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
           : 'light'
         : theme;
 
-    // Check if current syntax theme is valid for the new theme
-    const availableThemes = effectiveTheme === 'light' ? LIGHT_THEMES : DARK_THEMES;
-    const isCurrentThemeValid = availableThemes.some((t) => t.id === settings.syntaxTheme);
+    const isCurrentThemeValid = isSyntaxThemeForResolvedTheme(settings.syntaxTheme, effectiveTheme);
 
     // If current theme becomes invalid, auto-select first item
-    if (!isCurrentThemeValid && availableThemes.length > 0) {
-      const firstTheme = availableThemes[0];
+    if (!isCurrentThemeValid) {
+      const firstTheme = getFallbackSyntaxTheme(effectiveTheme);
       if (firstTheme) {
         newSettings.syntaxTheme = firstTheme.id;
       }
