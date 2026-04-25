@@ -197,10 +197,10 @@ npx skills add yoshiko-pg/difit
 - **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`
 - **Web技術**：HTML, CSS, JSON, XML, Markdown
 - **シェルスクリプト**：`.sh`, `.bash`, `.zsh`, `.fish`
-- **バックエンド言語**：PHP, SQL, Ruby, Java, Scala, Perl, Elixir
+- **バックエンド言語**：PHP, SQL, Ruby, Java, Scala, Perl, Elixir, Haskell
 - **システム言語**：C, C++, C#, Rust, Go
 - **モバイル言語**：Swift, Kotlin, Dart
-- **IaC**：Terraform (HCL)
+- **IaC**：Terraform (HCL), Nix
 - **その他**：Python, Protobuf, YAML, Solidity, Vim Script
 
 ## 🔍 自動折りたたみファイル

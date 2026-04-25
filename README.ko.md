@@ -197,10 +197,10 @@ npx skills add yoshiko-pg/difit
 - **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`
 - **웹 기술**: HTML, CSS, JSON, XML, Markdown
 - **셸 스크립트**: `.sh`, `.bash`, `.zsh`, `.fish`
-- **백엔드 언어**: PHP, SQL, Ruby, Java, Scala, Perl, Elixir
+- **백엔드 언어**: PHP, SQL, Ruby, Java, Scala, Perl, Elixir, Haskell
 - **시스템 언어**: C, C++, C#, Rust, Go
 - **모바일 언어**: Swift, Kotlin, Dart
-- **인프라 코드**: Terraform (HCL)
+- **인프라 코드**: Terraform (HCL), Nix
 - **기타**: Python, Protobuf, YAML, Solidity, Vim 스크립트
 
 ## 🔍 자동 접힘 파일

@@ -197,10 +197,10 @@ After code edits or automated review, the agent can start the difit server with 
 - **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`
 - **Web Technologies**: HTML, CSS, JSON, XML, Markdown
 - **Shell Scripts**: `.sh`, `.bash`, `.zsh`, `.fish`
-- **Backend Languages**: PHP, SQL, Ruby, Java, Scala, Perl, Elixir
+- **Backend Languages**: PHP, SQL, Ruby, Java, Scala, Perl, Elixir, Haskell
 - **Systems Languages**: C, C++, C#, Rust, Go
 - **Mobile Languages**: Swift, Kotlin, Dart
-- **Infrastructure as Code**: Terraform (HCL)
+- **Infrastructure as Code**: Terraform (HCL), Nix
 - **Others**: Python, Protobuf, YAML, Solidity, Vim script
 
 ## 🔍 Auto-collapsed Files
