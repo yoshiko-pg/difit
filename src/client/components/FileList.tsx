@@ -36,6 +36,15 @@ interface TreeNode {
   file?: DiffFile;
 }
 
+const TREE_ROW_PADDING_LEFT_PX = 16;
+const TREE_ICON_SIZE_PX = 16;
+const TREE_ROW_GAP_PX = 8;
+const TREE_INDENT_STEP_PX = TREE_ICON_SIZE_PX + TREE_ROW_GAP_PX;
+
+function getTreeRowPaddingLeft(depth: number): string {
+  return `${depth * TREE_INDENT_STEP_PX + TREE_ROW_PADDING_LEFT_PX}px`;
+}
+
 function getAllDirectoryPaths(node: TreeNode): string[] {
   if (!node.isDirectory || !node.children) return [];
   const paths: string[] = [];
@@ -44,6 +53,30 @@ function getAllDirectoryPaths(node: TreeNode): string[] {
     paths.push(...getAllDirectoryPaths(child));
   });
   return paths;
+}
+
+function getReviewedDirectoryPaths(node: TreeNode, reviewedFiles: Set<string>): Set<string> {
+  const reviewedDirectoryPaths = new Set<string>();
+
+  const visit = (currentNode: TreeNode): boolean => {
+    if (currentNode.file) {
+      return reviewedFiles.has(currentNode.file.path);
+    }
+
+    if (!currentNode.isDirectory || !currentNode.children || currentNode.children.length === 0) {
+      return false;
+    }
+
+    const childrenReviewed = currentNode.children.map((child) => visit(child));
+    const areAllChildrenReviewed = childrenReviewed.every(Boolean);
+    if (areAllChildrenReviewed && currentNode.path) {
+      reviewedDirectoryPaths.add(currentNode.path);
+    }
+    return areAllChildrenReviewed;
+  };
+
+  visit(node);
+  return reviewedDirectoryPaths;
 }
 
 function buildFileTree(files: DiffFile[]): TreeNode {
@@ -155,6 +188,10 @@ export const FileList = memo(function FileList({
     });
     return indices;
   }, [files]);
+  const reviewedDirectoryPaths = useMemo(
+    () => getReviewedDirectoryPaths(fileTree, reviewedFiles),
+    [fileTree, reviewedFiles],
+  );
 
   // Filter the file tree based on search text
   const filteredFileTree = useMemo(() => {
@@ -269,6 +306,7 @@ export const FileList = memo(function FileList({
   const renderTreeNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
     if (node.isDirectory && node.children) {
       const isExpanded = expandedDirs.has(node.path);
+      const isReviewed = reviewedDirectoryPaths.has(node.path);
 
       return (
         <div
@@ -285,12 +323,14 @@ export const FileList = memo(function FileList({
         >
           {node.name && (
             <div
-              className="sticky flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer"
+              className={`sticky flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer ${
+                isReviewed ? 'opacity-70' : ''
+              }`}
               data-dir-header="true"
               data-tree-row="true"
               data-depth={depth}
               style={{
-                paddingLeft: `${depth * 16 + 16}px`,
+                paddingLeft: getTreeRowPaddingLeft(depth),
                 top: `calc(${depth} * var(--dir-row-height))`,
                 zIndex: 1000 - depth,
               }}
@@ -303,7 +343,9 @@ export const FileList = memo(function FileList({
                 <Folder size={16} className="text-github-text-secondary" />
               )}
               <span
-                className="text-sm text-github-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+                className={`text-sm text-github-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap ${
+                  isReviewed ? 'line-through text-github-text-muted' : ''
+                }`}
                 title={node.name}
               >
                 {node.name}
@@ -330,7 +372,7 @@ export const FileList = memo(function FileList({
           data-file-row="true"
           data-tree-row="true"
           data-depth={depth}
-          style={{ paddingLeft: `${depth * 16 + 16}px` }}
+          style={{ paddingLeft: getTreeRowPaddingLeft(depth) }}
           onClick={() => {
             onScrollToFile(file.path);
             onFileSelected?.();
