@@ -8,7 +8,9 @@ import {
   applyResolvedTheme,
   resolveThemePreference,
   type ColorVisionMode,
+  type ResolvedTheme,
 } from '../utils/appearanceTheme';
+import { getFallbackSyntaxTheme, isSyntaxThemeForResolvedTheme } from '../utils/themeLoader';
 
 const DEFAULT_SETTINGS: AppearanceSettings = {
   fontSize: 14,
@@ -49,6 +51,33 @@ export function useAppearanceSettings() {
     [],
   );
 
+  const saveSettings = useCallback((newSettings: AppearanceSettings) => {
+    try {
+      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(newSettings));
+    } catch (error) {
+      console.warn('Failed to save appearance settings to localStorage:', error);
+    }
+  }, []);
+
+  const getSettingsForResolvedTheme = useCallback(
+    (currentSettings: AppearanceSettings, resolvedTheme: ResolvedTheme) => {
+      if (isSyntaxThemeForResolvedTheme(currentSettings.syntaxTheme, resolvedTheme)) {
+        return currentSettings;
+      }
+
+      const fallbackSyntaxTheme = getFallbackSyntaxTheme(resolvedTheme);
+      if (!fallbackSyntaxTheme) {
+        return currentSettings;
+      }
+
+      return {
+        ...currentSettings,
+        syntaxTheme: fallbackSyntaxTheme.id,
+      };
+    },
+    [],
+  );
+
   // Apply settings to document
   useEffect(() => {
     const root = document.documentElement;
@@ -61,34 +90,37 @@ export function useAppearanceSettings() {
 
     // Apply theme
     const colorVision = settings.colorVision ?? 'normal';
+    const applyResolvedAppearance = (resolvedTheme: ResolvedTheme) => {
+      applyTheme(resolvedTheme, colorVision);
+
+      const nextSettings = getSettingsForResolvedTheme(settings, resolvedTheme);
+      if (nextSettings !== settings) {
+        setSettings(nextSettings);
+        saveSettings(nextSettings);
+      }
+    };
+
     if (settings.theme === 'auto') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      applyTheme(
+      applyResolvedAppearance(
         resolveThemePreference('auto', mediaQuery.matches ? 'dark' : 'light'),
-        colorVision,
       );
 
       const handleChange = (e: MediaQueryListEvent) => {
-        applyTheme(resolveThemePreference('auto', e.matches ? 'dark' : 'light'), colorVision);
+        applyResolvedAppearance(resolveThemePreference('auto', e.matches ? 'dark' : 'light'));
       };
 
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     } else {
-      applyTheme(settings.theme, colorVision);
+      applyResolvedAppearance(settings.theme);
       return undefined;
     }
-  }, [settings, applyTheme]);
+  }, [settings, applyTheme, getSettingsForResolvedTheme, saveSettings]);
 
   const updateSettings = (newSettings: AppearanceSettings) => {
     setSettings(newSettings);
-
-    // Save to localStorage
-    try {
-      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(newSettings));
-    } catch (error) {
-      console.warn('Failed to save appearance settings to localStorage:', error);
-    }
+    saveSettings(newSettings);
   };
 
   return {
