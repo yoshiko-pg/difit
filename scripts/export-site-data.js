@@ -62,7 +62,13 @@ async function buildDataset() {
 
   for (const revision of revisions) {
     try {
-      const diff = await parser.parseDiff(revision.targetHash, revision.baseHash, true);
+      const diff = await parser.parseDiff(
+        {
+          baseCommitish: revision.baseHash,
+          targetCommitish: revision.targetHash,
+        },
+        true,
+      );
       diffs[revision.id] = {
         ...diff,
         ignoreWhitespace: true,
