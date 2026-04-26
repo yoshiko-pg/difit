@@ -1,4 +1,3 @@
-import { Eye, FileDiff } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -8,10 +7,9 @@ import { MermaidDiagram } from '../components/MermaidDiagram';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
+import { PreviewModeTabs, type PreviewMode } from './PreviewModeTabs';
 import { TextDiffViewer } from './TextDiffViewer';
 import type { DiffViewerBodyProps } from './types';
-
-type PreviewMode = 'diff' | 'diff-preview' | 'full-preview';
 
 type PreviewBlockType = 'add' | 'delete' | 'change' | 'context';
 
@@ -582,46 +580,7 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   return (
     <div className="bg-github-bg-primary">
       <div className="flex items-center justify-between border-b border-github-border px-4 py-2">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setMode('diff')}
-            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'diff'
-                ? 'text-github-text-primary'
-                : 'text-github-text-secondary hover:text-github-text-primary'
-            }`}
-            title="Code Diff"
-          >
-            <FileDiff size={14} />
-            Diff
-          </button>
-          <button
-            onClick={() => setMode('diff-preview')}
-            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'diff-preview'
-                ? 'text-github-text-primary'
-                : 'text-github-text-secondary hover:text-github-text-primary'
-            }`}
-            title="Diff Preview"
-          >
-            <Eye size={14} />
-            Diff Preview
-          </button>
-          {hasFullPreview && (
-            <button
-              onClick={() => setMode('full-preview')}
-              className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-                mode === 'full-preview'
-                  ? 'text-github-text-primary'
-                  : 'text-github-text-secondary hover:text-github-text-primary'
-              }`}
-              title="Full Preview"
-            >
-              <Eye size={14} />
-              Full Preview
-            </button>
-          )}
-        </div>
+        <PreviewModeTabs mode={mode} hasFullPreview={hasFullPreview} onModeChange={setMode} />
       </div>
 
       {mode === 'diff' && <TextDiffViewer {...props} />}
