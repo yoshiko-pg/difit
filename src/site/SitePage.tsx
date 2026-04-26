@@ -1,5 +1,20 @@
-import { Copy, Check } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+/* oxlint-disable react-hooks-js/refs */
+// @floating-ui/react uses callback refs which trigger false positives in react-hooks/refs rule.
+import {
+  autoUpdate,
+  flip,
+  FloatingPortal,
+  offset,
+  safePolygon,
+  shift,
+  useClick,
+  useDismiss,
+  useFloating,
+  useHover,
+  useInteractions,
+  useRole,
+} from '@floating-ui/react';
+import { Check, ChevronDown, Copy, GitBranch } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -144,6 +159,119 @@ function formatRevisionLabel(revision: StaticDiffDataset['revisions'][number]) {
   const preview = trimmedMessage.length > 52 ? `${trimmedMessage.slice(0, 52)}...` : trimmedMessage;
 
   return `[${revision.targetShortHash}] ${preview}`;
+}
+
+function RevisionQuickMenu({
+  revisions,
+  selectedRevisionId,
+  onSelectRevision,
+}: {
+  revisions: StaticDiffDataset['revisions'];
+  selectedRevisionId: string;
+  onSelectRevision: (revisionId: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedRevision =
+    revisions.find((revision) => revision.id === selectedRevisionId) ?? revisions[0];
+  const currentLabel = selectedRevision ? formatRevisionLabel(selectedRevision) : 'Select...';
+
+  const { refs, floatingStyles, context } = useFloating({
+    open: isOpen,
+    onOpenChange: setIsOpen,
+    placement: 'bottom-end',
+    middleware: [offset(6), flip(), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const hover = useHover(context, {
+    handleClose: safePolygon(),
+  });
+  const click = useClick(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context, { role: 'menu' });
+
+  const { getReferenceProps, getFloatingProps } = useInteractions([hover, click, dismiss, role]);
+
+  const getItemClasses = (highlighted: boolean) => {
+    const highlightClasses = highlighted
+      ? 'bg-[#d5d7db] border-l-4 border-l-[#9ca3af] font-semibold pl-2'
+      : '';
+    const hoverClasses = highlighted
+      ? 'hover:bg-[#d5d7db] focus:bg-[#d5d7db]'
+      : 'hover:bg-[#eef0f2] focus:bg-[#eef0f2]';
+
+    return [
+      'w-full text-left px-3 py-2 text-xs focus:outline-none transition-colors cursor-pointer text-[#4b5563]',
+      hoverClasses,
+      highlightClasses,
+    ].join(' ');
+  };
+
+  const handleSelect = (revisionId: string) => {
+    onSelectRevision(revisionId);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        ref={refs.setReference}
+        type="button"
+        className="flex items-center gap-1 cursor-pointer group"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label={`Revision menu: ${currentLabel}`}
+        title={currentLabel}
+        {...getReferenceProps()}
+      >
+        <div className="flex items-center gap-1 px-2 py-1 bg-white border border-[#d1d5db] rounded hover:bg-[#eef0f2] hover:border-[#bfc3c8] transition-colors max-w-[360px]">
+          <GitBranch size={12} className="text-[#6b7280] shrink-0" />
+          <code className="text-[11px] text-[#4b5563] truncate">{currentLabel}</code>
+          <ChevronDown
+            size={12}
+            className="text-[#6b7280] group-hover:text-[#374151] transition-colors shrink-0"
+          />
+        </div>
+      </button>
+
+      {isOpen && (
+        <FloatingPortal>
+          <div
+            ref={refs.setFloating}
+            style={floatingStyles}
+            className="bg-white border border-[#bfc3c8] rounded shadow-lg z-50 w-[360px] max-h-[360px] overflow-y-auto"
+            {...getFloatingProps()}
+          >
+            <div className="px-3 py-2 text-xs font-semibold text-[#4b5563] bg-[#d5d7db] border-b border-[#bfc3c8]">
+              Quick Diffs
+            </div>
+            {revisions.map((revision) => {
+              const isSelected = revision.id === selectedRevisionId;
+              const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
+
+              return (
+                <button
+                  key={revision.id}
+                  onClick={() => handleSelect(revision.id)}
+                  className={getItemClasses(isSelected)}
+                  type="button"
+                >
+                  <div className="flex items-start gap-2">
+                    <code className="text-xs text-[#374151] font-mono whitespace-nowrap">
+                      {revision.targetShortHash}
+                    </code>
+                    <span className="text-xs text-[#6b7280] flex-1 break-words">
+                      {oneLineMessage}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </FloatingPortal>
+      )}
+    </div>
+  );
 }
 
 const LANDING_ASCII = [
@@ -303,10 +431,6 @@ function SitePage() {
     },
   ];
 
-  const handleRevisionChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRevisionId(event.target.value);
-  };
-
   return (
     <div className="min-h-screen bg-github-bg-primary font-mono text-sm leading-relaxed text-github-text-primary">
       <div className="fixed top-4 right-4 z-30 rounded-md border border-github-border/70 bg-github-bg-secondary/90 px-3 py-1.5 backdrop-blur-sm">
@@ -417,21 +541,14 @@ function SitePage() {
               </div>
             </div>
             {hasRevisionSelector && (
-              <label className="ml-6 flex items-center gap-2 text-[11px] text-[#6b7280] whitespace-nowrap">
-                Revision:
-                <select
-                  value={selectedRevisionId}
-                  onChange={handleRevisionChange}
-                  className="max-w-[340px] border border-[#d1d5db] bg-white rounded text-[11px] text-[#6b7280] px-2 py-1"
-                  aria-label="Revision"
-                >
-                  {revisions.map((revision) => (
-                    <option key={revision.id} value={revision.id}>
-                      {formatRevisionLabel(revision)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="ml-6 flex items-center gap-2 text-[11px] text-[#6b7280] whitespace-nowrap">
+                <span>Revision:</span>
+                <RevisionQuickMenu
+                  revisions={revisions}
+                  selectedRevisionId={selectedRevisionId}
+                  onSelectRevision={setSelectedRevisionId}
+                />
+              </div>
             )}
           </div>
           <iframe

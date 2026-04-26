@@ -52,11 +52,17 @@ describe('SitePage', () => {
 
     render(<SitePage />);
     const frame = await screen.findByTitle('difit live preview');
-    const select = await screen.findByLabelText('Revision');
+    const menuButton = await screen.findByRole('button', {
+      name: /Revision menu: \[def5678\] Add landing page header/,
+    });
 
-    expect(select).toBeInTheDocument();
-    expect(select).toHaveValue('abc1234...def5678');
+    expect(menuButton).toBeInTheDocument();
     expect(frame).toHaveAttribute('src', '/preview?snapshot=abc1234...def5678');
+
+    fireEvent.click(menuButton);
+    fireEvent.click(await screen.findByRole('button', { name: /89abcde Fix style on diff/ }));
+
+    expect(frame).toHaveAttribute('src', '/preview?snapshot=1234567...89abcde');
 
     vi.restoreAllMocks();
   });
