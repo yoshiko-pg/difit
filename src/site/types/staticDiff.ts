@@ -2,6 +2,8 @@ import type { DiffResponse } from '../../types/diff';
 
 export interface StaticRevision {
   id: string;
+  demoTitle?: string;
+  demoDescription?: string;
   baseHash: string;
   baseShortHash: string;
   targetHash: string;

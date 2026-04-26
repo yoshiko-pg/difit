@@ -8,49 +8,82 @@ import { GitDiffParser } from '../dist/server/git-diff.js';
 
 const repoPath = process.cwd();
 const outputPath = resolve(repoPath, 'public/site-data/diffs.json');
-const rawLimit = Number.parseInt(process.env.DIFIT_SITE_HISTORY ?? '8', 10);
-const historyLimit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 8;
-const historyScanLimit = Math.max(historyLimit * 4, historyLimit + 8);
 
 const git = simpleGit(repoPath);
 const parser = new GitDiffParser(repoPath);
+
+const demoRevisionSpecs = [
+  {
+    target: 'd590ab2',
+    title: 'Large implementation diff',
+    description: 'Image diff support across client, server, tests, and dependencies.',
+  },
+  {
+    target: '1f5d010',
+    title: 'Image and brand asset diff',
+    description: 'Rename to difit with logo, favicon, and product copy changes.',
+  },
+  {
+    target: 'c82f4b3',
+    title: 'Notebook preview',
+    description: 'Jupyter notebook sample and full notebook diff viewer implementation.',
+  },
+  {
+    target: 'b908dc3',
+    title: 'Markdown Mermaid preview',
+    description: 'Markdown diagram preview support with Mermaid rendering.',
+  },
+  {
+    target: 'fd01270',
+    title: 'Markdown syntax sample',
+    description: 'A dense Markdown sample that shows rendered preview behavior clearly.',
+  },
+  {
+    target: '2a62204',
+    title: 'Revision selection workflow',
+    description: 'Merge-base quick diffs across CLI, web UI, storage, and server paths.',
+  },
+  {
+    target: 'caeec50',
+    title: 'Comment synchronization',
+    description: 'Comment sessions synchronized across CLI, browser, and diff selections.',
+  },
+  {
+    target: '9ca4e40',
+    title: 'Review comment imports',
+    description: 'Startup review comments imported into the diff for agent workflows.',
+  },
+];
 
 function shortHash(hash) {
   return hash.slice(0, 7);
 }
 
 async function collectRevisions() {
-  const [logResult, revListText] = await Promise.all([
-    git.log({ maxCount: historyScanLimit }),
-    git.raw(['rev-list', `--max-count=${historyScanLimit}`, '--parents', 'HEAD']),
-  ]);
-
-  const commitInfoMap = new Map(logResult.all.map((commit) => [commit.hash, commit]));
   const revisions = [];
 
-  for (const line of revListText.trim().split('\n')) {
-    if (!line) continue;
+  for (const spec of demoRevisionSpecs) {
+    const [targetHash, baseHash, message, authorName, date] = (
+      await git.raw(['show', '-s', '--format=%H%x00%P%x00%s%x00%an%x00%aI', spec.target])
+    )
+      .trim()
+      .split('\0');
 
-    const [targetHash, baseHash] = line.trim().split(/\s+/);
-    if (!targetHash || !baseHash) continue;
-
-    const info = commitInfoMap.get(targetHash);
-    if (!info) continue;
+    const firstParentHash = baseHash?.split(/\s+/)[0];
+    if (!targetHash || !firstParentHash || !message || !authorName || !date) continue;
 
     revisions.push({
-      id: `${shortHash(baseHash)}...${shortHash(targetHash)}`,
-      baseHash,
-      baseShortHash: shortHash(baseHash),
+      id: `${shortHash(firstParentHash)}...${shortHash(targetHash)}`,
+      demoTitle: spec.title,
+      demoDescription: spec.description,
+      baseHash: firstParentHash,
+      baseShortHash: shortHash(firstParentHash),
       targetHash,
       targetShortHash: shortHash(targetHash),
-      message: info.message,
-      authorName: info.author_name,
-      date: info.date,
+      message,
+      authorName,
+      date,
     });
-
-    if (revisions.length >= historyLimit) {
-      break;
-    }
   }
 
   return revisions;

@@ -154,6 +154,10 @@ function Feature({ label, desc }: { label: string; desc: string }) {
 }
 
 function formatRevisionLabel(revision: StaticDiffDataset['revisions'][number]) {
+  if (revision.demoTitle) {
+    return revision.demoTitle;
+  }
+
   const oneLineMessage = revision.message.split('\n')[0] ?? '';
   const trimmedMessage = oneLineMessage.trim();
   const preview = trimmedMessage.length > 52 ? `${trimmedMessage.slice(0, 52)}...` : trimmedMessage;
@@ -248,6 +252,7 @@ function RevisionQuickMenu({
             {revisions.map((revision) => {
               const isSelected = revision.id === selectedRevisionId;
               const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
+              const primaryLabel = revision.demoTitle ?? oneLineMessage;
 
               return (
                 <button
@@ -261,7 +266,15 @@ function RevisionQuickMenu({
                       {revision.targetShortHash}
                     </code>
                     <span className="text-xs text-[#6b7280] flex-1 break-words">
-                      {oneLineMessage}
+                      <span className="block text-[#374151]">{primaryLabel}</span>
+                      {revision.demoDescription && (
+                        <span className="mt-0.5 block leading-snug">
+                          {revision.demoDescription}
+                        </span>
+                      )}
+                      {revision.demoTitle && (
+                        <span className="mt-0.5 block leading-snug">{oneLineMessage}</span>
+                      )}
                     </span>
                   </div>
                 </button>

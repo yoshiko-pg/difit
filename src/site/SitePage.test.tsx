@@ -11,6 +11,8 @@ const mockDataset: StaticDiffDataset = {
   revisions: [
     {
       id: 'abc1234...def5678',
+      demoTitle: 'Large implementation diff',
+      demoDescription: 'A broad feature diff for the landing page demo.',
       baseHash: 'abcdef1234567890',
       baseShortHash: 'abc1234',
       targetHash: 'def5678',
@@ -53,13 +55,14 @@ describe('SitePage', () => {
     render(<SitePage />);
     const frame = await screen.findByTitle('difit live preview');
     const menuButton = await screen.findByRole('button', {
-      name: /Revision menu: \[def5678\] Add landing page header/,
+      name: /Revision menu: Large implementation diff/,
     });
 
     expect(menuButton).toBeInTheDocument();
     expect(frame).toHaveAttribute('src', '/preview?snapshot=abc1234...def5678');
 
     fireEvent.click(menuButton);
+    expect(screen.getByText('A broad feature diff for the landing page demo.')).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: /89abcde Fix style on diff/ }));
 
     expect(frame).toHaveAttribute('src', '/preview?snapshot=1234567...89abcde');
