@@ -14,24 +14,24 @@ const parser = new GitDiffParser(repoPath);
 
 const demoRevisionSpecs = [
   {
-    target: 'd590ab2',
-    title: 'Large implementation diff',
-    description: 'Image diff support across client, server, tests, and dependencies.',
+    target: 'b908dc3',
+    title: 'Markdown Mermaid preview',
+    description: 'Markdown diagram preview support with Mermaid rendering.',
   },
   {
-    target: '1f5d010',
-    title: 'Image and brand asset diff',
-    description: 'Rename to difit with logo, favicon, and product copy changes.',
+    target: '3e1c1bd',
+    title: 'Large threaded comments diff',
+    description: 'A broad UI feature diff spanning review threads, navigation, storage, and tests.',
+  },
+  {
+    target: 'e6977fe',
+    title: 'Image-only logo diff',
+    description: 'A focused binary image diff that changes only public/logo.png.',
   },
   {
     target: 'c82f4b3',
     title: 'Notebook preview',
     description: 'Jupyter notebook sample and full notebook diff viewer implementation.',
-  },
-  {
-    target: 'b908dc3',
-    title: 'Markdown Mermaid preview',
-    description: 'Markdown diagram preview support with Mermaid rendering.',
   },
   {
     target: 'fd01270',
