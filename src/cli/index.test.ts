@@ -753,7 +753,7 @@ describe('CLI index.ts', () => {
         .option(
           '--comment <json>',
           'comment',
-          (value: string, previous: string[] = []) => [...previous, value],
+          (value: string, previous: string[]) => [...previous, value],
           [],
         )
         .option('--port <port>', 'port', parseInt)
@@ -835,7 +835,7 @@ describe('CLI index.ts', () => {
         .option(
           '--comment <json>',
           'comment',
-          (value: string, previous: string[] = []) => [...previous, value],
+          (value: string, previous: string[]) => [...previous, value],
           [],
         )
         .option('--port <port>', 'port', parseInt)
@@ -963,7 +963,7 @@ describe('CLI index.ts', () => {
         .option(
           '--comment <json>',
           'comment',
-          (value: string, previous: string[] = []) => [...previous, value],
+          (value: string, previous: string[]) => [...previous, value],
           [],
         )
         .option('--port <port>', 'port', parseInt)
@@ -1020,7 +1020,7 @@ describe('CLI index.ts', () => {
         .option(
           '--comment <json>',
           'comment',
-          (value: string, previous: string[] = []) => [...previous, value],
+          (value: string, previous: string[]) => [...previous, value],
           [],
         )
         .option('--tui', 'tui')
@@ -1055,7 +1055,7 @@ describe('CLI index.ts', () => {
         .option(
           '--comment <json>',
           'comment',
-          (value: string, previous: string[] = []) => [...previous, value],
+          (value: string, previous: string[]) => [...previous, value],
           [],
         )
         .action(async (_commitish: string, options: any) => {
