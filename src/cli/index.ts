@@ -115,7 +115,7 @@ program
   .option(
     '--comment <json>',
     'inject initial review comments (repeatable, accepts a JSON object or array)',
-    (value: string, previous: string[] = []) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, value],
     [],
   )
   .option('--tui', 'use terminal UI instead of web interface')
