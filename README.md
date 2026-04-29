@@ -151,6 +151,7 @@ Stdin mode is selected with intent-first rules:
 | `--clean`             | false           | Clear all existing comments and viewed files on startup                                                 |
 | `--include-untracked` | false           | Automatically include untracked files in diff (only with `.` or `working`)                              |
 | `--keep-alive`        | false           | Keep server running after browser disconnects (stop manually with Ctrl+C)                               |
+| `--background`        | false           | Keep the server running in the background and output JSON connection info                               |
 | `--context <lines>`   | git default (3) | Limit surrounding context lines per change (`0` shows changes only; not available with `--pr` or stdin) |
 
 ## 💬 Comment System
