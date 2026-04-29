@@ -30,20 +30,3 @@
 .landing-ascii {
   overflow-x: auto;
 }
-
-/* Speech bubble tail — pointing down */
-.landing-bubble-down {
-  position: relative;
-}
-
-.landing-bubble-down::after {
-  content: "";
-  position: absolute;
-  bottom: -6px;
-  right: 16px;
-  width: 12px;
-  height: 12px;
-  background: #22c55e;
-  transform: rotate(45deg);
-  border-radius: 2px;
-}
