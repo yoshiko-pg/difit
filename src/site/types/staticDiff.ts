@@ -19,4 +19,5 @@ export interface StaticDiffDataset {
   initialRevisionId: string | null;
   revisions: StaticRevision[];
   diffs: Record<string, DiffResponse>;
+  blobs: Record<string, string>;
 }

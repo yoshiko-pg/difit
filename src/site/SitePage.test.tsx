@@ -33,6 +33,7 @@ const mockDataset: StaticDiffDataset = {
     },
   ],
   diffs: {},
+  blobs: {},
 };
 
 describe('SitePage', () => {

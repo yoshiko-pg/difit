@@ -24,11 +24,6 @@ const demoRevisionSpecs = [
     description: 'A broad UI feature diff spanning review threads, navigation, storage, and tests.',
   },
   {
-    target: 'e6977fe',
-    title: 'Image-only logo diff',
-    description: 'A focused binary image diff that changes only public/logo.png.',
-  },
-  {
     target: 'c82f4b3',
     title: 'Notebook preview',
     description: 'Jupyter notebook sample and full notebook diff viewer implementation.',
@@ -57,6 +52,24 @@ const demoRevisionSpecs = [
 
 function shortHash(hash) {
   return hash.slice(0, 7);
+}
+
+const binaryFilePattern = /\.(?:avif|gif|ico|jpe?g|pdf|png|webp|woff2?|zip)$/i;
+
+function blobKey(ref, path) {
+  return `${shortHash(ref)}:${path}`;
+}
+
+async function readBlobText(ref, path) {
+  if (binaryFilePattern.test(path)) {
+    return null;
+  }
+
+  try {
+    return await git.raw(['show', `${ref}:${path}`]);
+  } catch {
+    return null;
+  }
 }
 
 async function collectRevisions() {
@@ -92,6 +105,7 @@ async function collectRevisions() {
 async function buildDataset() {
   const revisions = await collectRevisions();
   const diffs = {};
+  const blobs = {};
 
   for (const revision of revisions) {
     try {
@@ -111,6 +125,21 @@ async function buildDataset() {
         requestedBaseCommitish: revision.baseShortHash,
         requestedTargetCommitish: revision.targetShortHash,
       };
+
+      for (const file of diff.files) {
+        const oldPath = file.oldPath ?? file.path;
+        const oldContent =
+          file.status === 'added' ? null : await readBlobText(revision.baseHash, oldPath);
+        const newContent =
+          file.status === 'deleted' ? null : await readBlobText(revision.targetHash, file.path);
+
+        if (oldContent !== null) {
+          blobs[blobKey(revision.baseHash, oldPath)] = oldContent;
+        }
+        if (newContent !== null) {
+          blobs[blobKey(revision.targetHash, file.path)] = newContent;
+        }
+      }
     } catch (error) {
       console.warn(`Failed to export diff for ${revision.id}:`, error);
     }
@@ -124,6 +153,7 @@ async function buildDataset() {
     initialRevisionId: availableRevisions[0]?.id ?? null,
     revisions: availableRevisions,
     diffs,
+    blobs,
   };
 }
 

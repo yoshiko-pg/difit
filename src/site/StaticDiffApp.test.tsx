@@ -92,6 +92,10 @@ const staticDataset: StaticDiffDataset = {
       requestedTargetCommitish: '3333333',
     },
   },
+  blobs: {
+    '2222222:src/first.ts': 'const version = 2;\n',
+    '3333333:src/second.ts': 'export const v = 3;\n',
+  },
 };
 
 describe('StaticDiffApp', () => {
@@ -150,5 +154,21 @@ describe('StaticDiffApp', () => {
     const response = await fetch('/api/diff');
     const data = (await response.json()) as { openInEditorAvailable?: boolean };
     expect(data.openInEditorAvailable).toBe(false);
+  });
+
+  it('serves static blob content for preview-backed viewers', async () => {
+    render(
+      <HotkeysProvider initiallyActiveScopes={['navigation']}>
+        <StaticDiffApp />
+      </HotkeysProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('src/first.ts')).toBeInTheDocument();
+    });
+
+    const response = await fetch('/api/blob/src%2Ffirst.ts?ref=2222222');
+    expect(response.ok).toBe(true);
+    await expect(response.text()).resolves.toBe('const version = 2;\n');
   });
 });

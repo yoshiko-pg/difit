@@ -41,6 +41,21 @@ const extractUrl = (input: RequestInfo | URL): URL => {
 
 const normalizeRef = (value?: string) => (value ?? '').trim();
 
+const shortRef = (ref: string) => ref.slice(0, 7);
+
+const resolveBlobPath = (requestUrl: URL): string | null => {
+  const prefix = '/api/blob/';
+  if (!requestUrl.pathname.startsWith(prefix)) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(requestUrl.pathname.slice(prefix.length));
+  } catch {
+    return null;
+  }
+};
+
 const buildDiffIndex = (dataset: StaticDiffDataset) => {
   const index = new Map<string, DiffResponse>();
 
@@ -58,6 +73,19 @@ const buildDiffIndex = (dataset: StaticDiffDataset) => {
     pairs.forEach((pair) => {
       index.set(pair, diff);
     });
+  });
+
+  return index;
+};
+
+const buildBlobRefIndex = (dataset: StaticDiffDataset) => {
+  const index = new Map<string, string>();
+
+  dataset.revisions.forEach((revision) => {
+    index.set(revision.baseHash, revision.baseShortHash);
+    index.set(revision.baseShortHash, revision.baseShortHash);
+    index.set(revision.targetHash, revision.targetShortHash);
+    index.set(revision.targetShortHash, revision.targetShortHash);
   });
 
   return index;
@@ -94,6 +122,7 @@ export const installStaticApiBridge = (dataset: StaticDiffDataset): StaticApiBri
   const originalSendBeacon = navigator.sendBeacon?.bind(navigator);
 
   const diffIndex = buildDiffIndex(dataset);
+  const blobRefIndex = buildBlobRefIndex(dataset);
   let currentRevisionId = resolveRequestedSnapshotId(dataset);
 
   const resolveDiff = ({ base, target }: StaticDiffRequest): DiffResponse | null => {
@@ -145,12 +174,32 @@ export const installStaticApiBridge = (dataset: StaticDiffDataset): StaticApiBri
       return jsonResponse({ oldLineCount: 0, newLineCount: 0 });
     }
 
-    if (requestUrl.pathname.startsWith('/api/blob/')) {
-      return jsonResponse({ error: 'Blob API is disabled in static mode' }, 404);
+    const blobPath = resolveBlobPath(requestUrl);
+    if (blobPath) {
+      const requestedRef = normalizeRef(requestUrl.searchParams.get('ref') ?? undefined);
+      const normalizedRef = requestedRef
+        ? (blobRefIndex.get(requestedRef) ?? shortRef(requestedRef))
+        : '';
+      const content = dataset.blobs[`${normalizedRef}:${blobPath}`];
+
+      if (content === undefined) {
+        return jsonResponse({ error: 'Blob is not available in static mode' }, 404);
+      }
+
+      return new Response(content, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      });
     }
 
     if (requestUrl.pathname === '/api/comments') {
       return jsonResponse({ success: true });
+    }
+
+    if (requestUrl.pathname === '/api/comments-json') {
+      return jsonResponse({ threads: [] });
     }
 
     if (requestUrl.pathname === '/api/comments-output') {
