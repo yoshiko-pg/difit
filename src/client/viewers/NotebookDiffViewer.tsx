@@ -1,5 +1,4 @@
 import { diffLines } from 'diff';
-import { Eye, FileDiff } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -9,10 +8,9 @@ import { EnhancedPrismSyntaxHighlighter } from '../components/EnhancedPrismSynta
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
+import { PreviewModeTabs, type PreviewMode } from './PreviewModeTabs';
 import { TextDiffViewer } from './TextDiffViewer';
 import type { DiffViewerBodyProps } from './types';
-
-type PreviewMode = 'diff' | 'diff-preview' | 'full-preview';
 
 type PreviewLineType = 'add' | 'delete' | 'context';
 
@@ -1022,6 +1020,19 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
 
       const canFetchOld = file.status !== 'added' && isFetchableRef(baseRef);
       const canFetchNew = file.status !== 'deleted' && isFetchableRef(targetRef);
+      const canLoadFullPreview =
+        Boolean(previewSource && previewSourceKey) && isFetchableRef(previewSource?.ref);
+
+      if (!canLoadFullPreview) {
+        setFullPreviewCells(null);
+        setLoadedFullPreviewKey(null);
+        setFullPreviewError(null);
+        setIsFullPreviewLoading(false);
+      } else {
+        setFullPreviewCells(null);
+        setFullPreviewError(null);
+        setIsFullPreviewLoading(true);
+      }
 
       if (!canFetchOld && !canFetchNew) {
         setPreviewState({
@@ -1063,6 +1074,13 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
 
         const language = newDoc?.language ?? oldDoc?.language ?? fallbackPreview.language;
         const cells = buildCellsFromNotebookContent(oldDoc?.cells ?? [], newDoc?.cells ?? []);
+        const fullPreviewDoc =
+          previewSource?.ref === targetRef && previewSource.path === file.path
+            ? newDoc
+            : previewSource?.ref === baseRef && previewSource.path === oldPath
+              ? oldDoc
+              : null;
+
         if (!cancelled) {
           setPreviewState({
             status: 'ready',
@@ -1070,6 +1088,16 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
             source: 'blob',
             language,
           });
+          if (fullPreviewDoc && previewSourceKey) {
+            setFullPreviewCells(fullPreviewDoc.cells);
+            setFullPreviewLanguage(fullPreviewDoc.language ?? fallbackPreview.language);
+            setLoadedFullPreviewKey(previewSourceKey);
+            setFullPreviewError(null);
+          } else {
+            setFullPreviewCells(null);
+            setLoadedFullPreviewKey(null);
+            setFullPreviewError(null);
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -1080,6 +1108,13 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
             source: 'diff',
             message: error instanceof Error ? error.message : 'Failed to load notebook preview.',
           });
+          setFullPreviewCells(null);
+          setLoadedFullPreviewKey(null);
+          setFullPreviewError(error instanceof Error ? error.message : 'Failed to load preview');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsFullPreviewLoading(false);
         }
       }
     };
@@ -1095,6 +1130,8 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
     file.path,
     file.status,
     props.mergedChunks,
+    previewSource,
+    previewSourceKey,
     targetCommitish,
     fallbackPreview,
   ]);
@@ -1163,47 +1200,21 @@ export function NotebookDiffViewer(props: DiffViewerBodyProps) {
     previewSourceKey,
   ]);
 
+  const hasFullPreview = useMemo(
+    () => previewSourceKey === loadedFullPreviewKey && fullPreviewCells !== null,
+    [fullPreviewCells, loadedFullPreviewKey, previewSourceKey],
+  );
+
+  useEffect(() => {
+    if (mode === 'full-preview' && !hasFullPreview) {
+      setMode('diff-preview');
+    }
+  }, [hasFullPreview, mode]);
+
   return (
     <div className="bg-github-bg-primary">
       <div className="flex items-center justify-between border-b border-github-border px-4 py-2">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setMode('diff')}
-            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'diff'
-                ? 'text-github-text-primary'
-                : 'text-github-text-secondary hover:text-github-text-primary'
-            }`}
-            title="Code Diff"
-          >
-            <FileDiff size={14} />
-            Diff
-          </button>
-          <button
-            onClick={() => setMode('diff-preview')}
-            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'diff-preview'
-                ? 'text-github-text-primary'
-                : 'text-github-text-secondary hover:text-github-text-primary'
-            }`}
-            title="Diff Preview"
-          >
-            <Eye size={14} />
-            Diff Preview
-          </button>
-          <button
-            onClick={() => setMode('full-preview')}
-            className={`px-2 py-1 text-xs font-medium rounded transition-colors duration-200 flex items-center gap-1 cursor-pointer ${
-              mode === 'full-preview'
-                ? 'text-github-text-primary'
-                : 'text-github-text-secondary hover:text-github-text-primary'
-            }`}
-            title="Full Preview"
-          >
-            <Eye size={14} />
-            Full Preview
-          </button>
-        </div>
+        <PreviewModeTabs mode={mode} hasFullPreview={hasFullPreview} onModeChange={setMode} />
       </div>
 
       {mode === 'diff' && <TextDiffViewer {...props} />}
