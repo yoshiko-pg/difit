@@ -151,6 +151,7 @@ git diff --cached | difit -
 | `--clean`             | false          | 启动时清除所有现有评论和已查看的文件                                              |
 | `--include-untracked` | false          | 自动将 untracked 文件包含在 diff 中（仅在 `.` 或 `working` 时有效）               |
 | `--keep-alive`        | false          | 浏览器断开后保持服务器运行（使用 Ctrl+C 手动停止）                                |
+| `--background`        | false          | 在后台保持服务器运行，并输出 JSON 连接信息                                        |
 | `--context <lines>`   | Git 默认值 (3) | 限制每处变更周围的上下文行数（`0` 仅显示变更行；不可与 `--pr` 或 stdin 一起使用） |
 
 ## 💬 评论系统

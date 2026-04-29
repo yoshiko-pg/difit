@@ -151,6 +151,7 @@ git diff --cached | difit -
 | `--clean`             | false           | 起動時に既存コメントと閲覧済みファイルをすべてクリア                                       |
 | `--include-untracked` | false           | diffにuntrackedファイルを自動的に含める（`.`または`working`のみ有効）                      |
 | `--keep-alive`        | false           | ブラウザ切断後もサーバーを終了せず起動したままにする（Ctrl+Cで手動停止）                   |
+| `--background`        | false           | サーバーをバックグラウンドで起動したままにし、接続情報をJSONで出力                         |
 | `--context <lines>`   | Gitの既定値 (3) | 変更ごとの前後コンテキスト行数を制限（`0` は変更行のみ表示。`--pr` と stdin では使用不可） |
 
 ## 💬 コメントシステム
