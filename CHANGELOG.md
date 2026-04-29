@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.5] - 2026-04-29
+
+### Added
+
+- Add Clojure language support (#324)
+
+### Changed
+
+- Document Nix and Haskell language support
+- Update dependencies (#325 #326 #327 #328)
+
+### Fixed
+
+- Hide notebook full preview until content loads (#329)
+- Disable Safari sidebar sticky headers for performance (#323)
+
+### Thanks
+
+- [@nsyee](https://github.com/nsyee) for adding Clojure language support (#324)
+
 ## [4.0.4] - 2026-04-25
 
 ### Added
@@ -1138,7 +1158,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.4...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.5...HEAD
+[4.0.5]: https://github.com/yoshiko-pg/difit/compare/v4.0.4...v4.0.5
 [4.0.4]: https://github.com/yoshiko-pg/difit/compare/v4.0.3...v4.0.4
 [4.0.3]: https://github.com/yoshiko-pg/difit/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/yoshiko-pg/difit/compare/v4.0.1...v4.0.2
