@@ -1,18 +1,18 @@
+import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+const siteBasePath =
+  process.env.SITE_BASE_PATH ?? (process.env.GITHUB_PAGES === 'true' ? '/difit/' : '/');
+
 const normalizeDevRoute = (url: string): string | null => {
   const [pathname, query = ''] = url.split('?', 2);
   const suffix = query ? `?${query}` : '';
 
-  if (pathname === '/') {
-    return `/site/${suffix}`;
-  }
-
   if (pathname === '/site') {
-    return `/site/${suffix}`;
+    return `/${suffix}`;
   }
 
   if (pathname === '/preview') {
@@ -23,6 +23,7 @@ const normalizeDevRoute = (url: string): string | null => {
 };
 
 export default defineConfig({
+  base: siteBasePath,
   plugins: [
     react(),
     {
@@ -38,6 +39,9 @@ export default defineConfig({
           next();
         });
       },
+      closeBundle() {
+        writeFileSync(resolve(__dirname, 'dist/site/.nojekyll'), '', 'utf8');
+      },
     },
   ],
   root: 'src/site',
@@ -47,7 +51,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        site: resolve(__dirname, 'src/site/site/index.html'),
+        site: resolve(__dirname, 'src/site/index.html'),
         preview: resolve(__dirname, 'src/site/preview/index.html'),
       },
     },

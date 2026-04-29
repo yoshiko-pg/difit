@@ -165,6 +165,13 @@ function formatRevisionLabel(revision: StaticDiffDataset['revisions'][number]) {
   return `[${revision.targetShortHash}] ${preview}`;
 }
 
+const withBasePath = (path: string) => {
+  const basePath = import.meta.env.BASE_URL.endsWith('/')
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+  return `${basePath}${path.replace(/^\/+/, '')}`;
+};
+
 function RevisionQuickMenu({
   revisions,
   selectedRevisionId,
@@ -328,7 +335,7 @@ function SitePage() {
 
     const loadRevisions = async () => {
       try {
-        const response = await fetch('/site-data/diffs.json');
+        const response = await fetch(withBasePath('site-data/diffs.json'));
         if (!response.ok) {
           throw new Error(`Failed to load revisions (${response.status})`);
         }
@@ -368,8 +375,8 @@ function SitePage() {
   }, []);
 
   const previewUrl = selectedRevisionId
-    ? `/preview?snapshot=${encodeURIComponent(selectedRevisionId)}`
-    : '/preview';
+    ? `${withBasePath('preview')}?snapshot=${encodeURIComponent(selectedRevisionId)}`
+    : withBasePath('preview');
   const hasRevisionSelector = revisions.length > 0 && !datasetError && !loadingRevisions;
   const browserAddress = 'http://localhost:4966';
   const heroText = HERO_TEXT[language];
@@ -521,7 +528,7 @@ function SitePage() {
           <span className="text-github-text-muted">
             {'\u00A0\u00A0'}Opening diff viewer on{' '}
             <a
-              href="/preview"
+              href={withBasePath('preview')}
               target="_blank"
               rel="noreferrer"
               className="text-cyan-400 hover:text-cyan-300 transition-colors"

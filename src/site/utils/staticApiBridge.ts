@@ -2,7 +2,14 @@ import type { DiffResponse } from '../../types/diff';
 import { DiffMode } from '../../types/watch';
 import type { StaticDiffDataset } from '../types/staticDiff';
 
-const STATIC_DIFF_DATA_URL = '/site-data/diffs.json';
+const withBasePath = (path: string) => {
+  const basePath = import.meta.env.BASE_URL.endsWith('/')
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+  return `${basePath}${path.replace(/^\/+/, '')}`;
+};
+
+const STATIC_DIFF_DATA_URL = withBasePath('site-data/diffs.json');
 
 export interface StaticApiBridge {
   restore: () => void;

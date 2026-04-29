@@ -41,6 +41,7 @@
     "dev:cli": "tsc --project tsconfig.cli.json && NODE_ENV=development node dist/cli/index.js",
     "build": "pnpm run build:cli && vite build",
     "build:site": "pnpm run build:cli && node scripts/export-site-data.js && vite build --config vite.config.site.ts",
+    "build:site:github-pages": "GITHUB_PAGES=true pnpm run build:site",
     "build:cli": "tsc --project tsconfig.cli.json",
     "export:site-data": "node scripts/export-site-data.js",
     "package:vscode": "pnpm -C packages/vscode run package",
