@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { DiffMode, type ClientWatchState } from '../../types/watch.js';
+import { DiffMode, type ClientWatchState, type WatchEvent } from '../../types/watch.js';
 import { resolveEventSourceUrl } from '../utils/eventSourceUrl';
 
 interface FileWatchHook {
@@ -11,15 +11,10 @@ interface FileWatchHook {
   watchState: ClientWatchState;
 }
 
-interface WatchEvent {
-  type: 'reload' | 'error' | 'connected';
-  diffMode: DiffMode;
-  changeType: 'file' | 'commit' | 'staging';
-  timestamp: string;
-  message?: string;
-}
-
-export function useFileWatch(onReload?: () => Promise<void>): FileWatchHook {
+export function useFileWatch(
+  onReload?: () => Promise<void>,
+  onCommentsChanged?: () => Promise<void>,
+): FileWatchHook {
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -86,6 +81,12 @@ export function useFileWatch(onReload?: () => Promise<void>): FileWatchHook {
               console.error('File watch error:', data.message);
               setError(data.message || 'File watch error occurred');
               break;
+
+            case 'commentsChanged':
+              if (onCommentsChanged) {
+                void onCommentsChanged();
+              }
+              break;
           }
         } catch (parseError) {
           console.error('Error parsing watch event:', parseError);
@@ -130,7 +131,7 @@ export function useFileWatch(onReload?: () => Promise<void>): FileWatchHook {
       console.error('Failed to connect to file watch service:', connectionError);
       setError('Failed to connect to file watch service');
     }
-  }, [maxReconnectAttempts, reconnectDelay]);
+  }, [maxReconnectAttempts, onCommentsChanged, reconnectDelay]);
 
   const handleReload = useCallback(async () => {
     if (watchState.isReloading) {

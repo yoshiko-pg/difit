@@ -4,7 +4,7 @@ import { subscribe } from '@parcel/watcher';
 import { type Response } from 'express';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
-import { DiffMode } from '../types/watch.js';
+import { DiffMode, type WatchEvent } from '../types/watch.js';
 
 interface FileWatcherConfig {
   watchPath: string;
@@ -251,13 +251,22 @@ export class FileWatcherService {
     }
   }
 
+  broadcast(event: WatchEvent): void {
+    if (this.clients.length === 0) {
+      return;
+    }
+    this.clients.forEach((client) => {
+      this.sendToClient(client, event);
+    });
+  }
+
   private broadcastChange(): void {
     if (this.clients.length === 0 || !this.config) {
       return;
     }
 
     const changeType = this.determineChangeType();
-    const event = {
+    const event: WatchEvent = {
       type: 'reload' as const,
       diffMode: this.config.diffMode,
       changeType,
@@ -265,9 +274,7 @@ export class FileWatcherService {
       message: `Changes detected in ${this.config.diffMode} mode`,
     };
 
-    this.clients.forEach((client) => {
-      this.sendToClient(client, event);
-    });
+    this.broadcast(event);
   }
 
   private sendToClient(client: Response, event: unknown): void {
