@@ -62,7 +62,7 @@
     "@floating-ui/react": "^0.27.16",
     "@parcel/watcher": "^2.5.1",
     "commander": "^14.0.0",
-    "diff": "^8.0.2",
+    "diff": "^9.0.0",
     "express": "^5.1.0",
     "ink": "^7.0.0",
     "lucide-react": "^1.0.0",
