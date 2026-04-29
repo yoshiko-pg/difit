@@ -8,6 +8,7 @@ yarn-error.log*
 dist/
 build/
 *.tsbuildinfo
+public/site-data/diffs.json
 
 # Environment variables
 .env

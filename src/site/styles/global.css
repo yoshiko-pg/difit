@@ -1,0 +1,32 @@
+/* ---- Landing page styles ---- */
+
+.landing-demo-glow {
+  box-shadow:
+    0 0 40px rgba(63, 185, 80, 0.08),
+    0 0 80px rgba(34, 211, 238, 0.04);
+}
+
+/* Terminal cursor */
+.landing-cursor {
+  color: #3fb950;
+  font-weight: bold;
+}
+
+.landing-cursor-blink {
+  animation: landing-blink 1s step-end infinite;
+}
+
+@keyframes landing-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ASCII art — prevent wrapping, keep alignment */
+.landing-ascii {
+  overflow-x: auto;
+}
