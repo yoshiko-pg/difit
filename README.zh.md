@@ -197,7 +197,7 @@ npx skills add yoshiko-pg/difit
 - **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`
 - **Web 技术**：HTML, CSS, JSON, XML, Markdown
 - **Shell 脚本**：`.sh`, `.bash`, `.zsh`, `.fish`
-- **后端语言**：PHP, SQL, Ruby, Java, Scala, Perl, Elixir, Haskell
+- **后端语言**：PHP, SQL, Ruby, Java, Scala, Perl, Elixir, Haskell, Clojure
 - **系统语言**：C, C++, C#, Rust, Go
 - **移动语言**：Swift, Kotlin, Dart
 - **基础设施即代码**：Terraform (HCL), Nix

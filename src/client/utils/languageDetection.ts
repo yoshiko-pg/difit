@@ -47,6 +47,10 @@ const DIFF_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   nix: 'nix',
   hs: 'haskell',
   lhs: 'haskell',
+  clj: 'clojure',
+  cljs: 'clojure',
+  cljc: 'clojure',
+  edn: 'clojure',
 };
 
 // Prism syntax highlighting: use Prism language IDs (e.g. tsx -> tsx, scss -> css).
@@ -110,6 +114,10 @@ const PRISM_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   nix: 'nix',
   hs: 'haskell',
   lhs: 'haskell',
+  clj: 'clojure',
+  cljs: 'clojure',
+  cljc: 'clojure',
+  edn: 'clojure',
 };
 
 const PRISM_FILENAME_LANGUAGE_MAP: Record<string, string> = {
