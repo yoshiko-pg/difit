@@ -19,7 +19,7 @@ const demoRevisionSpecs = [
     description: 'Markdown diagram preview support with Mermaid rendering.',
   },
   {
-    target: '3e1c1bd',
+    target: 'a851e37',
     title: 'Large threaded comments diff',
     description: 'A broad UI feature diff spanning review threads, navigation, storage, and tests.',
   },
@@ -76,11 +76,20 @@ async function collectRevisions() {
   const revisions = [];
 
   for (const spec of demoRevisionSpecs) {
-    const [targetHash, baseHash, message, authorName, date] = (
-      await git.raw(['show', '-s', '--format=%H%x00%P%x00%s%x00%an%x00%aI', spec.target])
-    )
-      .trim()
-      .split('\0');
+    let revisionFields;
+    try {
+      revisionFields = await git.raw([
+        'show',
+        '-s',
+        '--format=%H%x00%P%x00%s%x00%an%x00%aI',
+        spec.target,
+      ]);
+    } catch (error) {
+      console.warn(`Skipping unavailable site demo revision ${spec.target}:`, error);
+      continue;
+    }
+
+    const [targetHash, baseHash, message, authorName, date] = revisionFields.trim().split('\0');
 
     const firstParentHash = baseHash?.split(/\s+/)[0];
     if (!targetHash || !firstParentHash || !message || !authorName || !date) continue;
