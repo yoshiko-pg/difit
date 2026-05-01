@@ -2,7 +2,13 @@ import { Settings, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 
-import { DEFAULT_EDITOR_ID, EDITOR_OPTIONS, type EditorOptionId } from '../../utils/editorOptions';
+import {
+  CUSTOM_EDITOR_ID,
+  DEFAULT_EDITOR_OPTION,
+  EDITOR_OPTIONS,
+  NONE_EDITOR_ID,
+  type EditorOptionId,
+} from '../../utils/editorOptions';
 import type { ColorVisionMode } from '../utils/appearanceTheme';
 import { formatAutoViewedPatterns, parseAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import {
@@ -12,12 +18,18 @@ import {
 } from '../utils/themeLoader';
 import { Tooltip } from './Tooltip';
 
+interface EditorSettings {
+  id: EditorOptionId;
+  command: string;
+  argsTemplate: string;
+}
+
 interface AppearanceSettings {
   fontSize: number;
   fontFamily: string;
   theme: 'light' | 'dark' | 'auto';
   syntaxTheme: string;
-  editor: EditorOptionId;
+  editor: EditorSettings;
   colorVision: ColorVisionMode;
   autoViewedPatterns: string[];
 }
@@ -37,7 +49,11 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
     '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
   theme: 'dark',
   syntaxTheme: 'vsDark',
-  editor: DEFAULT_EDITOR_ID,
+  editor: {
+    id: DEFAULT_EDITOR_OPTION.id,
+    command: DEFAULT_EDITOR_OPTION.command,
+    argsTemplate: DEFAULT_EDITOR_OPTION.argsTemplate,
+  },
   colorVision: 'normal',
   autoViewedPatterns: [],
 };
@@ -150,7 +166,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
     onSettingsChange({
       ...settings,
-      editor: DEFAULT_SETTINGS.editor,
+      editor: { ...DEFAULT_SETTINGS.editor },
       autoViewedPatterns: DEFAULT_SETTINGS.autoViewedPatterns,
     });
     setAutoViewedPatternsInput(formatAutoViewedPatterns(DEFAULT_SETTINGS.autoViewedPatterns));
@@ -334,13 +350,19 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                     Open In Editor
                   </label>
                   <select
-                    value={settings.editor}
-                    onChange={(e) =>
+                    value={settings.editor.id}
+                    onChange={(e) => {
+                      const nextId = e.target.value as EditorOptionId;
+                      const preset = EDITOR_OPTIONS.find((option) => option.id === nextId);
                       onSettingsChange({
                         ...settings,
-                        editor: e.target.value as AppearanceSettings['editor'],
-                      })
-                    }
+                        editor: {
+                          id: nextId,
+                          command: preset?.command ?? '',
+                          argsTemplate: preset?.argsTemplate ?? '',
+                        },
+                      });
+                    }}
                     className="w-full p-2 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm"
                   >
                     {EDITOR_OPTIONS.map((editor) => (
@@ -349,6 +371,94 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                       </option>
                     ))}
                   </select>
+
+                  {settings.editor.id !== NONE_EDITOR_ID &&
+                    (() => {
+                      const isCustom = settings.editor.id === CUSTOM_EDITOR_ID;
+                      const commandInvalid = isCustom && settings.editor.command.trim() === '';
+                      const argsInvalid = isCustom && settings.editor.argsTemplate.trim() === '';
+                      const disabledClass = isCustom ? '' : ' opacity-60 cursor-not-allowed';
+                      return (
+                        <div
+                          aria-label="Editor command configuration"
+                          className="mt-3 p-3 bg-github-bg-tertiary border border-github-border rounded space-y-3"
+                        >
+                          <div>
+                            <label
+                              htmlFor="editor-command"
+                              className="block text-sm font-medium text-github-text-primary mb-1"
+                            >
+                              Command
+                            </label>
+                            <input
+                              id="editor-command"
+                              type="text"
+                              value={settings.editor.command}
+                              disabled={!isCustom}
+                              required={isCustom}
+                              aria-invalid={commandInvalid || undefined}
+                              onChange={(e) =>
+                                onSettingsChange({
+                                  ...settings,
+                                  editor: {
+                                    ...settings.editor,
+                                    command: e.target.value,
+                                  },
+                                })
+                              }
+                              placeholder="e.g. mate"
+                              spellCheck={false}
+                              autoComplete="off"
+                              className={`w-full p-2 bg-github-bg-secondary border rounded text-github-text-primary text-sm font-mono${
+                                commandInvalid ? ' border-red-500' : ' border-github-border'
+                              }${disabledClass}`}
+                            />
+                            {commandInvalid && (
+                              <p className="mt-1 text-xs text-red-400">Command is required.</p>
+                            )}
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="editor-args"
+                              className="block text-sm font-medium text-github-text-primary mb-1"
+                            >
+                              Arguments
+                            </label>
+                            <input
+                              id="editor-args"
+                              type="text"
+                              value={settings.editor.argsTemplate}
+                              disabled={!isCustom}
+                              required={isCustom}
+                              aria-invalid={argsInvalid || undefined}
+                              onChange={(e) =>
+                                onSettingsChange({
+                                  ...settings,
+                                  editor: {
+                                    ...settings.editor,
+                                    argsTemplate: e.target.value,
+                                  },
+                                })
+                              }
+                              placeholder="-l %line %file"
+                              spellCheck={false}
+                              autoComplete="off"
+                              className={`w-full p-2 bg-github-bg-secondary border rounded text-github-text-primary text-sm font-mono${
+                                argsInvalid ? ' border-red-500' : ' border-github-border'
+                              }${disabledClass}`}
+                            />
+                            {argsInvalid && (
+                              <p className="mt-1 text-xs text-red-400">Arguments are required.</p>
+                            )}
+                            <p className="mt-2 text-xs text-github-text-secondary">
+                              {isCustom
+                                ? 'Use %file and %line as placeholders. Wrap arguments containing spaces in single or double quotes. Arguments are passed directly to the command without a shell.'
+                                : 'Select Custom… above to edit these fields.'}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
                 </div>
 
                 <div>

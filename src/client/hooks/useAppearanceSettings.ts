@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { DEFAULT_EDITOR_ID } from '../../utils/editorOptions';
+import { DEFAULT_EDITOR_OPTION } from '../../utils/editorOptions';
 import type { AppearanceSettings } from '../components/SettingsModal';
 import { normalizeAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import {
@@ -18,7 +18,11 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
     '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
   theme: 'dark',
   syntaxTheme: 'vsDark',
-  editor: DEFAULT_EDITOR_ID,
+  editor: {
+    id: DEFAULT_EDITOR_OPTION.id,
+    command: DEFAULT_EDITOR_OPTION.command,
+    argsTemplate: DEFAULT_EDITOR_OPTION.argsTemplate,
+  },
   colorVision: 'normal',
   autoViewedPatterns: [],
 };
