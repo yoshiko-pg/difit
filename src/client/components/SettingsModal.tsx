@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 
 import { DEFAULT_EDITOR_ID, EDITOR_OPTIONS, type EditorOptionId } from '../../utils/editorOptions';
+import { type ScrollAnimationSetting } from '../hooks/usePreferredScrollBehavior';
 import type { ColorVisionMode } from '../utils/appearanceTheme';
 import { formatAutoViewedPatterns, parseAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import {
@@ -19,6 +20,7 @@ interface AppearanceSettings {
   syntaxTheme: string;
   editor: EditorOptionId;
   colorVision: ColorVisionMode;
+  scrollAnimation: ScrollAnimationSetting;
   autoViewedPatterns: string[];
 }
 
@@ -39,6 +41,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   syntaxTheme: 'vsDark',
   editor: DEFAULT_EDITOR_ID,
   colorVision: 'normal',
+  scrollAnimation: 'auto',
   autoViewedPatterns: [],
 };
 
@@ -61,6 +64,16 @@ const COLOR_VISION_MODES = [
     label: 'Deuteranopia',
     tooltip: 'Deuteranopia mode uses blue/orange instead of green/red for diffs.',
   },
+] as const;
+
+const SCROLL_ANIMATION_MODES = [
+  {
+    id: 'auto',
+    label: 'Auto',
+    tooltip: 'Follows the OS prefers-reduced-motion setting.',
+  },
+  { id: 'enabled', label: 'Enabled' },
+  { id: 'disabled', label: 'Disabled' },
 ] as const;
 
 const SETTINGS_SECTIONS = [
@@ -144,6 +157,7 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
         theme: DEFAULT_SETTINGS.theme,
         syntaxTheme: DEFAULT_SETTINGS.syntaxTheme,
         colorVision: DEFAULT_SETTINGS.colorVision,
+        scrollAnimation: DEFAULT_SETTINGS.scrollAnimation,
       });
       return;
     }
@@ -280,6 +294,43 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                           key={mode.id}
                           type="button"
                           onClick={() => onSettingsChange({ ...settings, colorVision: mode.id })}
+                          className={`px-3 py-2 text-sm rounded border transition-colors ${
+                            isSelected
+                              ? 'bg-github-accent text-white border-github-accent'
+                              : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
+                          }`}
+                        >
+                          {mode.label}
+                        </button>
+                      );
+
+                      if (!('tooltip' in mode)) {
+                        return button;
+                      }
+
+                      return (
+                        <Tooltip key={mode.id} content={mode.tooltip}>
+                          {button}
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-github-text-primary mb-2">
+                    Scroll Animation
+                  </label>
+                  <div className="flex gap-2">
+                    {SCROLL_ANIMATION_MODES.map((mode) => {
+                      const isSelected = (settings.scrollAnimation ?? 'auto') === mode.id;
+                      const button = (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() =>
+                            onSettingsChange({ ...settings, scrollAnimation: mode.id })
+                          }
                           className={`px-3 py-2 text-sm rounded border transition-colors ${
                             isSelected
                               ? 'bg-github-accent text-white border-github-accent'
