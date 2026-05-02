@@ -12,6 +12,7 @@ interface UseLazyDiffRenderingOptions {
   diffData: DiffResponse | null;
   diffScrollContainerRef: React.RefObject<HTMLElement | null>;
   setDiffData: React.Dispatch<React.SetStateAction<DiffResponse | null>>;
+  scrollBehavior: ScrollBehavior;
 }
 
 interface UseLazyDiffRenderingReturn {
@@ -26,6 +27,7 @@ export function useLazyDiffRendering({
   diffData,
   diffScrollContainerRef,
   setDiffData,
+  scrollBehavior,
 }: UseLazyDiffRenderingOptions): UseLazyDiffRenderingReturn {
   const [renderedFilePaths, setRenderedFilePaths] = useState<Set<string>>(new Set());
   const renderedFilePathsRef = useRef<Set<string>>(new Set());
@@ -187,9 +189,6 @@ export function useLazyDiffRendering({
       const requestId = scrollRequestIdRef.current + 1;
       scrollRequestIdRef.current = requestId;
 
-      const reduceMotion = false;
-      const behavior: ScrollBehavior = reduceMotion ? 'instant' : 'smooth';
-
       const areRequiredSectionsReady = () => {
         for (const sectionId of requiredSectionIds) {
           const sectionNode = document.getElementById(sectionId);
@@ -233,7 +232,7 @@ export function useLazyDiffRendering({
             return;
           }
 
-          if (!tryScroll(behavior)) {
+          if (!tryScroll(scrollBehavior)) {
             if (attempts < SIDEBAR_SCROLL_MAX_ATTEMPTS) {
               attempts++;
               attemptScroll();
@@ -246,13 +245,13 @@ export function useLazyDiffRendering({
               return;
             }
             // Re-run smooth scroll after layout settles to absorb lazy-render shifts.
-            tryScroll(behavior);
+            tryScroll(scrollBehavior);
           }, SIDEBAR_SCROLL_CORRECTION_DELAY_MS);
         });
       };
       attemptScroll();
     },
-    [diffData, diffScrollContainerRef, ensureFilesRenderedUpTo],
+    [diffData, diffScrollContainerRef, ensureFilesRenderedUpTo, scrollBehavior],
   );
 
   useEffect(() => {

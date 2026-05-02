@@ -25,6 +25,7 @@ const baseSettings = {
   syntaxTheme: 'vsDark',
   editor: 'cursor' as const,
   colorVision: 'normal' as const,
+  scrollAnimation: 'auto' as const,
   autoViewedPatterns: [],
 };
 
