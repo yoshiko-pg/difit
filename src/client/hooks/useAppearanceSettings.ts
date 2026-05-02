@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import {
   DEFAULT_EDITOR_OPTION,
@@ -15,6 +15,7 @@ import {
   type ResolvedTheme,
 } from '../utils/appearanceTheme';
 import { getFallbackSyntaxTheme, isSyntaxThemeForResolvedTheme } from '../utils/themeLoader';
+import { usePreferredScrollBehavior } from './usePreferredScrollBehavior';
 
 const DEFAULT_SETTINGS: AppearanceSettings = {
   fontSize: 14,
@@ -28,6 +29,7 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
     argsTemplate: DEFAULT_EDITOR_OPTION.argsTemplate,
   },
   colorVision: 'normal',
+  scrollAnimation: 'auto',
   autoViewedPatterns: [],
 };
 
@@ -69,7 +71,13 @@ const normalizeEditorSettings = (raw: unknown): AppearanceSettings['editor'] => 
   return DEFAULT_SETTINGS.editor;
 };
 
-export function useAppearanceSettings() {
+interface UseAppearanceSettingsReturn {
+  settings: AppearanceSettings;
+  updateSettings: (newSettings: AppearanceSettings) => void;
+  readonly scrollBehavior: ScrollBehavior;
+}
+
+export function useAppearanceSettings(): UseAppearanceSettingsReturn {
   const [settings, setSettings] = useState<AppearanceSettings>(() => {
     try {
       const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY);
@@ -166,13 +174,18 @@ export function useAppearanceSettings() {
     }
   }, [settings, applyTheme, getSettingsForResolvedTheme, saveSettings]);
 
-  const updateSettings = (newSettings: AppearanceSettings) => {
-    setSettings(newSettings);
-    saveSettings(newSettings);
-  };
+  const updateSettings = useCallback(
+    (newSettings: AppearanceSettings) => {
+      setSettings(newSettings);
+      saveSettings(newSettings);
+    },
+    [saveSettings],
+  );
 
-  return {
-    settings,
-    updateSettings,
-  };
+  const scrollBehavior = usePreferredScrollBehavior(settings.scrollAnimation);
+
+  return useMemo(
+    () => ({ settings, updateSettings, scrollBehavior }),
+    [settings, updateSettings, scrollBehavior],
+  );
 }

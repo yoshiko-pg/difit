@@ -29,6 +29,7 @@ const baseSettings = {
     argsTemplate: '-g %file:%line',
   },
   colorVision: 'normal' as const,
+  scrollAnimation: 'auto' as const,
   autoViewedPatterns: [],
 };
 
