@@ -187,6 +187,9 @@ export function useLazyDiffRendering({
       const requestId = scrollRequestIdRef.current + 1;
       scrollRequestIdRef.current = requestId;
 
+      const reduceMotion = false;
+      const behavior: ScrollBehavior = reduceMotion ? 'instant' : 'smooth';
+
       const areRequiredSectionsReady = () => {
         for (const sectionId of requiredSectionIds) {
           const sectionNode = document.getElementById(sectionId);
@@ -230,7 +233,7 @@ export function useLazyDiffRendering({
             return;
           }
 
-          if (!tryScroll('smooth')) {
+          if (!tryScroll(behavior)) {
             if (attempts < SIDEBAR_SCROLL_MAX_ATTEMPTS) {
               attempts++;
               attemptScroll();
@@ -243,7 +246,7 @@ export function useLazyDiffRendering({
               return;
             }
             // Re-run smooth scroll after layout settles to absorb lazy-render shifts.
-            tryScroll('smooth');
+            tryScroll(behavior);
           }, SIDEBAR_SCROLL_CORRECTION_DELAY_MS);
         });
       };
