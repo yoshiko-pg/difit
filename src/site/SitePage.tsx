@@ -21,6 +21,7 @@ import {
   FEATURE_TEXT,
   HERO_TEXT,
   LANGUAGE_OPTIONS,
+  resolveSiteLanguage,
   USAGE_COMMENT_TEXT,
   type SiteLanguage,
   type UsageCommentKey,
@@ -169,6 +170,9 @@ const withBasePath = (path: string) => {
     : `${import.meta.env.BASE_URL}/`;
   return `${basePath}${path.replace(/^\/+/, '')}`;
 };
+
+const getInitialLanguage = (): SiteLanguage =>
+  resolveSiteLanguage([...navigator.languages, navigator.language]);
 
 function RevisionQuickMenu({
   revisions,
@@ -325,7 +329,7 @@ function SitePage() {
   const [selectedRevisionId, setSelectedRevisionId] = useState('');
   const [datasetError, setDatasetError] = useState(false);
   const [loadingRevisions, setLoadingRevisions] = useState(true);
-  const [language, setLanguage] = useState<SiteLanguage>('en');
+  const [language, setLanguage] = useState<SiteLanguage>(getInitialLanguage);
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
 
   useEffect(() => {

@@ -25,6 +25,24 @@ export const LANGUAGE_OPTIONS: ReadonlyArray<{ code: SiteLanguage; label: string
   { code: 'zh', label: 'ZH' },
 ];
 
+const SUPPORTED_LANGUAGE_CODES = new Set<SiteLanguage>(
+  LANGUAGE_OPTIONS.map((option) => option.code),
+);
+
+export const resolveSiteLanguage = (
+  languageTags: readonly string[],
+  fallback: SiteLanguage = 'en',
+): SiteLanguage => {
+  for (const languageTag of languageTags) {
+    const languageCode = languageTag.toLowerCase().split('-', 1)[0];
+    if (SUPPORTED_LANGUAGE_CODES.has(languageCode as SiteLanguage)) {
+      return languageCode as SiteLanguage;
+    }
+  }
+
+  return fallback;
+};
+
 export const HERO_TEXT: Record<
   SiteLanguage,
   { catchCopy: string; description: readonly [string, string] }

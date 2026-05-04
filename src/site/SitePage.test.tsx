@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import SitePage from './SitePage';
 import type { StaticDiffDataset } from './types/staticDiff';
@@ -37,6 +37,10 @@ const mockDataset: StaticDiffDataset = {
 };
 
 describe('SitePage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('renders landing page with preview iframe', () => {
     render(<SitePage />);
 
@@ -67,8 +71,17 @@ describe('SitePage', () => {
     fireEvent.click(await screen.findByRole('button', { name: /89abcde Fix style on diff/ }));
 
     expect(frame).toHaveAttribute('src', '/preview?snapshot=1234567...89abcde');
+  });
 
-    vi.restoreAllMocks();
+  it('uses the browser language for the initial localized copy', () => {
+    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['ja-JP', 'en-US']);
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('ja-JP');
+
+    render(<SitePage />);
+
+    expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
+    expect(screen.getByText(/多様な入力対応/)).toBeInTheDocument();
+    expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
   });
 
   it('switches language in place for hero, features, and usage comments', () => {
