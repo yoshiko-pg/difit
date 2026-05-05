@@ -1,9 +1,13 @@
 import type { DiffCommentThread, DiffResponse } from '../../types/diff';
+import type { SiteLanguage } from '../sitePageContent';
 
 interface StaticRevision {
   id: string;
   demoTitle?: string;
   demoDescription?: string;
+  demoTitleByLanguage?: Partial<Record<SiteLanguage, string>>;
+  demoDescriptionByLanguage?: Partial<Record<SiteLanguage, string>>;
+  demoMessageByLanguage?: Partial<Record<SiteLanguage, string>>;
   baseHash: string;
   baseShortHash: string;
   targetHash: string;

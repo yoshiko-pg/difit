@@ -152,9 +152,32 @@ function Feature({ label, desc }: { label: string; desc: string }) {
   );
 }
 
-function formatRevisionLabel(revision: StaticDiffDataset['revisions'][number]) {
-  if (revision.demoTitle) {
-    return revision.demoTitle;
+function getLocalizedRevisionText(
+  revision: StaticDiffDataset['revisions'][number],
+  language: SiteLanguage,
+) {
+  const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
+  const title = revision.demoTitleByLanguage?.[language] ?? revision.demoTitle;
+  const description =
+    revision.demoDescriptionByLanguage?.[language] ?? revision.demoDescription ?? '';
+  const message = revision.demoMessageByLanguage?.[language] ?? oneLineMessage;
+
+  return {
+    title,
+    description,
+    message,
+    primaryLabel: title ?? oneLineMessage,
+  };
+}
+
+function formatRevisionLabel(
+  revision: StaticDiffDataset['revisions'][number],
+  language: SiteLanguage,
+) {
+  const { title } = getLocalizedRevisionText(revision, language);
+
+  if (title) {
+    return title;
   }
 
   const oneLineMessage = revision.message.split('\n')[0] ?? '';
@@ -178,15 +201,19 @@ function RevisionQuickMenu({
   revisions,
   selectedRevisionId,
   onSelectRevision,
+  language,
 }: {
   revisions: StaticDiffDataset['revisions'];
   selectedRevisionId: string;
   onSelectRevision: (revisionId: string) => void;
+  language: SiteLanguage;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedRevision =
     revisions.find((revision) => revision.id === selectedRevisionId) ?? revisions[0];
-  const currentLabel = selectedRevision ? formatRevisionLabel(selectedRevision) : 'Select...';
+  const currentLabel = selectedRevision
+    ? formatRevisionLabel(selectedRevision, language)
+    : 'Select...';
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
@@ -260,8 +287,10 @@ function RevisionQuickMenu({
             </div>
             {revisions.map((revision) => {
               const isSelected = revision.id === selectedRevisionId;
-              const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
-              const primaryLabel = revision.demoTitle ?? oneLineMessage;
+              const { description, message, primaryLabel, title } = getLocalizedRevisionText(
+                revision,
+                language,
+              );
 
               return (
                 <button
@@ -276,14 +305,10 @@ function RevisionQuickMenu({
                     </code>
                     <span className="text-xs text-[#6b7280] flex-1 break-words">
                       <span className="block text-[#374151]">{primaryLabel}</span>
-                      {revision.demoDescription && (
-                        <span className="mt-0.5 block leading-snug">
-                          {revision.demoDescription}
-                        </span>
+                      {description && (
+                        <span className="mt-0.5 block leading-snug">{description}</span>
                       )}
-                      {revision.demoTitle && (
-                        <span className="mt-0.5 block leading-snug">{oneLineMessage}</span>
-                      )}
+                      {title && <span className="mt-0.5 block leading-snug">{message}</span>}
                     </span>
                   </div>
                 </button>
@@ -569,6 +594,7 @@ function SitePage() {
                   revisions={revisions}
                   selectedRevisionId={selectedRevisionId}
                   onSelectRevision={setSelectedRevisionId}
+                  language={language}
                 />
               </div>
             )}

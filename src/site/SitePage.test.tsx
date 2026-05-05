@@ -13,6 +13,15 @@ const mockDataset: StaticDiffDataset = {
       id: 'abc1234...def5678',
       demoTitle: 'Large implementation diff',
       demoDescription: 'A broad feature diff for the landing page demo.',
+      demoTitleByLanguage: {
+        ja: '大きな実装diff',
+      },
+      demoDescriptionByLanguage: {
+        ja: 'ランディングページデモ用の広い機能差分。',
+      },
+      demoMessageByLanguage: {
+        ja: 'ランディングページのヘッダーを追加',
+      },
       baseHash: 'abcdef1234567890',
       baseShortHash: 'abc1234',
       targetHash: 'def5678',
@@ -96,6 +105,32 @@ describe('SitePage', () => {
     expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
     expect(screen.getByText(/多様な入力対応/)).toBeInTheDocument();
     expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
+  });
+
+  it('switches revision selector title, description, and commit message by language', async () => {
+    vi.spyOn(window, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(mockDataset), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    render(<SitePage />);
+
+    const menuButton = await screen.findByRole('button', {
+      name: /Revision menu: Large implementation diff/,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'JA' }));
+
+    expect(
+      await screen.findByRole('button', { name: /Revision menu: 大きな実装diff/ }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(menuButton);
+
+    expect(screen.getByText('ランディングページデモ用の広い機能差分。')).toBeInTheDocument();
+    expect(screen.getByText('ランディングページのヘッダーを追加')).toBeInTheDocument();
   });
 
   it('switches feature content when a tab is clicked', () => {
