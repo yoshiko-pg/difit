@@ -48,28 +48,28 @@ export const HERO_TEXT: Record<
   { catchCopy: string; description: readonly [string, string] }
 > = {
   en: {
-    catchCopy: 'Beautiful diffs. Right in your terminal',
+    catchCopy: 'Beautiful diffs. Launched from your terminal.',
     description: [
       'GitHub-style diff viewer for local git.',
       'Review code, add comments, copy AI prompts — all from one command.',
     ],
   },
   ja: {
-    catchCopy: '美しい差分を、ターミナルで。',
+    catchCopy: '美しいdiffを、ターミナルからすぐに。',
     description: [
       'ローカルgitのためのGitHubスタイル差分ビューア。',
       'コードレビュー、コメント、AI向けプロンプトコピーまで、1コマンドで。',
     ],
   },
   ko: {
-    catchCopy: '아름다운 diff를 터미널에서.',
+    catchCopy: '아름다운 diff를 터미널에서 바로.',
     description: [
       '로컬 git을 위한 GitHub 스타일 diff 뷰어.',
       '코드 리뷰, 코멘트, AI 프롬프트 복사를 한 명령으로.',
     ],
   },
   zh: {
-    catchCopy: '在终端里查看优雅的差异。',
+    catchCopy: '美观的 diff，从终端立即启动。',
     description: [
       '面向本地 git 的 GitHub 风格差异查看器。',
       '代码评审、评论、复制 AI 提示词，一条命令完成。',
