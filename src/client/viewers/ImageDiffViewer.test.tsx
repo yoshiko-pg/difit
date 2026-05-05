@@ -27,6 +27,8 @@ describe('ImageDiffViewer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    delete (window as Window & { __DIFIT_STATIC_BLOB_URLS__?: Record<string, string> })
+      .__DIFIT_STATIC_BLOB_URLS__;
     // Mock fetch to return a blob with size
     (global.fetch as any).mockResolvedValue({
       blob: () => Promise.resolve({ size: 1024 }),
@@ -160,6 +162,28 @@ describe('ImageDiffViewer', () => {
       const images = screen.getAllByRole('img');
       expect(images[0]).toHaveAttribute('src', '/api/blob/old-test.jpg?ref=HEAD~1');
       expect(images[1]).toHaveAttribute('src', '/api/blob/test.jpg?ref=HEAD');
+    });
+
+    it('uses static blob URLs when available', () => {
+      (
+        window as Window & { __DIFIT_STATIC_BLOB_URLS__?: Record<string, string> }
+      ).__DIFIT_STATIC_BLOB_URLS__ = {
+        'abcdef1:test.jpg': '/difit/site-data/blobs/abcdef1/test.jpg',
+      };
+      const file: DiffFile = {
+        path: 'test.jpg',
+        status: 'added',
+        additions: 1,
+        deletions: 0,
+        chunks: [],
+      };
+
+      renderViewer(file, { targetCommitish: 'abcdef1234567890' });
+
+      expect(screen.getByRole('img')).toHaveAttribute(
+        'src',
+        '/difit/site-data/blobs/abcdef1/test.jpg',
+      );
     });
   });
 

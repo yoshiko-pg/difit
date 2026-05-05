@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import { execFileSync } from 'child_process';
 import { mkdirSync, writeFileSync } from 'fs';
-import { basename, dirname, resolve } from 'path';
+import { basename, dirname, extname, resolve } from 'path';
 
 import { simpleGit } from 'simple-git';
 
@@ -96,6 +97,10 @@ function blobKey(ref, path) {
   return `${shortHash(ref)}:${path}`;
 }
 
+function blobAssetPath(ref, path) {
+  return `site-data/blobs/${shortHash(ref)}/${Buffer.from(path).toString('base64url')}${extname(path)}`;
+}
+
 async function readBlobText(ref, path) {
   if (binaryFilePattern.test(path)) {
     return null;
@@ -103,6 +108,23 @@ async function readBlobText(ref, path) {
 
   try {
     return await git.raw(['show', `${ref}:${path}`]);
+  } catch {
+    return null;
+  }
+}
+
+function writeBinaryBlob(ref, path) {
+  if (!binaryFilePattern.test(path)) {
+    return null;
+  }
+
+  try {
+    const content = execFileSync('git', ['show', `${ref}:${path}`], { cwd: repoPath });
+    const assetPath = blobAssetPath(ref, path);
+    const outputPath = resolve(repoPath, 'public', assetPath);
+    mkdirSync(dirname(outputPath), { recursive: true });
+    writeFileSync(outputPath, content);
+    return assetPath;
   } catch {
     return null;
   }
@@ -156,6 +178,7 @@ async function buildDataset() {
   const revisions = await collectRevisions();
   const diffs = {};
   const blobs = {};
+  const blobUrls = {};
   const comments = {};
 
   for (const revision of revisions) {
@@ -192,6 +215,19 @@ async function buildDataset() {
         if (newContent !== null) {
           blobs[blobKey(revision.targetHash, file.path)] = newContent;
         }
+
+        if (file.status !== 'added') {
+          const oldBlobUrl = writeBinaryBlob(revision.baseHash, oldPath);
+          if (oldBlobUrl) {
+            blobUrls[blobKey(revision.baseHash, oldPath)] = oldBlobUrl;
+          }
+        }
+        if (file.status !== 'deleted') {
+          const newBlobUrl = writeBinaryBlob(revision.targetHash, file.path);
+          if (newBlobUrl) {
+            blobUrls[blobKey(revision.targetHash, file.path)] = newBlobUrl;
+          }
+        }
       }
     } catch (error) {
       console.warn(`Failed to export diff for ${revision.id}:`, error);
@@ -210,6 +246,7 @@ async function buildDataset() {
     revisions: exportedRevisions,
     diffs,
     blobs,
+    blobUrls,
     comments,
   };
 }

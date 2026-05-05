@@ -20,5 +20,6 @@ export interface StaticDiffDataset {
   revisions: StaticRevision[];
   diffs: Record<string, DiffResponse>;
   blobs: Record<string, string>;
+  blobUrls?: Record<string, string>;
   comments?: Record<string, DiffCommentThread[]>;
 }

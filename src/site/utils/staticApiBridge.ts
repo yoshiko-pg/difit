@@ -16,6 +16,10 @@ export interface StaticApiBridge {
   dataset: StaticDiffDataset;
 }
 
+interface StaticBlobWindow {
+  __DIFIT_STATIC_BLOB_URLS__?: Record<string, string>;
+}
+
 interface StaticDiffRequest {
   base?: string;
   target?: string;
@@ -120,10 +124,16 @@ export const installStaticApiBridge = (dataset: StaticDiffDataset): StaticApiBri
   const originalFetch = window.fetch.bind(window);
   const OriginalEventSource = window.EventSource;
   const originalSendBeacon = navigator.sendBeacon?.bind(navigator);
+  const staticBlobWindow = window as Window & StaticBlobWindow;
+  const originalStaticBlobUrls = staticBlobWindow.__DIFIT_STATIC_BLOB_URLS__;
 
   const diffIndex = buildDiffIndex(dataset);
   const blobRefIndex = buildBlobRefIndex(dataset);
   let currentRevisionId = resolveRequestedSnapshotId(dataset);
+
+  staticBlobWindow.__DIFIT_STATIC_BLOB_URLS__ = Object.fromEntries(
+    Object.entries(dataset.blobUrls ?? {}).map(([key, path]) => [key, withBasePath(path)]),
+  );
 
   const resolveDiff = ({ base, target }: StaticDiffRequest): DiffResponse | null => {
     if (!base && !target) {
@@ -292,6 +302,7 @@ export const installStaticApiBridge = (dataset: StaticDiffDataset): StaticApiBri
         writable: true,
         value: originalSendBeacon,
       });
+      staticBlobWindow.__DIFIT_STATIC_BLOB_URLS__ = originalStaticBlobUrls;
     },
   };
 };

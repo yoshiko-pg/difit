@@ -10,6 +10,17 @@ interface ImageInfo {
   size?: number;
 }
 
+interface StaticBlobWindow {
+  __DIFIT_STATIC_BLOB_URLS__?: Record<string, string>;
+}
+
+const blobKey = (ref: string, path: string): string => `${ref.slice(0, 7)}:${path}`;
+
+const imageBlobUrl = (path: string, ref: string): string => {
+  const staticBlobUrls = (window as Window & StaticBlobWindow).__DIFIT_STATIC_BLOB_URLS__;
+  return staticBlobUrls?.[blobKey(ref, path)] ?? `/api/blob/${path}?ref=${ref}`;
+};
+
 export function ImageDiffViewer({
   file,
   diffMode,
@@ -88,7 +99,7 @@ export function ImageDiffViewer({
               Previous version:
             </div>
             <img
-              src={`/api/blob/${file.oldPath || file.path}?ref=${baseRef}`}
+              src={imageBlobUrl(file.oldPath || file.path, baseRef)}
               alt={`Previous version of ${file.oldPath || file.path}`}
               className="max-w-full max-h-96 border border-github-border rounded mx-auto"
               style={checkerboardStyle}
@@ -128,7 +139,7 @@ export function ImageDiffViewer({
               New file:
             </div>
             <img
-              src={`/api/blob/${file.path}?ref=${targetRef}`}
+              src={imageBlobUrl(file.path, targetRef)}
               alt={`New image ${file.path}`}
               className="max-w-full max-h-96 border border-github-border rounded mx-auto"
               style={checkerboardStyle}
@@ -171,7 +182,7 @@ export function ImageDiffViewer({
                   Previous version:
                 </div>
                 <img
-                  src={`/api/blob/${file.oldPath || file.path}?ref=${baseRef}`}
+                  src={imageBlobUrl(file.oldPath || file.path, baseRef)}
                   alt={`Previous version of ${file.oldPath || file.path}`}
                   className="max-w-full max-h-96 border border-github-border rounded mx-auto"
                   style={checkerboardStyle}
@@ -202,7 +213,7 @@ export function ImageDiffViewer({
                   Current version:
                 </div>
                 <img
-                  src={`/api/blob/${file.path}?ref=${targetRef}`}
+                  src={imageBlobUrl(file.path, targetRef)}
                   alt={`Current version of ${file.path}`}
                   className="max-w-full max-h-96 border border-github-border rounded mx-auto"
                   style={checkerboardStyle}
@@ -243,7 +254,7 @@ export function ImageDiffViewer({
                   Previous version:
                 </div>
                 <img
-                  src={`/api/blob/${file.oldPath || file.path}?ref=${baseRef}`}
+                  src={imageBlobUrl(file.oldPath || file.path, baseRef)}
                   alt={`Previous version of ${file.oldPath || file.path}`}
                   className="max-w-full max-h-96 border border-github-border rounded mx-auto"
                   style={checkerboardStyle}
@@ -274,7 +285,7 @@ export function ImageDiffViewer({
                   Current version:
                 </div>
                 <img
-                  src={`/api/blob/${file.path}?ref=${targetRef}`}
+                  src={imageBlobUrl(file.path, targetRef)}
                   alt={`Current version of ${file.path}`}
                   className="max-w-full max-h-96 border border-github-border rounded mx-auto"
                   style={checkerboardStyle}
