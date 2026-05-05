@@ -12,12 +12,8 @@ const mockDataset: StaticDiffDataset = {
     {
       id: 'abc1234...def5678',
       demoTitle: 'Large implementation diff',
-      demoDescription: 'A broad feature diff for the landing page demo.',
       demoTitleByLanguage: {
         ja: '大きな実装diff',
-      },
-      demoDescriptionByLanguage: {
-        ja: 'ランディングページデモ用の広い機能差分。',
       },
       demoMessageByLanguage: {
         ja: 'ランディングページのヘッダーを追加',
@@ -76,7 +72,9 @@ describe('SitePage', () => {
     expect(frame).toHaveAttribute('src', '/preview?snapshot=abc1234...def5678');
 
     fireEvent.click(menuButton);
-    expect(screen.getByText('A broad feature diff for the landing page demo.')).toBeInTheDocument();
+    expect(
+      screen.queryByText('A broad feature diff for the landing page demo.'),
+    ).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: /89abcde Fix style on diff/ }));
 
     expect(frame).toHaveAttribute('src', '/preview?snapshot=1234567...89abcde');
@@ -107,7 +105,7 @@ describe('SitePage', () => {
     expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
   });
 
-  it('switches revision selector title, description, and commit message by language', async () => {
+  it('switches revision selector title and commit message by language', async () => {
     vi.spyOn(window, 'fetch').mockResolvedValue(
       new Response(JSON.stringify(mockDataset), {
         status: 200,
@@ -129,8 +127,32 @@ describe('SitePage', () => {
 
     fireEvent.click(menuButton);
 
-    expect(screen.getByText('ランディングページデモ用の広い機能差分。')).toBeInTheDocument();
+    expect(screen.queryByText('ランディングページデモ用の広い機能差分。')).not.toBeInTheDocument();
     expect(screen.getByText('ランディングページのヘッダーを追加')).toBeInTheDocument();
+  });
+
+  it('keeps the revision selector trigger width fixed and stacks chrome on mobile', async () => {
+    vi.spyOn(window, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(mockDataset), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    render(<SitePage />);
+
+    const menuButton = await screen.findByRole('button', {
+      name: /Revision menu: Large implementation diff/,
+    });
+    const triggerFrame = menuButton.firstElementChild;
+    expect(triggerFrame).toHaveClass('w-[220px]');
+    expect(triggerFrame).toHaveClass('sm:w-[260px]');
+
+    const revisionLabel = screen.getByText('Revision:');
+    const chrome = revisionLabel.parentElement?.parentElement;
+    expect(chrome).toBeDefined();
+    expect(chrome!).toHaveClass('flex-col');
+    expect(chrome!).toHaveClass('sm:flex-row');
   });
 
   it('switches feature content when a tab is clicked', () => {

@@ -158,13 +158,10 @@ function getLocalizedRevisionText(
 ) {
   const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
   const title = revision.demoTitleByLanguage?.[language] ?? revision.demoTitle;
-  const description =
-    revision.demoDescriptionByLanguage?.[language] ?? revision.demoDescription ?? '';
   const message = revision.demoMessageByLanguage?.[language] ?? oneLineMessage;
 
   return {
     title,
-    description,
     message,
     primaryLabel: title ?? oneLineMessage,
   };
@@ -264,7 +261,7 @@ function RevisionQuickMenu({
         title={currentLabel}
         {...getReferenceProps()}
       >
-        <div className="flex items-center gap-1 px-2 py-1 bg-white border border-[#d1d5db] rounded hover:bg-[#eef0f2] hover:border-[#bfc3c8] transition-colors max-w-[360px]">
+        <div className="flex w-[220px] sm:w-[260px] items-center gap-1 px-2 py-1 bg-white border border-[#d1d5db] rounded hover:bg-[#eef0f2] hover:border-[#bfc3c8] transition-colors">
           <GitBranch size={12} className="text-[#6b7280] shrink-0" />
           <code className="text-[11px] text-[#4b5563] truncate">{currentLabel}</code>
           <ChevronDown
@@ -279,7 +276,7 @@ function RevisionQuickMenu({
           <div
             ref={refs.setFloating}
             style={floatingStyles}
-            className="bg-white border border-[#bfc3c8] rounded shadow-lg z-50 w-[360px] max-h-[360px] overflow-y-auto"
+            className="bg-white border border-[#bfc3c8] rounded shadow-lg z-50 w-[calc(90vw-2rem)] sm:w-[360px] max-h-[360px] overflow-y-auto"
             {...getFloatingProps()}
           >
             <div className="px-3 py-2 text-xs font-semibold text-[#4b5563] bg-[#d5d7db] border-b border-[#bfc3c8]">
@@ -287,10 +284,7 @@ function RevisionQuickMenu({
             </div>
             {revisions.map((revision) => {
               const isSelected = revision.id === selectedRevisionId;
-              const { description, message, primaryLabel, title } = getLocalizedRevisionText(
-                revision,
-                language,
-              );
+              const { message, primaryLabel, title } = getLocalizedRevisionText(revision, language);
 
               return (
                 <button
@@ -305,9 +299,6 @@ function RevisionQuickMenu({
                     </code>
                     <span className="text-xs text-[#6b7280] flex-1 break-words">
                       <span className="block text-[#374151]">{primaryLabel}</span>
-                      {description && (
-                        <span className="mt-0.5 block leading-snug">{description}</span>
-                      )}
                       {title && <span className="mt-0.5 block leading-snug">{message}</span>}
                     </span>
                   </div>
@@ -576,19 +567,21 @@ function SitePage() {
       <div className="w-[90vw] mx-auto mt-3">
         <div className="rounded-xl overflow-hidden border border-[#d1d5db] shadow-lg">
           {/* Browser chrome — light theme */}
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-[#d5d7db] border-b border-[#bfc3c8]">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-              <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-              <div className="w-3 h-3 rounded-full bg-[#28c840]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="ml-1 px-4 py-1 rounded-md bg-white text-[11px] text-[#9ca3af] font-mono border border-[#e5e7eb]">
-                {browserAddress}
+          <div className="flex flex-col gap-2 px-4 py-2.5 bg-[#d5d7db] border-b border-[#bfc3c8] sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+                <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+                <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="ml-1 truncate px-4 py-1 rounded-md bg-white text-[11px] text-[#9ca3af] font-mono border border-[#e5e7eb]">
+                  {browserAddress}
+                </div>
               </div>
             </div>
             {hasRevisionSelector && (
-              <div className="ml-6 flex items-center gap-2 text-[11px] text-[#6b7280] whitespace-nowrap">
+              <div className="flex items-center justify-end gap-2 text-[11px] text-[#6b7280] whitespace-nowrap sm:ml-6">
                 <span>Revision:</span>
                 <RevisionQuickMenu
                   revisions={revisions}
