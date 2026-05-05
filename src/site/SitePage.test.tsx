@@ -147,6 +147,7 @@ describe('SitePage', () => {
     const triggerFrame = menuButton.firstElementChild;
     expect(triggerFrame).toHaveClass('w-[220px]');
     expect(triggerFrame).toHaveClass('sm:w-[260px]');
+    expect(triggerFrame?.querySelector('code')).toHaveClass('flex-1');
 
     const revisionLabel = screen.getByText('Revision:');
     const chrome = revisionLabel.parentElement?.parentElement;

@@ -263,7 +263,9 @@ function RevisionQuickMenu({
       >
         <div className="flex w-[220px] sm:w-[260px] items-center gap-1 px-2 py-1 bg-white border border-[#d1d5db] rounded hover:bg-[#eef0f2] hover:border-[#bfc3c8] transition-colors">
           <GitBranch size={12} className="text-[#6b7280] shrink-0" />
-          <code className="text-[11px] text-[#4b5563] truncate">{currentLabel}</code>
+          <code className="min-w-0 flex-1 text-left text-[11px] text-[#4b5563] truncate">
+            {currentLabel}
+          </code>
           <ChevronDown
             size={12}
             className="text-[#6b7280] group-hover:text-[#374151] transition-colors shrink-0"
