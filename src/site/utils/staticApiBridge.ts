@@ -199,7 +199,9 @@ export const installStaticApiBridge = (dataset: StaticDiffDataset): StaticApiBri
     }
 
     if (requestUrl.pathname === '/api/comments-json') {
-      return jsonResponse({ threads: [] });
+      return jsonResponse({
+        threads: currentRevisionId ? (dataset.comments?.[currentRevisionId] ?? []) : [],
+      });
     }
 
     if (requestUrl.pathname === '/api/comments-output') {

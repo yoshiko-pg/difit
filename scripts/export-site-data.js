@@ -14,39 +14,75 @@ const parser = new GitDiffParser(repoPath);
 
 const demoRevisionSpecs = [
   {
-    target: 'b908dc3',
-    title: 'Markdown Mermaid preview',
-    description: 'Markdown diagram preview support with Mermaid rendering.',
+    target: 'a72112f',
+    title: 'Standard feature diff',
+    description: 'A typical product change touching app code, hooks, settings, and tests.',
   },
   {
-    target: 'a851e37',
-    title: 'Large threaded comments diff',
-    description: 'A broad UI feature diff spanning review threads, navigation, storage, and tests.',
+    target: 'e6977fed27ff3ffa30a77c97a0e9fcd5cf61c6c3',
+    title: 'Image diff',
+    description: 'A logo image update rendered with the image diff viewer.',
   },
   {
-    target: 'c82f4b3',
-    title: 'Notebook preview',
-    description: 'Jupyter notebook sample and full notebook diff viewer implementation.',
+    base: '55f23a19564e0de4888f1bfd2ae6c23f86103ba6',
+    target: '080c0e6ab18f7bb7cc235ea951c26e0414c28076',
+    title: '100+ file diff',
+    description: 'A broad site migration range with more than 100 changed files.',
   },
   {
-    target: 'fd01270',
-    title: 'Markdown syntax sample',
-    description: 'A dense Markdown sample that shows rendered preview behavior clearly.',
-  },
-  {
-    target: '2a62204',
-    title: 'Revision selection workflow',
-    description: 'Merge-base quick diffs across CLI, web UI, storage, and server paths.',
-  },
-  {
-    target: 'caeec50',
-    title: 'Comment synchronization',
-    description: 'Comment sessions synchronized across CLI, browser, and diff selections.',
-  },
-  {
-    target: '9ca4e40',
-    title: 'Review comment imports',
-    description: 'Startup review comments imported into the diff for agent workflows.',
+    target: 'a72112f',
+    idSuffix: 'comments',
+    title: 'Standard diff with comments',
+    description: 'The standard feature diff with sample review comments already attached.',
+    comments: [
+      {
+        id: 'site-demo-scroll-behavior-thread',
+        filePath: 'src/client/hooks/usePreferredScrollBehavior.ts',
+        createdAt: '2026-05-05T00:00:00.000Z',
+        updatedAt: '2026-05-05T00:00:00.000Z',
+        position: {
+          side: 'new',
+          line: 21,
+        },
+        codeSnapshot: {
+          content: '  const systemPrefersReducedMotion = useSyncExternalStore(',
+          language: 'typescript',
+        },
+        messages: [
+          {
+            id: 'site-demo-scroll-behavior-message',
+            body: 'Good place to centralize the reduced-motion preference before it reaches the diff scroller.',
+            author: 'demo-reviewer',
+            createdAt: '2026-05-05T00:00:00.000Z',
+            updatedAt: '2026-05-05T00:00:00.000Z',
+          },
+        ],
+      },
+      {
+        id: 'site-demo-app-thread',
+        filePath: 'src/client/App.tsx',
+        createdAt: '2026-05-05T00:01:00.000Z',
+        updatedAt: '2026-05-05T00:01:00.000Z',
+        position: {
+          side: 'new',
+          line: 153,
+        },
+        codeSnapshot: {
+          content:
+            '  const { settings, updateSettings, scrollBehavior } = useAppearanceSettings();',
+          language: 'tsx',
+        },
+        messages: [
+          {
+            id: 'site-demo-app-message',
+            body: 'The derived scroll behavior is now wired into lazy rendering, so navigating large diffs can respect the user setting.',
+            author: 'demo-reviewer',
+            createdAt: '2026-05-05T00:01:00.000Z',
+            updatedAt: '2026-05-05T00:01:00.000Z',
+          },
+        ],
+      },
+    ],
   },
 ];
 
@@ -91,13 +127,18 @@ async function collectRevisions() {
 
     const [targetHash, baseHash, message, authorName, date] = revisionFields.trim().split('\0');
 
-    const firstParentHash = baseHash?.split(/\s+/)[0];
+    let firstParentHash = baseHash?.split(/\s+/)[0];
+    if (spec.base) {
+      firstParentHash = (await git.revparse([spec.base])).trim();
+    }
     if (!targetHash || !firstParentHash || !message || !authorName || !date) continue;
 
+    const idBase = `${shortHash(firstParentHash)}...${shortHash(targetHash)}`;
     revisions.push({
-      id: `${shortHash(firstParentHash)}...${shortHash(targetHash)}`,
+      id: spec.idSuffix ? `${idBase}-${spec.idSuffix}` : idBase,
       demoTitle: spec.title,
       demoDescription: spec.description,
+      comments: spec.comments ?? [],
       baseHash: firstParentHash,
       baseShortHash: shortHash(firstParentHash),
       targetHash,
@@ -115,6 +156,7 @@ async function buildDataset() {
   const revisions = await collectRevisions();
   const diffs = {};
   const blobs = {};
+  const comments = {};
 
   for (const revision of revisions) {
     try {
@@ -133,7 +175,9 @@ async function buildDataset() {
         targetCommitish: revision.targetShortHash,
         requestedBaseCommitish: revision.baseShortHash,
         requestedTargetCommitish: revision.targetShortHash,
+        repositoryId: `site-demo:${revision.id}`,
       };
+      comments[revision.id] = revision.comments;
 
       for (const file of diff.files) {
         const oldPath = file.oldPath ?? file.path;
@@ -155,14 +199,18 @@ async function buildDataset() {
   }
 
   const availableRevisions = revisions.filter((revision) => diffs[revision.id]);
+  const exportedRevisions = availableRevisions.map(
+    ({ comments: _comments, ...revision }) => revision,
+  );
 
   return {
     generatedAt: new Date().toISOString(),
     repository: basename(repoPath),
     initialRevisionId: availableRevisions[0]?.id ?? null,
-    revisions: availableRevisions,
+    revisions: exportedRevisions,
     diffs,
     blobs,
+    comments,
   };
 }
 

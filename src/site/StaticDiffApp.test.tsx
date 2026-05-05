@@ -96,6 +96,29 @@ const staticDataset: StaticDiffDataset = {
     '2222222:src/first.ts': 'const version = 2;\n',
     '3333333:src/second.ts': 'export const v = 3;\n',
   },
+  comments: {
+    '2222222...3333333': [
+      {
+        id: 'static-comment-thread',
+        filePath: 'src/second.ts',
+        createdAt: '2026-02-08T00:00:00.000Z',
+        updatedAt: '2026-02-08T00:00:00.000Z',
+        position: {
+          side: 'new',
+          line: 1,
+        },
+        messages: [
+          {
+            id: 'static-comment-message',
+            body: 'Static snapshot comment',
+            author: 'Reviewer',
+            createdAt: '2026-02-08T00:00:00.000Z',
+            updatedAt: '2026-02-08T00:00:00.000Z',
+          },
+        ],
+      },
+    ],
+  },
 };
 
 describe('StaticDiffApp', () => {
@@ -170,5 +193,22 @@ describe('StaticDiffApp', () => {
     const response = await fetch('/api/blob/src%2Ffirst.ts?ref=2222222');
     expect(response.ok).toBe(true);
     await expect(response.text()).resolves.toBe('const version = 2;\n');
+  });
+
+  it('serves snapshot-specific static comments', async () => {
+    window.history.pushState({}, '', '/preview?snapshot=2222222...3333333');
+    render(
+      <HotkeysProvider initiallyActiveScopes={['navigation']}>
+        <StaticDiffApp />
+      </HotkeysProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('src/second.ts')).toBeInTheDocument();
+    });
+
+    const response = await fetch('/api/comments-json');
+    const data = (await response.json()) as { threads?: Array<{ id: string }> };
+    expect(data.threads).toEqual([expect.objectContaining({ id: 'static-comment-thread' })]);
   });
 });

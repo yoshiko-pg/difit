@@ -1,4 +1,4 @@
-import type { DiffResponse } from '../../types/diff';
+import type { DiffCommentThread, DiffResponse } from '../../types/diff';
 
 interface StaticRevision {
   id: string;
@@ -20,4 +20,5 @@ export interface StaticDiffDataset {
   revisions: StaticRevision[];
   diffs: Record<string, DiffResponse>;
   blobs: Record<string, string>;
+  comments?: Record<string, DiffCommentThread[]>;
 }
