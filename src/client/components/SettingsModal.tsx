@@ -397,6 +397,34 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
             {activeSection === 'system' && (
               <div className="space-y-6">
                 <div>
+                  <label
+                    htmlFor="auto-viewed-patterns"
+                    className="block text-sm font-medium text-github-text-primary mb-2"
+                  >
+                    Auto-Mark Viewed Patterns
+                  </label>
+                  <p className="text-sm text-github-text-secondary mb-2">
+                    Files matching these glob patterns are marked as Viewed automatically. Enter one
+                    pattern per line.
+                  </p>
+                  <textarea
+                    id="auto-viewed-patterns"
+                    value={autoViewedPatternsInput}
+                    onChange={(e) => {
+                      setAutoViewedPatternsInput(e.target.value);
+                      onSettingsChange({
+                        ...settings,
+                        autoViewedPatterns: parseAutoViewedPatterns(e.target.value),
+                      });
+                    }}
+                    rows={6}
+                    spellCheck={false}
+                    placeholder={'*.test.ts\n*.stories.tsx\nsrc/generated/**'}
+                    className="w-full p-3 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm font-mono"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-github-text-primary mb-2">
                     Open In Editor
                   </label>
@@ -510,34 +538,6 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                         </div>
                       );
                     })()}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="auto-viewed-patterns"
-                    className="block text-sm font-medium text-github-text-primary mb-2"
-                  >
-                    Auto-Mark Viewed Patterns
-                  </label>
-                  <p className="text-sm text-github-text-secondary mb-2">
-                    Files matching these glob patterns are marked as Viewed automatically. Enter one
-                    pattern per line.
-                  </p>
-                  <textarea
-                    id="auto-viewed-patterns"
-                    value={autoViewedPatternsInput}
-                    onChange={(e) => {
-                      setAutoViewedPatternsInput(e.target.value);
-                      onSettingsChange({
-                        ...settings,
-                        autoViewedPatterns: parseAutoViewedPatterns(e.target.value),
-                      });
-                    }}
-                    rows={6}
-                    spellCheck={false}
-                    placeholder={'*.test.ts\n*.stories.tsx\nsrc/generated/**'}
-                    className="w-full p-3 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm font-mono"
-                  />
                 </div>
               </div>
             )}

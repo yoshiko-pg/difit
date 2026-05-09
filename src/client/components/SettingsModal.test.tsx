@@ -58,7 +58,13 @@ describe('SettingsModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^System/ }));
 
-    expect(screen.getByText('Open In Editor')).toBeInTheDocument();
+    const autoViewedPatternsLabel = screen.getByText('Auto-Mark Viewed Patterns');
+    const openInEditorLabel = screen.getByText('Open In Editor');
+    expect(openInEditorLabel).toBeInTheDocument();
+    expect(
+      autoViewedPatternsLabel.compareDocumentPosition(openInEditorLabel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.queryByText('Font Size')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^System/ })).toHaveAttribute('aria-pressed', 'true');
   });
