@@ -130,7 +130,6 @@ export function useDiffComments(
 
   useEffect(() => {
     if (!baseCommitish || !targetCommitish) {
-      // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: clear diff-scoped state when selection is unavailable
       setThreads([]);
       setHasLoadedComments(false);
       return;
