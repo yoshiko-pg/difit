@@ -124,7 +124,6 @@ export function CommentsListModal({
   useEffect(() => {
     if (commentRefs.current[selectedIndex]) {
       commentRefs.current[selectedIndex]?.scrollIntoView({
-        behavior: 'smooth',
         block: 'nearest',
       });
     }

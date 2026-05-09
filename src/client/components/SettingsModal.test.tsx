@@ -29,7 +29,6 @@ const baseSettings = {
     argsTemplate: '-g %file:%line',
   },
   colorVision: 'normal' as const,
-  scrollAnimation: 'auto' as const,
   autoViewedPatterns: [],
 };
 
@@ -46,6 +45,7 @@ describe('SettingsModal', () => {
     );
 
     expect(screen.getByText('Font Size')).toBeInTheDocument();
+    expect(screen.queryByText('Scroll Animation')).not.toBeInTheDocument();
     expect(screen.queryByText('Open In Editor')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Theme, typography, and syntax highlighting.'),
@@ -58,7 +58,13 @@ describe('SettingsModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^System/ }));
 
-    expect(screen.getByText('Open In Editor')).toBeInTheDocument();
+    const autoViewedPatternsLabel = screen.getByText('Auto-Mark Viewed Patterns');
+    const openInEditorLabel = screen.getByText('Open In Editor');
+    expect(openInEditorLabel).toBeInTheDocument();
+    expect(
+      autoViewedPatternsLabel.compareDocumentPosition(openInEditorLabel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.queryByText('Font Size')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^System/ })).toHaveAttribute('aria-pressed', 'true');
   });

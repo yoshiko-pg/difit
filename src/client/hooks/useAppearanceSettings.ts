@@ -15,7 +15,6 @@ import {
   type ResolvedTheme,
 } from '../utils/appearanceTheme';
 import { getFallbackSyntaxTheme, isSyntaxThemeForResolvedTheme } from '../utils/themeLoader';
-import { usePreferredScrollBehavior } from './usePreferredScrollBehavior';
 
 const DEFAULT_SETTINGS: AppearanceSettings = {
   fontSize: 14,
@@ -29,7 +28,6 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
     argsTemplate: DEFAULT_EDITOR_OPTION.argsTemplate,
   },
   colorVision: 'normal',
-  scrollAnimation: 'auto',
   autoViewedPatterns: [],
 };
 
@@ -74,7 +72,6 @@ const normalizeEditorSettings = (raw: unknown): AppearanceSettings['editor'] => 
 interface UseAppearanceSettingsReturn {
   settings: AppearanceSettings;
   updateSettings: (newSettings: AppearanceSettings) => void;
-  readonly scrollBehavior: ScrollBehavior;
 }
 
 export function useAppearanceSettings(): UseAppearanceSettingsReturn {
@@ -182,10 +179,5 @@ export function useAppearanceSettings(): UseAppearanceSettingsReturn {
     [saveSettings],
   );
 
-  const scrollBehavior = usePreferredScrollBehavior(settings.scrollAnimation);
-
-  return useMemo(
-    () => ({ settings, updateSettings, scrollBehavior }),
-    [settings, updateSettings, scrollBehavior],
-  );
+  return useMemo(() => ({ settings, updateSettings }), [settings, updateSettings]);
 }

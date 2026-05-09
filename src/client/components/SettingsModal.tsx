@@ -9,7 +9,6 @@ import {
   NONE_EDITOR_ID,
   type EditorOptionId,
 } from '../../utils/editorOptions';
-import { type ScrollAnimationSetting } from '../hooks/usePreferredScrollBehavior';
 import type { ColorVisionMode } from '../utils/appearanceTheme';
 import { formatAutoViewedPatterns, parseAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import {
@@ -32,7 +31,6 @@ interface AppearanceSettings {
   syntaxTheme: string;
   editor: EditorSettings;
   colorVision: ColorVisionMode;
-  scrollAnimation: ScrollAnimationSetting;
   autoViewedPatterns: string[];
 }
 
@@ -57,7 +55,6 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
     argsTemplate: DEFAULT_EDITOR_OPTION.argsTemplate,
   },
   colorVision: 'normal',
-  scrollAnimation: 'auto',
   autoViewedPatterns: [],
 };
 
@@ -80,16 +77,6 @@ const COLOR_VISION_MODES = [
     label: 'Deuteranopia',
     tooltip: 'Deuteranopia mode uses blue/orange instead of green/red for diffs.',
   },
-] as const;
-
-const SCROLL_ANIMATION_MODES = [
-  {
-    id: 'auto',
-    label: 'Auto',
-    tooltip: 'Follows the OS prefers-reduced-motion setting.',
-  },
-  { id: 'enabled', label: 'Enabled' },
-  { id: 'disabled', label: 'Disabled' },
 ] as const;
 
 const SETTINGS_SECTIONS = [
@@ -173,7 +160,6 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
         theme: DEFAULT_SETTINGS.theme,
         syntaxTheme: DEFAULT_SETTINGS.syntaxTheme,
         colorVision: DEFAULT_SETTINGS.colorVision,
-        scrollAnimation: DEFAULT_SETTINGS.scrollAnimation,
       });
       return;
     }
@@ -335,43 +321,6 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
                 <div>
                   <label className="block text-sm font-medium text-github-text-primary mb-2">
-                    Scroll Animation
-                  </label>
-                  <div className="flex gap-2">
-                    {SCROLL_ANIMATION_MODES.map((mode) => {
-                      const isSelected = (settings.scrollAnimation ?? 'auto') === mode.id;
-                      const button = (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          onClick={() =>
-                            onSettingsChange({ ...settings, scrollAnimation: mode.id })
-                          }
-                          className={`px-3 py-2 text-sm rounded border transition-colors ${
-                            isSelected
-                              ? 'bg-github-accent text-white border-github-accent'
-                              : 'bg-github-bg-tertiary text-github-text-secondary border-github-border hover:text-github-text-primary'
-                          }`}
-                        >
-                          {mode.label}
-                        </button>
-                      );
-
-                      if (!('tooltip' in mode)) {
-                        return button;
-                      }
-
-                      return (
-                        <Tooltip key={mode.id} content={mode.tooltip}>
-                          {button}
-                        </Tooltip>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-github-text-primary mb-2">
                     Syntax Highlighting Theme
                   </label>
                   <select
@@ -396,6 +345,34 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
 
             {activeSection === 'system' && (
               <div className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="auto-viewed-patterns"
+                    className="block text-sm font-medium text-github-text-primary mb-2"
+                  >
+                    Auto-Mark Viewed Patterns
+                  </label>
+                  <p className="text-sm text-github-text-secondary mb-2">
+                    Files matching these glob patterns are marked as Viewed automatically. Enter one
+                    pattern per line.
+                  </p>
+                  <textarea
+                    id="auto-viewed-patterns"
+                    value={autoViewedPatternsInput}
+                    onChange={(e) => {
+                      setAutoViewedPatternsInput(e.target.value);
+                      onSettingsChange({
+                        ...settings,
+                        autoViewedPatterns: parseAutoViewedPatterns(e.target.value),
+                      });
+                    }}
+                    rows={6}
+                    spellCheck={false}
+                    placeholder={'*.test.ts\n*.stories.tsx\nsrc/generated/**'}
+                    className="w-full p-3 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm font-mono"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-github-text-primary mb-2">
                     Open In Editor
@@ -510,34 +487,6 @@ export function SettingsModal({ isOpen, onClose, settings, onSettingsChange }: S
                         </div>
                       );
                     })()}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="auto-viewed-patterns"
-                    className="block text-sm font-medium text-github-text-primary mb-2"
-                  >
-                    Auto-Mark Viewed Patterns
-                  </label>
-                  <p className="text-sm text-github-text-secondary mb-2">
-                    Files matching these glob patterns are marked as Viewed automatically. Enter one
-                    pattern per line.
-                  </p>
-                  <textarea
-                    id="auto-viewed-patterns"
-                    value={autoViewedPatternsInput}
-                    onChange={(e) => {
-                      setAutoViewedPatternsInput(e.target.value);
-                      onSettingsChange({
-                        ...settings,
-                        autoViewedPatterns: parseAutoViewedPatterns(e.target.value),
-                      });
-                    }}
-                    rows={6}
-                    spellCheck={false}
-                    placeholder={'*.test.ts\n*.stories.tsx\nsrc/generated/**'}
-                    className="w-full p-3 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary text-sm font-mono"
-                  />
                 </div>
               </div>
             )}
