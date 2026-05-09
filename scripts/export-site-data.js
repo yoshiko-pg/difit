@@ -20,15 +20,12 @@ const demoRevisionSpecs = [
     localized: {
       ja: {
         title: '標準的な機能diff',
-        message: 'diffスクロールアニメーションで視差低減設定を尊重',
       },
       ko: {
         title: '표준 기능 diff',
-        message: 'diff 스크롤 애니메이션에 동작 줄이기 설정 반영',
       },
       zh: {
         title: '标准功能 diff',
-        message: '在 diff 滚动动画中遵循减少动态效果设置',
       },
     },
   },
@@ -38,15 +35,12 @@ const demoRevisionSpecs = [
     localized: {
       ja: {
         title: '画像diff',
-        message: 'READMEのロゴを更新',
       },
       ko: {
         title: '이미지 diff',
-        message: 'README 로고 업데이트',
       },
       zh: {
         title: '图片 diff',
-        message: '更新 README logo',
       },
     },
   },
@@ -57,15 +51,12 @@ const demoRevisionSpecs = [
     localized: {
       ja: {
         title: '100ファイル以上のdiff',
-        message: 'copy(site): ヒーローのキャッチコピーを更新',
       },
       ko: {
         title: '100개 이상 파일 diff',
-        message: 'copy(site): 히어로 캐치카피 업데이트',
       },
       zh: {
         title: '100+ 文件 diff',
-        message: 'copy(site): 更新主视觉标语',
       },
     },
   },
@@ -75,16 +66,13 @@ const demoRevisionSpecs = [
     title: 'Standard diff with comments',
     localized: {
       ja: {
-        title: 'コメント付きの標準diff',
-        message: 'diffスクロールアニメーションで視差低減設定を尊重',
+        title: 'AIからのコメントがついたdiff',
       },
       ko: {
         title: '코멘트가 있는 표준 diff',
-        message: 'diff 스크롤 애니메이션에 동작 줄이기 설정 반영',
       },
       zh: {
         title: '带评论的标准 diff',
-        message: '在 diff 滚动动画中遵循减少动态效果设置',
       },
     },
     comments: [
@@ -215,15 +203,6 @@ async function collectRevisions() {
         en: spec.title,
         ...Object.fromEntries(
           Object.entries(spec.localized ?? {}).map(([language, value]) => [language, value.title]),
-        ),
-      },
-      demoMessageByLanguage: {
-        en: message,
-        ...Object.fromEntries(
-          Object.entries(spec.localized ?? {}).map(([language, value]) => [
-            language,
-            value.message,
-          ]),
         ),
       },
       comments: spec.comments ?? [],

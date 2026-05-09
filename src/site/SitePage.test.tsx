@@ -15,9 +15,6 @@ const mockDataset: StaticDiffDataset = {
       demoTitleByLanguage: {
         ja: '大きな実装diff',
       },
-      demoMessageByLanguage: {
-        ja: 'ランディングページのヘッダーを追加',
-      },
       baseHash: 'abcdef1234567890',
       baseShortHash: 'abc1234',
       targetHash: 'def5678',
@@ -105,7 +102,7 @@ describe('SitePage', () => {
     expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
   });
 
-  it('switches revision selector title and commit message by language', async () => {
+  it('switches revision selector title by language without showing a description line', async () => {
     vi.spyOn(window, 'fetch').mockResolvedValue(
       new Response(JSON.stringify(mockDataset), {
         status: 200,
@@ -128,7 +125,7 @@ describe('SitePage', () => {
     fireEvent.click(menuButton);
 
     expect(screen.queryByText('ランディングページデモ用の広い機能差分。')).not.toBeInTheDocument();
-    expect(screen.getByText('ランディングページのヘッダーを追加')).toBeInTheDocument();
+    expect(screen.queryByText('ランディングページのヘッダーを追加')).not.toBeInTheDocument();
   });
 
   it('keeps the revision selector trigger width fixed and stacks chrome on mobile', async () => {

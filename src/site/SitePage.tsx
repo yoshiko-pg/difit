@@ -158,11 +158,9 @@ function getLocalizedRevisionText(
 ) {
   const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
   const title = revision.demoTitleByLanguage?.[language] ?? revision.demoTitle;
-  const message = revision.demoMessageByLanguage?.[language] ?? oneLineMessage;
 
   return {
     title,
-    message,
     primaryLabel: title ?? oneLineMessage,
   };
 }
@@ -286,7 +284,7 @@ function RevisionQuickMenu({
             </div>
             {revisions.map((revision) => {
               const isSelected = revision.id === selectedRevisionId;
-              const { message, primaryLabel, title } = getLocalizedRevisionText(revision, language);
+              const { primaryLabel } = getLocalizedRevisionText(revision, language);
 
               return (
                 <button
@@ -301,7 +299,6 @@ function RevisionQuickMenu({
                     </code>
                     <span className="text-xs text-[#6b7280] flex-1 break-words">
                       <span className="block text-[#374151]">{primaryLabel}</span>
-                      {title && <span className="mt-0.5 block leading-snug">{message}</span>}
                     </span>
                   </div>
                 </button>

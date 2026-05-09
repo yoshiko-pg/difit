@@ -5,7 +5,6 @@ interface StaticRevision {
   id: string;
   demoTitle?: string;
   demoTitleByLanguage?: Partial<Record<SiteLanguage, string>>;
-  demoMessageByLanguage?: Partial<Record<SiteLanguage, string>>;
   baseHash: string;
   baseShortHash: string;
   targetHash: string;
