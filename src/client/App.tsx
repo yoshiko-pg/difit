@@ -901,7 +901,11 @@ function App() {
         const response = await fetch('/api/open-in-editor', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filePath, line: lineNumber, editor: settings.editor }),
+          body: JSON.stringify({
+            filePath,
+            line: lineNumber,
+            editor: settings.editor,
+          }),
         });
 
         if (!response.ok) {
@@ -976,7 +980,11 @@ function App() {
     );
   }
 
-  const canOpenInEditor = settings.editor !== 'none' && diffData.openInEditorAvailable !== false;
+  const canOpenInEditor =
+    diffData.openInEditorAvailable !== false &&
+    settings.editor.id !== 'none' &&
+    settings.editor.command.trim() !== '' &&
+    settings.editor.argsTemplate.trim() !== '';
 
   return (
     <WordHighlightProvider>

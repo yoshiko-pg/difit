@@ -17,7 +17,12 @@ import {
   serializeCommentImports,
 } from '../utils/commentImports.js';
 import { normalizeDiffViewMode } from '../utils/diffMode.js';
-import { resolveEditorOption } from '../utils/editorOptions.js';
+import {
+  buildEditorSpawnSpec,
+  CUSTOM_EDITOR_ID,
+  NONE_EDITOR_ID,
+  resolveEditorOption,
+} from '../utils/editorOptions.js';
 import { getFileExtension } from '../utils/fileUtils.js';
 
 import { FileWatcherService } from './file-watcher.js';
@@ -217,6 +222,28 @@ export async function startServer(
     }
 
     return { ok: true, path: normalizedFilepath };
+  }
+
+  interface EditorRequest {
+    readonly id: string | undefined;
+    readonly command: string | undefined;
+    readonly argsTemplate: string | undefined;
+  }
+
+  function parseEditorRequest(value: unknown): EditorRequest {
+    if (!value || typeof value !== 'object') {
+      return { id: undefined, command: undefined, argsTemplate: undefined };
+    }
+    const candidate = value as {
+      id?: unknown;
+      command?: unknown;
+      argsTemplate?: unknown;
+    };
+    return {
+      id: typeof candidate.id === 'string' ? candidate.id : undefined,
+      command: typeof candidate.command === 'string' ? candidate.command : undefined,
+      argsTemplate: typeof candidate.argsTemplate === 'string' ? candidate.argsTemplate : undefined,
+    };
   }
 
   const commentSessions = new Map<string, CommentSessionState>();
@@ -771,11 +798,36 @@ export async function startServer(
     }
     const resolvedPath = resolve(repositoryPath, filepathResult.path);
 
-    const editorInput =
-      typeof editor === 'string' ? editor : (process.env.DIFIT_EDITOR ?? process.env.EDITOR);
-    const resolvedEditor = resolveEditorOption(editorInput);
-    if (resolvedEditor.protocol === null) {
+    const editorRequest = parseEditorRequest(editor);
+    const editorId =
+      editorRequest.id ?? process.env.DIFIT_EDITOR ?? process.env.EDITOR ?? undefined;
+
+    if (editorId?.toLowerCase() === NONE_EDITOR_ID) {
       res.status(400).json({ error: 'Open in editor is disabled' });
+      return;
+    }
+
+    // The browser always sends command + argsTemplate in the body, so we use
+    // those directly. We only fall back to the preset table when neither is
+    // provided (for example, when DIFIT_EDITOR is set and there's no body).
+    let command: string;
+    let argsTemplate: string;
+    if (editorRequest.command !== undefined || editorRequest.argsTemplate !== undefined) {
+      command = (editorRequest.command ?? '').trim();
+      argsTemplate = (editorRequest.argsTemplate ?? '').trim();
+    } else {
+      const preset = resolveEditorOption(editorId);
+      command = preset.command;
+      argsTemplate = preset.argsTemplate;
+    }
+
+    if (!command || !argsTemplate) {
+      const isCustom = editorId?.toLowerCase() === CUSTOM_EDITOR_ID;
+      res.status(400).json({
+        error: isCustom
+          ? 'Custom editor is not configured. Set a command and arguments in Settings > System.'
+          : 'Open in editor is not configured',
+      });
       return;
     }
 
@@ -784,52 +836,44 @@ export async function startServer(
       return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
     })();
 
-    const tryOpenWithCli = async (): Promise<boolean> => {
-      if (!resolvedEditor.cliCommand) return false;
-      const args: string[] = [...resolvedEditor.cliArgs];
-      if (lineNumber !== null) {
-        const fileWithLine = `${resolvedPath}:${lineNumber}`;
-        if (resolvedEditor.lineFormat === 'goto-flag') {
-          args.push('-g', fileWithLine);
-        } else {
-          args.push(fileWithLine);
-        }
-      } else {
-        args.push(resolvedPath);
-      }
-      args.push(repositoryPath);
+    const spawnSpec = buildEditorSpawnSpec({
+      command,
+      argsTemplate,
+      filePath: resolvedPath,
+      lineNumber,
+    });
 
-      return await new Promise<boolean>((resolvePromise) => {
-        const child = spawn(resolvedEditor.cliCommand, args, { stdio: 'ignore', detached: true });
-        child.once('error', (error) => {
-          const code = (error as NodeJS.ErrnoException).code;
-          if (code && code !== 'ENOENT') {
-            console.error('Failed to launch editor CLI:', error);
-          }
-          resolvePromise(false);
-        });
-        child.once('spawn', () => {
-          child.unref();
-          resolvePromise(true);
-        });
-      });
-    };
-
-    if (await tryOpenWithCli()) {
-      res.json({ success: true });
+    if (!spawnSpec) {
+      res.status(500).json({ error: 'Invalid editor configuration' });
       return;
     }
 
-    const lineSuffix = lineNumber !== null ? `:${lineNumber}` : '';
-    const fileUri = `${resolvedEditor.protocol}://file${encodeURI(resolvedPath)}${lineSuffix}`;
+    const launched = await new Promise<boolean>((resolvePromise) => {
+      const child = spawn(spawnSpec.command, [...spawnSpec.args], {
+        stdio: 'ignore',
+        detached: true,
+      });
+      child.once('error', (error) => {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code && code !== 'ENOENT') {
+          console.error('Failed to launch editor CLI:', error);
+        }
+        resolvePromise(false);
+      });
+      child.once('spawn', () => {
+        child.unref();
+        resolvePromise(true);
+      });
+    });
 
-    try {
-      await open(fileUri);
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Failed to open file in editor:', error);
-      res.status(500).json({ error: 'Failed to open file in editor' });
+    if (!launched) {
+      res.status(500).json({
+        error: `Failed to launch editor: command "${spawnSpec.command}" is not available on PATH`,
+      });
+      return;
     }
+
+    res.json({ success: true });
   });
 
   // Function to output comments when server shuts down

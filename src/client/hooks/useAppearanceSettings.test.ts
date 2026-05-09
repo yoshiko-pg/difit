@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEFAULT_EDITOR_OPTION } from '../../utils/editorOptions';
 import { APPEARANCE_STORAGE_KEY } from '../utils/appearanceTheme';
 
 import { useAppearanceSettings } from './useAppearanceSettings';
@@ -83,6 +84,68 @@ describe('useAppearanceSettings', () => {
     expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) ?? '{}')).toMatchObject({
       theme: 'auto',
       syntaxTheme: 'github',
+    });
+  });
+
+  describe('legacy editor storage migration', () => {
+    beforeEach(() => {
+      setMatchMedia(false);
+    });
+
+    it('upgrades the pre-refactor string shape `editor: "vscode"` to the new object', () => {
+      localStorage.setItem(
+        APPEARANCE_STORAGE_KEY,
+        JSON.stringify({ theme: 'dark', editor: 'vscode' }),
+      );
+
+      const { result } = renderHook(() => useAppearanceSettings());
+
+      expect(result.current.settings.editor).toEqual({
+        id: 'vscode',
+        command: 'code',
+        argsTemplate: '-g %file:%line',
+      });
+    });
+
+    it('backfills command/argsTemplate from preset when only `id` was stored', () => {
+      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ editor: { id: 'cursor' } }));
+
+      const { result } = renderHook(() => useAppearanceSettings());
+
+      expect(result.current.settings.editor).toEqual({
+        id: 'cursor',
+        command: 'cursor',
+        argsTemplate: '-g %file:%line',
+      });
+    });
+
+    it('preserves custom command/argsTemplate as stored', () => {
+      localStorage.setItem(
+        APPEARANCE_STORAGE_KEY,
+        JSON.stringify({
+          editor: { id: 'custom', command: 'emacsclient', argsTemplate: '+%line %file' },
+        }),
+      );
+
+      const { result } = renderHook(() => useAppearanceSettings());
+
+      expect(result.current.settings.editor).toEqual({
+        id: 'custom',
+        command: 'emacsclient',
+        argsTemplate: '+%line %file',
+      });
+    });
+
+    it('falls back to the default preset when `editor` is missing or malformed', () => {
+      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ theme: 'dark', editor: 42 }));
+
+      const { result } = renderHook(() => useAppearanceSettings());
+
+      expect(result.current.settings.editor).toEqual({
+        id: DEFAULT_EDITOR_OPTION.id,
+        command: DEFAULT_EDITOR_OPTION.command,
+        argsTemplate: DEFAULT_EDITOR_OPTION.argsTemplate,
+      });
     });
   });
 });
