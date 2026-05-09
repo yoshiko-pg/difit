@@ -77,7 +77,6 @@ export function CommentsListModal({
     } else {
       enableScope('navigation');
       disableScope('comments-list');
-      // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: reset selection when modal closes
       setSelectedIndex(0);
     }
 

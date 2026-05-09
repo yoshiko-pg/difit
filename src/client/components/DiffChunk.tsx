@@ -92,7 +92,6 @@ export const DiffChunk = memo(function DiffChunk({
         const lineNumber = line.newLineNumber || line.oldLineNumber;
         const side: DiffSide = line.type === 'delete' ? 'old' : 'new';
         if (lineNumber) {
-          // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: respond to external keyboard trigger
           setCommentingLine({ side, lineNumber });
           onCommentTriggerHandled?.();
         }

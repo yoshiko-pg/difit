@@ -1,6 +1,6 @@
 import type { DiffResponse } from '../../types/diff';
 
-export interface StaticRevision {
+interface StaticRevision {
   id: string;
   demoTitle?: string;
   demoDescription?: string;
