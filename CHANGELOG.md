@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.6] - 2026-05-10
+
+### Added
+
+- Add comment session synchronization and restore CLI comment support (#330)
+- Support more editors with custom commands and arguments (#333)
+- Add support for gitattributes generated files (#342)
+- Add GitHub Pages deployment for the site (#331)
+
+### Changed
+
+- Update dependencies (#332 #337 #338 #339 #340 #341)
+
+### Removed
+
+- Remove scroll animations when moving between files (#335 #343)
+
+### Thanks
+
+- [@tctony](https://github.com/tctony) for supporting more editor commands and arguments (#333)
+- [@okunokentaro](https://github.com/okunokentaro) for honoring reduce-motion preferences in diff scroll animations (#335)
+
 ## [4.0.5] - 2026-04-29
 
 ### Added
@@ -1158,7 +1180,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.5...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.6...HEAD
+[4.0.6]: https://github.com/yoshiko-pg/difit/compare/v4.0.5...v4.0.6
 [4.0.5]: https://github.com/yoshiko-pg/difit/compare/v4.0.4...v4.0.5
 [4.0.4]: https://github.com/yoshiko-pg/difit/compare/v4.0.3...v4.0.4
 [4.0.3]: https://github.com/yoshiko-pg/difit/compare/v4.0.2...v4.0.3
