@@ -5,13 +5,6 @@ import { DEFAULT_EDITOR_OPTION } from '../../utils/editorOptions';
 import { APPEARANCE_STORAGE_KEY } from '../utils/appearanceTheme';
 
 import { useAppearanceSettings } from './useAppearanceSettings';
-import { usePreferredScrollBehavior } from './usePreferredScrollBehavior';
-
-vi.mock('./usePreferredScrollBehavior', () => ({
-  usePreferredScrollBehavior: vi.fn(),
-}));
-
-const mockedUsePreferredScrollBehavior = vi.mocked(usePreferredScrollBehavior);
 
 const setMatchMedia = (initialMatches: boolean) => {
   let matches = initialMatches;
@@ -95,53 +88,6 @@ describe('useAppearanceSettings', () => {
       expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) ?? '{}')).toMatchObject({
         theme: 'auto',
         syntaxTheme: 'github',
-      });
-    });
-  });
-
-  describe('scrollBehavior', () => {
-    beforeEach(() => {
-      mockedUsePreferredScrollBehavior.mockReset();
-      mockedUsePreferredScrollBehavior.mockReturnValue('smooth');
-      setMatchMedia(false);
-    });
-
-    it("defaults scrollAnimation to 'auto' and forwards it to usePreferredScrollBehavior", () => {
-      const { result } = renderHook(() => useAppearanceSettings());
-
-      expect(result.current.settings.scrollAnimation).toBe('auto');
-      expect(mockedUsePreferredScrollBehavior).toHaveBeenLastCalledWith('auto');
-    });
-
-    it('forwards scrollAnimation loaded from localStorage to usePreferredScrollBehavior', () => {
-      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ scrollAnimation: 'enabled' }));
-      const { result } = renderHook(() => useAppearanceSettings());
-
-      expect(result.current.settings.scrollAnimation).toBe('enabled');
-      expect(mockedUsePreferredScrollBehavior).toHaveBeenLastCalledWith('enabled');
-    });
-
-    it('returns whatever usePreferredScrollBehavior resolves', () => {
-      mockedUsePreferredScrollBehavior.mockReturnValue('instant');
-      const { result } = renderHook(() => useAppearanceSettings());
-
-      expect(result.current.scrollBehavior).toBe('instant');
-    });
-
-    it('persists updated scrollAnimation and forwards the new value to usePreferredScrollBehavior', () => {
-      const { result } = renderHook(() => useAppearanceSettings());
-
-      act(() => {
-        result.current.updateSettings({
-          ...result.current.settings,
-          scrollAnimation: 'disabled',
-        });
-      });
-
-      expect(result.current.settings.scrollAnimation).toBe('disabled');
-      expect(mockedUsePreferredScrollBehavior).toHaveBeenLastCalledWith('disabled');
-      expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) ?? '{}')).toMatchObject({
-        scrollAnimation: 'disabled',
       });
     });
   });

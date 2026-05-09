@@ -12,7 +12,6 @@ interface UseLazyDiffRenderingOptions {
   diffData: DiffResponse | null;
   diffScrollContainerRef: React.RefObject<HTMLElement | null>;
   setDiffData: React.Dispatch<React.SetStateAction<DiffResponse | null>>;
-  scrollBehavior: ScrollBehavior;
 }
 
 interface UseLazyDiffRenderingReturn {
@@ -27,7 +26,6 @@ export function useLazyDiffRendering({
   diffData,
   diffScrollContainerRef,
   setDiffData,
-  scrollBehavior,
 }: UseLazyDiffRenderingOptions): UseLazyDiffRenderingReturn {
   const [renderedFilePaths, setRenderedFilePaths] = useState<Set<string>>(new Set());
   const renderedFilePathsRef = useRef<Set<string>>(new Set());
@@ -199,7 +197,7 @@ export function useLazyDiffRendering({
         return true;
       };
 
-      const tryScroll = (behavior: ScrollBehavior) => {
+      const scrollToFile = () => {
         const scrollContainer = diffScrollContainerRef.current;
         const target = document.getElementById(getFileElementId(filePath));
         if (!scrollContainer || !target) {
@@ -212,7 +210,6 @@ export function useLazyDiffRendering({
 
         scrollContainer.scrollTo({
           top: Math.max(0, targetScrollTop),
-          behavior,
         });
         return true;
       };
@@ -232,7 +229,7 @@ export function useLazyDiffRendering({
             return;
           }
 
-          if (!tryScroll(scrollBehavior)) {
+          if (!scrollToFile()) {
             if (attempts < SIDEBAR_SCROLL_MAX_ATTEMPTS) {
               attempts++;
               attemptScroll();
@@ -244,14 +241,13 @@ export function useLazyDiffRendering({
             if (scrollRequestIdRef.current !== requestId) {
               return;
             }
-            // Re-run smooth scroll after layout settles to absorb lazy-render shifts.
-            tryScroll(scrollBehavior);
+            scrollToFile();
           }, SIDEBAR_SCROLL_CORRECTION_DELAY_MS);
         });
       };
       attemptScroll();
     },
-    [diffData, diffScrollContainerRef, ensureFilesRenderedUpTo, scrollBehavior],
+    [diffData, diffScrollContainerRef, ensureFilesRenderedUpTo],
   );
 
   useEffect(() => {

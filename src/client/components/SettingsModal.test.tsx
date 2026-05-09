@@ -29,7 +29,6 @@ const baseSettings = {
     argsTemplate: '-g %file:%line',
   },
   colorVision: 'normal' as const,
-  scrollAnimation: 'auto' as const,
   autoViewedPatterns: [],
 };
 
@@ -46,6 +45,7 @@ describe('SettingsModal', () => {
     );
 
     expect(screen.getByText('Font Size')).toBeInTheDocument();
+    expect(screen.queryByText('Scroll Animation')).not.toBeInTheDocument();
     expect(screen.queryByText('Open In Editor')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Theme, typography, and syntax highlighting.'),

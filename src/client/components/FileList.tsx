@@ -306,7 +306,7 @@ export const FileList = memo(function FileList({
         return;
       }
 
-      container.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+      container.scrollTo({ top: targetScrollTop });
       return;
     }
 

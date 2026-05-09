@@ -147,7 +147,7 @@ function App() {
     return getDiffSelectionKey(resolvedSelection);
   }, [resolvedSelection]);
 
-  const { settings, updateSettings, scrollBehavior } = useAppearanceSettings();
+  const { settings, updateSettings } = useAppearanceSettings();
   const { isMobile, isDesktop } = useViewport();
 
   // New diff-aware comment system
@@ -307,7 +307,6 @@ function App() {
     diffData,
     diffScrollContainerRef,
     setDiffData,
-    scrollBehavior,
   });
 
   const toggleFileReviewed = useCallback(
