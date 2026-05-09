@@ -63,16 +63,16 @@ const demoRevisionSpecs = [
   {
     target: 'a72112f',
     idSuffix: 'comments',
-    title: 'Standard diff with comments',
+    title: 'Diff with AI comments',
     localized: {
       ja: {
         title: 'AIからのコメントがついたdiff',
       },
       ko: {
-        title: '코멘트가 있는 표준 diff',
+        title: 'AI 코멘트가 있는 diff',
       },
       zh: {
-        title: '带评论的标准 diff',
+        title: '带有 AI 评论的 diff',
       },
     },
     comments: [
