@@ -2,7 +2,6 @@
 
 import { spawn } from 'child_process';
 import { Command } from 'commander';
-import React from 'react';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 import pkg from '../../package.json' with { type: 'json' };
@@ -24,7 +23,6 @@ import {
 } from './utils.js';
 import { createCommentCommand } from './comment.js';
 import { getPrPatch, getPrCommentImports } from './github.js';
-import { warnAboutTuiDeprecation } from './tuiDeprecation.js';
 
 type SpecialArg = 'working' | 'staged' | '.';
 
@@ -164,7 +162,6 @@ interface CliOptions {
   open: boolean;
   mode: DiffViewMode;
   comment: string[];
-  tui?: boolean;
   pr?: string;
   clean?: boolean;
   includeUntracked?: boolean;
@@ -208,7 +205,6 @@ program
     (value: string, previous: string[]) => [...previous, value],
     [],
   )
-  .option('--tui', 'use terminal UI instead of web interface')
   .option('--pr <url>', 'GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)')
   .option('--clean', 'start with a clean slate by clearing all existing comments')
   .option('--include-untracked', 'automatically include untracked files in diff')
@@ -267,11 +263,6 @@ program
           process.exit(1);
         }
 
-        if (options.tui) {
-          console.error('Error: --pr option cannot be used with --tui');
-          process.exit(1);
-        }
-
         if (options.context !== undefined) {
           console.error('Error: --context option cannot be used with --pr');
           process.exit(1);
@@ -301,7 +292,6 @@ program
           commitish,
           hasPositionalArgs: program.args.length > 0,
           hasPrOption: false,
-          hasTuiOption: Boolean(options.tui),
         });
 
         if (readFromStdin) {
@@ -374,41 +364,6 @@ program
         } else {
           await handleUntrackedFiles(git, options.includeUntracked);
         }
-      }
-
-      if (options.tui) {
-        if (backgroundMode) {
-          console.error('Error: --background option cannot be used with --tui');
-          process.exit(1);
-        }
-
-        if (commentImports.length > 0) {
-          console.error('Error: --comment option cannot be used with --tui');
-          process.exit(1);
-        }
-
-        // Check if we're in a TTY environment
-        if (!process.stdin.isTTY) {
-          console.error('Error: TUI mode requires an interactive terminal (TTY).');
-          console.error('Try running the command directly in your terminal without piping.');
-          process.exit(1);
-        }
-
-        await warnAboutTuiDeprecation();
-
-        // Dynamic import for TUI mode
-        const { render } = await import('ink');
-        const { default: TuiApp } = await import('../tui/App.js');
-
-        render(
-          React.createElement(TuiApp, {
-            selection,
-            mode: options.mode,
-            repoPath,
-            contextLines: options.context,
-          }),
-        );
-        return;
       }
 
       const validation = validateDiffArguments(selection.targetCommitish, compareWith);

@@ -83,7 +83,6 @@ describe('CLI options', () => {
     ['--host', ['--host', '0.0.0.0'], { host: '0.0.0.0' }],
     ['--no-open', ['--no-open'], { open: false }],
     ['--mode', ['--mode', 'unified'], { mode: 'unified' }],
-    ['--tui', ['--tui'], { tui: true }],
   ])('%s option', async (name, args, expectedOptions) => {
     // Verify options are passed correctly
   });

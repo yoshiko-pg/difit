@@ -8,14 +8,6 @@ export interface DiffFile {
   isGenerated?: boolean;
 }
 
-export interface FileDiff {
-  path: string;
-  status: 'A' | 'M' | 'D';
-  diff: string;
-  additions: number;
-  deletions: number;
-}
-
 export interface DiffChunk {
   header: string;
   oldStart: number;
@@ -30,10 +22,6 @@ export interface DiffLine {
   content: string;
   oldLineNumber?: number;
   newLineNumber?: number;
-}
-
-export interface ParsedDiff {
-  chunks: DiffChunk[];
 }
 
 export type DiffViewMode = 'split' | 'unified';
