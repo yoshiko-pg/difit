@@ -193,6 +193,17 @@ export const FileList = memo(function FileList({
     });
     return indices;
   }, [files]);
+  const diffTotals = useMemo(
+    () =>
+      files.reduce(
+        (totals, file) => ({
+          additions: totals.additions + file.additions,
+          deletions: totals.deletions + file.deletions,
+        }),
+        { additions: 0, deletions: 0 },
+      ),
+    [files],
+  );
   const reviewedDirectoryPaths = useMemo(
     () => getReviewedDirectoryPaths(fileTree, reviewedFiles),
     [fileTree, reviewedFiles],
@@ -424,9 +435,19 @@ export const FileList = memo(function FileList({
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b border-github-border bg-github-bg-tertiary">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-github-text-primary m-0">
-            Files changed ({files.length})
-          </h3>
+          <div className="flex min-w-0 items-baseline gap-2">
+            <h3 className="text-sm font-semibold text-github-text-primary m-0">
+              Files changed ({files.length})
+            </h3>
+            <span
+              className="text-xs font-medium whitespace-nowrap"
+              title="Total additions and deletions"
+              aria-label={`${diffTotals.additions} additions and ${diffTotals.deletions} deletions`}
+            >
+              <span className="text-github-accent">+{diffTotals.additions}</span>{' '}
+              <span className="text-github-danger">-{diffTotals.deletions}</span>
+            </span>
+          </div>
           <button
             onClick={toggleAllDirectories}
             className="p-1 hover:bg-github-bg-primary rounded transition-colors"
