@@ -41,7 +41,6 @@ const App: React.FC<AppProps> = ({ selection, mode, repoPath, contextLines }) =>
   };
 
   useEffect(() => {
-    // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- intentional: trigger initial diff load when revisions change
     void loadDiff();
     // oxlint-disable-next-line react/exhaustive-deps
   }, [baseCommitish, targetCommitish]);
