@@ -440,11 +440,11 @@ export const FileList = memo(function FileList({
           </h3>
           <div className="ml-auto flex items-center gap-2">
             <span
-              className="text-right text-xs font-medium whitespace-nowrap"
+              className="inline-flex gap-1 text-right text-xs font-medium whitespace-nowrap"
               title="Total additions and deletions"
               aria-label={`${diffTotals.additions} additions and ${diffTotals.deletions} deletions`}
             >
-              <span className="text-github-accent">+{diffTotals.additions}</span>{' '}
+              <span className="text-github-accent">+{diffTotals.additions}</span>
               <span className="text-github-danger">-{diffTotals.deletions}</span>
             </span>
             <button
