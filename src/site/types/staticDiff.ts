@@ -1,9 +1,10 @@
-import type { DiffResponse } from '../../types/diff';
+import type { DiffCommentThread, DiffResponse } from '../../types/diff';
+import type { SiteLanguage } from '../sitePageContent';
 
 interface StaticRevision {
   id: string;
   demoTitle?: string;
-  demoDescription?: string;
+  demoTitleByLanguage?: Partial<Record<SiteLanguage, string>>;
   baseHash: string;
   baseShortHash: string;
   targetHash: string;
@@ -20,4 +21,6 @@ export interface StaticDiffDataset {
   revisions: StaticRevision[];
   diffs: Record<string, DiffResponse>;
   blobs: Record<string, string>;
+  blobUrls?: Record<string, string>;
+  comments?: Record<string, DiffCommentThread[]>;
 }

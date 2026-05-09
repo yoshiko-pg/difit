@@ -21,6 +21,7 @@ import {
   FEATURE_TEXT,
   HERO_TEXT,
   LANGUAGE_OPTIONS,
+  resolveSiteLanguage,
   USAGE_COMMENT_TEXT,
   type SiteLanguage,
   type UsageCommentKey,
@@ -151,9 +152,27 @@ function Feature({ label, desc }: { label: string; desc: string }) {
   );
 }
 
-function formatRevisionLabel(revision: StaticDiffDataset['revisions'][number]) {
-  if (revision.demoTitle) {
-    return revision.demoTitle;
+function getLocalizedRevisionText(
+  revision: StaticDiffDataset['revisions'][number],
+  language: SiteLanguage,
+) {
+  const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
+  const title = revision.demoTitleByLanguage?.[language] ?? revision.demoTitle;
+
+  return {
+    title,
+    primaryLabel: title ?? oneLineMessage,
+  };
+}
+
+function formatRevisionLabel(
+  revision: StaticDiffDataset['revisions'][number],
+  language: SiteLanguage,
+) {
+  const { title } = getLocalizedRevisionText(revision, language);
+
+  if (title) {
+    return title;
   }
 
   const oneLineMessage = revision.message.split('\n')[0] ?? '';
@@ -170,19 +189,26 @@ const withBasePath = (path: string) => {
   return `${basePath}${path.replace(/^\/+/, '')}`;
 };
 
+const getInitialLanguage = (): SiteLanguage =>
+  resolveSiteLanguage([...navigator.languages, navigator.language]);
+
 function RevisionQuickMenu({
   revisions,
   selectedRevisionId,
   onSelectRevision,
+  language,
 }: {
   revisions: StaticDiffDataset['revisions'];
   selectedRevisionId: string;
   onSelectRevision: (revisionId: string) => void;
+  language: SiteLanguage;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedRevision =
     revisions.find((revision) => revision.id === selectedRevisionId) ?? revisions[0];
-  const currentLabel = selectedRevision ? formatRevisionLabel(selectedRevision) : 'Select...';
+  const currentLabel = selectedRevision
+    ? formatRevisionLabel(selectedRevision, language)
+    : 'Select...';
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
@@ -233,9 +259,11 @@ function RevisionQuickMenu({
         title={currentLabel}
         {...getReferenceProps()}
       >
-        <div className="flex items-center gap-1 px-2 py-1 bg-white border border-[#d1d5db] rounded hover:bg-[#eef0f2] hover:border-[#bfc3c8] transition-colors max-w-[360px]">
+        <div className="flex w-[220px] sm:w-[260px] items-center gap-1 px-2 py-1 bg-white border border-[#d1d5db] rounded hover:bg-[#eef0f2] hover:border-[#bfc3c8] transition-colors">
           <GitBranch size={12} className="text-[#6b7280] shrink-0" />
-          <code className="text-[11px] text-[#4b5563] truncate">{currentLabel}</code>
+          <code className="min-w-0 flex-1 text-left text-[11px] text-[#4b5563] truncate">
+            {currentLabel}
+          </code>
           <ChevronDown
             size={12}
             className="text-[#6b7280] group-hover:text-[#374151] transition-colors shrink-0"
@@ -248,7 +276,7 @@ function RevisionQuickMenu({
           <div
             ref={refs.setFloating}
             style={floatingStyles}
-            className="bg-white border border-[#bfc3c8] rounded shadow-lg z-50 w-[360px] max-h-[360px] overflow-y-auto"
+            className="bg-white border border-[#bfc3c8] rounded shadow-lg z-50 w-[calc(90vw-2rem)] sm:w-[360px] max-h-[360px] overflow-y-auto"
             {...getFloatingProps()}
           >
             <div className="px-3 py-2 text-xs font-semibold text-[#4b5563] bg-[#d5d7db] border-b border-[#bfc3c8]">
@@ -256,8 +284,7 @@ function RevisionQuickMenu({
             </div>
             {revisions.map((revision) => {
               const isSelected = revision.id === selectedRevisionId;
-              const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
-              const primaryLabel = revision.demoTitle ?? oneLineMessage;
+              const { primaryLabel } = getLocalizedRevisionText(revision, language);
 
               return (
                 <button
@@ -272,14 +299,6 @@ function RevisionQuickMenu({
                     </code>
                     <span className="text-xs text-[#6b7280] flex-1 break-words">
                       <span className="block text-[#374151]">{primaryLabel}</span>
-                      {revision.demoDescription && (
-                        <span className="mt-0.5 block leading-snug">
-                          {revision.demoDescription}
-                        </span>
-                      )}
-                      {revision.demoTitle && (
-                        <span className="mt-0.5 block leading-snug">{oneLineMessage}</span>
-                      )}
                     </span>
                   </div>
                 </button>
@@ -325,7 +344,7 @@ function SitePage() {
   const [selectedRevisionId, setSelectedRevisionId] = useState('');
   const [datasetError, setDatasetError] = useState(false);
   const [loadingRevisions, setLoadingRevisions] = useState(true);
-  const [language, setLanguage] = useState<SiteLanguage>('en');
+  const [language, setLanguage] = useState<SiteLanguage>(getInitialLanguage);
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
 
   useEffect(() => {
@@ -547,24 +566,27 @@ function SitePage() {
       <div className="w-[90vw] mx-auto mt-3">
         <div className="rounded-xl overflow-hidden border border-[#d1d5db] shadow-lg">
           {/* Browser chrome — light theme */}
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-[#d5d7db] border-b border-[#bfc3c8]">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-              <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-              <div className="w-3 h-3 rounded-full bg-[#28c840]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="ml-1 px-4 py-1 rounded-md bg-white text-[11px] text-[#9ca3af] font-mono border border-[#e5e7eb]">
-                {browserAddress}
+          <div className="flex flex-col gap-2 px-4 py-2.5 bg-[#d5d7db] border-b border-[#bfc3c8] sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+                <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+                <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="ml-1 truncate px-4 py-1 rounded-md bg-white text-[11px] text-[#9ca3af] font-mono border border-[#e5e7eb]">
+                  {browserAddress}
+                </div>
               </div>
             </div>
             {hasRevisionSelector && (
-              <div className="ml-6 flex items-center gap-2 text-[11px] text-[#6b7280] whitespace-nowrap">
+              <div className="flex items-center justify-end gap-2 text-[11px] text-[#6b7280] whitespace-nowrap sm:ml-6">
                 <span>Revision:</span>
                 <RevisionQuickMenu
                   revisions={revisions}
                   selectedRevisionId={selectedRevisionId}
                   onSelectRevision={setSelectedRevisionId}
+                  language={language}
                 />
               </div>
             )}
