@@ -3,7 +3,7 @@ import { HotkeysProvider } from 'react-hotkeys-hook';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 import StaticDiffApp from './StaticDiffApp';
-import type { StaticDiffDataset } from './types/staticDiff';
+import type { StaticDiffDataset, StaticDiffManifest, StaticDiffSnapshot } from './types/staticDiff';
 
 const staticDataset: StaticDiffDataset = {
   generatedAt: '2026-02-08T00:00:00.000Z',
@@ -121,16 +121,47 @@ const staticDataset: StaticDiffDataset = {
   },
 };
 
+const staticManifest: StaticDiffManifest = {
+  generatedAt: staticDataset.generatedAt,
+  repository: staticDataset.repository,
+  initialRevisionId: staticDataset.initialRevisionId,
+  revisions: staticDataset.revisions,
+};
+
+const staticSnapshots: Record<string, StaticDiffSnapshot> = Object.fromEntries(
+  staticDataset.revisions.map((revision) => [
+    revision.id,
+    {
+      revision,
+      diff: staticDataset.diffs[revision.id]!,
+      blobs: staticDataset.blobs,
+      blobUrls: staticDataset.blobUrls,
+      comments: staticDataset.comments?.[revision.id] ?? [],
+    },
+  ]),
+);
+
 describe('StaticDiffApp', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.history.pushState({}, '', '/preview');
     global.fetch = vi.fn((input: RequestInfo | URL) => {
       const target = String(input);
-      if (target.includes('/site-data/diffs.json')) {
+      if (target.includes('/site-data/manifest.json')) {
         return Promise.resolve({
           ok: true,
-          json: async () => staticDataset,
+          json: async () => staticManifest,
+        });
+      }
+
+      const snapshotId = target.match(/\/site-data\/snapshots\/(.+)\.json/)?.[1];
+      if (snapshotId) {
+        const snapshot = staticSnapshots[decodeURIComponent(snapshotId)];
+        return Promise.resolve({
+          ok: Boolean(snapshot),
+          status: snapshot ? 200 : 404,
+          statusText: snapshot ? 'OK' : 'Not Found',
+          json: async () => snapshot,
         });
       }
 

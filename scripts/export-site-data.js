@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'child_process';
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, rmSync, writeFileSync } from 'fs';
 import { basename, dirname, extname, resolve } from 'path';
 
 import { simpleGit } from 'simple-git';
@@ -8,7 +8,8 @@ import { simpleGit } from 'simple-git';
 import { GitDiffParser } from '../dist/server/git-diff.js';
 
 const repoPath = process.cwd();
-const outputPath = resolve(repoPath, 'public/site-data/diffs.json');
+const outputPath = resolve(repoPath, 'public/site-data/manifest.json');
+const snapshotsOutputPath = resolve(repoPath, 'public/site-data/snapshots');
 
 const git = simpleGit(repoPath);
 const parser = new GitDiffParser(repoPath);
@@ -183,8 +184,7 @@ async function collectRevisions() {
         spec.target,
       ]);
     } catch (error) {
-      console.warn(`Skipping unavailable site demo revision ${spec.target}:`, error);
-      continue;
+      throw new Error(`Unavailable site demo revision ${spec.target}`, { cause: error });
     }
 
     const [targetHash, baseHash, message, authorName, date] = revisionFields.trim().split('\0');
@@ -221,12 +221,11 @@ async function collectRevisions() {
 
 async function buildDataset() {
   const revisions = await collectRevisions();
-  const diffs = {};
-  const blobs = {};
-  const blobUrls = {};
-  const comments = {};
+  const snapshots = {};
 
   for (const revision of revisions) {
+    const blobs = {};
+    const blobUrls = {};
     try {
       const diff = await parser.parseDiff(
         {
@@ -235,17 +234,25 @@ async function buildDataset() {
         },
         true,
       );
-      diffs[revision.id] = {
-        ...diff,
-        ignoreWhitespace: true,
-        mode: 'split',
-        baseCommitish: revision.baseShortHash,
-        targetCommitish: revision.targetShortHash,
-        requestedBaseCommitish: revision.baseShortHash,
-        requestedTargetCommitish: revision.targetShortHash,
-        repositoryId: `site-demo:${revision.id}`,
+      const snapshot = {
+        revision: {
+          ...revision,
+          comments: undefined,
+        },
+        diff: {
+          ...diff,
+          ignoreWhitespace: true,
+          mode: 'split',
+          baseCommitish: revision.baseShortHash,
+          targetCommitish: revision.targetShortHash,
+          requestedBaseCommitish: revision.baseShortHash,
+          requestedTargetCommitish: revision.targetShortHash,
+          repositoryId: `site-demo:${revision.id}`,
+        },
+        blobs,
+        blobUrls,
+        comments: revision.comments,
       };
-      comments[revision.id] = revision.comments;
 
       for (const file of diff.files) {
         const oldPath = file.oldPath ?? file.path;
@@ -274,12 +281,14 @@ async function buildDataset() {
           }
         }
       }
+
+      snapshots[revision.id] = snapshot;
     } catch (error) {
-      console.warn(`Failed to export diff for ${revision.id}:`, error);
+      throw new Error(`Failed to export diff for ${revision.id}`, { cause: error });
     }
   }
 
-  const availableRevisions = revisions.filter((revision) => diffs[revision.id]);
+  const availableRevisions = revisions.filter((revision) => snapshots[revision.id]);
   const exportedRevisions = availableRevisions.map(
     ({ comments: _comments, ...revision }) => revision,
   );
@@ -289,20 +298,26 @@ async function buildDataset() {
     repository: basename(repoPath),
     initialRevisionId: availableRevisions[0]?.id ?? null,
     revisions: exportedRevisions,
-    diffs,
-    blobs,
-    blobUrls,
-    comments,
+    snapshots,
   };
 }
 
 async function main() {
   const dataset = await buildDataset();
   mkdirSync(dirname(outputPath), { recursive: true });
-  writeFileSync(outputPath, JSON.stringify(dataset, null, 2) + '\n', 'utf8');
+  rmSync(snapshotsOutputPath, { recursive: true, force: true });
+  mkdirSync(snapshotsOutputPath, { recursive: true });
+
+  const { snapshots, ...manifest } = dataset;
+  writeFileSync(outputPath, `${JSON.stringify(manifest)}\n`, 'utf8');
+
+  for (const [revisionId, snapshot] of Object.entries(snapshots)) {
+    const snapshotPath = resolve(snapshotsOutputPath, `${revisionId}.json`);
+    writeFileSync(snapshotPath, `${JSON.stringify(snapshot)}\n`, 'utf8');
+  }
 
   console.log(
-    `Exported ${dataset.revisions.length} static site diffs to ${outputPath} (${dataset.generatedAt})`,
+    `Exported ${dataset.revisions.length} static site snapshots to ${outputPath} (${dataset.generatedAt})`,
   );
 }
 
