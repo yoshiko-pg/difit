@@ -1168,6 +1168,29 @@ index abc123..def456 100644
       expect(getBlobContentSpy).not.toHaveBeenCalled();
     });
 
+    it('returns source=path for .gitattributes linguist-generated files without reading content', async () => {
+      const gitRaw = (parser as any).git.raw;
+      gitRaw.mockResolvedValue('apps/app/web/src/api/index.tsx\0linguist-generated\0true\0');
+      const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
+
+      const generatedStatus = await parser.getGeneratedStatus(
+        'apps/app/web/src/api/index.tsx',
+        'HEAD',
+      );
+
+      expect(gitRaw).toHaveBeenCalledWith([
+        'check-attr',
+        '-z',
+        '--source',
+        'HEAD',
+        'linguist-generated',
+        '--',
+        'apps/app/web/src/api/index.tsx',
+      ]);
+      expect(generatedStatus).toEqual({ isGenerated: true, source: 'path' });
+      expect(getBlobContentSpy).not.toHaveBeenCalled();
+    });
+
     it('returns false when content cannot be read for content-based generated detection', async () => {
       const getBlobContentSpy = vi.spyOn(parser as any, 'getBlobContent');
       getBlobContentSpy.mockRejectedValue(new Error('missing blob'));
@@ -1275,6 +1298,45 @@ index abc123..def456 100644
   });
 
   describe('parseDiff', () => {
+    it('marks files with .gitattributes linguist-generated=true as generated', async () => {
+      const file = 'apps/app/web/src/api/index.tsx';
+      const gitDiff = (parser as any).git.diff;
+      const gitRevparse = (parser as any).git.revparse;
+      const gitRaw = (parser as any).git.raw;
+
+      gitRevparse
+        .mockResolvedValueOnce('1234567890abcdef1234567890abcdef12345678')
+        .mockResolvedValueOnce('abcdef1234567890abcdef1234567890abcdef12');
+      gitDiff.mockResolvedValue(
+        [
+          `diff --git a/${file} b/${file}`,
+          `index abc123..def456 100644`,
+          `--- a/${file}`,
+          `+++ b/${file}`,
+          `@@ -1 +1 @@`,
+          `-old`,
+          `+new`,
+        ].join('\n'),
+      );
+      gitRaw.mockResolvedValue(`${file}\0linguist-generated\0true\0`);
+
+      const response = await parser.parseDiff({
+        targetCommitish: 'HEAD',
+        baseCommitish: 'HEAD~1',
+      });
+
+      expect(gitRaw).toHaveBeenCalledWith([
+        'check-attr',
+        '-z',
+        '--source',
+        '1234567890abcdef1234567890abcdef12345678',
+        'linguist-generated',
+        '--',
+        file,
+      ]);
+      expect(response.files[0].isGenerated).toBe(true);
+    });
+
     it('passes context lines through to git diff', async () => {
       const gitDiff = (parser as any).git.diff;
       const gitRevparse = (parser as any).git.revparse;
