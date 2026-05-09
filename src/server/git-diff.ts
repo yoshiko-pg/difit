@@ -19,6 +19,7 @@ export class GitDiffParser {
   private readonly resolvedCommitCache = new Map<string, { value: string; expiresAt: number }>();
   private static readonly RESOLVED_COMMIT_CACHE_TTL_MS = 5_000;
   private static readonly GENERATED_HEADER_SCAN_BYTES = 4 * 1024;
+  private static readonly GITATTRIBUTES_CHECK_CHUNK_SIZE = 200;
 
   constructor(repoPath = process.cwd()) {
     this.repoPath = repoPath;
@@ -76,6 +77,7 @@ export class GitDiffParser {
       let diffArgs: string[];
       let resolvedBaseCommitish = effectiveBaseCommitish;
       let resolvedTargetCommitish = targetCommitish;
+      let attributesRef = targetCommitish;
 
       // Handle target special chars (base is always a regular commit)
       if (targetCommitish === 'working') {
@@ -101,6 +103,7 @@ export class GitDiffParser {
         resolvedCommit = createCommitRangeString(shortHash(baseHash), shortHash(targetHash));
         resolvedBaseCommitish = shortHash(baseHash);
         resolvedTargetCommitish = shortHash(targetHash);
+        attributesRef = targetHash;
         diffArgs = [baseHash, targetHash];
       }
 
@@ -118,7 +121,10 @@ export class GitDiffParser {
 
       // Single git invocation for better startup latency on large repositories.
       const diffRaw = await this.git.diff(diffArgs);
-      const files = this.parseUnifiedDiff(diffRaw);
+      const files = await this.markGitattributesGeneratedFiles(
+        this.parseUnifiedDiff(diffRaw),
+        attributesRef,
+      );
 
       return {
         commit: resolvedCommit,
@@ -150,6 +156,85 @@ export class GitDiffParser {
     }
 
     return files;
+  }
+
+  private getGitattributesSourceArgs(ref: string): string[] {
+    if (ref === 'working' || ref === '.') {
+      return [];
+    }
+
+    if (ref === 'staged') {
+      return ['--cached'];
+    }
+
+    return ['--source', ref];
+  }
+
+  private parseGitattributesGeneratedOutput(output: string): Set<string> {
+    const generatedPaths = new Set<string>();
+    const fields = output.split('\0');
+
+    for (let i = 0; i + 2 < fields.length; i += 3) {
+      const [path, attribute, value] = fields.slice(i, i + 3);
+      if (attribute === 'linguist-generated' && value === 'true') {
+        generatedPaths.add(path);
+      }
+    }
+
+    return generatedPaths;
+  }
+
+  private async getGitattributesGeneratedPaths(
+    filepaths: string[],
+    ref: string,
+  ): Promise<Set<string>> {
+    if (filepaths.length === 0) {
+      return new Set();
+    }
+
+    const generatedPaths = new Set<string>();
+
+    try {
+      for (let i = 0; i < filepaths.length; i += GitDiffParser.GITATTRIBUTES_CHECK_CHUNK_SIZE) {
+        const chunk = filepaths.slice(i, i + GitDiffParser.GITATTRIBUTES_CHECK_CHUNK_SIZE);
+        const output = await this.git.raw([
+          'check-attr',
+          '-z',
+          ...this.getGitattributesSourceArgs(ref),
+          'linguist-generated',
+          '--',
+          ...chunk,
+        ]);
+
+        if (typeof output !== 'string') {
+          continue;
+        }
+
+        for (const path of this.parseGitattributesGeneratedOutput(output)) {
+          generatedPaths.add(path);
+        }
+      }
+
+      return generatedPaths;
+    } catch {
+      return new Set();
+    }
+  }
+
+  private async markGitattributesGeneratedFiles(
+    files: DiffFile[],
+    ref: string,
+  ): Promise<DiffFile[]> {
+    const candidates = files.filter((file) => !file.isGenerated).map((file) => file.path);
+    const generatedPaths = await this.getGitattributesGeneratedPaths(candidates, ref);
+
+    if (generatedPaths.size === 0) {
+      return files;
+    }
+
+    return files.map((file) =>
+      generatedPaths.has(file.path) ? { ...file, isGenerated: true } : file,
+    );
   }
 
   private decodeGitPath(rawPath: string | undefined): string | undefined {
@@ -555,6 +640,11 @@ export class GitDiffParser {
   ): Promise<{ isGenerated: boolean; source: 'path' | 'content' }> {
     const pathResult = isGeneratedFile(filepath);
     if (pathResult.isGenerated) {
+      return { isGenerated: true, source: 'path' };
+    }
+
+    const gitattributesResult = await this.getGitattributesGeneratedPaths([filepath], ref);
+    if (gitattributesResult.has(filepath)) {
       return { isGenerated: true, source: 'path' };
     }
 
