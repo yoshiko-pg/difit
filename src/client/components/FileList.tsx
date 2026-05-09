@@ -435,30 +435,30 @@ export const FileList = memo(function FileList({
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b border-github-border bg-github-bg-tertiary">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <h3 className="text-sm font-semibold text-github-text-primary m-0">
-              Files changed ({files.length})
-            </h3>
+          <h3 className="text-sm font-semibold text-github-text-primary m-0">
+            Files changed ({files.length})
+          </h3>
+          <div className="ml-auto flex items-center gap-2">
             <span
-              className="text-xs font-medium whitespace-nowrap"
+              className="text-right text-xs font-medium whitespace-nowrap"
               title="Total additions and deletions"
               aria-label={`${diffTotals.additions} additions and ${diffTotals.deletions} deletions`}
             >
               <span className="text-github-accent">+{diffTotals.additions}</span>{' '}
               <span className="text-github-danger">-{diffTotals.deletions}</span>
             </span>
+            <button
+              onClick={toggleAllDirectories}
+              className="p-1 hover:bg-github-bg-primary rounded transition-colors"
+              title={isAllExpanded ? 'Collapse all' : 'Expand all'}
+            >
+              {isAllExpanded ? (
+                <ChevronsDownUp size={16} className="text-github-text-secondary" />
+              ) : (
+                <ChevronsUpDown size={16} className="text-github-text-secondary" />
+              )}
+            </button>
           </div>
-          <button
-            onClick={toggleAllDirectories}
-            className="p-1 hover:bg-github-bg-primary rounded transition-colors"
-            title={isAllExpanded ? 'Collapse all' : 'Expand all'}
-          >
-            {isAllExpanded ? (
-              <ChevronsDownUp size={16} className="text-github-text-secondary" />
-            ) : (
-              <ChevronsUpDown size={16} className="text-github-text-secondary" />
-            )}
-          </button>
         </div>
         <div className="relative">
           <Search
