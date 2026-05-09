@@ -6,9 +6,9 @@ export enum DiffMode {
   SPECIFIC = 'specific', // commit vs commit (no watching)
 }
 
-export type WatchChangeType = 'file' | 'commit' | 'staging';
+type WatchChangeType = 'file' | 'commit' | 'staging';
 
-export interface ConnectedWatchEvent {
+interface ConnectedWatchEvent {
   type: 'connected';
   diffMode: DiffMode;
   changeType: WatchChangeType;
@@ -16,7 +16,7 @@ export interface ConnectedWatchEvent {
   message?: string;
 }
 
-export interface ReloadWatchEvent {
+interface ReloadWatchEvent {
   type: 'reload';
   diffMode: DiffMode;
   changeType: WatchChangeType;
@@ -24,7 +24,7 @@ export interface ReloadWatchEvent {
   message?: string;
 }
 
-export interface ErrorWatchEvent {
+interface ErrorWatchEvent {
   type: 'error';
   diffMode: DiffMode;
   changeType: WatchChangeType;
@@ -32,7 +32,7 @@ export interface ErrorWatchEvent {
   message?: string;
 }
 
-export interface CommentsChangedWatchEvent {
+interface CommentsChangedWatchEvent {
   type: 'commentsChanged';
   version: number;
   timestamp: string;

@@ -37,7 +37,7 @@ export interface ParsedDiff {
 }
 
 export type DiffViewMode = 'split' | 'unified';
-export type LegacyDiffViewMode = 'side-by-side' | 'inline';
+type LegacyDiffViewMode = 'side-by-side' | 'inline';
 export type DiffSide = 'old' | 'new';
 export type DiffLineRange = number | { start: number; end: number };
 
@@ -200,12 +200,12 @@ export interface CommentThread {
 }
 
 // Revision selector types
-export interface RevisionOption {
+interface RevisionOption {
   value: string;
   label: string;
 }
 
-export interface BranchInfo {
+interface BranchInfo {
   name: string;
   current: boolean;
 }
@@ -238,7 +238,7 @@ export interface FileExpandedState {
   newTotalLines?: number;
 }
 
-export interface ExpandedRange {
+interface ExpandedRange {
   chunkIndex: number;
   direction: 'up' | 'down';
   count: number;

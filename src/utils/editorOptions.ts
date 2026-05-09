@@ -37,7 +37,7 @@ export const EDITOR_OPTIONS = [
   },
 ] as const;
 
-export type EditorOption = (typeof EDITOR_OPTIONS)[number];
+type EditorOption = (typeof EDITOR_OPTIONS)[number];
 export type EditorOptionId = EditorOption['id'];
 
 export const DEFAULT_EDITOR_ID: EditorOptionId = 'vscode';
