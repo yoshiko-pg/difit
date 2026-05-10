@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.7] - 2026-05-10
+
+### Added
+
+- Add viewed-file carryover when file diffs are unchanged and flag changed files (#336)
+- Show total diff line counts in the file sidebar (#347)
+
+### Thanks
+
+- [@jzjones](https://github.com/jzjones) for preserving viewed-file state across unchanged diffs (#336)
+
 ## [4.0.6] - 2026-05-10
 
 ### Added
@@ -1180,7 +1191,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.6...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.7...HEAD
+[4.0.7]: https://github.com/yoshiko-pg/difit/compare/v4.0.6...v4.0.7
 [4.0.6]: https://github.com/yoshiko-pg/difit/compare/v4.0.5...v4.0.6
 [4.0.5]: https://github.com/yoshiko-pg/difit/compare/v4.0.4...v4.0.5
 [4.0.4]: https://github.com/yoshiko-pg/difit/compare/v4.0.3...v4.0.4
