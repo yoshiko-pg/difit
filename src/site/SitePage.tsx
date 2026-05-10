@@ -26,7 +26,7 @@ import {
   type SiteLanguage,
   type UsageCommentKey,
 } from './sitePageContent';
-import type { StaticDiffDataset } from './types/staticDiff';
+import type { StaticDiffManifest } from './types/staticDiff';
 
 /* ── Clipboard helper ───────────────────────────────────── */
 function CopyBtn({ text, className = '' }: { text: string; className?: string }) {
@@ -153,7 +153,7 @@ function Feature({ label, desc }: { label: string; desc: string }) {
 }
 
 function getLocalizedRevisionText(
-  revision: StaticDiffDataset['revisions'][number],
+  revision: StaticDiffManifest['revisions'][number],
   language: SiteLanguage,
 ) {
   const oneLineMessage = revision.message.split('\n')[0]?.trim() || revision.id;
@@ -166,7 +166,7 @@ function getLocalizedRevisionText(
 }
 
 function formatRevisionLabel(
-  revision: StaticDiffDataset['revisions'][number],
+  revision: StaticDiffManifest['revisions'][number],
   language: SiteLanguage,
 ) {
   const { title } = getLocalizedRevisionText(revision, language);
@@ -198,7 +198,7 @@ function RevisionQuickMenu({
   onSelectRevision,
   language,
 }: {
-  revisions: StaticDiffDataset['revisions'];
+  revisions: StaticDiffManifest['revisions'];
   selectedRevisionId: string;
   onSelectRevision: (revisionId: string) => void;
   language: SiteLanguage;
@@ -340,7 +340,7 @@ function SitePage() {
     | { type: 'heading'; title: string }
     | { type: 'command'; cmd: string; commentKey: UsageCommentKey; align: boolean };
 
-  const [revisions, setRevisions] = useState<StaticDiffDataset['revisions']>([]);
+  const [revisions, setRevisions] = useState<StaticDiffManifest['revisions']>([]);
   const [selectedRevisionId, setSelectedRevisionId] = useState('');
   const [datasetError, setDatasetError] = useState(false);
   const [loadingRevisions, setLoadingRevisions] = useState(true);
@@ -352,12 +352,12 @@ function SitePage() {
 
     const loadRevisions = async () => {
       try {
-        const response = await fetch(withBasePath('site-data/diffs.json'));
+        const response = await fetch(withBasePath('site-data/manifest.json'));
         if (!response.ok) {
           throw new Error(`Failed to load revisions (${response.status})`);
         }
 
-        const dataset = (await response.json()) as StaticDiffDataset;
+        const dataset = (await response.json()) as StaticDiffManifest;
         if (canceled) return;
 
         setRevisions(dataset.revisions);

@@ -1,6 +1,10 @@
 import type { DiffResponse } from '../../types/diff';
 import { DiffMode } from '../../types/watch';
-import type { StaticDiffDataset } from '../types/staticDiff';
+import type {
+  StaticDiffDataset,
+  StaticDiffManifest,
+  StaticDiffSnapshot,
+} from '../types/staticDiff';
 
 const withBasePath = (path: string) => {
   const basePath = import.meta.env.BASE_URL.endsWith('/')
@@ -9,7 +13,10 @@ const withBasePath = (path: string) => {
   return `${basePath}${path.replace(/^\/+/, '')}`;
 };
 
-const STATIC_DIFF_DATA_URL = withBasePath('site-data/diffs.json');
+const STATIC_DIFF_MANIFEST_URL = withBasePath('site-data/manifest.json');
+
+const getStaticSnapshotUrl = (revisionId: string) =>
+  withBasePath(`site-data/snapshots/${encodeURIComponent(revisionId)}.json`);
 
 export interface StaticApiBridge {
   restore: () => void;
@@ -95,23 +102,19 @@ const buildBlobRefIndex = (dataset: StaticDiffDataset) => {
   return index;
 };
 
-const resolveInitialRevisionId = (dataset: StaticDiffDataset): string | null => {
-  if (dataset.initialRevisionId && dataset.diffs[dataset.initialRevisionId]) {
-    return dataset.initialRevisionId;
-  }
-  return dataset.revisions.find((revision) => dataset.diffs[revision.id])?.id ?? null;
-};
+const resolveInitialRevisionId = (manifest: StaticDiffManifest): string | null =>
+  manifest.initialRevisionId ?? manifest.revisions[0]?.id ?? null;
 
-const resolveRequestedSnapshotId = (dataset: StaticDiffDataset): string | null => {
+const resolveRequestedSnapshotId = (manifest: StaticDiffManifest): string | null => {
   const query = new URLSearchParams(window.location.search);
   const requestedId = query.get('snapshot');
   if (!requestedId) {
-    return resolveInitialRevisionId(dataset);
+    return resolveInitialRevisionId(manifest);
   }
-  if (dataset.diffs[requestedId]) {
+  if (manifest.revisions.some((revision) => revision.id === requestedId)) {
     return requestedId;
   }
-  return resolveInitialRevisionId(dataset);
+  return resolveInitialRevisionId(manifest);
 };
 
 const buildDiffPayload = (diff: DiffResponse): DiffResponse => ({
@@ -308,11 +311,35 @@ export const installStaticApiBridge = (dataset: StaticDiffDataset): StaticApiBri
 };
 
 export const loadStaticDataset = async (): Promise<StaticDiffDataset> => {
-  const response = await fetch(STATIC_DIFF_DATA_URL);
-  if (!response.ok) {
+  const manifestResponse = await fetch(STATIC_DIFF_MANIFEST_URL);
+  if (!manifestResponse.ok) {
     throw new Error(
-      `Failed to load static diff dataset (${response.status} ${response.statusText})`,
+      `Failed to load static diff manifest (${manifestResponse.status} ${manifestResponse.statusText})`,
     );
   }
-  return (await response.json()) as StaticDiffDataset;
+  const manifest = (await manifestResponse.json()) as StaticDiffManifest;
+  const revisionId = resolveRequestedSnapshotId(manifest);
+  if (!revisionId) {
+    throw new Error('Static diff manifest does not include any snapshots');
+  }
+
+  const snapshotResponse = await fetch(getStaticSnapshotUrl(revisionId));
+  if (!snapshotResponse.ok) {
+    throw new Error(
+      `Failed to load static diff snapshot (${snapshotResponse.status} ${snapshotResponse.statusText})`,
+    );
+  }
+
+  const snapshot = (await snapshotResponse.json()) as StaticDiffSnapshot;
+  return {
+    ...manifest,
+    diffs: {
+      [revisionId]: snapshot.diff,
+    },
+    blobs: snapshot.blobs,
+    blobUrls: snapshot.blobUrls,
+    comments: {
+      [revisionId]: snapshot.comments ?? [],
+    },
+  };
 };

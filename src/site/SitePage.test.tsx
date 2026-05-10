@@ -2,9 +2,9 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import SitePage from './SitePage';
-import type { StaticDiffDataset } from './types/staticDiff';
+import type { StaticDiffManifest } from './types/staticDiff';
 
-const mockDataset: StaticDiffDataset = {
+const mockManifest: StaticDiffManifest = {
   generatedAt: new Date().toISOString(),
   repository: 'difit-demo',
   initialRevisionId: 'abc1234...def5678',
@@ -34,8 +34,6 @@ const mockDataset: StaticDiffDataset = {
       date: '2026-01-02T00:00:00.000Z',
     },
   ],
-  diffs: {},
-  blobs: {},
 };
 
 describe('SitePage', () => {
@@ -53,7 +51,7 @@ describe('SitePage', () => {
 
   it('loads revisions for a preview selector and updates the iframe src', async () => {
     vi.spyOn(window, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify(mockDataset), {
+      new Response(JSON.stringify(mockManifest), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -104,7 +102,7 @@ describe('SitePage', () => {
 
   it('switches revision selector title by language without showing a description line', async () => {
     vi.spyOn(window, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify(mockDataset), {
+      new Response(JSON.stringify(mockManifest), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -130,7 +128,7 @@ describe('SitePage', () => {
 
   it('keeps the revision selector trigger width fixed and stacks chrome on mobile', async () => {
     vi.spyOn(window, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify(mockDataset), {
+      new Response(JSON.stringify(mockManifest), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),

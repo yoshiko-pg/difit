@@ -14,11 +14,22 @@ interface StaticRevision {
   date: string;
 }
 
-export interface StaticDiffDataset {
+export interface StaticDiffManifest {
   generatedAt: string;
   repository: string;
   initialRevisionId: string | null;
   revisions: StaticRevision[];
+}
+
+export interface StaticDiffSnapshot {
+  revision: StaticRevision;
+  diff: DiffResponse;
+  blobs: Record<string, string>;
+  blobUrls?: Record<string, string>;
+  comments?: DiffCommentThread[];
+}
+
+export interface StaticDiffDataset extends StaticDiffManifest {
   diffs: Record<string, DiffResponse>;
   blobs: Record<string, string>;
   blobUrls?: Record<string, string>;
