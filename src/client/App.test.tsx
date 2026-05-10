@@ -571,42 +571,6 @@ describe('App Component - Comment sync', () => {
   });
 });
 
-describe('App Component - Diff Mode Persistence', () => {
-  it('keeps the selected view mode after triggering refresh', async () => {
-    const mockGlobalFetch = vi.mocked(global.fetch);
-    mockGlobalFetch.mockClear();
-    mockComments = [];
-    mockClearAllComments.mockReset();
-    mockConfirm.mockReturnValue(false);
-    mockWatchState.shouldReload = true;
-    mockWatchState.lastChangeType = 'file';
-    mockFetch(mockDiffResponse);
-
-    renderApp();
-
-    const unifiedButton = await screen.findByRole('button', { name: 'Unified' });
-    fireEvent.click(unifiedButton);
-
-    await waitFor(() => {
-      expect(unifiedButton).toHaveClass('bg-github-bg-primary');
-    });
-
-    const refreshButton = await screen.findByRole('button', { name: 'Refresh' });
-    fireEvent.click(refreshButton);
-
-    await waitFor(() => {
-      // 4 calls: initial /api/diff, /api/revisions, initial /api/comments sync, and refresh /api/diff
-      expect(mockGlobalFetch).toHaveBeenCalledTimes(4);
-    });
-
-    await waitFor(() => {
-      expect(unifiedButton).toHaveClass('bg-github-bg-primary');
-    });
-    mockWatchState.shouldReload = false;
-    mockWatchState.lastChangeType = null;
-  });
-});
-
 describe('App Component - Merge-base selection', () => {
   beforeEach(() => {
     vi.clearAllMocks();

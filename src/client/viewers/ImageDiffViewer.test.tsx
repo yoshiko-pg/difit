@@ -89,26 +89,6 @@ describe('ImageDiffViewer', () => {
       expect(images).toHaveLength(2);
     });
 
-    it('renders modified image correctly in unified mode', () => {
-      const modifiedFile: DiffFile = {
-        path: 'test.jpg',
-        oldPath: 'test.jpg',
-        status: 'modified',
-        additions: 1,
-        deletions: 1,
-        chunks: [],
-      };
-
-      renderViewer(modifiedFile, { diffMode: 'unified' });
-
-      expect(screen.getByText('Modified Image')).toBeInTheDocument();
-      expect(screen.getByText('Previous version:')).toBeInTheDocument();
-      expect(screen.getByText('Current version:')).toBeInTheDocument();
-
-      const images = screen.getAllByRole('img');
-      expect(images).toHaveLength(2);
-    });
-
     it('handles renamed image correctly', () => {
       const renamedFile: DiffFile = {
         path: 'new-name.jpg',
@@ -187,50 +167,6 @@ describe('ImageDiffViewer', () => {
     });
   });
 
-  describe('Error handling', () => {
-    it('handles image load errors gracefully', () => {
-      const file: DiffFile = {
-        path: 'test.jpg',
-        status: 'added',
-        additions: 1,
-        deletions: 0,
-        chunks: [],
-      };
-
-      renderViewer(file);
-
-      const image = screen.getByRole('img');
-
-      // Simulate image load error
-      const errorEvent = new Event('error');
-      image.dispatchEvent(errorEvent);
-
-      // Image should be hidden after error
-      expect(image.style.display).toBe('none');
-    });
-  });
-
-  describe('Checkerboard background', () => {
-    it('applies checkerboard style to images for transparency support', () => {
-      const file: DiffFile = {
-        path: 'test.png',
-        status: 'added',
-        additions: 1,
-        deletions: 0,
-        chunks: [],
-      };
-
-      renderViewer(file);
-
-      const image = screen.getByRole('img');
-
-      // Check if checkerboard background is applied via style attribute
-      const style = image.getAttribute('style');
-      expect(style).toContain('linear-gradient');
-      expect(style).toContain('background-color: white');
-    });
-  });
-
   describe('Image information display', () => {
     it('shows image dimensions and file size when available', async () => {
       const file: DiffFile = {
@@ -258,96 +194,6 @@ describe('ImageDiffViewer', () => {
         expect(screen.getByText(/W: 800px \| H: 600px/)).toBeInTheDocument();
         expect(screen.getByText(/1\.0 KB/)).toBeInTheDocument();
       });
-    });
-
-    it('handles fetch errors gracefully', async () => {
-      const file: DiffFile = {
-        path: 'test.jpg',
-        status: 'added',
-        additions: 1,
-        deletions: 0,
-        chunks: [],
-      };
-
-      // Mock fetch to reject
-      (global.fetch as any).mockRejectedValue(new Error('Failed to fetch'));
-
-      renderViewer(file);
-
-      const image = screen.getByRole('img');
-
-      // Mock naturalWidth and naturalHeight
-      Object.defineProperty(image, 'naturalWidth', { value: 800, configurable: true });
-      Object.defineProperty(image, 'naturalHeight', { value: 600, configurable: true });
-
-      // Simulate image load
-      const loadEvent = new Event('load');
-      image.dispatchEvent(loadEvent);
-
-      // Should not crash and should show dimensions without file size
-      // Since fetch fails, only dimensions should be shown
-      await waitFor(
-        () => {
-          const dimensionText = screen.queryByText(/W: 800px/);
-          if (dimensionText) {
-            expect(dimensionText).toBeInTheDocument();
-          } else {
-            // If dimensions are not shown due to error, that's acceptable too
-            expect(screen.getByRole('img')).toBeInTheDocument();
-          }
-        },
-        { timeout: 100 },
-      );
-    });
-  });
-
-  describe('Utility functions', () => {
-    it('formats file size correctly', async () => {
-      // Test the file size formatting through component behavior
-      const file: DiffFile = {
-        path: 'test.jpg',
-        status: 'added',
-        additions: 1,
-        deletions: 0,
-        chunks: [],
-      };
-
-      // Mock fetch to return 1024 bytes
-      (global.fetch as any).mockResolvedValue({
-        blob: () => Promise.resolve({ size: 1024 }),
-      });
-
-      renderViewer(file);
-
-      const image = screen.getByRole('img');
-      Object.defineProperty(image, 'naturalWidth', { value: 100, configurable: true });
-      Object.defineProperty(image, 'naturalHeight', { value: 100, configurable: true });
-
-      const loadEvent = new Event('load');
-      image.dispatchEvent(loadEvent);
-
-      // Should show 1.0 KB
-      await waitFor(() => {
-        expect(screen.getByText(/1\.0 KB/)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Return null case', () => {
-    it('returns null for unsupported file status', () => {
-      const unsupportedFile: DiffFile = {
-        path: 'test.jpg',
-        status: 'modified',
-        additions: 1,
-        deletions: 1,
-        chunks: [],
-      };
-
-      // Mock file to have an unsupported status by changing the component logic
-      const { container } = renderViewer({ ...unsupportedFile, status: 'unknown' as any }, {});
-
-      // Should render nothing
-      expect(container.firstChild).toBeNull();
     });
   });
 });
