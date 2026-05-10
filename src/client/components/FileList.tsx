@@ -200,6 +200,17 @@ export const FileList = memo(function FileList({
     });
     return indices;
   }, [files]);
+  const diffTotals = useMemo(
+    () =>
+      files.reduce(
+        (totals, file) => ({
+          additions: totals.additions + file.additions,
+          deletions: totals.deletions + file.deletions,
+        }),
+        { additions: 0, deletions: 0 },
+      ),
+    [files],
+  );
   const reviewedDirectoryPaths = useMemo(
     () => getReviewedDirectoryPaths(fileTree, reviewedFiles),
     [fileTree, reviewedFiles],
@@ -445,17 +456,27 @@ export const FileList = memo(function FileList({
           <h3 className="text-sm font-semibold text-github-text-primary m-0">
             Files changed ({files.length})
           </h3>
-          <button
-            onClick={toggleAllDirectories}
-            className="p-1 hover:bg-github-bg-primary rounded transition-colors"
-            title={isAllExpanded ? 'Collapse all' : 'Expand all'}
-          >
-            {isAllExpanded ? (
-              <ChevronsDownUp size={16} className="text-github-text-secondary" />
-            ) : (
-              <ChevronsUpDown size={16} className="text-github-text-secondary" />
-            )}
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <span
+              className="inline-flex gap-1 text-right text-xs font-medium whitespace-nowrap"
+              title="Total additions and deletions"
+              aria-label={`${diffTotals.additions} additions and ${diffTotals.deletions} deletions`}
+            >
+              <span className="text-github-accent">+{diffTotals.additions}</span>
+              <span className="text-github-danger">-{diffTotals.deletions}</span>
+            </span>
+            <button
+              onClick={toggleAllDirectories}
+              className="p-1 hover:bg-github-bg-primary rounded transition-colors"
+              title={isAllExpanded ? 'Collapse all' : 'Expand all'}
+            >
+              {isAllExpanded ? (
+                <ChevronsDownUp size={16} className="text-github-text-secondary" />
+              ) : (
+                <ChevronsUpDown size={16} className="text-github-text-secondary" />
+              )}
+            </button>
+          </div>
         </div>
         <div className="relative">
           <Search
