@@ -294,7 +294,6 @@ async function buildDataset() {
   );
 
   return {
-    generatedAt: new Date().toISOString(),
     repository: basename(repoPath),
     initialRevisionId: availableRevisions[0]?.id ?? null,
     revisions: exportedRevisions,
@@ -316,9 +315,7 @@ async function main() {
     writeFileSync(snapshotPath, `${JSON.stringify(snapshot)}\n`, 'utf8');
   }
 
-  console.log(
-    `Exported ${dataset.revisions.length} static site snapshots to ${outputPath} (${dataset.generatedAt})`,
-  );
+  console.log(`Exported ${dataset.revisions.length} static site snapshots to ${outputPath}`);
 }
 
 main().catch((error) => {

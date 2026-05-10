@@ -5,7 +5,6 @@ import SitePage from './SitePage';
 import type { StaticDiffManifest } from './types/staticDiff';
 
 const mockManifest: StaticDiffManifest = {
-  generatedAt: new Date().toISOString(),
   repository: 'difit-demo',
   initialRevisionId: 'abc1234...def5678',
   revisions: [
