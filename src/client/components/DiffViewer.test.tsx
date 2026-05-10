@@ -182,6 +182,28 @@ describe('DiffViewer', () => {
 
       expect(screen.getByText('+10')).toBeInTheDocument();
     });
+
+    it('shows the changed-since-viewed indicator in the file header', () => {
+      render(<DiffViewer {...defaultProps} isChangedSinceViewed />);
+
+      const indicator = screen.getByLabelText('Changed since you last viewed this file');
+      expect(indicator).toBeInTheDocument();
+      expect(indicator).toHaveTextContent('Changed');
+    });
+
+    it('hides the changed-since-viewed indicator when the file is reviewed', () => {
+      render(
+        <DiffViewer
+          {...defaultProps}
+          reviewedFiles={new Set([mockFile.path])}
+          isChangedSinceViewed
+        />,
+      );
+
+      expect(
+        screen.queryByLabelText('Changed since you last viewed this file'),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('Collapse functionality', () => {

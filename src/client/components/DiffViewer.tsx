@@ -21,6 +21,7 @@ interface DiffViewerProps {
   showAuthorBadges?: boolean;
   diffMode: DiffViewMode;
   reviewedFiles: Set<string>;
+  isChangedSinceViewed?: boolean;
   onToggleReviewed: (path: string) => void;
   collapsedFiles: Set<string>;
   onToggleCollapsed: (path: string) => void;
@@ -171,6 +172,7 @@ export const DiffViewer = memo(function DiffViewer({
   showAuthorBadges = false,
   diffMode,
   reviewedFiles,
+  isChangedSinceViewed = false,
   onToggleReviewed,
   collapsedFiles,
   onToggleCollapsed,
@@ -344,6 +346,7 @@ export const DiffViewer = memo(function DiffViewer({
         file={file}
         isCollapsed={isCollapsed}
         isReviewed={reviewedFiles.has(file.path)}
+        isChangedSinceViewed={isChangedSinceViewed}
         onToggleCollapsed={onToggleCollapsed}
         onToggleAllCollapsed={onToggleAllCollapsed}
         onToggleReviewed={onToggleReviewed}

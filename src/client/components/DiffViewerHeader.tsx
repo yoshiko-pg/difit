@@ -18,6 +18,7 @@ interface DiffViewerHeaderProps {
   file: DiffFile;
   isCollapsed: boolean;
   isReviewed: boolean;
+  isChangedSinceViewed?: boolean;
   onToggleCollapsed: (path: string) => void;
   onToggleAllCollapsed: (shouldCollapse: boolean) => void;
   onToggleReviewed: (path: string) => void;
@@ -40,6 +41,7 @@ export const DiffViewerHeader = ({
   file,
   isCollapsed,
   isReviewed,
+  isChangedSinceViewed = false,
   onToggleCollapsed,
   onToggleAllCollapsed,
   onToggleReviewed,
@@ -100,6 +102,15 @@ export const DiffViewerHeader = ({
       </div>
 
       <div className="flex items-center gap-3">
+        {isChangedSinceViewed && !isReviewed && (
+          <span
+            className="inline-flex h-6 items-center rounded-full border border-github-warning px-2.5 text-xs font-medium text-github-warning"
+            title="Changed since you last viewed this file"
+            aria-label="Changed since you last viewed this file"
+          >
+            Changed
+          </span>
+        )}
         <div className="flex items-center gap-2 text-xs">
           <span className="font-medium px-1 py-0.5 rounded text-github-accent bg-green-100/10">
             +{file.additions}
