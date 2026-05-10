@@ -25,12 +25,6 @@ interface FileListProps {
   onFileSelected?: () => void;
   comments: CommentThread[];
   reviewedFiles: Set<string>;
-  /**
-   * File paths that were marked viewed in a prior comparison range but whose
-   * current diff differs from the prior view. Surfaces a "changed since you
-   * viewed" hint for incremental reviews.
-   */
-  changedSinceViewedFiles?: Set<string>;
   onToggleReviewed: (path: string) => void;
   selectedFileIndex: number | null;
 }
@@ -164,7 +158,6 @@ export const FileList = memo(function FileList({
   onFileSelected,
   comments,
   reviewedFiles,
-  changedSinceViewedFiles,
   onToggleReviewed,
   selectedFileIndex,
 }: FileListProps) {
@@ -379,8 +372,6 @@ export const FileList = memo(function FileList({
       const file = node.file;
       const commentCount = commentCountMap.get(file.path) ?? 0;
       const isReviewed = reviewedFiles.has(file.path);
-      const isChangedSinceViewed =
-        !isReviewed && (changedSinceViewedFiles?.has(file.path) ?? false);
       const fileIndex = fileIndexMap.get(file.path) ?? -1;
       const isSelected = selectedFileIndex !== null && selectedFileIndex === fileIndex;
 
@@ -416,15 +407,6 @@ export const FileList = memo(function FileList({
           >
             {node.name}
           </span>
-          {isChangedSinceViewed && (
-            <span
-              className="flex items-center"
-              title="Changed since you last viewed this file"
-              aria-label="Changed since you last viewed this file"
-            >
-              <span className="block w-2 h-2 rounded-full bg-github-warning" />
-            </span>
-          )}
           {commentCount > 0 && (
             <span className="text-github-warning text-sm font-medium ml-auto flex items-center gap-1">
               <MessageSquare size={14} />

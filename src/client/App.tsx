@@ -1219,7 +1219,6 @@ function App() {
                   onFileSelected={isMobile ? handleMobileFileSelected : undefined}
                   comments={normalizedThreads}
                   reviewedFiles={viewedFiles}
-                  changedSinceViewedFiles={changedSinceViewedFiles}
                   onToggleReviewed={toggleFileReviewed}
                   selectedFileIndex={cursor?.fileIndex ?? null}
                 />
@@ -1286,6 +1285,7 @@ function App() {
                       showAuthorBadges={showAuthorBadges}
                       diffMode={diffMode}
                       reviewedFiles={viewedFiles}
+                      isChangedSinceViewed={changedSinceViewedFiles.has(file.path)}
                       onToggleReviewed={toggleFileReviewed}
                       collapsedFiles={collapsedFiles}
                       onToggleCollapsed={toggleFileCollapsed}
