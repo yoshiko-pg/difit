@@ -4,10 +4,8 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/difit"><img src="https://img.shields.io/npm/v/difit.svg" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/difit"><img src="https://img.shields.io/npm/dm/difit.svg" alt="npm downloads"></a>
   <a href="https://github.com/yoshiko-pg/difit/actions/workflows/ci.yml"><img src="https://github.com/yoshiko-pg/difit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/yoshiko-pg/difit/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/difit.svg" alt="license"></a>
-  <a href="https://github.com/yoshiko-pg/difit/stargazers"><img src="https://img.shields.io/github/stars/yoshiko-pg/difit?style=social" alt="GitHub stars"></a>
 </p>
 
 <p align="center">
