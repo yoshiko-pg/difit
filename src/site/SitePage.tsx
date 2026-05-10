@@ -556,6 +556,8 @@ function SitePage() {
         </div>
       </section>
 
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
+
       {/* ── Usage examples as actual commands ────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
         <Comment>{shellCommentText.usageExamples}</Comment>

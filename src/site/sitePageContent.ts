@@ -86,35 +86,35 @@ export const HERO_TEXT: Record<
 export const SHELL_COMMENT_TEXT: Record<SiteLanguage, Record<ShellCommentKey, string>> = {
   en: {
     tryNow: 'Try it now — no install required',
-    liveDemo: "Here's what you'll see",
+    liveDemo: "Here's what you'll see ↓",
     installGlobally: 'Or install globally',
     installSkills: 'Recommended: Install skills',
     usageExamples: 'Usage examples',
-    starOnGitHub: 'Star on GitHub',
+    starOnGitHub: 'Star on GitHub ⭐️',
   },
   ja: {
     tryNow: '今すぐ試す — インストール不要',
-    liveDemo: '表示される画面',
+    liveDemo: '表示される画面 ↓',
     installGlobally: 'またはグローバルにインストール',
     installSkills: '推奨: skills をインストール',
     usageExamples: '使用例',
-    starOnGitHub: 'GitHubでスター',
+    starOnGitHub: 'GitHubでスター ⭐️',
   },
   ko: {
     tryNow: '지금 바로 사용해 보기 — 설치 불필요',
-    liveDemo: '표시되는 화면',
+    liveDemo: '표시되는 화면 ↓',
     installGlobally: '또는 전역 설치',
     installSkills: '권장: skills 설치',
     usageExamples: '사용 예시',
-    starOnGitHub: 'GitHub에서 스타',
+    starOnGitHub: 'GitHub에서 스타 ⭐️',
   },
   zh: {
     tryNow: '立即试用 — 无需安装',
-    liveDemo: '你会看到的画面',
+    liveDemo: '你会看到的画面 ↓',
     installGlobally: '或全局安装',
     installSkills: '推荐：安装 skills',
     usageExamples: '使用示例',
-    starOnGitHub: '在 GitHub 上加星',
+    starOnGitHub: '在 GitHub 上加星 ⭐️',
   },
 };
 

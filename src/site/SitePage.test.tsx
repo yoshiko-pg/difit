@@ -98,7 +98,8 @@ describe('SitePage', () => {
     expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
     expect(screen.getByText(/今すぐ試す/)).toBeInTheDocument();
     expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
-    expect(screen.getByText(/GitHubでスター/)).toBeInTheDocument();
+    expect(screen.getByText(/表示される画面 ↓/)).toBeInTheDocument();
+    expect(screen.getByText(/GitHubでスター ⭐️/)).toBeInTheDocument();
   });
 
   it('switches revision selector title by language without showing a description line', async () => {
