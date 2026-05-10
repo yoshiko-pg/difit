@@ -5,7 +5,6 @@ import SitePage from './SitePage';
 import type { StaticDiffManifest } from './types/staticDiff';
 
 const mockManifest: StaticDiffManifest = {
-  generatedAt: new Date().toISOString(),
   repository: 'difit-demo',
   initialRevisionId: 'abc1234...def5678',
   revisions: [
@@ -82,22 +81,24 @@ describe('SitePage', () => {
     render(<SitePage />);
 
     expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
-    expect(screen.getByText(/多様な入力対応/)).toBeInTheDocument();
+    expect(screen.getByText(/今すぐ試す/)).toBeInTheDocument();
     expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
   });
 
-  it('switches language in place for hero, features, and usage comments', () => {
+  it('switches language in place for hero and shell comments', () => {
     render(<SitePage />);
 
     expect(screen.getByText(/GitHub-style diff viewer for local git\./)).toBeInTheDocument();
-    expect(screen.getByText(/multi-source input/)).toBeInTheDocument();
+    expect(screen.getByText(/Try it now/)).toBeInTheDocument();
     expect(screen.getByText(/view single commit diff/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'JA' }));
 
     expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
-    expect(screen.getByText(/多様な入力対応/)).toBeInTheDocument();
+    expect(screen.getByText(/今すぐ試す/)).toBeInTheDocument();
     expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
+    expect(screen.getByText(/表示される画面 ↓/)).toBeInTheDocument();
+    expect(screen.getByText(/GitHubでスター ⭐️/)).toBeInTheDocument();
   });
 
   it('switches revision selector title by language without showing a description line', async () => {
@@ -151,14 +152,10 @@ describe('SitePage', () => {
     expect(chrome!).toHaveClass('sm:flex-row');
   });
 
-  it('switches feature content when a tab is clicked', () => {
+  it('does not render the removed feature tab window', () => {
     render(<SitePage />);
 
-    expect(screen.getByText(/multi-source input/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('tab', { name: '3:agents' }));
-
-    expect(screen.getByText(/AI agent bridge/)).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     expect(screen.queryByText(/multi-source input/)).not.toBeInTheDocument();
   });
 });

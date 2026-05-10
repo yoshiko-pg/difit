@@ -15,7 +15,6 @@ interface StaticRevision {
 }
 
 export interface StaticDiffManifest {
-  generatedAt: string;
   repository: string;
   initialRevisionId: string | null;
   revisions: StaticRevision[];

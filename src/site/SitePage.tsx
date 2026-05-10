@@ -16,12 +16,10 @@ import { Check, ChevronDown, Copy, GitBranch } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
-  FEATURE_KEYS,
-  FEATURES_HEADING,
-  FEATURE_TEXT,
   HERO_TEXT,
   LANGUAGE_OPTIONS,
   resolveSiteLanguage,
+  SHELL_COMMENT_TEXT,
   USAGE_COMMENT_TEXT,
   type SiteLanguage,
   type UsageCommentKey,
@@ -98,57 +96,6 @@ function Typewriter({ text, speed = 60 }: { text: string; speed?: number }) {
       {displayed}
       <span className={`landing-cursor ${done ? 'landing-cursor-blink' : ''}`}>_</span>
     </span>
-  );
-}
-
-/* ── Feature pane — terminal-like block ─────────────────── */
-function wrapFeatureDescription(desc: string, maxChars = 36) {
-  if (!desc.includes(' ')) {
-    return Array.from({ length: Math.ceil(desc.length / maxChars) }, (_, index) =>
-      desc.slice(index * maxChars, (index + 1) * maxChars),
-    ).filter((line) => line.length > 0);
-  }
-
-  const words = desc.split(' ');
-  const lines: string[] = [];
-  let current = '';
-
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length <= maxChars) {
-      current = candidate;
-      continue;
-    }
-
-    if (current) {
-      lines.push(current);
-      current = word;
-      continue;
-    }
-
-    lines.push(word);
-    current = '';
-  }
-
-  if (current) {
-    lines.push(current);
-  }
-
-  return lines;
-}
-
-function Feature({ label, desc }: { label: string; desc: string }) {
-  const lines = wrapFeatureDescription(desc);
-
-  return (
-    <div className="space-y-1">
-      <p className="text-cyan-400">&gt; {label}</p>
-      {lines.map((line, index) => (
-        <p key={`${line}-${index}`} className="text-github-text-secondary">
-          ... {line}
-        </p>
-      ))}
-    </div>
   );
 }
 
@@ -345,7 +292,6 @@ function SitePage() {
   const [datasetError, setDatasetError] = useState(false);
   const [loadingRevisions, setLoadingRevisions] = useState(true);
   const [language, setLanguage] = useState<SiteLanguage>(getInitialLanguage);
-  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
 
   useEffect(() => {
     let canceled = false;
@@ -397,14 +343,7 @@ function SitePage() {
   const hasRevisionSelector = revisions.length > 0 && !datasetError && !loadingRevisions;
   const browserAddress = 'http://localhost:4966';
   const heroText = HERO_TEXT[language];
-  const featureHighlights = FEATURE_KEYS.map((key) => FEATURE_TEXT[language][key]);
-  const resolvedFeatureIndex =
-    activeFeatureIndex < featureHighlights.length ? activeFeatureIndex : 0;
-  const activeFeature = featureHighlights[resolvedFeatureIndex] ?? {
-    tab: 'fallback',
-    label: '',
-    desc: '',
-  };
+  const shellCommentText = SHELL_COMMENT_TEXT[language];
   const usageCommentText = USAGE_COMMENT_TEXT[language];
 
   const usageExamples: UsageExample[] = [
@@ -470,36 +409,27 @@ function SitePage() {
 
   return (
     <div className="min-h-screen bg-github-bg-primary font-mono text-sm leading-relaxed text-github-text-primary">
-      <div className="fixed top-4 right-4 z-30 rounded-md border border-github-border/70 bg-github-bg-secondary/90 px-3 py-1.5 backdrop-blur-sm">
-        <div className="flex items-center text-xs">
-          {LANGUAGE_OPTIONS.map((option, index) => (
-            <div key={option.code} className="flex items-center">
-              {index > 0 ? (
-                <span className="px-1 text-github-text-muted/70 select-none" aria-hidden>
-                  |
-                </span>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setLanguage(option.code)}
-                aria-label={option.label}
-                aria-pressed={language === option.code}
-                className={`transition-colors ${
-                  language === option.code
-                    ? 'text-github-text-primary'
-                    : 'text-github-text-muted hover:text-github-text-secondary'
-                }`}
-              >
-                {option.label}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* narrow = terminal text sections, wide = iframe demo */}
       {/* ── ASCII logo / intro ─────────────────────────── */}
-      <section className="w-[90vw] max-w-[1000px] mx-auto pt-10 space-y-2">
+      <section className="relative w-[90vw] max-w-[1000px] mx-auto pt-10 space-y-2">
+        <div className="absolute right-0 top-10 z-10 flex flex-col items-end gap-1 text-xs sm:flex-row sm:items-center sm:gap-2">
+          {LANGUAGE_OPTIONS.map((option) => (
+            <button
+              key={option.code}
+              type="button"
+              onClick={() => setLanguage(option.code)}
+              aria-label={option.label}
+              aria-pressed={language === option.code}
+              className={`transition-colors ${
+                language === option.code
+                  ? 'text-github-text-primary'
+                  : 'text-github-text-muted hover:text-github-text-secondary'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
         <Prompt>
           <span className="text-github-text-primary">find</span>{' '}
           <span className="text-github-text-secondary">&quot;the best local review tool&quot;</span>
@@ -527,7 +457,7 @@ function SitePage() {
 
       {/* ── Quick start ──────────────────────────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
-        <Comment>Try it now — no install required</Comment>
+        <Comment>{shellCommentText.tryNow}</Comment>
         <div className="flex items-center gap-2">
           <Prompt>
             <span className="text-github-text-primary">cd</span>{' '}
@@ -561,7 +491,7 @@ function SitePage() {
 
       {/* ── Live demo ────────────────────────────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
-        <Comment>Here&apos;s what you&apos;ll see ↓</Comment>
+        <Comment>{shellCommentText.liveDemo}</Comment>
       </section>
       <div className="w-[90vw] mx-auto mt-3">
         <div className="rounded-xl overflow-hidden border border-[#d1d5db] shadow-lg">
@@ -605,7 +535,7 @@ function SitePage() {
 
       {/* ── Install ──────────────────────────────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
-        <Comment>Or install globally</Comment>
+        <Comment>{shellCommentText.installGlobally}</Comment>
         <div className="flex items-center gap-2">
           <Prompt>
             <span className="text-github-text-primary">npm</span> install -g{' '}
@@ -616,7 +546,7 @@ function SitePage() {
       </section>
 
       <section className="w-[90vw] max-w-[1000px] mx-auto mt-6 space-y-2">
-        <Comment>Recommended: Install skills</Comment>
+        <Comment>{shellCommentText.installSkills}</Comment>
         <div className="flex items-center gap-2">
           <Prompt>
             <span className="text-github-text-primary">npx skills add </span>
@@ -626,57 +556,11 @@ function SitePage() {
         </div>
       </section>
 
-      {/* ── Features as --help output ────────────────── */}
-      <section className="w-full max-w-[92vw] md:max-w-[clamp(0px,70vw,1100px)] mx-auto my-6 space-y-2">
-        <Stdout>
-          <div className="mt-1 border border-github-border rounded-md bg-github-bg-secondary/30 overflow-hidden">
-            <div className="border-b border-github-border bg-[#343a42]/70">
-              <div className="overflow-x-auto">
-                <div
-                  className="flex min-w-max text-[11px] leading-none"
-                  role="tablist"
-                  aria-label={FEATURES_HEADING[language]}
-                >
-                  {featureHighlights.map((feature, index) => (
-                    <button
-                      key={feature.tab}
-                      type="button"
-                      role="tab"
-                      id={`feature-tab-${index}`}
-                      aria-selected={resolvedFeatureIndex === index}
-                      aria-controls={`feature-panel-${index}`}
-                      onClick={() => setActiveFeatureIndex(index)}
-                      className={[
-                        'px-3 py-2 border-r border-github-border whitespace-nowrap',
-                        resolvedFeatureIndex === index
-                          ? 'text-[#ff7b1a] bg-github-bg-secondary/40'
-                          : 'text-github-text-muted/75 bg-transparent',
-                      ].join(' ')}
-                    >
-                      {`${index + 1}:${feature.tab}${resolvedFeatureIndex === index ? '*' : ''}`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div
-              id={`feature-panel-${resolvedFeatureIndex}`}
-              role="tabpanel"
-              aria-labelledby={`feature-tab-${resolvedFeatureIndex}`}
-              className="px-4 sm:px-5 py-3"
-            >
-              <p className="text-github-text-muted/80 text-[11px] mb-1">
-                {`[${String(resolvedFeatureIndex + 1).padStart(2, '0')}]`}
-              </p>
-              <Feature label={activeFeature.label} desc={activeFeature.desc} />
-            </div>
-          </div>
-        </Stdout>
-      </section>
+      <hr className="w-[90vw] max-w-[1000px] mx-auto border-github-border my-6" />
 
       {/* ── Usage examples as actual commands ────────── */}
       <section className="w-[90vw] max-w-[1000px] mx-auto space-y-2">
-        <Comment>Usage examples</Comment>
+        <Comment>{shellCommentText.usageExamples}</Comment>
         <div className="space-y-3 mt-1">
           {usageExamples.map((entry) =>
             entry.type === 'heading' ? (
@@ -717,7 +601,7 @@ function SitePage() {
           >
             https://github.com/yoshiko-pg/difit
           </a>
-          <span className="text-github-text-muted ml-3"># Star on GitHub ⭐️</span>
+          <span className="text-github-text-muted ml-3"># {shellCommentText.starOnGitHub}</span>
         </Prompt>
       </section>
 
