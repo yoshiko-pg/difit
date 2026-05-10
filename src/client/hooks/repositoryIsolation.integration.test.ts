@@ -8,6 +8,7 @@ import { useViewedFiles } from './useViewedFiles';
 const mockStorage = new Map<string, any>();
 
 vi.mock('../services/StorageService', () => ({
+  VIEWED_HASH_VERSION: 1,
   storageService: {
     getCommentThreads: vi.fn((base, target, _hash, _branch, repoId) => {
       const key = `${repoId || 'default'}-${base}-${target}-threads`;
@@ -32,6 +33,56 @@ vi.mock('../services/StorageService', () => ({
     saveViewedFiles: vi.fn((base, target, files, _hash, _branch, repoId) => {
       const key = `${repoId || 'default'}-${base}-${target}-viewed`;
       mockStorage.set(key, files);
+    }),
+    getViewedHashIndex: vi.fn((repoId) => {
+      const key = `${repoId || 'default'}-viewed-hash-index`;
+      return (
+        mockStorage.get(key) || {
+          version: 1,
+          lastModifiedAt: new Date(0).toISOString(),
+          entries: [],
+        }
+      );
+    }),
+    recordViewedHashes: vi.fn((repoId, entries) => {
+      const key = `${repoId || 'default'}-viewed-hash-index`;
+      const existing = mockStorage.get(key) || {
+        version: 1,
+        lastModifiedAt: new Date(0).toISOString(),
+        entries: [],
+      };
+      const compositeKey = (e: { filePath: string; diffContentHash: string }) =>
+        `${e.filePath} ${e.diffContentHash}`;
+      const byKey = new Map(
+        existing.entries.map((entry: { filePath: string; diffContentHash: string }) => [
+          compositeKey(entry),
+          entry,
+        ]),
+      );
+      for (const entry of entries) byKey.set(compositeKey(entry), entry);
+      mockStorage.set(key, {
+        version: 1,
+        lastModifiedAt: new Date().toISOString(),
+        entries: Array.from(byKey.values()),
+      });
+    }),
+    removeViewedHashes: vi.fn(
+      (repoId, entries: Array<{ filePath: string; diffContentHash: string }>) => {
+        const key = `${repoId || 'default'}-viewed-hash-index`;
+        const existing = mockStorage.get(key);
+        if (!existing) return;
+        const drop = new Set(entries.map((e) => `${e.filePath} ${e.diffContentHash}`));
+        mockStorage.set(key, {
+          ...existing,
+          entries: existing.entries.filter(
+            (entry: { filePath: string; diffContentHash: string }) =>
+              !drop.has(`${entry.filePath} ${entry.diffContentHash}`),
+          ),
+        });
+      },
+    ),
+    clearViewedHashIndex: vi.fn((repoId) => {
+      mockStorage.delete(`${repoId || 'default'}-viewed-hash-index`);
     }),
     getDiffContextData: vi.fn(() => null),
     saveDiffContextData: vi.fn(),

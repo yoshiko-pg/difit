@@ -50,6 +50,7 @@ let mockHasLoadedInitialViewedFiles = true;
 vi.mock('./hooks/useViewedFiles', () => ({
   useViewedFiles: vi.fn(() => ({
     viewedFiles: mockViewedFiles,
+    changedSinceViewedFiles: new Set<string>(),
     hasLoadedInitialViewedFiles: mockHasLoadedInitialViewedFiles,
     toggleFileViewed: mockToggleFileViewed,
     isFileContentChanged: vi.fn(),

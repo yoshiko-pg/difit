@@ -5,10 +5,20 @@ import {
   type DiffContextStorage,
   type LegacyDiffContextStorage,
   type LegacyDiffComment,
+  type ViewedHashIndex,
+  type ViewedHashIndexEntry,
 } from '../../types/diff';
 import { normalizeBaseMode } from '../../utils/diffSelection';
 
 const STORAGE_KEY_PREFIX = 'difit-storage-v1';
+const VIEWED_INDEX_PREFIX = 'difit-viewed-index-v1';
+const DEFAULT_REPO_ID = '__default__';
+const MAX_VIEWED_INDEX_ENTRIES = 5000;
+export const VIEWED_HASH_VERSION = 1;
+
+function compositeKey(filePath: string, diffContentHash: string): string {
+  return `${filePath} ${diffContentHash}`;
+}
 
 function migrateLegacyComment(comment: LegacyDiffComment): DiffCommentThread {
   return {
@@ -453,6 +463,117 @@ export class StorageService {
   }
 
   /**
+   * Get the localStorage key for the per-repository viewed-hash index.
+   */
+  private getViewedHashIndexKey(repositoryId: string | undefined): string {
+    return `${VIEWED_INDEX_PREFIX}/${repositoryId ?? DEFAULT_REPO_ID}`;
+  }
+
+  /**
+   * Get the per-repository index of viewed-hash entries keyed by
+   * `(filePath, diffContentHash)`. Multiple hashes may exist per filePath so
+   * that the same file can keep independent viewed state across different
+   * comparison ranges (e.g. PR A vs PR B that both touch the same file with
+   * different diffs).
+   */
+  getViewedHashIndex(repositoryId?: string): ViewedHashIndex {
+    const empty: ViewedHashIndex = {
+      version: 1,
+      lastModifiedAt: new Date(0).toISOString(),
+      entries: [],
+    };
+    try {
+      const raw = localStorage.getItem(this.getViewedHashIndexKey(repositoryId));
+      if (!raw) return empty;
+      const parsed = JSON.parse(raw) as ViewedHashIndex;
+      if (parsed.version !== 1 || !Array.isArray(parsed.entries)) return empty;
+      return parsed;
+    } catch (error) {
+      console.error('Error reading viewed hash index:', error);
+      return empty;
+    }
+  }
+
+  private writeViewedHashIndex(repositoryId: string | undefined, index: ViewedHashIndex): void {
+    try {
+      localStorage.setItem(
+        this.getViewedHashIndexKey(repositoryId),
+        JSON.stringify({ ...index, lastModifiedAt: new Date().toISOString() }),
+      );
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.error('localStorage quota exceeded while writing viewed hash index');
+      } else {
+        console.error('Error saving viewed hash index:', error);
+      }
+    }
+  }
+
+  /**
+   * Upsert entries into the per-repository viewed-hash index, then trim the
+   * oldest entries (by viewedAt) once the cap is exceeded.
+   */
+  recordViewedHashes(repositoryId: string | undefined, entries: ViewedHashIndexEntry[]): void {
+    if (entries.length === 0) return;
+    const index = this.getViewedHashIndex(repositoryId);
+    const byKey = new Map(
+      index.entries.map((entry) => [compositeKey(entry.filePath, entry.diffContentHash), entry]),
+    );
+    for (const entry of entries) {
+      byKey.set(compositeKey(entry.filePath, entry.diffContentHash), entry);
+    }
+
+    let next = Array.from(byKey.values());
+    if (next.length > MAX_VIEWED_INDEX_ENTRIES) {
+      next.sort((a, b) => (a.viewedAt < b.viewedAt ? 1 : -1));
+      next = next.slice(0, MAX_VIEWED_INDEX_ENTRIES);
+    }
+
+    this.writeViewedHashIndex(repositoryId, {
+      version: 1,
+      lastModifiedAt: index.lastModifiedAt,
+      entries: next,
+    });
+  }
+
+  /**
+   * Remove specific `(filePath, diffContentHash)` entries from the per-repository
+   * viewed-hash index. Only the matching entry is dropped, so a file viewed in
+   * other comparison ranges retains its hash entries.
+   */
+  removeViewedHashes(
+    repositoryId: string | undefined,
+    entries: Array<{ filePath: string; diffContentHash: string }>,
+  ): void {
+    if (entries.length === 0) return;
+    const index = this.getViewedHashIndex(repositoryId);
+    const drop = new Set(
+      entries.map((entry) => compositeKey(entry.filePath, entry.diffContentHash)),
+    );
+    const next = index.entries.filter(
+      (entry) => !drop.has(compositeKey(entry.filePath, entry.diffContentHash)),
+    );
+    if (next.length === index.entries.length) return;
+
+    this.writeViewedHashIndex(repositoryId, {
+      version: 1,
+      lastModifiedAt: index.lastModifiedAt,
+      entries: next,
+    });
+  }
+
+  /**
+   * Drop the entire per-repository viewed-hash index.
+   */
+  clearViewedHashIndex(repositoryId?: string): void {
+    try {
+      localStorage.removeItem(this.getViewedHashIndexKey(repositoryId));
+    } catch (error) {
+      console.error('Error clearing viewed hash index:', error);
+    }
+  }
+
+  /**
    * Clean up old data based on days to keep
    */
   cleanupOldData(daysToKeep: number): void {
@@ -464,16 +585,22 @@ export class StorageService {
 
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key?.startsWith(STORAGE_KEY_PREFIX)) continue;
+      if (!key) continue;
+
+      const isContextKey = key.startsWith(STORAGE_KEY_PREFIX);
+      const isIndexKey = key.startsWith(VIEWED_INDEX_PREFIX);
+      if (!isContextKey && !isIndexKey) continue;
 
       try {
         const data = localStorage.getItem(key);
         if (!data) continue;
 
-        const parsed = JSON.parse(data) as DiffContextStorage;
-        const lastModified = new Date(parsed.lastModifiedAt).getTime();
+        const parsed = JSON.parse(data) as { lastModifiedAt?: string };
+        const lastModifiedRaw = parsed.lastModifiedAt;
+        if (!lastModifiedRaw) continue;
 
-        if (lastModified < cutoffTime) {
+        const lastModified = new Date(lastModifiedRaw).getTime();
+        if (Number.isFinite(lastModified) && lastModified < cutoffTime) {
           keysToRemove.push(key);
         }
       } catch {
@@ -493,7 +620,8 @@ export class StorageService {
 
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key?.startsWith(STORAGE_KEY_PREFIX)) continue;
+      if (!key) continue;
+      if (!key.startsWith(STORAGE_KEY_PREFIX) && !key.startsWith(VIEWED_INDEX_PREFIX)) continue;
 
       const value = localStorage.getItem(key);
       if (value) {

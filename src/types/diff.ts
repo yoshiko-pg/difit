@@ -164,6 +164,19 @@ export interface ViewedFileRecord {
   diffContentHash: string; // SHA-256 hash
 }
 
+export interface ViewedHashIndexEntry {
+  filePath: string;
+  diffContentHash: string;
+  hashVersion: 1;
+  viewedAt: string; // ISO 8601 format
+}
+
+export interface ViewedHashIndex {
+  version: 1;
+  lastModifiedAt: string; // ISO 8601 format
+  entries: ViewedHashIndexEntry[];
+}
+
 export interface LegacyDiffContextStorage {
   version: 1; // Schema version
   baseCommitish: string;

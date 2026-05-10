@@ -273,17 +273,22 @@ function App() {
   );
 
   // Viewed files management
-  const { viewedFiles, hasLoadedInitialViewedFiles, toggleFileViewed, clearViewedFiles } =
-    useViewedFiles(
-      resolvedSelection?.baseCommitish,
-      resolvedSelection?.targetCommitish,
-      diffData?.commit,
-      undefined,
-      diffData?.files,
-      diffData?.repositoryId, // Repository identifier for storage isolation
-      settings.autoViewedPatterns,
-      resolvedSelection?.baseMode,
-    );
+  const {
+    viewedFiles,
+    changedSinceViewedFiles,
+    hasLoadedInitialViewedFiles,
+    toggleFileViewed,
+    clearViewedFiles,
+  } = useViewedFiles(
+    resolvedSelection?.baseCommitish,
+    resolvedSelection?.targetCommitish,
+    diffData?.commit,
+    undefined,
+    diffData?.files,
+    diffData?.repositoryId, // Repository identifier for storage isolation
+    settings.autoViewedPatterns,
+    resolvedSelection?.baseMode,
+  );
 
   // Reset initialization flag when diff context changes
   useEffect(() => {
@@ -1214,6 +1219,7 @@ function App() {
                   onFileSelected={isMobile ? handleMobileFileSelected : undefined}
                   comments={normalizedThreads}
                   reviewedFiles={viewedFiles}
+                  changedSinceViewedFiles={changedSinceViewedFiles}
                   onToggleReviewed={toggleFileReviewed}
                   selectedFileIndex={cursor?.fileIndex ?? null}
                 />
