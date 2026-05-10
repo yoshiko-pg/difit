@@ -186,7 +186,9 @@ describe('DiffViewer', () => {
     it('shows the changed-since-viewed indicator in the file header', () => {
       render(<DiffViewer {...defaultProps} isChangedSinceViewed />);
 
-      expect(screen.getByLabelText('Changed since you last viewed this file')).toBeInTheDocument();
+      const indicator = screen.getByLabelText('Changed since you last viewed this file');
+      expect(indicator).toBeInTheDocument();
+      expect(indicator).toHaveTextContent('Changed');
     });
 
     it('hides the changed-since-viewed indicator when the file is reviewed', () => {

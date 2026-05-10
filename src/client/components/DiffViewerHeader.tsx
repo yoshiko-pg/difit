@@ -104,11 +104,11 @@ export const DiffViewerHeader = ({
       <div className="flex items-center gap-3">
         {isChangedSinceViewed && !isReviewed && (
           <span
-            className="flex items-center"
+            className="inline-flex h-6 items-center rounded-full border border-github-warning px-2.5 text-xs font-medium text-github-warning"
             title="Changed since you last viewed this file"
             aria-label="Changed since you last viewed this file"
           >
-            <span className="block w-2 h-2 rounded-full bg-github-warning" />
+            Changed
           </span>
         )}
         <div className="flex items-center gap-2 text-xs">
