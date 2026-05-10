@@ -57,7 +57,6 @@ describe('CLI Utils', () => {
           commitish: '-',
           hasPositionalArgs: true,
           hasPrOption: true,
-          hasTuiOption: true,
           stdinSource: 'tty',
         }),
       ).toBe(true);
@@ -69,7 +68,6 @@ describe('CLI Utils', () => {
           commitish: '.',
           hasPositionalArgs: true,
           hasPrOption: false,
-          hasTuiOption: false,
           stdinSource: 'pipe',
         }),
       ).toBe(false);
@@ -81,19 +79,6 @@ describe('CLI Utils', () => {
           commitish: 'HEAD',
           hasPositionalArgs: false,
           hasPrOption: true,
-          hasTuiOption: false,
-          stdinSource: 'pipe',
-        }),
-      ).toBe(false);
-    });
-
-    it('does not read stdin when --tui is specified', () => {
-      expect(
-        shouldReadStdin({
-          commitish: 'HEAD',
-          hasPositionalArgs: false,
-          hasPrOption: false,
-          hasTuiOption: true,
           stdinSource: 'pipe',
         }),
       ).toBe(false);
@@ -105,7 +90,6 @@ describe('CLI Utils', () => {
           commitish: 'HEAD',
           hasPositionalArgs: false,
           hasPrOption: false,
-          hasTuiOption: false,
           stdinSource: 'pipe',
         }),
       ).toBe(true);
@@ -115,7 +99,6 @@ describe('CLI Utils', () => {
           commitish: 'HEAD',
           hasPositionalArgs: false,
           hasPrOption: false,
-          hasTuiOption: false,
           stdinSource: 'file',
         }),
       ).toBe(true);
@@ -125,7 +108,6 @@ describe('CLI Utils', () => {
           commitish: 'HEAD',
           hasPositionalArgs: false,
           hasPrOption: false,
-          hasTuiOption: false,
           stdinSource: 'socket',
         }),
       ).toBe(true);
@@ -137,7 +119,6 @@ describe('CLI Utils', () => {
           commitish: 'HEAD',
           hasPositionalArgs: false,
           hasPrOption: false,
-          hasTuiOption: false,
           stdinSource: 'tty',
         }),
       ).toBe(false);

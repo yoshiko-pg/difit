@@ -23,9 +23,6 @@ importers:
       express:
         specifier: ^5.1.0
         version: 5.2.1
-      ink:
-        specifier: ^7.0.0
-        version: 7.0.1(@types/react@19.2.14)(react@19.2.5)
       lucide-react:
         specifier: ^1.0.0
         version: 1.8.0(react@19.2.5)

@@ -31,7 +31,6 @@ interface ShouldReadStdinOptions {
   commitish: string;
   hasPositionalArgs: boolean;
   hasPrOption: boolean;
-  hasTuiOption: boolean;
   stdinSource?: StdinSource;
 }
 
@@ -40,7 +39,7 @@ export function shouldReadStdin(options: ShouldReadStdinOptions): boolean {
     return true;
   }
 
-  if (options.hasPositionalArgs || options.hasPrOption || options.hasTuiOption) {
+  if (options.hasPositionalArgs || options.hasPrOption) {
     return false;
   }
 
@@ -246,24 +245,6 @@ export async function promptUser(message: string): Promise<boolean> {
   // Empty string (Enter) or 'y', 'yes' return true
   const trimmed = answer.trim().toLowerCase();
   return trimmed === '' || ['y', 'yes'].includes(trimmed);
-}
-
-export async function waitForEnter(message: string): Promise<void> {
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  try {
-    while (true) {
-      const answer = await rl.question(message);
-      if (answer.trim() === '') {
-        return;
-      }
-    }
-  } finally {
-    rl.close();
-  }
 }
 
 export async function readStdin(): Promise<string> {

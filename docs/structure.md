@@ -6,7 +6,7 @@ difit is a CLI tool that displays Git diffs in a GitHub-like web interface. The 
 
 1. CLI entry point that handles command-line arguments
 2. Server component that provides APIs and serves the web interface
-3. Client web application (Web/TUI)
+3. Client web application
 
 ## Directory Structure
 
@@ -21,8 +21,6 @@ src/
 │   └── git-diff.ts   # Git operations and diff parsing
 ├── client/           # React web application
 │   └── ...          # UI components
-├── tui/              # Terminal UI alternative
-│   └── App.tsx      # TUI application
 └── types/            # Shared TypeScript types
     └── diff.ts      # Diff-related type definitions
 ```
@@ -53,7 +51,6 @@ difit [commit-ish] [compare-with]
 | `--host <host>` | Host address to bind                       | 127.0.0.1 |
 | `--no-open`     | Do not automatically open browser          | false     |
 | `--mode <mode>` | Diff display mode (split or unified)       | split     |
-| `--tui`         | Use terminal UI instead of web interface   | false     |
 | `--pr <url>`    | Review GitHub PR by URL                    | -         |
 
 ### Special Arguments Behavior
@@ -136,7 +133,7 @@ difit [commit-ish] [compare-with]
 - **simple-git**: Git command wrapper
 - **express**: Web server framework
 - **@octokit/rest**: GitHub API client
-- **react/ink**: UI frameworks (web/terminal)
+- **react**: UI framework
 
 ### Development Tools
 

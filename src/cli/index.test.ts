@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { DiffMode } from '../types/watch.js';
@@ -151,7 +150,6 @@ describe('CLI index.ts', () => {
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--merge-base', 'merge-base')
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           // Simulate the logic from index.ts
@@ -263,7 +261,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--merge-base', 'merge-base')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
@@ -376,13 +373,11 @@ describe('CLI index.ts', () => {
         .argument('[commit-ish]', 'commit-ish', 'HEAD')
         .argument('[compare-with]', 'compare-with')
         .option('--context <lines>', 'context', parseInt)
-        .option('--tui', 'tui')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const readFromStdin = shouldReadStdin({
             commitish,
             hasPositionalArgs: program.args.length > 0,
             hasPrOption: false,
-            hasTuiOption: Boolean(options.tui),
           });
 
           if (readFromStdin && options.context !== undefined) {
@@ -446,13 +441,11 @@ describe('CLI index.ts', () => {
         .argument('[commit-ish]', 'commit-ish', 'HEAD')
         .argument('[compare-with]', 'compare-with')
         .option('--merge-base', 'merge-base')
-        .option('--tui', 'tui')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const readFromStdin = shouldReadStdin({
             commitish,
             hasPositionalArgs: program.args.length > 0,
             hasPrOption: false,
-            hasTuiOption: Boolean(options.tui),
           });
 
           if (readFromStdin && options.mergeBase) {
@@ -575,7 +568,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (commitish === 'working' || commitish === '.') {
@@ -610,7 +602,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (commitish === 'working' || commitish === '.') {
@@ -646,7 +637,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--include-untracked', 'include untracked')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -687,7 +677,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--include-untracked', 'include untracked')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -760,7 +749,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const manualCommentImports = actualParseCommentOptions(options.comment);
@@ -842,7 +830,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const manualCommentImports = actualParseCommentOptions(options.comment);
@@ -898,7 +885,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (options.pr) {
@@ -917,40 +903,6 @@ describe('CLI index.ts', () => {
         'Error: --pr option cannot be used with positional arguments',
       );
       expect(process.exit).toHaveBeenCalledWith(1);
-    });
-
-    it('rejects PR option with --tui', async () => {
-      const prUrl = 'https://github.com/owner/repo/pull/123';
-
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .argument('[compare-with]', 'compare-with')
-        .option('--port <port>', 'port', parseInt)
-        .option('--host <host>', 'host', '')
-        .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
-        .option('--pr <url>', 'pr')
-        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          if (options.pr) {
-            if (commitish !== 'HEAD' || _compareWith) {
-              console.error('Error: --pr option cannot be used with positional arguments');
-              process.exit(1);
-            }
-            if (options.tui) {
-              console.error('Error: --pr option cannot be used with --tui');
-              process.exit(1);
-            }
-          }
-        });
-
-      await program.parseAsync(['--pr', prUrl, '--tui'], { from: 'user' });
-
-      expect(console.error).toHaveBeenCalledWith('Error: --pr option cannot be used with --tui');
-      expect(process.exit).toHaveBeenCalledWith(1);
-      expect(mockStartServer).not.toHaveBeenCalled();
     });
   });
 
@@ -1012,41 +964,6 @@ describe('CLI index.ts', () => {
       });
     });
 
-    it('rejects --comment with --tui', async () => {
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .option(
-          '--comment <json>',
-          'comment',
-          (value: string, previous: string[]) => [...previous, value],
-          [],
-        )
-        .option('--tui', 'tui')
-        .action(async (_commitish: string, options: any) => {
-          const commentImports = actualParseCommentOptions(options.comment);
-          if (options.tui && commentImports.length > 0) {
-            console.error('Error: --comment option cannot be used with --tui');
-            process.exit(1);
-          }
-        });
-
-      await program.parseAsync(
-        [
-          '--tui',
-          '--comment',
-          '{"type":"thread","filePath":"src/example.ts","position":{"side":"new","line":10},"body":"Imported comment"}',
-        ],
-        { from: 'user' },
-      );
-
-      expect(console.error).toHaveBeenCalledWith(
-        'Error: --comment option cannot be used with --tui',
-      );
-      expect(process.exit).toHaveBeenCalledWith(1);
-    });
-
     it('reports invalid comment json before starting the server', async () => {
       const program = new Command();
 
@@ -1095,7 +1012,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -1145,7 +1061,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -1197,7 +1112,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .option('--keep-alive', 'keep server running even after browser disconnects')
@@ -1249,7 +1163,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .option('--keep-alive', 'keep server running even after browser disconnects')
@@ -1303,7 +1216,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url, isEmpty } = await startServer({
@@ -1352,7 +1264,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url, isEmpty } = await startServer({
@@ -1396,7 +1307,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           await startServer({
@@ -1429,7 +1339,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           await startServer({
@@ -1448,246 +1357,6 @@ describe('CLI index.ts', () => {
           mode: 'split',
         }),
       );
-    });
-  });
-
-  describe('TUI mode', () => {
-    let mockRender: any;
-    let mockTuiApp: any;
-
-    const expectRenderedTuiProps = (props: Record<string, unknown>) => {
-      expect(mockRender).toHaveBeenCalledTimes(1);
-      expect(mockRender).toHaveBeenCalledWith({
-        component: mockTuiApp,
-        props,
-      });
-    };
-
-    beforeEach(() => {
-      mockRender = vi.fn();
-      mockTuiApp = vi.fn();
-
-      // Mock React.createElement for testing
-      vi.spyOn(React, 'createElement').mockImplementation(
-        (component, props) => ({ component, props }) as any,
-      );
-
-      // Mock process.stdin.isTTY
-      Object.defineProperty(process.stdin, 'isTTY', {
-        value: true,
-        configurable: true,
-      });
-    });
-
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
-
-    it('passes arguments to TUI app correctly', async () => {
-      mockFindUntrackedFiles.mockResolvedValue([]);
-
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .argument('[compare-with]', 'compare-with')
-        .option('--port <port>', 'port', parseInt)
-        .option('--host <host>', 'host', '')
-        .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
-        .option('--pr <url>', 'pr')
-        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          if (options.tui) {
-            if (!process.stdin.isTTY) {
-              console.error('Error: TUI mode requires an interactive terminal (TTY).');
-              process.exit(1);
-            }
-
-            const render = mockRender;
-            const TuiApp = mockTuiApp;
-
-            render(
-              React.createElement(TuiApp, {
-                selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
-                mode: options.mode,
-              }),
-            );
-          }
-        });
-
-      await program.parseAsync(['main', '--tui'], { from: 'user' });
-
-      expectRenderedTuiProps({
-        selection: { targetCommitish: 'main', baseCommitish: 'main^' },
-        mode: 'split',
-      });
-    });
-
-    it('passes context option to TUI app', async () => {
-      mockFindUntrackedFiles.mockResolvedValue([]);
-
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .argument('[compare-with]', 'compare-with')
-        .option('--port <port>', 'port', parseInt)
-        .option('--host <host>', 'host', '')
-        .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--context <lines>', 'context', parseInt)
-        .option('--tui', 'tui')
-        .option('--pr <url>', 'pr')
-        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          if (options.tui) {
-            const render = mockRender;
-            const TuiApp = mockTuiApp;
-
-            render(
-              React.createElement(TuiApp, {
-                selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
-                mode: options.mode,
-                contextLines: options.context,
-              }),
-            );
-          }
-        });
-
-      await program.parseAsync(['--tui', '--context', '2'], { from: 'user' });
-
-      expectRenderedTuiProps({
-        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
-        mode: 'split',
-        contextLines: 2,
-      });
-    });
-
-    it('passes mode option to TUI app', async () => {
-      mockFindUntrackedFiles.mockResolvedValue([]);
-
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .argument('[compare-with]', 'compare-with')
-        .option('--port <port>', 'port', parseInt)
-        .option('--host <host>', 'host', '')
-        .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
-        .option('--pr <url>', 'pr')
-        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          if (options.tui) {
-            if (!process.stdin.isTTY) {
-              console.error('Error: TUI mode requires an interactive terminal (TTY).');
-              process.exit(1);
-            }
-
-            const render = mockRender;
-            const TuiApp = mockTuiApp;
-
-            render(
-              React.createElement(TuiApp, {
-                selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
-                mode: options.mode,
-              }),
-            );
-          }
-        });
-
-      await program.parseAsync(['--tui', '--mode', 'unified'], { from: 'user' });
-
-      expectRenderedTuiProps({
-        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
-        mode: 'unified',
-      });
-    });
-
-    it('handles special arguments with TUI mode', async () => {
-      mockFindUntrackedFiles.mockResolvedValue([]);
-
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .argument('[compare-with]', 'compare-with')
-        .option('--port <port>', 'port', parseInt)
-        .option('--host <host>', 'host', '')
-        .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
-        .option('--pr <url>', 'pr')
-        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          if (options.tui) {
-            const render = mockRender;
-            const TuiApp = mockTuiApp;
-
-            let targetCommitish = commitish;
-            let baseCommitish: string;
-
-            if (commitish === 'working') {
-              baseCommitish = 'staged';
-            } else if (commitish === 'staged' || commitish === '.') {
-              baseCommitish = 'HEAD';
-            } else {
-              baseCommitish = commitish + '^';
-            }
-
-            render(
-              React.createElement(TuiApp, {
-                selection: { targetCommitish, baseCommitish },
-                mode: options.mode,
-              }),
-            );
-          }
-        });
-
-      await program.parseAsync(['working', '--tui', '--mode', 'unified'], { from: 'user' });
-
-      expectRenderedTuiProps({
-        selection: { targetCommitish: 'working', baseCommitish: 'staged' },
-        mode: 'unified',
-      });
-    });
-
-    it('rejects TUI mode in non-TTY environment', async () => {
-      // Mock non-TTY environment
-      Object.defineProperty(process.stdin, 'isTTY', {
-        value: false,
-        configurable: true,
-      });
-
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .argument('[compare-with]', 'compare-with')
-        .option('--port <port>', 'port', parseInt)
-        .option('--host <host>', 'host', '')
-        .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
-        .option('--pr <url>', 'pr')
-        .action(async (_commitish: string, _compareWith: string | undefined, options: any) => {
-          if (options.tui) {
-            if (!process.stdin.isTTY) {
-              console.error('Error: TUI mode requires an interactive terminal (TTY).');
-              console.error('Try running the command directly in your terminal without piping.');
-              process.exit(1);
-            }
-          }
-        });
-
-      await program.parseAsync(['--tui'], { from: 'user' });
-
-      expect(console.error).toHaveBeenCalledWith(
-        'Error: TUI mode requires an interactive terminal (TTY).',
-      );
-      expect(console.error).toHaveBeenCalledWith(
-        'Try running the command directly in your terminal without piping.',
-      );
-      expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
 
@@ -1738,7 +1407,6 @@ describe('CLI index.ts', () => {
           .option('--host <host>', 'host', '')
           .option('--no-open', 'no-open')
           .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-          .option('--tui', 'tui')
           .option('--pr <url>', 'pr')
           .action(async (commitish: string, compareWith: string | undefined, options: any) => {
             // Simulate determineDiffMode function behavior
@@ -1790,7 +1458,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, compareWith: string | undefined, options: any) => {
           // Simulate determineDiffMode function behavior
@@ -1842,7 +1509,6 @@ describe('CLI index.ts', () => {
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
         .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--tui', 'tui')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, compareWith: string | undefined, options: any) => {
           // Simulate determineDiffMode function behavior with the fix
