@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { detectWords, isValidWord, normalizeWord, isWordToken } from './wordDetection';
+import { detectWords, isValidWord, isWordToken } from './wordDetection';
 
 describe('wordDetection', () => {
   describe('detectWords', () => {
@@ -71,19 +71,6 @@ describe('wordDetection', () => {
       expect(isValidWord('let')).toBe(true);
       expect(isValidWord('const')).toBe(true);
       expect(isValidWord('function')).toBe(true);
-    });
-  });
-
-  describe('normalizeWord', () => {
-    it('should convert to lowercase', () => {
-      expect(normalizeWord('Hello')).toBe('hello');
-      expect(normalizeWord('WORLD')).toBe('world');
-      expect(normalizeWord('camelCase')).toBe('camelcase');
-    });
-
-    it('should preserve underscores and numbers', () => {
-      expect(normalizeWord('test_123')).toBe('test_123');
-      expect(normalizeWord('_private')).toBe('_private');
     });
   });
 

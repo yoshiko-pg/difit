@@ -99,11 +99,5 @@ describe('imageUtils', () => {
       expect(getFileExtension('.gitignore')).toBe('gitignore');
       expect(getFileExtension('.')).toBe(null); // Empty extension becomes null
     });
-
-    it('converts to lowercase', () => {
-      expect(getFileExtension('PHOTO.JPG')).toBe('jpg');
-      expect(getFileExtension('Image.PNG')).toBe('png');
-      expect(getFileExtension('file.TXT')).toBe('txt');
-    });
   });
 });

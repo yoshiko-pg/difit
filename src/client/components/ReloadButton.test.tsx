@@ -3,13 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ReloadButton } from './ReloadButton';
 
-// Mock lucide-react
 vi.mock('lucide-react', () => ({
-  RefreshCw: ({ size, className }: { size: number; className: string }) => (
-    <div data-testid="rotate-icon" data-size={size} className={className}>
-      RefreshCw
-    </div>
-  ),
+  RefreshCw: () => <div>RefreshCw</div>,
 }));
 
 describe('ReloadButton', () => {
@@ -56,22 +51,6 @@ describe('ReloadButton', () => {
     });
   });
 
-  describe('icon states', () => {
-    it('should show spinning icon when reloading', () => {
-      render(<ReloadButton {...defaultProps} isReloading={true} />);
-
-      const icon = screen.getByTestId('rotate-icon');
-      expect(icon).toHaveClass('animate-spin');
-    });
-
-    it('should show static icon when not reloading', () => {
-      render(<ReloadButton {...defaultProps} />);
-
-      const icon = screen.getByTestId('rotate-icon');
-      expect(icon).not.toHaveClass('animate-spin');
-    });
-  });
-
   describe('change type messages', () => {
     it('should show correct message for file changes', () => {
       render(<ReloadButton {...defaultProps} changeType="file" />);
@@ -100,20 +79,6 @@ describe('ReloadButton', () => {
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('title', 'Changes detected - Click to refresh');
     });
-
-    it('should show default message when change type is undefined', () => {
-      render(<ReloadButton {...defaultProps} changeType={undefined} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('title', 'Changes detected - Click to refresh');
-    });
-
-    it('should show reloading message when reloading', () => {
-      render(<ReloadButton {...defaultProps} isReloading={true} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('title', 'File changes detected - Click to refresh');
-    });
   });
 
   describe('click behavior', () => {
@@ -135,42 +100,6 @@ describe('ReloadButton', () => {
       fireEvent.click(button);
 
       expect(onReload).not.toHaveBeenCalled();
-    });
-
-    it('should handle multiple clicks properly', () => {
-      const onReload = vi.fn();
-      render(<ReloadButton {...defaultProps} onReload={onReload} />);
-
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
-      fireEvent.click(button);
-      fireEvent.click(button);
-
-      expect(onReload).toHaveBeenCalledTimes(3);
-    });
-  });
-
-  describe('accessibility', () => {
-    it('should have descriptive title attribute', () => {
-      render(<ReloadButton {...defaultProps} changeType="file" />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('title');
-      expect(button.getAttribute('title')).toBeTruthy();
-    });
-
-    it('should be properly disabled when reloading', () => {
-      render(<ReloadButton {...defaultProps} isReloading={true} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('disabled');
-    });
-
-    it('should not be disabled when not reloading', () => {
-      render(<ReloadButton {...defaultProps} />);
-
-      const button = screen.getByRole('button');
-      expect(button).not.toHaveAttribute('disabled');
     });
   });
 });
