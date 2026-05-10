@@ -16,7 +16,13 @@ export type UsageCommentKey =
   | 'viewExternalDiffs'
   | 'reviewSavedPatches';
 
-type FeatureKey = 'multiInput' | 'comments' | 'aiAgents' | 'responsive';
+type ShellCommentKey =
+  | 'tryNow'
+  | 'liveDemo'
+  | 'installGlobally'
+  | 'installSkills'
+  | 'usageExamples'
+  | 'starOnGitHub';
 
 export const LANGUAGE_OPTIONS: ReadonlyArray<{ code: SiteLanguage; label: string }> = [
   { code: 'en', label: 'EN' },
@@ -77,111 +83,38 @@ export const HERO_TEXT: Record<
   },
 };
 
-export const FEATURES_HEADING: Record<SiteLanguage, string> = {
-  en: 'Features',
-  ja: '機能',
-  ko: '기능',
-  zh: '功能',
-};
-
-export const FEATURE_KEYS: readonly FeatureKey[] = [
-  'multiInput',
-  'comments',
-  'aiAgents',
-  'responsive',
-];
-
-export const FEATURE_TEXT: Record<
-  SiteLanguage,
-  Record<FeatureKey, { tab: string; label: string; desc: string }>
-> = {
+export const SHELL_COMMENT_TEXT: Record<SiteLanguage, Record<ShellCommentKey, string>> = {
   en: {
-    multiInput: {
-      tab: 'input',
-      label: 'multi-source input',
-      desc: 'Review local diffs, stdin patches, and GitHub PR URLs in one flow',
-    },
-    comments: {
-      tab: 'notes',
-      label: 'comment workflow',
-      desc: 'Add line/range comments directly in the diff UI and keep review context',
-    },
-    aiAgents: {
-      tab: 'agents',
-      label: 'AI agent bridge',
-      desc: 'Use Copy Prompt / Copy All to pass review context to coding agents',
-    },
-    responsive: {
-      tab: 'mobile',
-      label: 'responsive UI',
-      desc: 'Stay readable across desktop and mobile with adaptive layouts',
-    },
+    tryNow: 'Try it now — no install required',
+    liveDemo: "Here's what you'll see",
+    installGlobally: 'Or install globally',
+    installSkills: 'Recommended: Install skills',
+    usageExamples: 'Usage examples',
+    starOnGitHub: 'Star on GitHub',
   },
   ja: {
-    multiInput: {
-      tab: '入力',
-      label: '多様な入力対応',
-      desc: 'ローカル diff・stdin・GitHub PR URL を1つのUIでレビュー',
-    },
-    comments: {
-      tab: 'コメ',
-      label: 'コメント機能',
-      desc: '行・範囲ごとにコメントを残しながらレビューの文脈を保持',
-    },
-    aiAgents: {
-      tab: 'AI',
-      label: 'AIエージェント連携',
-      desc: 'Copy Prompt / Copy All でレビュー内容をコーディングエージェントへ連携',
-    },
-    responsive: {
-      tab: 'レスポン',
-      label: 'レスポンシブ対応',
-      desc: 'デスクトップとモバイルの両方で見やすいレイアウトを提供',
-    },
+    tryNow: '今すぐ試す — インストール不要',
+    liveDemo: '表示される画面',
+    installGlobally: 'またはグローバルにインストール',
+    installSkills: '推奨: skills をインストール',
+    usageExamples: '使用例',
+    starOnGitHub: 'GitHubでスター',
   },
   ko: {
-    multiInput: {
-      tab: '입력',
-      label: '다양한 입력 지원',
-      desc: '로컬 diff, stdin, GitHub PR URL을 하나의 UI에서 리뷰',
-    },
-    comments: {
-      tab: '코멘트',
-      label: '코멘트 기능',
-      desc: '라인/범위 코멘트를 남기며 리뷰 맥락을 유지',
-    },
-    aiAgents: {
-      tab: 'AI',
-      label: 'AI 에이전트 연동',
-      desc: 'Copy Prompt / Copy All로 리뷰 맥락을 코딩 에이전트에 전달',
-    },
-    responsive: {
-      tab: '반응형',
-      label: '반응형 대응',
-      desc: '데스크톱과 모바일 모두에서 읽기 쉬운 레이아웃 제공',
-    },
+    tryNow: '지금 바로 사용해 보기 — 설치 불필요',
+    liveDemo: '표시되는 화면',
+    installGlobally: '또는 전역 설치',
+    installSkills: '권장: skills 설치',
+    usageExamples: '사용 예시',
+    starOnGitHub: 'GitHub에서 스타',
   },
   zh: {
-    multiInput: {
-      tab: '输入',
-      label: '多样输入支持',
-      desc: '可在同一界面审查本地 diff、stdin 补丁与 GitHub PR URL',
-    },
-    comments: {
-      tab: '评论',
-      label: '评论功能',
-      desc: '支持行/范围评论，持续保留评审上下文',
-    },
-    aiAgents: {
-      tab: 'AI',
-      label: 'AI 代理联动',
-      desc: '通过 Copy Prompt / Copy All 将评审上下文传给编码代理',
-    },
-    responsive: {
-      tab: '响应',
-      label: '响应式支持',
-      desc: '在桌面与移动端都保持易读布局',
-    },
+    tryNow: '立即试用 — 无需安装',
+    liveDemo: '你会看到的画面',
+    installGlobally: '或全局安装',
+    installSkills: '推荐：安装 skills',
+    usageExamples: '使用示例',
+    starOnGitHub: '在 GitHub 上加星',
   },
 };
 
