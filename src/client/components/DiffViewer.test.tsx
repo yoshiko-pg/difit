@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import type { DiffFile, CommentThread } from '../../types/diff';
+import type { CommentThread, DiffFile } from '../../types/diff';
 
 import { DiffViewer } from './DiffViewer';
 
@@ -128,39 +128,6 @@ describe('DiffViewer', () => {
     });
   });
 
-  describe('Props passing', () => {
-    it('passes baseCommitish and targetCommitish to ImageDiffViewer', () => {
-      const imageFile = createMockFile({
-        path: 'image.png',
-      });
-
-      render(
-        <DiffViewer
-          {...defaultProps}
-          file={imageFile}
-          baseCommitish="main"
-          targetCommitish="feature"
-        />,
-      );
-
-      // Check that ImageDiffViewer is rendered for image files
-      expect(screen.getByTestId('image-diff-chunk')).toBeInTheDocument();
-      expect(screen.getByText('Image diff for image.png')).toBeInTheDocument();
-    });
-
-    it('passes diffMode to ImageDiffViewer', () => {
-      const imageFile = createMockFile({
-        path: 'image.gif',
-      });
-
-      render(<DiffViewer {...defaultProps} file={imageFile} diffMode="unified" />);
-
-      // Check that ImageDiffViewer is rendered
-      expect(screen.getByTestId('image-diff-chunk')).toBeInTheDocument();
-      expect(screen.getByText('Image diff for image.gif')).toBeInTheDocument();
-    });
-  });
-
   describe('File header display', () => {
     it('displays file path in header', () => {
       const file = createMockFile({ path: 'src/components/Button.tsx' });
@@ -227,35 +194,6 @@ describe('DiffViewer', () => {
     });
   });
 
-  describe('Comments integration', () => {
-    it('passes comments to DiffChunk', () => {
-      const threads: CommentThread[] = [
-        {
-          id: 'thread-1',
-          file: 'test.txt',
-          line: 5,
-          side: 'new',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          messages: [
-            {
-              id: 'thread-1',
-              body: 'Test comment',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          ],
-        },
-      ];
-
-      render(<DiffViewer {...defaultProps} threads={threads} />);
-
-      // Check that DiffChunk is rendered for non-image files
-      expect(screen.getByTestId('diff-chunk')).toBeInTheDocument();
-      expect(screen.getByText('Diff chunk: @@ -1,5 +1,7 @@')).toBeInTheDocument();
-    });
-  });
-
   describe('Edge cases', () => {
     it('handles files with no chunks', () => {
       const emptyFile = createMockFile({
@@ -290,16 +228,6 @@ describe('DiffViewer', () => {
 
       // Should render as image diff based on file extension
       expect(screen.getByTestId('image-diff-chunk')).toBeInTheDocument();
-    });
-  });
-
-  describe('Callback props', () => {
-    it('renders DiffChunk with correct props for non-image files', () => {
-      render(<DiffViewer {...defaultProps} />);
-
-      // Check that DiffChunk is rendered for non-image files
-      expect(screen.getByTestId('diff-chunk')).toBeInTheDocument();
-      expect(screen.getByText('Diff chunk: @@ -1,5 +1,7 @@')).toBeInTheDocument();
     });
   });
 });

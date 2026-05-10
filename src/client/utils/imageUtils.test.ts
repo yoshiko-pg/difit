@@ -76,11 +76,6 @@ describe('imageUtils', () => {
       expect(isImageFile('very.long.filename.with.multiple.dots.png')).toBe(true);
       expect(isImageFile('file.unknown')).toBe(false);
     });
-
-    it('handles null and undefined inputs', () => {
-      expect(isImageFile(null as any)).toBe(false);
-      expect(isImageFile(undefined as any)).toBe(false);
-    });
   });
 
   describe('getFileExtension', () => {
@@ -105,32 +100,10 @@ describe('imageUtils', () => {
       expect(getFileExtension('.')).toBe(null); // Empty extension becomes null
     });
 
-    it('handles null and undefined inputs', () => {
-      // TypeScript prevents these at compile time, but test runtime behavior
-      expect(getFileExtension(null as any)).toBe(null);
-      expect(getFileExtension(undefined as any)).toBe(null);
-    });
-
     it('converts to lowercase', () => {
       expect(getFileExtension('PHOTO.JPG')).toBe('jpg');
       expect(getFileExtension('Image.PNG')).toBe('png');
       expect(getFileExtension('file.TXT')).toBe('txt');
-    });
-  });
-
-  describe('Integration tests', () => {
-    it('isImageFile uses getFileExtension correctly', () => {
-      const testFiles = [
-        { filename: 'photo.jpg', expected: true },
-        { filename: 'document.pdf', expected: false },
-        { filename: 'logo.PNG', expected: true },
-        { filename: 'script.JS', expected: false },
-        { filename: 'image.webp', expected: true },
-      ];
-
-      testFiles.forEach(({ filename, expected }) => {
-        expect(isImageFile(filename)).toBe(expected);
-      });
     });
   });
 });

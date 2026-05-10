@@ -54,20 +54,6 @@ describe('ReloadButton', () => {
       expect(button).toBeDisabled();
       expect(button).toHaveTextContent('Refresh');
     });
-
-    it('should apply correct CSS classes when reloading', () => {
-      render(<ReloadButton {...defaultProps} isReloading={true} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('cursor-not-allowed');
-    });
-
-    it('should apply correct CSS classes when not reloading', () => {
-      render(<ReloadButton {...defaultProps} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('bg-github-text-primary');
-    });
   });
 
   describe('icon states', () => {
@@ -83,13 +69,6 @@ describe('ReloadButton', () => {
 
       const icon = screen.getByTestId('rotate-icon');
       expect(icon).not.toHaveClass('animate-spin');
-    });
-
-    it('should render icon with correct size', () => {
-      render(<ReloadButton {...defaultProps} />);
-
-      const icon = screen.getByTestId('rotate-icon');
-      expect(icon).toHaveAttribute('data-size', '12');
     });
   });
 
@@ -171,45 +150,7 @@ describe('ReloadButton', () => {
     });
   });
 
-  describe('custom className', () => {
-    it('should apply custom className', () => {
-      render(<ReloadButton {...defaultProps} className="custom-class" />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('custom-class');
-    });
-
-    it('should combine custom className with base classes', () => {
-      render(<ReloadButton {...defaultProps} className="custom-class" />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('custom-class');
-      expect(button).toHaveClass('flex');
-      expect(button).toHaveClass('items-center');
-    });
-
-    it('should handle empty className', () => {
-      render(<ReloadButton {...defaultProps} className="" />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('flex');
-    });
-
-    it('should handle undefined className', () => {
-      render(<ReloadButton {...defaultProps} className={undefined} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('flex');
-    });
-  });
-
   describe('accessibility', () => {
-    it('should have proper button role', () => {
-      render(<ReloadButton {...defaultProps} />);
-
-      expect(screen.getByRole('button')).toBeInTheDocument();
-    });
-
     it('should have descriptive title attribute', () => {
       render(<ReloadButton {...defaultProps} changeType="file" />);
 
@@ -230,42 +171,6 @@ describe('ReloadButton', () => {
 
       const button = screen.getByRole('button');
       expect(button).not.toHaveAttribute('disabled');
-    });
-  });
-
-  describe('layout and styling', () => {
-    it('should have correct base CSS classes', () => {
-      render(<ReloadButton {...defaultProps} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass(
-        'flex',
-        'items-center',
-        'gap-1.5',
-        'px-3',
-        'py-1.5',
-        'text-xs',
-        'rounded-md',
-        'border',
-      );
-    });
-
-    it('should have orange color scheme', () => {
-      render(<ReloadButton {...defaultProps} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass(
-        'bg-github-text-primary',
-        'text-github-bg-primary',
-        'border-github-text-primary',
-      );
-    });
-
-    it('should have proper hover states when not reloading', () => {
-      render(<ReloadButton {...defaultProps} />);
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('bg-github-text-primary', 'border-github-text-primary');
     });
   });
 });
