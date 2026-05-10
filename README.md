@@ -5,7 +5,6 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/difit"><img src="https://img.shields.io/npm/v/difit.svg" alt="npm version"></a>
   <a href="https://github.com/yoshiko-pg/difit/actions/workflows/pr.yml"><img src="https://github.com/yoshiko-pg/difit/actions/workflows/pr.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/yoshiko-pg/difit/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/difit.svg" alt="license"></a>
 </p>
 
 <p align="center">
