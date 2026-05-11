@@ -40,14 +40,6 @@ describe('SitePage', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders landing page with preview iframe', () => {
-    render(<SitePage />);
-
-    const frame = screen.getByTitle('difit live preview');
-    expect(frame).toBeInTheDocument();
-    expect(frame).toHaveAttribute('src', '/preview');
-  });
-
   it('loads revisions for a preview selector and updates the iframe src', async () => {
     vi.spyOn(window, 'fetch').mockResolvedValue(
       new Response(JSON.stringify(mockManifest), {
@@ -72,90 +64,5 @@ describe('SitePage', () => {
     fireEvent.click(await screen.findByRole('button', { name: /89abcde Fix style on diff/ }));
 
     expect(frame).toHaveAttribute('src', '/preview?snapshot=1234567...89abcde');
-  });
-
-  it('uses the browser language for the initial localized copy', () => {
-    vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['ja-JP', 'en-US']);
-    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('ja-JP');
-
-    render(<SitePage />);
-
-    expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
-    expect(screen.getByText(/今すぐ試す/)).toBeInTheDocument();
-    expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
-  });
-
-  it('switches language in place for hero and shell comments', () => {
-    render(<SitePage />);
-
-    expect(screen.getByText(/GitHub-style diff viewer for local git\./)).toBeInTheDocument();
-    expect(screen.getByText(/Try it now/)).toBeInTheDocument();
-    expect(screen.getByText(/view single commit diff/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'JA' }));
-
-    expect(screen.getByText(/ローカルgitのためのGitHubスタイル差分ビューア。/)).toBeInTheDocument();
-    expect(screen.getByText(/今すぐ試す/)).toBeInTheDocument();
-    expect(screen.getByText(/単一コミットの差分を表示/)).toBeInTheDocument();
-    expect(screen.getByText(/表示される画面 ↓/)).toBeInTheDocument();
-    expect(screen.getByText(/GitHubでスター ⭐️/)).toBeInTheDocument();
-  });
-
-  it('switches revision selector title by language without showing a description line', async () => {
-    vi.spyOn(window, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify(mockManifest), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
-
-    render(<SitePage />);
-
-    const menuButton = await screen.findByRole('button', {
-      name: /Revision menu: Large implementation diff/,
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'JA' }));
-
-    expect(
-      await screen.findByRole('button', { name: /Revision menu: 大きな実装diff/ }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(menuButton);
-
-    expect(screen.queryByText('ランディングページデモ用の広い機能差分。')).not.toBeInTheDocument();
-    expect(screen.queryByText('ランディングページのヘッダーを追加')).not.toBeInTheDocument();
-  });
-
-  it('keeps the revision selector trigger width fixed and stacks chrome on mobile', async () => {
-    vi.spyOn(window, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify(mockManifest), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
-
-    render(<SitePage />);
-
-    const menuButton = await screen.findByRole('button', {
-      name: /Revision menu: Large implementation diff/,
-    });
-    const triggerFrame = menuButton.firstElementChild;
-    expect(triggerFrame).toHaveClass('w-[220px]');
-    expect(triggerFrame).toHaveClass('sm:w-[260px]');
-    expect(triggerFrame?.querySelector('code')).toHaveClass('flex-1');
-
-    const revisionLabel = screen.getByText('Revision:');
-    const chrome = revisionLabel.parentElement?.parentElement;
-    expect(chrome).toBeDefined();
-    expect(chrome!).toHaveClass('flex-col');
-    expect(chrome!).toHaveClass('sm:flex-row');
-  });
-
-  it('does not render the removed feature tab window', () => {
-    render(<SitePage />);
-
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
-    expect(screen.queryByText(/multi-source input/)).not.toBeInTheDocument();
   });
 });

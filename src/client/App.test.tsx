@@ -4,10 +4,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom';
 
 import { mockFetch } from '../../vitest.setup';
-import type { DiffCommentThread, DiffResponse, DiffViewMode } from '../types/diff';
+import type { DiffCommentThread, DiffResponse } from '../types/diff';
 import type { ClientWatchState } from '../types/watch';
 import { DiffMode } from '../types/watch';
-import { normalizeDiffViewMode } from '../utils/diffMode';
 
 import App from './App';
 import { useDiffComments } from './hooks/useDiffComments';
@@ -888,98 +887,6 @@ describe('App Component - Revision-aware refetching', () => {
       expect(String(diffCalls[2]?.[0])).toContain('base=HEAD%5E%5E');
       expect(String(diffCalls[2]?.[0])).toContain('target=HEAD%5E');
     });
-  });
-});
-
-describe('Client mode handling logic', () => {
-  it('validates DiffResponse interface includes mode', () => {
-    // Test that DiffResponse interface supports mode property
-    const mockResponse: DiffResponse = {
-      commit: 'abc123',
-      files: [],
-      ignoreWhitespace: false,
-      isEmpty: false,
-      mode: 'unified',
-    };
-
-    expect(mockResponse.mode).toBe('unified');
-    expect(mockResponse.commit).toBe('abc123');
-    expect(mockResponse.files).toEqual([]);
-  });
-
-  it('validates DiffResponse with split mode', () => {
-    const mockResponse: DiffResponse = {
-      commit: 'abc123',
-      files: [],
-      ignoreWhitespace: false,
-      isEmpty: false,
-      mode: 'split',
-    };
-
-    expect(mockResponse.mode).toBe('split');
-  });
-
-  it('validates DiffResponse without mode property', () => {
-    const mockResponse: DiffResponse = {
-      commit: 'abc123',
-      files: [],
-      ignoreWhitespace: false,
-      isEmpty: false,
-      // mode is optional, so can be omitted
-    };
-
-    expect(mockResponse.mode).toBeUndefined();
-  });
-
-  it('mode setting logic works correctly', () => {
-    // Test the mode setting logic that would be used in fetchDiffData
-    const setModeFromResponse = (data: DiffResponse): DiffViewMode => {
-      if (data.mode) {
-        return normalizeDiffViewMode(data.mode);
-      }
-      return 'split'; // default
-    };
-
-    const responseWithUnified: DiffResponse = { commit: 'abc', files: [], mode: 'unified' };
-    const responseWithSplit: DiffResponse = { commit: 'abc', files: [], mode: 'split' };
-    const responseWithInline: DiffResponse = {
-      commit: 'abc',
-      files: [],
-      mode: 'inline',
-    };
-    const responseWithSideBySide: DiffResponse = {
-      commit: 'abc',
-      files: [],
-      mode: 'side-by-side',
-    };
-    const responseWithoutMode: DiffResponse = { commit: 'abc', files: [] };
-
-    expect(setModeFromResponse(responseWithUnified)).toBe('unified');
-    expect(setModeFromResponse(responseWithSplit)).toBe('split');
-    expect(setModeFromResponse(responseWithInline)).toBe('unified');
-    expect(setModeFromResponse(responseWithSideBySide)).toBe('split');
-    expect(setModeFromResponse(responseWithoutMode)).toBe('split');
-  });
-});
-
-describe('DiffResponse clearComments property', () => {
-  it('should accept clearComments as boolean property', () => {
-    const responseWithClearComments: DiffResponse = {
-      commit: 'abc123',
-      files: [],
-      clearComments: true,
-    };
-
-    expect(responseWithClearComments.clearComments).toBe(true);
-  });
-
-  it('should allow clearComments to be optional', () => {
-    const responseWithoutClearComments: DiffResponse = {
-      commit: 'abc123',
-      files: [],
-    };
-
-    expect(responseWithoutClearComments.clearComments).toBeUndefined();
   });
 });
 

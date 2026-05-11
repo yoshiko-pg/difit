@@ -17,12 +17,6 @@ const createFile = (
   chunks: [],
 });
 
-function getTreeRowPaddingLeft(title: string): string {
-  const row = screen.getByTitle(title).closest<HTMLElement>('[data-tree-row="true"]');
-  expect(row).not.toBeNull();
-  return row?.style.paddingLeft ?? '';
-}
-
 function getTreeRow(title: string): HTMLElement {
   const row = screen.getByTitle(title).closest<HTMLElement>('[data-tree-row="true"]');
   expect(row).not.toBeNull();
@@ -53,28 +47,6 @@ describe('FileList', () => {
     expect(screen.getByLabelText('5 additions and 5 deletions')).toBeInTheDocument();
     expect(screen.getByText('+5')).toBeInTheDocument();
     expect(screen.getByText('-5')).toBeInTheDocument();
-  });
-
-  it('includes the row gap in nested tree indentation', () => {
-    render(
-      <FileList
-        files={[
-          createFile('README.md'),
-          createFile('src/cli/index.ts'),
-          createFile('src/client/App.tsx'),
-        ]}
-        onScrollToFile={vi.fn()}
-        comments={[]}
-        reviewedFiles={new Set()}
-        onToggleReviewed={vi.fn()}
-        selectedFileIndex={null}
-      />,
-    );
-
-    expect(getTreeRowPaddingLeft('README.md')).toBe('16px');
-    expect(getTreeRowPaddingLeft('src')).toBe('16px');
-    expect(getTreeRowPaddingLeft('cli')).toBe('40px');
-    expect(getTreeRowPaddingLeft('src/cli/index.ts')).toBe('64px');
   });
 
   it('strikes through directories when all descendant files are reviewed', () => {

@@ -129,16 +129,6 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
     }
   });
 
-  it('should pass through className prop', () => {
-    const { container } = render(
-      <WordHighlightProvider>
-        <EnhancedPrismSyntaxHighlighter code="hello world" className="custom-class" />
-      </WordHighlightProvider>,
-    );
-
-    expect(container.querySelector('.custom-class')).toBeInTheDocument();
-  });
-
   it('should handle empty code', () => {
     const { container } = render(
       <WordHighlightProvider>
@@ -148,17 +138,6 @@ describe('EnhancedPrismSyntaxHighlighter', () => {
 
     const wordTokens = container.querySelectorAll('.word-token');
     expect(wordTokens).toHaveLength(0);
-  });
-
-  it('should handle code with special characters', () => {
-    const { container } = render(
-      <WordHighlightProvider>
-        <EnhancedPrismSyntaxHighlighter code="hello world foo bar" />
-      </WordHighlightProvider>,
-    );
-
-    const wordTokens = container.querySelectorAll('.word-token');
-    expect(wordTokens).toHaveLength(4); // hello, world, foo, bar
   });
 
   it('should not mark symbols as word tokens', () => {

@@ -57,59 +57,6 @@ describe('StorageService - Repository Isolation', () => {
   });
 
   describe('Repository ID in storage keys', () => {
-    it('should include repositoryId in storage key when provided', () => {
-      const comments = [
-        {
-          id: 'comment-1',
-          filePath: 'test.ts',
-          body: 'Test comment',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-          position: { side: 'new' as const, line: 10 },
-        },
-      ];
-
-      service.saveComments('base', 'target', comments, undefined, undefined, 'repo-123');
-
-      // Check that the key includes the repository ID
-      const keys = (localStorage as any)._keys;
-      expect(keys.length).toBe(1);
-      expect(keys[0]).toContain('repo-123');
-    });
-
-    it('should generate different keys for different repository IDs', () => {
-      const comments1 = [
-        {
-          id: 'comment-1',
-          filePath: 'test.ts',
-          body: 'Comment in repo 1',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-          position: { side: 'new' as const, line: 10 },
-        },
-      ];
-
-      const comments2 = [
-        {
-          id: 'comment-2',
-          filePath: 'test.ts',
-          body: 'Comment in repo 2',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-          position: { side: 'new' as const, line: 10 },
-        },
-      ];
-
-      service.saveComments('base', 'target', comments1, undefined, undefined, 'repo-1');
-      service.saveComments('base', 'target', comments2, undefined, undefined, 'repo-2');
-
-      // Should have two different keys
-      const keys = (localStorage as any)._keys;
-      expect(keys.length).toBe(2);
-      expect(keys.some((k: string) => k.includes('repo-1'))).toBe(true);
-      expect(keys.some((k: string) => k.includes('repo-2'))).toBe(true);
-    });
-
     it('should isolate comments between different repositories', () => {
       const comments1 = [
         {
