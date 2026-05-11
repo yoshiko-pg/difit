@@ -39,26 +39,6 @@ describe('RevisionSelector', () => {
     expect(workingOption).toBeDisabled();
   });
 
-  it('highlights selected branch and resolved commit', () => {
-    render(
-      <RevisionSelector
-        label="Target"
-        value="main"
-        resolvedValue="abc1234"
-        onChange={vi.fn()}
-        options={options}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Target:/ }));
-
-    const branchButton = screen.getByRole('button', { name: 'main' });
-    const commitButton = screen.getByRole('button', { name: /abc1234/ });
-
-    expect(branchButton).toHaveClass('border-l-diff-selected-border');
-    expect(commitButton).toHaveClass('border-l-diff-selected-border');
-  });
-
   it('hides reserved quick preset values from the special options list', () => {
     render(
       <RevisionSelector

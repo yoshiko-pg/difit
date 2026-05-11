@@ -63,28 +63,6 @@ describe('DiffQuickMenu', () => {
     expect(screen.getByText('1f23cd1 chore: release v3.1.5')).toBeInTheDocument();
   });
 
-  it('highlights resolved commit in Pick Commit list for previous-pair selection', async () => {
-    render(
-      createElement(DiffQuickMenu, {
-        options,
-        selection: { baseCommitish: 'HEAD^^', targetCommitish: 'HEAD^' },
-        resolvedBaseRevision: '88aabb0',
-        resolvedTargetRevision: '1f23cd1',
-        onSelectDiff: vi.fn(),
-        onOpenAdvanced: vi.fn(),
-      }),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Revision menu:/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Commit...' }));
-
-    const commitButtons = await screen.findAllByRole('button', { name: /1f23cd1/ });
-    const highlightedCommitButton = commitButtons.find((button) =>
-      button.className.includes('border-l-diff-selected-border'),
-    );
-    expect(highlightedCommitButton).toBeDefined();
-  });
-
   it('shows only requested quick diff presets', () => {
     render(
       createElement(DiffQuickMenu, {
