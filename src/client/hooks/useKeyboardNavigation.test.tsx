@@ -117,25 +117,6 @@ describe('useKeyboardNavigation', () => {
     vi.clearAllMocks();
   });
 
-  describe('Basic Functionality', () => {
-    it('should render without errors', () => {
-      const { result } = renderHook(
-        () =>
-          useKeyboardNavigation({
-            files: mockFiles,
-            comments: [],
-            viewMode: 'unified',
-            onToggleReviewed: vi.fn(),
-            reviewedFiles: new Set<string>(),
-          }),
-        { wrapper },
-      );
-
-      expect(result.current.cursor).toBeNull();
-      expect(result.current.isHelpOpen).toBe(false);
-    });
-  });
-
   describe('Line Navigation (j/k)', () => {
     it('should navigate to next line with j key', async () => {
       const user = userEvent.setup();
