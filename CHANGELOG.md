@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-05-13
+
+### Changed
+
+- Update dependencies (#354 #355 #357)
+
+### Removed
+
+- Remove TUI mode and related code (#346)
+
+### Fixed
+
+- Preserve imported comments after clean (#358)
+- Pin pnpm mise backend (#352)
+
 ## [4.0.7] - 2026-05-10
 
 ### Added
@@ -1191,7 +1206,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v4.0.7...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/yoshiko-pg/difit/compare/v4.0.7...v5.0.0
 [4.0.7]: https://github.com/yoshiko-pg/difit/compare/v4.0.6...v4.0.7
 [4.0.6]: https://github.com/yoshiko-pg/difit/compare/v4.0.5...v4.0.6
 [4.0.5]: https://github.com/yoshiko-pg/difit/compare/v4.0.4...v4.0.5
