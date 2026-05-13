@@ -37,6 +37,22 @@ describe('CommentThreadCard', () => {
     vi.unstubAllGlobals();
   });
 
+  it('does not show delete action for replies authored by someone else', () => {
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Reply comment')).toBeInTheDocument();
+    expect(screen.queryByTitle('Delete reply')).not.toBeInTheDocument();
+  });
+
   it('keeps resolve available for root comments even when not authored by the user', () => {
     render(
       <CommentThreadCard
