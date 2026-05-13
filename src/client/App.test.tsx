@@ -394,6 +394,74 @@ describe('App Component - Clear Comments Functionality', () => {
         '/api/comments-json?base=HEAD%5E&target=HEAD',
       );
     });
+
+    it('preserves server-provided comments after clearing local comments on startup', async () => {
+      mockComments = [
+        createMockThread({
+          id: 'stale-local-thread',
+          filePath: 'test.ts',
+          line: 5,
+          body: 'Stale local comment',
+        }),
+      ];
+      const serverThreads = [
+        createMockThread({
+          id: 'imported-thread',
+          filePath: 'test.ts',
+          line: 10,
+          body: 'Imported comment',
+        }),
+      ];
+      const responseWithClearFlag: DiffResponse = {
+        ...mockDiffResponse,
+        clearComments: true,
+      };
+
+      vi.mocked(global.fetch).mockImplementation((input) => {
+        const url = String(input);
+
+        if (url.startsWith('/api/comments-json')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ threads: serverThreads }),
+          } as Response);
+        }
+
+        if (url.startsWith('/api/comments')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ success: true }),
+          } as Response);
+        }
+
+        if (url === '/api/revisions') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => null,
+          } as Response);
+        }
+
+        return Promise.resolve({
+          ok: true,
+          json: async () => responseWithClearFlag,
+          blob: async () => ({ size: 1024 }),
+        } as Response);
+      });
+
+      renderApp();
+
+      await waitFor(() => {
+        expect(mockClearAllComments).toHaveBeenCalledWith({
+          resetAppliedCommentImportIds: true,
+        });
+      });
+
+      await waitFor(() => {
+        expect(mockReplaceThreads).toHaveBeenCalledWith(serverThreads);
+      });
+
+      expect(mockReplaceThreads).not.toHaveBeenCalledWith([...serverThreads, ...mockComments]);
+    });
   });
 });
 

@@ -722,10 +722,8 @@ function App() {
       return;
     }
 
-    if (pendingBootstrapAfterLocalResetRef.current) {
-      pendingBootstrapAfterLocalResetRef.current = false;
-      return;
-    }
+    const shouldReplaceFromServer = pendingBootstrapAfterLocalResetRef.current;
+    pendingBootstrapAfterLocalResetRef.current = false;
 
     bootstrappingCommentsKeyRef.current = commentsContextKey;
     let cancelled = false;
@@ -733,16 +731,21 @@ function App() {
     const bootstrapComments = async () => {
       try {
         const serverThreads = await fetchServerThreads();
-        const mergedThreads = mergeCommentThreads(serverThreads, threads).threads;
+        const nextThreads = shouldReplaceFromServer
+          ? serverThreads
+          : mergeCommentThreads(serverThreads, threads).threads;
         if (cancelled) {
           return;
         }
 
         skipNextCommentSyncRef.current = true;
-        replaceThreads(mergedThreads);
+        replaceThreads(nextThreads);
 
-        if (JSON.stringify(serverThreads) !== JSON.stringify(mergedThreads)) {
-          await syncThreadsToServer(mergedThreads);
+        if (
+          !shouldReplaceFromServer &&
+          JSON.stringify(serverThreads) !== JSON.stringify(nextThreads)
+        ) {
+          await syncThreadsToServer(nextThreads);
         }
       } catch (commentsError) {
         if (!cancelled) {
