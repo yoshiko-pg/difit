@@ -16,7 +16,6 @@ import {
   normalizeCommentImports,
   serializeCommentImports,
 } from '../utils/commentImports.js';
-import { normalizeDiffViewMode } from '../utils/diffMode.js';
 import {
   buildEditorSpawnSpec,
   CUSTOM_EDITOR_ID,
@@ -51,7 +50,6 @@ interface ServerOptions {
   preferredPort?: number;
   host?: string;
   openBrowser?: boolean;
-  mode?: string;
   ignoreWhitespace?: boolean;
   clearComments?: boolean;
   commentImports?: CommentImport[];
@@ -141,7 +139,6 @@ export async function startServer(
   >();
   const diffDataCache = new Map<string, DiffResponse>();
   const initialIgnoreWhitespace = options.ignoreWhitespace || false;
-  const diffMode = normalizeDiffViewMode(options.mode);
   const parseBaseMode = (value: unknown): BaseMode | undefined => {
     if (value === 'merge-base') {
       return 'merge-base';
@@ -347,7 +344,6 @@ export async function startServer(
     res.json({
       ...responseDiffData,
       ignoreWhitespace,
-      mode: diffMode,
       openInEditorAvailable: !options.stdinDiff,
       baseCommitish,
       targetCommitish,

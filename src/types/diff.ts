@@ -25,7 +25,6 @@ export interface DiffLine {
 }
 
 export type DiffViewMode = 'split' | 'unified';
-type LegacyDiffViewMode = 'side-by-side' | 'inline';
 export type DiffSide = 'old' | 'new';
 export type DiffLineRange = number | { start: number; end: number };
 
@@ -52,7 +51,6 @@ export interface DiffResponse {
   files: DiffFile[];
   ignoreWhitespace?: boolean;
   isEmpty?: boolean;
-  mode?: DiffViewMode | LegacyDiffViewMode;
   openInEditorAvailable?: boolean;
   baseCommitish?: string;
   targetCommitish?: string;

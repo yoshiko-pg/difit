@@ -2,7 +2,6 @@ import { Command } from 'commander';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { DiffMode } from '../types/watch.js';
-import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 import pkg from '../../package.json' with { type: 'json' };
 
 // Mock all external dependencies
@@ -148,7 +147,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--merge-base', 'merge-base')
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -181,7 +179,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
           });
         });
 
@@ -192,7 +189,6 @@ describe('CLI index.ts', () => {
         preferredPort: undefined,
         host: '',
         openBrowser: true,
-        mode: 'split',
       });
     });
   });
@@ -213,21 +209,6 @@ describe('CLI index.ts', () => {
         name: '--no-open option',
         args: ['--no-open'],
         expectedOptions: { open: false },
-      },
-      {
-        name: '--mode option',
-        args: ['--mode', 'unified'],
-        expectedOptions: { mode: 'unified' },
-      },
-      {
-        name: '--mode option (legacy inline)',
-        args: ['--mode', 'inline'],
-        expectedOptions: { mode: 'unified' },
-      },
-      {
-        name: '--mode option (legacy side-by-side)',
-        args: ['--mode', 'side-by-side'],
-        expectedOptions: { mode: 'split' },
       },
       {
         name: '--clean option',
@@ -260,7 +241,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .option('--merge-base', 'merge-base')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
@@ -277,7 +257,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             clearComments: options.clean,
             keepAlive: options.keepAlive,
             contextLines: options.context,
@@ -293,7 +272,6 @@ describe('CLI index.ts', () => {
         preferredPort: expectedOptions.port,
         host: expectedOptions.host || '',
         openBrowser: expectedOptions.open !== false,
-        mode: expectedOptions.mode || 'split',
         clearComments: expectedOptions.clean,
         keepAlive: expectedOptions.keepAlive,
         contextLines: expectedOptions.context,
@@ -567,7 +545,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (commitish === 'working' || commitish === '.') {
@@ -581,7 +558,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
           });
         });
 
@@ -601,7 +577,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (commitish === 'working' || commitish === '.') {
@@ -614,7 +589,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
           });
         });
 
@@ -636,7 +610,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .option('--include-untracked', 'include untracked')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -653,7 +626,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
           });
         });
 
@@ -676,7 +648,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .option('--include-untracked', 'include untracked')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -694,7 +665,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
           });
         });
 
@@ -748,7 +718,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const manualCommentImports = actualParseCommentOptions(options.comment);
@@ -769,7 +738,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             commentImports,
           });
         });
@@ -791,7 +759,6 @@ describe('CLI index.ts', () => {
         preferredPort: undefined,
         host: '',
         openBrowser: true,
-        mode: 'split',
         commentImports: [
           ...prCommentImports,
           {
@@ -829,7 +796,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const manualCommentImports = actualParseCommentOptions(options.comment);
@@ -856,7 +822,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             ...(commentImports.length > 0 ? { commentImports } : {}),
           });
         });
@@ -871,7 +836,6 @@ describe('CLI index.ts', () => {
         preferredPort: undefined,
         host: '',
         openBrowser: true,
-        mode: 'split',
       });
     });
 
@@ -884,7 +848,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           if (options.pr) {
@@ -921,7 +884,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .action(async (commitish: string, options: any) => {
           const commentImports = actualParseCommentOptions(options.comment);
           await startServer({
@@ -929,7 +891,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             commentImports,
           });
         });
@@ -947,7 +908,6 @@ describe('CLI index.ts', () => {
         preferredPort: undefined,
         host: '',
         openBrowser: true,
-        mode: 'split',
         commentImports: [
           {
             type: 'thread',
@@ -1011,7 +971,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -1020,7 +979,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             clearComments: options.clean,
           });
 
@@ -1060,7 +1018,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
@@ -1069,7 +1026,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             clearComments: options.clean,
           });
 
@@ -1111,7 +1067,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .option('--keep-alive', 'keep server running even after browser disconnects')
@@ -1121,7 +1076,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             clearComments: options.clean,
             keepAlive: options.keepAlive,
           });
@@ -1162,7 +1116,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .option('--clean', 'start with a clean slate by clearing all existing comments')
         .option('--keep-alive', 'keep server running even after browser disconnects')
@@ -1172,7 +1125,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             clearComments: options.clean,
             keepAlive: options.keepAlive,
           });
@@ -1215,7 +1167,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url, isEmpty } = await startServer({
@@ -1223,7 +1174,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
           });
 
           console.log(`\n🚀 difit server started on ${url}`);
@@ -1263,7 +1213,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
           const { url, isEmpty } = await startServer({
@@ -1271,7 +1220,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
           });
 
           console.log(`\n🚀 difit server started on ${url}`);
@@ -1290,72 +1238,6 @@ describe('CLI index.ts', () => {
       );
       expect(console.log).toHaveBeenCalledWith(
         '   Server is running at http://localhost:4966 if you want to check manually.\n',
-      );
-    });
-  });
-
-  describe('Server mode option handling', () => {
-    it('passes mode option to startServer', async () => {
-      mockFindUntrackedFiles.mockResolvedValue([]);
-
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .argument('[compare-with]', 'compare-with')
-        .option('--port <port>', 'port', parseInt)
-        .option('--host <host>', 'host', '')
-        .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--pr <url>', 'pr')
-        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          await startServer({
-            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
-            preferredPort: options.port,
-            host: options.host,
-            openBrowser: options.open,
-            mode: options.mode,
-          });
-        });
-
-      await program.parseAsync(['--mode', 'unified'], { from: 'user' });
-
-      expect(mockStartServer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          mode: 'unified',
-        }),
-      );
-    });
-
-    it('uses default mode when not specified', async () => {
-      mockFindUntrackedFiles.mockResolvedValue([]);
-
-      const program = new Command();
-
-      program
-        .argument('[commit-ish]', 'commit-ish', 'HEAD')
-        .argument('[compare-with]', 'compare-with')
-        .option('--port <port>', 'port', parseInt)
-        .option('--host <host>', 'host', '')
-        .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
-        .option('--pr <url>', 'pr')
-        .action(async (commitish: string, _compareWith: string | undefined, options: any) => {
-          await startServer({
-            selection: { targetCommitish: commitish, baseCommitish: commitish + '^' },
-            preferredPort: options.port,
-            host: options.host,
-            openBrowser: options.open,
-            mode: options.mode,
-          });
-        });
-
-      await program.parseAsync([], { from: 'user' });
-
-      expect(mockStartServer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          mode: 'split',
-        }),
       );
     });
   });
@@ -1406,7 +1288,6 @@ describe('CLI index.ts', () => {
           .option('--port <port>', 'port', parseInt)
           .option('--host <host>', 'host', '')
           .option('--no-open', 'no-open')
-          .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
           .option('--pr <url>', 'pr')
           .action(async (commitish: string, compareWith: string | undefined, options: any) => {
             // Simulate determineDiffMode function behavior
@@ -1431,7 +1312,6 @@ describe('CLI index.ts', () => {
               preferredPort: options.port,
               host: options.host,
               openBrowser: options.open,
-              mode: options.mode,
               diffMode,
             });
           });
@@ -1457,7 +1337,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, compareWith: string | undefined, options: any) => {
           // Simulate determineDiffMode function behavior
@@ -1482,7 +1361,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             diffMode,
           });
         });
@@ -1508,7 +1386,6 @@ describe('CLI index.ts', () => {
         .option('--port <port>', 'port', parseInt)
         .option('--host <host>', 'host', '')
         .option('--no-open', 'no-open')
-        .option('--mode <mode>', 'mode', normalizeDiffViewMode, DEFAULT_DIFF_VIEW_MODE)
         .option('--pr <url>', 'pr')
         .action(async (commitish: string, compareWith: string | undefined, options: any) => {
           // Simulate determineDiffMode function behavior with the fix
@@ -1533,7 +1410,6 @@ describe('CLI index.ts', () => {
             preferredPort: options.port,
             host: options.host,
             openBrowser: options.open,
-            mode: options.mode,
             diffMode,
           });
         });

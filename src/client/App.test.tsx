@@ -192,7 +192,6 @@ const mockDiffResponse: DiffResponse = {
   ],
   ignoreWhitespace: false,
   isEmpty: false,
-  mode: 'split',
 };
 
 describe('App Component - Clear Comments Functionality', () => {

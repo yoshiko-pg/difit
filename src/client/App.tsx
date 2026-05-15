@@ -124,7 +124,6 @@ function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
   const [diffDataVersion, setDiffDataVersion] = useState(0);
   const [diffMode, setDiffMode] = useState<DiffViewMode>(getInitialDiffViewMode);
-  const hasUserSetDiffModeRef = useRef(getStoredDiffViewMode() !== null);
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -406,7 +405,6 @@ function App() {
   }, []);
 
   const handleDiffModeChange = useCallback((mode: DiffViewMode) => {
-    hasUserSetDiffModeRef.current = true;
     setDiffMode(mode);
     try {
       window.localStorage.setItem(DIFF_VIEW_MODE_STORAGE_KEY, mode);
@@ -631,11 +629,6 @@ function App() {
               createDiffSelection(requestedBase, requestedTarget, data.requestedBaseMode),
             );
           }
-        }
-
-        // Set diff mode from server response if provided
-        if (data.mode && !hasUserSetDiffModeRef.current) {
-          setDiffMode(normalizeDiffViewMode(data.mode));
         }
 
         // Lock files are now automatically marked as viewed by useViewedFiles hook

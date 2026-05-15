@@ -50,7 +50,6 @@ difit [commit-ish] [compare-with]
 | `--port <port>` | Preferred port (auto-assigned if occupied) | 4966      |
 | `--host <host>` | Host address to bind                       | 127.0.0.1 |
 | `--no-open`     | Do not automatically open browser          | false     |
-| `--mode <mode>` | Diff display mode (split or unified)       | split     |
 | `--pr <url>`    | Review GitHub PR by URL                    | -         |
 
 ### Special Arguments Behavior

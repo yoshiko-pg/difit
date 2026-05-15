@@ -146,7 +146,6 @@ git diff --cached | difit -
 | `--port`              | 4966           | 선호 포트; 사용 중인 경우 +1로 대체                                                           |
 | `--host`              | 127.0.0.1      | 서버를 바인딩할 호스트 주소 (외부 액세스는 0.0.0.0 사용)                                      |
 | `--no-open`           | false          | 브라우저를 자동으로 열지 않음                                                                 |
-| `--mode`              | split          | 표시 모드: `unified` 또는 `split`                                                             |
 | `--clean`             | false          | 시작 시 모든 기존 코멘트와 열람된 파일 표시 초기화                                            |
 | `--include-untracked` | false          | diff에 untracked 파일 자동 포함 (`.` 또는 `working`에서만 유효)                               |
 | `--keep-alive`        | false          | 브라우저 연결이 끊겨도 서버 유지 (Ctrl+C로 수동 종료)                                         |

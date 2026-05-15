@@ -1032,51 +1032,6 @@ describe('Server Integration Tests', () => {
     });
   });
 
-  describe('Mode option handling', () => {
-    it('accepts mode option in server configuration', async () => {
-      // Test that mode option is accepted without error
-      const result = await startServer({
-        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
-        mode: 'unified',
-      });
-      servers.push(result.server);
-
-      expect(result.port).toBeGreaterThanOrEqual(4966);
-      expect(result.url).toContain('http://localhost:');
-    });
-
-    it('accepts different mode values', async () => {
-      const inlineResult = await startServer({
-        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
-        mode: 'unified',
-      });
-      servers.push(inlineResult.server);
-
-      const sideBySideResult = await startServer({
-        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
-        mode: 'split',
-      });
-      servers.push(sideBySideResult.server);
-
-      expect(inlineResult.port).toBeGreaterThanOrEqual(4966);
-      expect(sideBySideResult.port).toBeGreaterThanOrEqual(4966);
-    });
-
-    it('mode option should be included in diff response', async () => {
-      const result = await startServer({
-        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
-        mode: 'inline',
-      });
-      servers.push(result.server);
-
-      const response = await fetch(`http://localhost:${result.port}/api/diff`);
-      const data = await response.json();
-
-      // The mode should be included in the response
-      expect(data).toHaveProperty('mode', 'unified');
-    });
-  });
-
   describe('Revision options API', () => {
     it('returns available revisions', async () => {
       const result = await startServer({
