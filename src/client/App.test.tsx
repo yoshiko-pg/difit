@@ -640,6 +640,30 @@ describe('App Component - Comment sync', () => {
 });
 
 describe('App Component - Diff Mode Persistence', () => {
+  it('initializes the selected view mode from localStorage', async () => {
+    mockFetch(mockDiffResponse);
+    window.localStorage.setItem('difit.diffViewMode', 'unified');
+
+    renderApp();
+
+    const unifiedButton = await screen.findByRole('button', { name: 'Unified' });
+
+    await waitFor(() => {
+      expect(unifiedButton).toHaveClass('bg-github-bg-primary');
+    });
+  });
+
+  it('persists the selected view mode to localStorage', async () => {
+    mockFetch(mockDiffResponse);
+
+    renderApp();
+
+    const unifiedButton = await screen.findByRole('button', { name: 'Unified' });
+    fireEvent.click(unifiedButton);
+
+    expect(window.localStorage.getItem('difit.diffViewMode')).toBe('unified');
+  });
+
   it('keeps the selected view mode after triggering refresh', async () => {
     const mockGlobalFetch = vi.mocked(global.fetch);
     mockGlobalFetch.mockClear();

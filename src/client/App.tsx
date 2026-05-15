@@ -55,11 +55,38 @@ import {
 
 const EMPTY_COMMENT_THREADS: CommentThread[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
+const DIFF_VIEW_MODE_STORAGE_KEY = 'difit.diffViewMode';
 const SIDEBAR_WIDTH_STORAGE_KEY = 'difit.sidebarWidth';
 const SIDEBAR_OPEN_STORAGE_KEY = 'difit.sidebarOpen';
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
 const SIDEBAR_DEFAULT_WIDTH = 280;
+
+const getStoredDiffViewMode = (): DiffViewMode | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const stored = window.localStorage.getItem(DIFF_VIEW_MODE_STORAGE_KEY);
+    if (stored === null) {
+      return null;
+    }
+    switch (stored) {
+      case 'split':
+      case 'side-by-side':
+      case 'unified':
+      case 'inline':
+        return normalizeDiffViewMode(stored);
+      default:
+        return null;
+    }
+  } catch {
+    return null;
+  }
+};
+
+const getInitialDiffViewMode = () => getStoredDiffViewMode() ?? DEFAULT_DIFF_VIEW_MODE;
 
 const getInitialSidebarWidth = () => {
   if (typeof window === 'undefined') {
@@ -96,8 +123,8 @@ const getInitialFileTreeOpen = () => {
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
   const [diffDataVersion, setDiffDataVersion] = useState(0);
-  const [diffMode, setDiffMode] = useState<DiffViewMode>(DEFAULT_DIFF_VIEW_MODE);
-  const hasUserSetDiffModeRef = useRef(false);
+  const [diffMode, setDiffMode] = useState<DiffViewMode>(getInitialDiffViewMode);
+  const hasUserSetDiffModeRef = useRef(getStoredDiffViewMode() !== null);
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -381,6 +408,11 @@ function App() {
   const handleDiffModeChange = useCallback((mode: DiffViewMode) => {
     hasUserSetDiffModeRef.current = true;
     setDiffMode(mode);
+    try {
+      window.localStorage.setItem(DIFF_VIEW_MODE_STORAGE_KEY, mode);
+    } catch {
+      // Ignore localStorage errors (e.g. disabled storage).
+    }
   }, []);
 
   // Lift expand state to App level so navigation and rendering share the same merged chunks
