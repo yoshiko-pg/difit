@@ -82,7 +82,6 @@ describe('CLI options', () => {
     ['--port', ['--port', '4000'], { port: 4000 }],
     ['--host', ['--host', '0.0.0.0'], { host: '0.0.0.0' }],
     ['--no-open', ['--no-open'], { open: false }],
-    ['--mode', ['--mode', 'unified'], { mode: 'unified' }],
   ])('%s option', async (name, args, expectedOptions) => {
     // Verify options are passed correctly
   });

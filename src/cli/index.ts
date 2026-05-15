@@ -6,10 +6,9 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 
 import pkg from '../../package.json' with { type: 'json' };
 import { startServer } from '../server/server.js';
-import { type CommentImport, type DiffSelection, type DiffViewMode } from '../types/diff.js';
+import { type CommentImport, type DiffSelection } from '../types/diff.js';
 import { createDiffSelection } from '../utils/diffSelection.js';
 import { DiffMode } from '../types/watch.js';
-import { DEFAULT_DIFF_VIEW_MODE, normalizeDiffViewMode } from '../utils/diffMode.js';
 
 import {
   shouldReadStdin,
@@ -160,7 +159,6 @@ interface CliOptions {
   port?: number;
   host?: string;
   open: boolean;
-  mode: DiffViewMode;
   comment: string[];
   pr?: string;
   clean?: boolean;
@@ -193,12 +191,6 @@ program
   .option('--port <port>', 'preferred port (auto-assigned if occupied)', parseInt)
   .option('--host <host>', 'host address to bind', '')
   .option('--no-open', 'do not automatically open browser')
-  .option(
-    '--mode <mode>',
-    'diff mode (split or unified)',
-    normalizeDiffViewMode,
-    DEFAULT_DIFF_VIEW_MODE,
-  )
   .option(
     '--comment <json>',
     'inject initial review comments (repeatable, accepts a JSON object or array)',
@@ -319,7 +311,6 @@ program
           preferredPort: options.port,
           host: options.host,
           openBrowser: options.open,
-          mode: options.mode,
           clearComments: options.clean,
           keepAlive: options.keepAlive,
           ...(commentImports.length > 0 ? { commentImports } : {}),
@@ -377,7 +368,6 @@ program
         preferredPort: options.port,
         host: options.host,
         openBrowser: options.open,
-        mode: options.mode,
         clearComments: options.clean,
         keepAlive: options.keepAlive,
         contextLines: options.context,
