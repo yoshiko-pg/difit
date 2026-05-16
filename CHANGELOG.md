@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.1] - 2026-05-17
+
+### Added
+
+- Add Vue file syntax highlighting (#362)
+
+### Changed
+
+- Persist diff view mode (#364)
+- Update dependencies (#359 #360 #361)
+
+### Removed
+
+- Remove diff mode CLI option (#364)
+
+### Thanks
+
+- [@moeyashi](https://github.com/moeyashi) for adding Vue file syntax highlighting (#362)
+
 ## [5.0.0] - 2026-05-13
 
 ### Changed
@@ -1206,7 +1225,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.1...HEAD
+[5.0.1]: https://github.com/yoshiko-pg/difit/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/yoshiko-pg/difit/compare/v4.0.7...v5.0.0
 [4.0.7]: https://github.com/yoshiko-pg/difit/compare/v4.0.6...v4.0.7
 [4.0.6]: https://github.com/yoshiko-pg/difit/compare/v4.0.5...v4.0.6
