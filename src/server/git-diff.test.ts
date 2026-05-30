@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { resolve } from 'path';
 
 import { GitDiffParser } from './git-diff';
+
+const TEST_REPO_PATH = resolve('/test/repo');
 
 // Mock simple-git
 vi.mock('simple-git', () => ({
@@ -40,7 +43,7 @@ describe('GitDiffParser', () => {
   let mockRealpathSync: any;
 
   beforeEach(async () => {
-    parser = new GitDiffParser('/test/repo');
+    parser = new GitDiffParser(TEST_REPO_PATH);
     vi.clearAllMocks();
 
     // Get mocked functions
@@ -63,7 +66,7 @@ describe('GitDiffParser', () => {
 
       const result = await parser.getBlobContent('test.txt', 'working');
 
-      expect(mockReadFileSync).toHaveBeenCalledWith('/test/repo/test.txt');
+      expect(mockReadFileSync).toHaveBeenCalledWith(resolve(TEST_REPO_PATH, 'test.txt'));
       expect(result).toBe(mockBuffer);
     });
 
@@ -73,7 +76,7 @@ describe('GitDiffParser', () => {
 
       const result = await parser.getBlobContent('test.txt', '.');
 
-      expect(mockReadFileSync).toHaveBeenCalledWith('/test/repo/test.txt');
+      expect(mockReadFileSync).toHaveBeenCalledWith(resolve(TEST_REPO_PATH, 'test.txt'));
       expect(result).toBe(mockBuffer);
     });
 
@@ -160,7 +163,7 @@ describe('GitDiffParser', () => {
 
     it('rejects working tree symlinks that resolve outside the repository', async () => {
       mockRealpathSync.mockImplementation((path: string) => {
-        if (path === '/test/repo/link.txt') {
+        if (path === resolve(TEST_REPO_PATH, 'link.txt')) {
           return '/etc/passwd';
         }
         return path;

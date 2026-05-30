@@ -1,5 +1,6 @@
 import type { Event } from '@parcel/watcher';
 import { type Response } from 'express';
+import { resolve } from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DiffMode } from '../types/watch.js';
@@ -21,6 +22,9 @@ vi.mock('simple-git', () => ({
 
 const { subscribe } = await import('@parcel/watcher');
 const { simpleGit } = await import('simple-git');
+const TEST_REPO_PATH = resolve('/test/path');
+const TEST_WORKTREE_PATH = resolve('/worktree/path');
+const TEST_REPOS_WORKTREE_PATH = resolve('/repos/worktree');
 
 describe('FileWatcherService', () => {
   let fileWatcher: FileWatcherService;
@@ -46,30 +50,38 @@ describe('FileWatcherService', () => {
 
   describe('start', () => {
     it('should start watching for DEFAULT mode', async () => {
-      await fileWatcher.start(DiffMode.DEFAULT, '/test/path', 300);
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 300);
 
-      expect(subscribe).toHaveBeenCalledWith('/test/path/.git', expect.any(Function), {
-        ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-      });
+      expect(subscribe).toHaveBeenCalledWith(
+        resolve(TEST_REPO_PATH, '.git'),
+        expect.any(Function),
+        {
+          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
+        },
+      );
     });
 
     it('should start watching for WORKING mode', async () => {
-      await fileWatcher.start(DiffMode.WORKING, '/test/path', 300);
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, 300);
 
       expect(subscribe).toHaveBeenCalledTimes(2);
-      expect(subscribe).toHaveBeenCalledWith('/test/path', expect.any(Function), {
+      expect(subscribe).toHaveBeenCalledWith(TEST_REPO_PATH, expect.any(Function), {
         ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
       });
-      expect(subscribe).toHaveBeenCalledWith('/test/path/.git', expect.any(Function), {
-        ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-      });
+      expect(subscribe).toHaveBeenCalledWith(
+        resolve(TEST_REPO_PATH, '.git'),
+        expect.any(Function),
+        {
+          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
+        },
+      );
     });
 
     it('should start watching for DOT mode', async () => {
-      await fileWatcher.start(DiffMode.DOT, '/test/path', 300);
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
 
       expect(subscribe).toHaveBeenCalledTimes(2);
-      expect(subscribe).toHaveBeenCalledWith('/test/path', expect.any(Function), {
+      expect(subscribe).toHaveBeenCalledWith(TEST_REPO_PATH, expect.any(Function), {
         ignore: [
           '.git/objects/**',
           '.git/refs/**',
@@ -82,21 +94,21 @@ describe('FileWatcherService', () => {
     });
 
     it('should not start watching for SPECIFIC mode', async () => {
-      await fileWatcher.start(DiffMode.SPECIFIC, '/test/path', 300);
+      await fileWatcher.start(DiffMode.SPECIFIC, TEST_REPO_PATH, 300);
 
       expect(subscribe).not.toHaveBeenCalled();
     });
 
     it('should initialize git instance for gitignore checking', async () => {
-      await fileWatcher.start(DiffMode.DOT, '/test/path', 300);
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
 
-      expect(simpleGit).toHaveBeenCalledWith('/test/path');
+      expect(simpleGit).toHaveBeenCalledWith(TEST_REPO_PATH);
     });
   });
 
   describe('stop', () => {
     it('should unsubscribe all watchers', async () => {
-      await fileWatcher.start(DiffMode.WORKING, '/test/path', 300);
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, 300);
       await fileWatcher.stop();
 
       expect(mockSubscription.unsubscribe).toHaveBeenCalledTimes(2);
@@ -141,7 +153,7 @@ describe('FileWatcherService', () => {
       };
       vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-      await fileWatcher.start(DiffMode.DOT, '/test/path', 300);
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
 
       // Get the callback function passed to subscribe
       const subscribeCall = vi.mocked(subscribe).mock.calls[0];
@@ -149,8 +161,8 @@ describe('FileWatcherService', () => {
 
       // Simulate file change event
       const mockEvents: Event[] = [
-        { path: '/test/path/ignored-file.txt', type: 'update' },
-        { path: '/test/path/normal-file.txt', type: 'update' },
+        { path: `${TEST_REPO_PATH}/ignored-file.txt`, type: 'update' },
+        { path: `${TEST_REPO_PATH}/normal-file.txt`, type: 'update' },
       ];
 
       await callback(null, mockEvents);
@@ -165,12 +177,12 @@ describe('FileWatcherService', () => {
       };
       vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-      await fileWatcher.start(DiffMode.DOT, '/test/path', 300);
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
 
       const subscribeCall = vi.mocked(subscribe).mock.calls[0];
       const callback = subscribeCall[1];
 
-      const mockEvents: Event[] = [{ path: '/test/path/some-file.txt', type: 'update' }];
+      const mockEvents: Event[] = [{ path: `${TEST_REPO_PATH}/some-file.txt`, type: 'update' }];
 
       // Should not throw when gitignore check fails
       await expect(callback(null, mockEvents)).resolves.not.toThrow();
@@ -184,7 +196,7 @@ describe('FileWatcherService', () => {
       };
       vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-      await fileWatcher.start(DiffMode.DEFAULT, '/test/path', 300);
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 300);
       fileWatcher.addClient(mockResponse);
     });
 
@@ -193,9 +205,9 @@ describe('FileWatcherService', () => {
       const callback = subscribeCall[1];
 
       const mockEvents: Event[] = [
-        { path: '/test/path/.git/HEAD', type: 'update' },
-        { path: '/test/path/.git/index', type: 'update' },
-        { path: '/test/path/.git/objects/abc123', type: 'update' },
+        { path: `${TEST_REPO_PATH}/.git/HEAD`, type: 'update' },
+        { path: `${TEST_REPO_PATH}/.git/index`, type: 'update' },
+        { path: `${TEST_REPO_PATH}/.git/objects/abc123`, type: 'update' },
       ];
 
       await callback(null, mockEvents);
@@ -212,9 +224,9 @@ describe('FileWatcherService', () => {
       const callback = subscribeCall[1];
 
       const mockEvents: Event[] = [
-        { path: '/test/path/.git/objects/abc123', type: 'update' },
-        { path: '/test/path/.git/refs/heads/main', type: 'update' },
-        { path: '/test/path/node_modules/package/file.js', type: 'update' },
+        { path: `${TEST_REPO_PATH}/.git/objects/abc123`, type: 'update' },
+        { path: `${TEST_REPO_PATH}/.git/refs/heads/main`, type: 'update' },
+        { path: `${TEST_REPO_PATH}/node_modules/package/file.js`, type: 'update' },
       ];
 
       await callback(null, mockEvents);
@@ -233,7 +245,7 @@ describe('FileWatcherService', () => {
       };
       vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-      await fileWatcher.start(DiffMode.DEFAULT, '/test/path', 100); // Short debounce for testing
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 100); // Short debounce for testing
       fileWatcher.addClient(mockResponse);
     });
 
@@ -241,7 +253,7 @@ describe('FileWatcherService', () => {
       const subscribeCall = vi.mocked(subscribe).mock.calls[0];
       const callback = subscribeCall[1];
 
-      const mockEvents: Event[] = [{ path: '/test/path/.git/HEAD', type: 'update' }];
+      const mockEvents: Event[] = [{ path: `${TEST_REPO_PATH}/.git/HEAD`, type: 'update' }];
 
       // Trigger multiple events quickly
       await callback(null, mockEvents);
@@ -275,7 +287,7 @@ describe('FileWatcherService', () => {
         };
         vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-        await fileWatcher.start(mode, '/test/path', 300);
+        await fileWatcher.start(mode, TEST_REPO_PATH, 300);
         const mockClient = { write: vi.fn() } as unknown as Response;
         fileWatcher.addClient(mockClient);
 
@@ -284,7 +296,7 @@ describe('FileWatcherService', () => {
           .mock.calls.find((call) => call[0].includes('.git'));
         if (subscribeCall) {
           const callback = subscribeCall[1];
-          const mockEvents: Event[] = [{ path: '/test/path/.git/HEAD', type: 'update' }];
+          const mockEvents: Event[] = [{ path: `${TEST_REPO_PATH}/.git/HEAD`, type: 'update' }];
 
           await callback(null, mockEvents);
 
@@ -309,12 +321,16 @@ describe('FileWatcherService', () => {
       };
       vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-      await fileWatcher.start(DiffMode.DEFAULT, '/test/path', 300);
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 300);
 
       expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
-      expect(subscribe).toHaveBeenCalledWith('/test/path/.git', expect.any(Function), {
-        ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-      });
+      expect(subscribe).toHaveBeenCalledWith(
+        resolve(TEST_REPO_PATH, '.git'),
+        expect.any(Function),
+        {
+          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
+        },
+      );
     });
 
     it('should resolve worktree git directory path', async () => {
@@ -324,11 +340,11 @@ describe('FileWatcherService', () => {
       };
       vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-      await fileWatcher.start(DiffMode.DEFAULT, '/worktree/path', 300);
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_WORKTREE_PATH, 300);
 
       expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
       expect(subscribe).toHaveBeenCalledWith(
-        '/main/repo/.git/worktrees/feature',
+        resolve('/main/repo/.git/worktrees/feature'),
         expect.any(Function),
         {
           ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
@@ -343,12 +359,12 @@ describe('FileWatcherService', () => {
       };
       vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-      await fileWatcher.start(DiffMode.DEFAULT, '/repos/worktree', 300);
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPOS_WORKTREE_PATH, 300);
 
       expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
-      // path.resolve('/repos/worktree', '../.git/worktrees/feature') = '/repos/.git/worktrees/feature'
+      // path.resolve(TEST_REPOS_WORKTREE_PATH, '../.git/worktrees/feature')
       expect(subscribe).toHaveBeenCalledWith(
-        '/repos/.git/worktrees/feature',
+        resolve(TEST_REPOS_WORKTREE_PATH, '../.git/worktrees/feature'),
         expect.any(Function),
         {
           ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
@@ -363,11 +379,15 @@ describe('FileWatcherService', () => {
       };
       vi.mocked(simpleGit).mockReturnValue(mockGit as any);
 
-      await fileWatcher.start(DiffMode.DEFAULT, '/test/path', 300);
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 300);
 
-      expect(subscribe).toHaveBeenCalledWith('/test/path/.git', expect.any(Function), {
-        ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-      });
+      expect(subscribe).toHaveBeenCalledWith(
+        resolve(TEST_REPO_PATH, '.git'),
+        expect.any(Function),
+        {
+          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
+        },
+      );
     });
   });
 });
