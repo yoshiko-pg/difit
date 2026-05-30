@@ -3,10 +3,12 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  FileCode,
   FileDiff,
   FilePen,
   FilePlus,
   FileX,
+  Rows3,
   Square,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -22,6 +24,9 @@ interface DiffViewerHeaderProps {
   onToggleCollapsed: (path: string) => void;
   onToggleAllCollapsed: (shouldCollapse: boolean) => void;
   onToggleReviewed: (path: string) => void;
+  showWholeFileHighlightToggle?: boolean;
+  wholeFileHighlight?: boolean;
+  onSetWholeFileHighlight?: (path: string, enabled: boolean) => void;
 }
 
 const getFileIcon = (status: DiffFile['status']) => {
@@ -45,6 +50,9 @@ export const DiffViewerHeader = ({
   onToggleCollapsed,
   onToggleAllCollapsed,
   onToggleReviewed,
+  showWholeFileHighlightToggle = false,
+  wholeFileHighlight = false,
+  onSetWholeFileHighlight,
 }: DiffViewerHeaderProps) => {
   const [isCopied, setIsCopied] = useState(false);
 
@@ -119,6 +127,36 @@ export const DiffViewerHeader = ({
             -{file.deletions}
           </span>
         </div>
+        {showWholeFileHighlightToggle && onSetWholeFileHighlight && (
+          <div className="flex bg-github-bg-tertiary border border-github-border rounded-md p-1">
+            <button
+              onClick={() => onSetWholeFileHighlight(file.path, true)}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                wholeFileHighlight
+                  ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
+                  : 'text-github-text-secondary hover:text-github-text-primary'
+              }`}
+              title="Tokenize the whole file so embedded languages (e.g. Vue <script>/<style>) are highlighted"
+              aria-pressed={wholeFileHighlight}
+            >
+              <FileCode size={14} />
+              Whole-File
+            </button>
+            <button
+              onClick={() => onSetWholeFileHighlight(file.path, false)}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                !wholeFileHighlight
+                  ? 'bg-github-bg-primary text-github-text-primary shadow-sm'
+                  : 'text-github-text-secondary hover:text-github-text-primary'
+              }`}
+              title="Highlight each line independently (default)"
+              aria-pressed={!wholeFileHighlight}
+            >
+              <Rows3 size={14} />
+              Per-Line
+            </button>
+          </div>
+        )}
         <button
           onClick={() => onToggleReviewed(file.path)}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${

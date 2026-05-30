@@ -14,6 +14,11 @@ export interface PrismSyntaxHighlighterProps {
   className?: string;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   filename?: string;
+  /**
+   * Pre-computed tokens per line. When provided, these tokens are
+   * rendered instead of tokenizing `code` per line.
+   */
+  precomputedTokens?: Token[][] | null;
   renderToken?: (
     token: Token,
     key: number,
@@ -29,6 +34,7 @@ export const PrismSyntaxHighlighter = React.memo(function PrismSyntaxHighlighter
   className,
   syntaxTheme = 'vsDark',
   filename = '',
+  precomputedTokens,
   renderToken,
   onMouseOver,
   onMouseOut,
@@ -36,34 +42,40 @@ export const PrismSyntaxHighlighter = React.memo(function PrismSyntaxHighlighter
   const detectedLang = language || (filename ? getPrismLanguageFromFilename(filename) : 'text');
   const { actualLang } = useHighlightedCode(code, detectedLang);
   const theme = getSyntaxTheme(syntaxTheme);
+  const hasPrecomputed = !!precomputedTokens;
 
-  // Memoize the render function to prevent recreation on every render
+  // Memoize the render function to prevent recreation on every render.
   const renderHighlight = useCallback(
-    ({ style, tokens, getLineProps, getTokenProps }: RenderProps) => (
-      <span
-        className={className}
-        style={{ ...style, background: 'transparent', backgroundColor: 'transparent' }}
-        onMouseOver={onMouseOver}
-        onMouseOut={onMouseOut}
-      >
-        {tokens.map((line, i) => (
-          <span key={i} {...getLineProps({ line })}>
-            {line.map((token, key) =>
-              renderToken ? (
-                renderToken(token, key, getTokenProps)
-              ) : (
-                <span key={key} {...getTokenProps({ token })} />
-              ),
-            )}
-          </span>
-        ))}
-      </span>
-    ),
-    [className, onMouseOver, onMouseOut, renderToken],
+    ({ style, tokens, getLineProps, getTokenProps }: RenderProps) => {
+      const lines = precomputedTokens ?? tokens;
+      return (
+        <span
+          className={className}
+          style={{ ...style, background: 'transparent', backgroundColor: 'transparent' }}
+          onMouseOver={onMouseOver}
+          onMouseOut={onMouseOut}
+        >
+          {lines.map((line, i) => (
+            <span key={i} {...getLineProps({ line })}>
+              {line.map((token, key) =>
+                renderToken ? (
+                  renderToken(token, key, getTokenProps)
+                ) : (
+                  <span key={key} {...getTokenProps({ token })} />
+                ),
+              )}
+            </span>
+          ))}
+        </span>
+      );
+    },
+    [className, onMouseOver, onMouseOut, renderToken, precomputedTokens],
   );
 
+  const codeForHighlight = hasPrecomputed ? '' : code;
+
   return (
-    <Highlight code={code} language={actualLang} theme={theme} prism={Prism}>
+    <Highlight code={codeForHighlight} language={actualLang} theme={theme} prism={Prism}>
       {renderHighlight}
     </Highlight>
   );

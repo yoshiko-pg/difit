@@ -7,8 +7,10 @@ import {
   type CommentThread,
   type LineNumber,
 } from '../../types/diff';
+import { FileLevelTokensProvider } from '../contexts/FileLevelTokensContext';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import { type MergedChunk } from '../hooks/useExpandedLines';
+import { useFileLevelTokens } from '../hooks/useFileLevelTokens';
 import { getViewerForFile } from '../viewers/registry';
 import type { DiffViewerBodyProps } from '../viewers/types';
 
@@ -66,6 +68,9 @@ interface DiffViewerProps {
   ) => void;
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
+  diffVersion?: number;
+  wholeFileHighlight: boolean;
+  onSetWholeFileHighlight: (path: string, enabled: boolean) => void;
 }
 
 type LineRange = { start: number; end: number };
@@ -197,6 +202,9 @@ export const DiffViewer = memo(function DiffViewer({
   expandAllBetweenChunks,
   prefetchFileContent,
   isExpandLoading,
+  diffVersion,
+  wholeFileHighlight,
+  onSetWholeFileHighlight,
 }: DiffViewerProps) {
   const isCollapsed = collapsedFiles.has(file.path);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -308,6 +316,14 @@ export const DiffViewer = memo(function DiffViewer({
     canExpandHiddenLines,
   ]);
 
+  const fileLevelTokens = useFileLevelTokens({
+    file,
+    enabled: wholeFileHighlight,
+    baseCommitish,
+    targetCommitish,
+    reloadKey: diffVersion,
+  });
+
   const lineNumberWidth = '4em';
   const ViewerComponent = viewer.Component;
   const viewerProps: DiffViewerBodyProps = {
@@ -350,12 +366,17 @@ export const DiffViewer = memo(function DiffViewer({
         onToggleCollapsed={onToggleCollapsed}
         onToggleAllCollapsed={onToggleAllCollapsed}
         onToggleReviewed={onToggleReviewed}
+        showWholeFileHighlightToggle={viewer.id === 'default'}
+        wholeFileHighlight={wholeFileHighlight}
+        onSetWholeFileHighlight={onSetWholeFileHighlight}
       />
 
       {!isCollapsed && (
-        <div className="overflow-y-auto">
-          <ViewerComponent {...viewerProps} />
-        </div>
+        <FileLevelTokensProvider value={fileLevelTokens}>
+          <div className="overflow-y-auto">
+            <ViewerComponent {...viewerProps} />
+          </div>
+        </FileLevelTokensProvider>
       )}
     </div>
   );

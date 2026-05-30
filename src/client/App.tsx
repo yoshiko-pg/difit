@@ -137,6 +137,10 @@ function App() {
   const [isCommentsListOpen, setIsCommentsListOpen] = useState(false);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
+  // Per-file overrides for whole-file syntax highlighting. Absent entries use false.
+  const [wholeFileHighlightOverrides, setWholeFileHighlightOverrides] = useState<
+    Record<string, boolean>
+  >({});
   const collapsedInitializedRef = useRef(false);
   const diffScrollContainerRef = useRef<HTMLElement | null>(null);
 
@@ -399,6 +403,15 @@ function App() {
     },
     [diffData],
   );
+
+  const getWholeFileHighlight = useCallback(
+    (filePath: string) => wholeFileHighlightOverrides[filePath] ?? false,
+    [wholeFileHighlightOverrides],
+  );
+
+  const setWholeFileHighlight = useCallback((filePath: string, enabled: boolean) => {
+    setWholeFileHighlightOverrides((prev) => ({ ...prev, [filePath]: enabled }));
+  }, []);
 
   const handleMobileFileSelected = useCallback(() => {
     setIsFileTreeOpen(false);
@@ -1340,6 +1353,9 @@ function App() {
                       expandAllBetweenChunks={expandAllBetweenChunks}
                       prefetchFileContent={prefetchFileContent}
                       isExpandLoading={isExpandLoading}
+                      diffVersion={diffDataVersion}
+                      wholeFileHighlight={getWholeFileHighlight(file.path)}
+                      onSetWholeFileHighlight={setWholeFileHighlight}
                     />
                   ) : (
                     <div className="bg-github-bg-secondary border border-github-border rounded-md px-4 py-3">
