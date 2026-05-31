@@ -11,6 +11,7 @@ import { FileLevelTokensProvider } from '../contexts/FileLevelTokensContext';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import { type MergedChunk } from '../hooks/useExpandedLines';
 import { useFileLevelTokens } from '../hooks/useFileLevelTokens';
+import { isWholeFileHighlightExtension } from '../utils/languageDetection';
 import { getViewerForFile } from '../viewers/registry';
 import type { DiffViewerBodyProps } from '../viewers/types';
 
@@ -69,8 +70,6 @@ interface DiffViewerProps {
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
   diffVersion?: number;
-  wholeFileHighlight: boolean;
-  onSetWholeFileHighlight: (path: string, enabled: boolean) => void;
 }
 
 type LineRange = { start: number; end: number };
@@ -203,8 +202,6 @@ export const DiffViewer = memo(function DiffViewer({
   prefetchFileContent,
   isExpandLoading,
   diffVersion,
-  wholeFileHighlight,
-  onSetWholeFileHighlight,
 }: DiffViewerProps) {
   const isCollapsed = collapsedFiles.has(file.path);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -212,6 +209,10 @@ export const DiffViewer = memo(function DiffViewer({
 
   const viewer = getViewerForFile(file);
   const canExpandHiddenLines = viewer.canExpandHiddenLines?.(file) ?? false;
+  // Tokenize the whole file so embedded blocks (e.g. <script>/<style>) are
+  // highlighted by their own language instead of line-by-line, which can't see
+  // the surrounding context.
+  const wholeFileHighlight = viewer.id === 'default' && isWholeFileHighlightExtension(file.path);
 
   // Observe visibility for lazy prefetch
   useEffect(() => {
@@ -366,9 +367,6 @@ export const DiffViewer = memo(function DiffViewer({
         onToggleCollapsed={onToggleCollapsed}
         onToggleAllCollapsed={onToggleAllCollapsed}
         onToggleReviewed={onToggleReviewed}
-        showWholeFileHighlightToggle={viewer.id === 'default'}
-        wholeFileHighlight={wholeFileHighlight}
-        onSetWholeFileHighlight={onSetWholeFileHighlight}
       />
 
       {!isCollapsed && (

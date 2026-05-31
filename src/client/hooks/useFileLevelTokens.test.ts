@@ -154,6 +154,49 @@ describe('useFileLevelTokens', () => {
     expect(tokensL1.some((t) => t.types.includes('keyword') && t.content === 'const')).toBe(true);
   });
 
+  it('2000行を超えるファイルはトークン化せずper-lineにフォールバックする', async () => {
+    const content = Array.from({ length: 2001 }, () => "const x = 'a';").join('\n');
+    mockBlobFetch({ HEAD: content, '.': content });
+
+    const { result } = renderHook(() =>
+      useFileLevelTokens({
+        file: createTsFile(),
+        enabled: true,
+        baseCommitish: 'HEAD',
+        targetCommitish: '.',
+      }),
+    );
+
+    // Wait until the blob fetch has resolved so the tokens memo has run.
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    expect(result.current.getNewTokens).toBeNull();
+    expect(result.current.getOldTokens).toBeNull();
+  });
+
+  it('ちょうど2000行のファイルはトークン化する（境界）', async () => {
+    const content = Array.from({ length: 2000 }, () => "const x = 'a';").join('\n');
+    mockBlobFetch({ HEAD: content, '.': content });
+
+    const { result } = renderHook(() =>
+      useFileLevelTokens({
+        file: createTsFile(),
+        enabled: true,
+        baseCommitish: 'HEAD',
+        targetCommitish: '.',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.getNewTokens).not.toBeNull();
+    });
+
+    const tokensL1 = result.current.getNewTokens?.(1) ?? [];
+    expect(tokensL1.some((t) => t.types.includes('keyword') && t.content === 'const')).toBe(true);
+  });
+
   it('reloadKeyが変わるとblobを再フェッチして最新内容でトークン化する', async () => {
     const responses: Record<string, string> = { HEAD: VUE_FILE_V1, '.': VUE_FILE_V1 };
     mockBlobFetch(responses);

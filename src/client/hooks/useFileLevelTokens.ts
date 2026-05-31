@@ -15,6 +15,10 @@ export interface FileLevelTokens {
 
 const EMPTY: FileLevelTokens = { getOldTokens: null, getNewTokens: null };
 
+// Whole-file tokenization is skipped for larger files so we don't pay the cost
+// of highlighting the entire blob; these fall back to per-line highlighting.
+const MAX_WHOLE_FILE_LINES = 2000;
+
 async function fetchBlobText(filePath: string, ref: string): Promise<string | null> {
   try {
     const response = await fetch(
@@ -28,6 +32,7 @@ async function fetchBlobText(filePath: string, ref: string): Promise<string | nu
 }
 
 function tokenizeContent(content: string, language: string): Token[][] | null {
+  if (content.split('\n').length > MAX_WHOLE_FILE_LINES) return null;
   const grammar = Prism.languages[language];
   if (!grammar) return null;
   try {
