@@ -195,6 +195,7 @@ export interface CommentThread {
   createdAt: string;
   updatedAt: string;
   codeContent?: string;
+  isOutdated?: boolean;
   messages: DiffCommentMessage[];
 }
 

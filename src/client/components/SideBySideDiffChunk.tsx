@@ -173,7 +173,7 @@ export function SideBySideDiffChunk({
       const line = lines.find((l) =>
         side === 'old' ? l.oldLineNumber === lineNumber : l.newLineNumber === lineNumber,
       );
-      return line?.content?.replace(/^[+-]/, '') || '';
+      return line?.content ?? '';
     } else {
       // Range of lines
       const [start, end] = lineNumber;
@@ -181,7 +181,7 @@ export function SideBySideDiffChunk({
         const ln = side === 'old' ? l.oldLineNumber : l.newLineNumber;
         return ln !== undefined && ln >= start && ln <= end;
       });
-      return selectedLines.map((l) => l.content?.replace(/^[+-]/, '') || '').join('\n');
+      return selectedLines.map((l) => l.content ?? '').join('\n');
     }
   }, [commentingLine, chunk.lines]);
 
@@ -189,12 +189,7 @@ export function SideBySideDiffChunk({
     async (body: string) => {
       if (commentingLine !== null) {
         const codeContent = getSelectedCodeContent();
-        await onAddComment(
-          commentingLine.lineNumber,
-          body,
-          codeContent || undefined,
-          commentingLine.side,
-        );
+        await onAddComment(commentingLine.lineNumber, body, codeContent, commentingLine.side);
         setCommentingLine(null);
       }
     },
