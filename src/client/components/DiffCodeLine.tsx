@@ -45,16 +45,16 @@ export function DiffCodeLine({
 }: DiffCodeLineProps) {
   const { getOldTokens, getNewTokens } = useFileLevelTokensLookup();
   const getPrecomputedTokens = () => {
-    const useOldSide = line.type === 'delete';
-    const lineTokens = useOldSide
-      ? line.oldLineNumber != null
-        ? (getOldTokens?.(line.oldLineNumber) ?? null)
-        : null
-      : line.newLineNumber != null
-        ? (getNewTokens?.(line.newLineNumber) ?? null)
-        : line.oldLineNumber != null
-          ? (getOldTokens?.(line.oldLineNumber) ?? null)
-          : null;
+    const oldSideTokens =
+      line.oldLineNumber != null ? (getOldTokens?.(line.oldLineNumber) ?? null) : null;
+    // Deleted lines exist only on the old side.
+    if (line.type === 'delete') {
+      return oldSideTokens ? [oldSideTokens] : null;
+    }
+    // Other lines use the new side, falling back to the old side when there is
+    // no new line number.
+    const lineTokens =
+      line.newLineNumber != null ? (getNewTokens?.(line.newLineNumber) ?? null) : oldSideTokens;
     return lineTokens ? [lineTokens] : null;
   };
 
