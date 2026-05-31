@@ -1049,12 +1049,7 @@ function App() {
             }}
           >
             <h1>
-              <Logo
-                style={{
-                  height: '18px',
-                  color: 'var(--color-github-text-secondary)',
-                }}
-              />
+              <Logo style={{ height: '18px', color: 'var(--color-github-text-secondary)' }} />
             </h1>
             <div className="flex items-center gap-1">
               <button
