@@ -7,19 +7,19 @@ describe('languageDetection', () => {
     it('returns true for component-style extensions', () => {
       expect(isWholeFileHighlightExtension('src/App.vue')).toBe(true);
       expect(isWholeFileHighlightExtension('src/App.svelte')).toBe(true);
-      expect(isWholeFileHighlightExtension('index.html')).toBe(true);
       expect(isWholeFileHighlightExtension('pages/index.astro')).toBe(true);
     });
 
     it('is case-insensitive', () => {
       expect(isWholeFileHighlightExtension('Component.VUE')).toBe(true);
-      expect(isWholeFileHighlightExtension('Index.HTML')).toBe(true);
+      expect(isWholeFileHighlightExtension('Component.SVELTE')).toBe(true);
     });
 
     it('returns false for other extensions', () => {
       expect(isWholeFileHighlightExtension('src/app.ts')).toBe(false);
       expect(isWholeFileHighlightExtension('src/app.tsx')).toBe(false);
       expect(isWholeFileHighlightExtension('main.js')).toBe(false);
+      expect(isWholeFileHighlightExtension('index.html')).toBe(false);
       expect(isWholeFileHighlightExtension('styles.css')).toBe(false);
       expect(isWholeFileHighlightExtension('README.md')).toBe(false);
     });
