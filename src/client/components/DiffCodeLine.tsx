@@ -1,4 +1,5 @@
 import { type DiffLine, type ExpandedLine } from '../../types/diff';
+import { useFileLevelTokensLookup } from '../contexts/FileLevelTokensContext';
 import { type DiffSegment } from '../utils/wordLevelDiff';
 
 import { EnhancedPrismSyntaxHighlighter } from './EnhancedPrismSyntaxHighlighter';
@@ -6,7 +7,7 @@ import type { AppearanceSettings } from './SettingsModal';
 import { WordLevelDiffHighlighter } from './WordLevelDiffHighlighter';
 
 interface DiffCodeLineProps {
-  line: Pick<DiffLine | ExpandedLine, 'type' | 'content'>;
+  line: Pick<DiffLine | ExpandedLine, 'type' | 'content' | 'oldLineNumber' | 'newLineNumber'>;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   filename?: string;
   diffSegments?: DiffSegment[];
@@ -42,6 +43,21 @@ export function DiffCodeLine({
   diffSegments,
   showPrefixBorder = true,
 }: DiffCodeLineProps) {
+  const { getOldTokens, getNewTokens } = useFileLevelTokensLookup();
+  const getPrecomputedTokens = () => {
+    const oldSideTokens =
+      line.oldLineNumber != null ? (getOldTokens?.(line.oldLineNumber) ?? null) : null;
+    // Deleted lines exist only on the old side.
+    if (line.type === 'delete') {
+      return oldSideTokens ? [oldSideTokens] : null;
+    }
+    // Other lines use the new side, falling back to the old side when there is
+    // no new line number.
+    const lineTokens =
+      line.newLineNumber != null ? (getNewTokens?.(line.newLineNumber) ?? null) : oldSideTokens;
+    return lineTokens ? [lineTokens] : null;
+  };
+
   return (
     <div className="flex items-center relative min-h-[16px]">
       <span
@@ -62,6 +78,7 @@ export function DiffCodeLine({
           className="flex-1 px-3 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
           syntaxTheme={syntaxTheme}
           filename={filename}
+          precomputedTokens={getPrecomputedTokens()}
         />
       )}
     </div>

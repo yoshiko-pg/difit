@@ -153,3 +153,18 @@ export function getPrismLanguageFromFilename(filename: string): string {
     getLanguageFromExtension(getFileExtension(filename), PRISM_EXTENSION_LANGUAGE_MAP) || 'text'
   );
 }
+
+// Extensions for component-style formats that embed multiple languages
+// (e.g. Vue/Svelte/Astro SFCs, HTML with <script>/<style>). These are
+// highlighted by tokenizing the whole file so embedded blocks render correctly.
+const WHOLE_FILE_HIGHLIGHT_EXTENSIONS = new Set(['vue', 'svelte', 'html', 'astro']);
+
+/**
+ * Whether a file is eligible for whole-file syntax highlighting based on its
+ * extension. The line-count limit is enforced separately once the file content
+ * is available (see useFileLevelTokens).
+ */
+export function isWholeFileHighlightExtension(filePath: string): boolean {
+  const ext = getFileExtension(filePath);
+  return ext != null && WHOLE_FILE_HIGHLIGHT_EXTENSIONS.has(ext);
+}

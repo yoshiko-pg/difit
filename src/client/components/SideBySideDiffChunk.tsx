@@ -14,6 +14,7 @@ import {
   shouldComputeWordDiff,
   type WordLevelDiffResult,
 } from '../utils/wordLevelDiff';
+import { useFileLevelTokensLookup } from '../contexts/FileLevelTokensContext';
 
 import { CommentButton } from './CommentButton';
 import { CommentForm } from './CommentForm';
@@ -106,6 +107,7 @@ export function SideBySideDiffChunk({
   filename,
   onOpenInEditor,
 }: SideBySideDiffChunkProps) {
+  const { getOldTokens, getNewTokens } = useFileLevelTokensLookup();
   const [startLine, setStartLine] = useState<LineSelection | null>(null);
   const [endLine, setEndLine] = useState<LineSelection | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -199,6 +201,15 @@ export function SideBySideDiffChunk({
       }
     },
     [commentingLine, onAddComment, getSelectedCodeContent],
+  );
+
+  const getProcomputedTokens = useCallback(
+    (getTokens: typeof getOldTokens, lineNumber: number | null | undefined) => {
+      if (lineNumber == null) return null;
+      const lineTokens = getTokens?.(lineNumber) ?? null;
+      return lineTokens ? [lineTokens] : null;
+    },
+    [],
   );
 
   const getThreadsForLine = (lineNumber: number, side: DiffSide) => {
@@ -567,6 +578,10 @@ export function SideBySideDiffChunk({
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
                             syntaxTheme={syntaxTheme}
                             filename={filename}
+                            precomputedTokens={getProcomputedTokens(
+                              getOldTokens,
+                              sideLine.oldLine.oldLineNumber,
+                            )}
                           />
                         )}
                       </div>
@@ -648,6 +663,10 @@ export function SideBySideDiffChunk({
                             className="flex-1 text-github-text-primary whitespace-pre-wrap break-all overflow-wrap-break-word select-text [&_pre]:m-0 [&_pre]:p-0 [&_pre]:!bg-transparent [&_pre]:font-inherit [&_pre]:text-inherit [&_pre]:leading-inherit [&_code]:!bg-transparent [&_code]:font-inherit [&_code]:text-inherit [&_code]:leading-inherit"
                             syntaxTheme={syntaxTheme}
                             filename={filename}
+                            precomputedTokens={getProcomputedTokens(
+                              getNewTokens,
+                              sideLine.newLine.newLineNumber,
+                            )}
                           />
                         )}
                       </div>

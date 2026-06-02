@@ -7,8 +7,11 @@ import {
   type CommentThread,
   type LineNumber,
 } from '../../types/diff';
+import { FileLevelTokensProvider } from '../contexts/FileLevelTokensContext';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
 import { type MergedChunk } from '../hooks/useExpandedLines';
+import { useFileLevelTokens } from '../hooks/useFileLevelTokens';
+import { isWholeFileHighlightExtension } from '../utils/languageDetection';
 import { getViewerForFile } from '../viewers/registry';
 import type { DiffViewerBodyProps } from '../viewers/types';
 
@@ -66,6 +69,7 @@ interface DiffViewerProps {
   ) => void;
   commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
   onCommentTriggerHandled?: () => void;
+  diffVersion?: number;
 }
 
 type LineRange = { start: number; end: number };
@@ -197,6 +201,7 @@ export const DiffViewer = memo(function DiffViewer({
   expandAllBetweenChunks,
   prefetchFileContent,
   isExpandLoading,
+  diffVersion,
 }: DiffViewerProps) {
   const isCollapsed = collapsedFiles.has(file.path);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -204,6 +209,10 @@ export const DiffViewer = memo(function DiffViewer({
 
   const viewer = getViewerForFile(file);
   const canExpandHiddenLines = viewer.canExpandHiddenLines?.(file) ?? false;
+  // Tokenize the whole file so embedded blocks (e.g. <script>/<style>) are
+  // highlighted by their own language instead of line-by-line, which can't see
+  // the surrounding context.
+  const wholeFileHighlight = viewer.id === 'default' && isWholeFileHighlightExtension(file.path);
 
   // Observe visibility for lazy prefetch
   useEffect(() => {
@@ -308,6 +317,14 @@ export const DiffViewer = memo(function DiffViewer({
     canExpandHiddenLines,
   ]);
 
+  const fileLevelTokens = useFileLevelTokens({
+    file,
+    enabled: wholeFileHighlight,
+    baseCommitish,
+    targetCommitish,
+    reloadKey: diffVersion,
+  });
+
   const lineNumberWidth = '4em';
   const ViewerComponent = viewer.Component;
   const viewerProps: DiffViewerBodyProps = {
@@ -353,9 +370,11 @@ export const DiffViewer = memo(function DiffViewer({
       />
 
       {!isCollapsed && (
-        <div className="overflow-y-auto">
-          <ViewerComponent {...viewerProps} />
-        </div>
+        <FileLevelTokensProvider value={fileLevelTokens}>
+          <div className="overflow-y-auto">
+            <ViewerComponent {...viewerProps} />
+          </div>
+        </FileLevelTokensProvider>
       )}
     </div>
   );

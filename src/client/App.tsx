@@ -1340,6 +1340,7 @@ function App() {
                       expandAllBetweenChunks={expandAllBetweenChunks}
                       prefetchFileContent={prefetchFileContent}
                       isExpandLoading={isExpandLoading}
+                      diffVersion={diffDataVersion}
                     />
                   ) : (
                     <div className="bg-github-bg-secondary border border-github-border rounded-md px-4 py-3">
