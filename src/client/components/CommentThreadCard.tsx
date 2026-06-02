@@ -191,6 +191,15 @@ export function CommentThreadCard({
           >
             {thread.file}:{lineLabel}
           </span>
+          {thread.isOutdated && (
+            <span
+              className="inline-flex h-5 shrink-0 items-center rounded-full border border-github-text-muted px-2 text-[10px] font-medium text-github-text-muted"
+              title="Code has changed since this comment was made"
+              aria-label="Outdated comment"
+            >
+              Outdated
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button

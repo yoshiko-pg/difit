@@ -100,6 +100,39 @@ describe('CommentThreadCard', () => {
     expect(onRemoveThread).not.toHaveBeenCalled();
   });
 
+  it('shows the "Outdated" badge when the thread is marked outdated', () => {
+    render(
+      <CommentThreadCard
+        thread={{ ...mockThread, isOutdated: true }}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    const badge = screen.getByLabelText('Outdated comment');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent('Outdated');
+    expect(badge).toHaveAttribute('title', 'Code has changed since this comment was made');
+  });
+
+  it('does not render the "Outdated" badge when the thread is up to date', () => {
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Outdated comment')).not.toBeInTheDocument();
+  });
+
   it('confirms before deleting a user-authored reply', async () => {
     const user = userEvent.setup();
     const confirmSpy = vi.fn(() => false);

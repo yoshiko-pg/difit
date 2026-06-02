@@ -52,6 +52,7 @@ import {
   buildMergedChunksState,
   getMergedChunksForVersion,
 } from './utils/mergedChunks';
+import { buildFileLineIndex, isThreadOutdated } from './utils/outdatedComments';
 
 const EMPTY_COMMENT_THREADS: CommentThread[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
@@ -198,40 +199,6 @@ function App() {
     resolvedSelection?.baseMode,
   );
 
-  const normalizedThreads = useMemo<CommentThread[]>(
-    () =>
-      threads.map((thread) => ({
-        id: thread.id,
-        file: thread.filePath,
-        line:
-          typeof thread.position.line === 'number'
-            ? thread.position.line
-            : ([thread.position.line.start, thread.position.line.end] as [number, number]),
-        side: thread.position.side,
-        createdAt: thread.createdAt,
-        updatedAt: thread.updatedAt,
-        codeContent: thread.codeSnapshot?.content,
-        messages: thread.messages,
-      })),
-    [threads],
-  );
-  const showAuthorBadges = useMemo(
-    () => hasMultipleCommentAuthors(normalizedThreads.flatMap((thread) => thread.messages)),
-    [normalizedThreads],
-  );
-
-  const threadsByFile = useMemo(() => {
-    const map = new Map<string, CommentThread[]>();
-    normalizedThreads.forEach((thread) => {
-      const entry = map.get(thread.file);
-      if (entry) {
-        entry.push(thread);
-      } else {
-        map.set(thread.file, [thread]);
-      }
-    });
-    return map;
-  }, [normalizedThreads]);
   const showMobileCommentsBar = isMobile && threads.length > 0;
   const commentsContextKey = useMemo(() => {
     if (!resolvedSelectionKey) {
@@ -464,6 +431,49 @@ function App() {
         getMergedChunksForVersion(mergedChunksState, diffDataVersion, file.path) || file.chunks,
     }));
   }, [diffData, diffDataVersion, mergedChunksState]);
+
+  const fileLineIndexByPath = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildFileLineIndex>>();
+    navigableFiles.forEach((file) => {
+      map.set(file.path, buildFileLineIndex(file));
+    });
+    return map;
+  }, [navigableFiles]);
+
+  const normalizedThreads = useMemo<CommentThread[]>(
+    () =>
+      threads.map((thread) => ({
+        id: thread.id,
+        file: thread.filePath,
+        line:
+          typeof thread.position.line === 'number'
+            ? thread.position.line
+            : ([thread.position.line.start, thread.position.line.end] as [number, number]),
+        side: thread.position.side,
+        createdAt: thread.createdAt,
+        updatedAt: thread.updatedAt,
+        codeContent: thread.codeSnapshot?.content,
+        isOutdated: isThreadOutdated(thread, fileLineIndexByPath.get(thread.filePath)),
+        messages: thread.messages,
+      })),
+    [threads, fileLineIndexByPath],
+  );
+  const showAuthorBadges = useMemo(
+    () => hasMultipleCommentAuthors(normalizedThreads.flatMap((thread) => thread.messages)),
+    [normalizedThreads],
+  );
+  const threadsByFile = useMemo(() => {
+    const map = new Map<string, CommentThread[]>();
+    normalizedThreads.forEach((thread) => {
+      const entry = map.get(thread.file);
+      if (entry) {
+        entry.push(thread);
+      } else {
+        map.set(thread.file, [thread]);
+      }
+    });
+    return map;
+  }, [normalizedThreads]);
 
   // State to trigger comment creation from keyboard
   const [commentTrigger, setCommentTrigger] = useState<{
@@ -888,12 +898,13 @@ function App() {
         body,
         side: side || 'new',
         line: typeof line === 'number' ? line : { start: line[0], end: line[1] },
-        codeSnapshot: codeContent
-          ? {
-              content: codeContent,
-              language: undefined,
-            }
-          : undefined,
+        codeSnapshot:
+          codeContent !== undefined
+            ? {
+                content: codeContent,
+                language: undefined,
+              }
+            : undefined,
       });
       return Promise.resolve();
     },
