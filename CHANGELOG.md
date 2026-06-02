@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.2] - 2026-06-03
+
+### Added
+
+- Add an Outdated badge for comments whose saved code snapshot no longer matches the current diff (#383)
+- Add automatic whole-file syntax highlighting for .vue, .astro, .svelte file types (#381)
+
+### Changed
+
+- Rename the file change badge from Changed to Updated (#382)
+- Update dependencies (#365 #366 #367 #368 #369 #370 #371 #373 #374 #375 #376 #377)
+
+### Fixed
+
+- Keep concurrent comment writes from being lost or hidden (#384)
+- Preserve comment code snapshots for lines that start with `+` or `-` and for blank lines (#383)
+
+### Thanks
+
+- [@moeyashi](https://github.com/moeyashi) for adding automatic whole-file syntax highlighting for component file types (#381)
+- [@takumi12311123](https://github.com/takumi12311123) for adding stale comment detection and updating file change badge wording (#382 #383)
+- [@matthoneycutt-sm](https://github.com/matthoneycutt-sm) for improving concurrent comment synchronization (#384)
+
 ## [5.0.1] - 2026-05-17
 
 ### Added
@@ -1225,7 +1248,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.1...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.2...HEAD
+[5.0.2]: https://github.com/yoshiko-pg/difit/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/yoshiko-pg/difit/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/yoshiko-pg/difit/compare/v4.0.7...v5.0.0
 [4.0.7]: https://github.com/yoshiko-pg/difit/compare/v4.0.6...v4.0.7
