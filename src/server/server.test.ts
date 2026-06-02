@@ -297,6 +297,41 @@ describe('Server Integration Tests', () => {
         }
       }
     });
+
+    it('bumps the version when a reply is imported (so the change is broadcast)', async () => {
+      const port = await getAvailablePort(4966);
+      const result = await startServer({ preferredPort: port, openBrowser: false });
+
+      try {
+        await postThreads(result.port, [makeThread('t1', 'src/a.ts', 10, 'human thread')]);
+        const before = await getSession(result.port);
+
+        // A reply via comment-imports must register as a change — otherwise the
+        // server skips the commentsChanged broadcast and open browsers go stale.
+        await fetch(`http://localhost:${result.port}/api/comment-imports`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([
+            {
+              type: 'reply',
+              filePath: 'src/a.ts',
+              position: { side: 'new', line: 10 },
+              body: 'agent reply',
+              author: 'Agent',
+            },
+          ] satisfies CommentImport[]),
+        });
+
+        const after = await getSession(result.port);
+        expect(after.version).toBeGreaterThan(before.version);
+      } finally {
+        if (result.server) {
+          await new Promise<void>((resolve) => {
+            result.server!.close(() => resolve());
+          });
+        }
+      }
+    });
   });
 
   let servers: any[] = [];
