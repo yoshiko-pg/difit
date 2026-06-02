@@ -269,6 +269,8 @@ function App() {
     commentsContextKey !== null && commentsContextKey === bootstrappedCommentsKey;
   const bootstrappingCommentsKeyRef = useRef<string | null>(null);
   const skipNextCommentSyncRef = useRef(false);
+  // Last server comment version seen; echoed back as baseVersion so the server can detect concurrent writes.
+  const serverCommentVersionRef = useRef<number | null>(null);
   const pendingBootstrapAfterLocalResetRef = useRef(false);
 
   useEffect(() => {
@@ -283,19 +285,45 @@ function App() {
       throw new Error(`Failed to fetch comments: ${response.status} ${response.statusText}`);
     }
 
-    const payload = (await response.json()) as { threads?: DiffCommentThread[] };
+    const payload = (await response.json()) as {
+      version?: number;
+      threads?: DiffCommentThread[];
+    };
+    if (typeof payload.version === 'number') {
+      serverCommentVersionRef.current = payload.version;
+    }
     return Array.isArray(payload.threads) ? payload.threads : [];
   }, [getCommentApiUrl]);
 
   const syncThreadsToServer = useCallback(
     async (nextThreads: DiffCommentThread[]) => {
-      await fetch(getCommentApiUrl('/api/comments'), {
+      const response = await fetch(getCommentApiUrl('/api/comments'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threads: nextThreads }),
+        body: JSON.stringify({
+          threads: nextThreads,
+          baseVersion: serverCommentVersionRef.current ?? undefined,
+        }),
       });
+      if (!response.ok) {
+        return;
+      }
+
+      const result = (await response.json()) as {
+        version?: number;
+        merged?: boolean;
+        threads?: DiffCommentThread[];
+      };
+      if (typeof result.version === 'number') {
+        serverCommentVersionRef.current = result.version;
+      }
+      // Server merged in a concurrent change; adopt it so we don't push a stale set back.
+      if (result.merged && Array.isArray(result.threads)) {
+        skipNextCommentSyncRef.current = true;
+        replaceThreads(result.threads);
+      }
     },
-    [getCommentApiUrl],
+    [getCommentApiUrl, replaceThreads],
   );
 
   // Viewed files management
@@ -829,7 +857,10 @@ function App() {
       return;
     }
 
-    const data = JSON.stringify({ threads });
+    const data = JSON.stringify({
+      threads,
+      baseVersion: serverCommentVersionRef.current ?? undefined,
+    });
     const commentsApiUrl = getCommentApiUrl('/api/comments');
 
     // Also handle page unload

@@ -13,6 +13,7 @@ import { type DiffMode } from '../types/watch.js';
 import { formatCommentsOutput } from '../utils/commentFormatting.js';
 import {
   mergeCommentImports,
+  mergeCommentThreads,
   normalizeCommentImports,
   serializeCommentImports,
 } from '../utils/commentImports.js';
@@ -682,6 +683,13 @@ export async function startServer(
     return [];
   }
 
+  // Version the client based its push on (omitted by older clients).
+  function parseBaseVersion(payload: unknown): number | undefined {
+    if (!payload || typeof payload !== 'object') return undefined;
+    const value = (payload as { baseVersion?: unknown }).baseVersion;
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined;
+  }
+
   function parseCommentImportsPayload(body: unknown): CommentImport[] {
     if (typeof body === 'string') {
       return normalizeCommentImports(JSON.parse(body));
@@ -715,9 +723,27 @@ export async function startServer(
   app.post('/api/comments', (req, res) => {
     try {
       const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-      const nextThreads = parseCommentsPayload(req.body);
-      updateCommentSession(selection, nextThreads);
-      res.json({ success: true });
+      const body: unknown =
+        typeof req.body === 'string' ? (JSON.parse(req.body) as unknown) : req.body;
+      const nextThreads = parseCommentsPayload(body);
+      const baseVersion = parseBaseVersion(body);
+      const session = getOrCreateCommentSession(selection);
+
+      // Stale baseVersion means another writer (e.g. an agent) changed comments since the
+      // client's last read, so merge rather than overwrite. A matching/absent version replaces.
+      const isStale = typeof baseVersion === 'number' && baseVersion !== session.version;
+      const resolvedThreads = isStale
+        ? mergeCommentThreads(session.threads, nextThreads).threads
+        : nextThreads;
+
+      updateCommentSession(selection, resolvedThreads);
+
+      res.json({
+        success: true,
+        merged: isStale,
+        version: session.version,
+        threads: session.threads,
+      });
     } catch (error) {
       console.error('Error parsing comments:', error);
       res.status(400).json({ error: 'Invalid comment data' });
