@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { type RevisionsResponse } from '../../types/diff';
 
 const RESERVED_SPECIAL_OPTION_VALUES = new Set(['merge-base']);
+const EMPTY_DISABLED_VALUES: string[] = [];
 
 interface RevisionSelectorProps {
   label: string;
@@ -36,7 +37,7 @@ export function RevisionSelector({
   resolvedValue,
   onChange,
   options,
-  disabledValues = [],
+  disabledValues = EMPTY_DISABLED_VALUES,
 }: RevisionSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
