@@ -1,3 +1,3 @@
 [tools]
 node = "24"
-"npm:pnpm" = "11.1.3"
+"npm:pnpm" = "11.3.0"
