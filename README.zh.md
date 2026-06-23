@@ -208,7 +208,7 @@ difit 自动识别并折叠某些文件以保持视图整洁：
 
 - **已删除文件**：已删除的文件不需要详细审查，因此自动折叠
 - **自动生成文件**：自动生成的代码默认折叠。这包括：
-  - 锁定文件 (`package-lock.json`, `go.mod`, `Cargo.lock`, `Gemfile.lock` 等)
+  - 锁定文件 (`package-lock.json`, `go.sum`, `Cargo.lock`, `Gemfile.lock` 等)
   - 压缩文件 (`*.min.js`, `*.min.css`)
   - 源映射 (`*.map`)
   - 生成的代码:
