@@ -213,7 +213,7 @@ difit automatically identifies and collapses certain files to keep your view cle
 
 - **Deleted files**: Removed files are auto-collapsed since they don't require close review
 - **Generated files**: Auto-generated code is collapsed by default. This includes:
-  - Lock files (`package-lock.json`, `go.mod`, `Cargo.lock`, `Gemfile.lock`, etc.)
+  - Lock files (`package-lock.json`, `go.sum`, `Cargo.lock`, `Gemfile.lock`, etc.)
   - Minified files (`*.min.js`, `*.min.css`)
   - Source maps (`*.map`)
   - Generated code:
