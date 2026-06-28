@@ -28,6 +28,8 @@
   },
   "files": [
     "dist",
+    "!dist/client/site-data",
+    "!dist/site",
     "README.md"
   ],
   "type": "module",
