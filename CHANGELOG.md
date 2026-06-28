@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.3] - 2026-06-28
+
+### Changed
+
+- Correct the Go lock file example from go.mod to go.sum (#403)
+- Update dependencies (#385 #386 #387 #388 #389 #390 #391 #393 #394 #395 #396 #397 #398 #399 #400 #401 #404 #405 #406)
+
+### Fixed
+
+- Exclude site data from the npm package (#408)
+
+### Thanks
+
+- [@tsukasaI](https://github.com/tsukasaI) for correcting the Go lock file example (#403)
+
 ## [5.0.2] - 2026-06-03
 
 ### Added
@@ -1248,7 +1263,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.2...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.3...HEAD
+[5.0.3]: https://github.com/yoshiko-pg/difit/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/yoshiko-pg/difit/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/yoshiko-pg/difit/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/yoshiko-pg/difit/compare/v4.0.7...v5.0.0
