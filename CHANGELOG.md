@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.4] - 2026-06-29
+
+### Added
+
+- Add Svelte syntax highlighting support (#409)
+
+### Thanks
+
+- [@tsukasaI](https://github.com/tsukasaI) for adding Svelte syntax highlighting support (#409)
+
 ## [5.0.3] - 2026-06-28
 
 ### Changed
@@ -1263,7 +1273,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.3...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.4...HEAD
+[5.0.4]: https://github.com/yoshiko-pg/difit/compare/v5.0.3...v5.0.4
 [5.0.3]: https://github.com/yoshiko-pg/difit/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/yoshiko-pg/difit/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/yoshiko-pg/difit/compare/v5.0.0...v5.0.1
