@@ -193,7 +193,7 @@ npx skills add yoshiko-pg/difit
 
 ## 🎨 구문 강조 언어
 
-- **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`
+- **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`, `.svelte`
 - **웹 기술**: HTML, CSS, JSON, XML, Markdown
 - **셸 스크립트**: `.sh`, `.bash`, `.zsh`, `.fish`
 - **백엔드 언어**: PHP, SQL, Ruby, Java, Scala, Perl, Elixir, Haskell, Clojure

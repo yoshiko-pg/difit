@@ -73,6 +73,7 @@
     "mermaid": "^11.13.0",
     "open": "^11.0.0",
     "prism-react-renderer": "^2.4.1",
+    "prism-svelte": "^0.5.0",
     "prismjs": "^1.30.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

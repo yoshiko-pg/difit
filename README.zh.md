@@ -193,7 +193,7 @@ npx skills add yoshiko-pg/difit
 
 ## 🎨 语法高亮语言
 
-- **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`
+- **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`, `.svelte`
 - **Web 技术**：HTML, CSS, JSON, XML, Markdown
 - **Shell 脚本**：`.sh`, `.bash`, `.zsh`, `.fish`
 - **后端语言**：PHP, SQL, Ruby, Java, Scala, Perl, Elixir, Haskell, Clojure

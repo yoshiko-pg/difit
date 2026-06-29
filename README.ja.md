@@ -193,7 +193,7 @@ npx skills add yoshiko-pg/difit
 
 ## 🎨 シンタックスハイライト対応言語
 
-- **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`
+- **JavaScript/TypeScript**：`.js`, `.jsx`, `.ts`, `.tsx`, `.svelte`
 - **Web技術**：HTML, CSS, JSON, XML, Markdown
 - **シェルスクリプト**：`.sh`, `.bash`, `.zsh`, `.fish`
 - **バックエンド言語**：PHP, SQL, Ruby, Java, Scala, Perl, Elixir, Haskell, Clojure
