@@ -19,7 +19,6 @@ interface DiffLineRowProps {
   onMouseLeave: () => void;
   onMouseMove: () => void;
   onCommentButtonMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onCommentButtonMouseUp: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenInEditor?: () => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   onClick?: () => void;
@@ -54,7 +53,6 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
     onMouseLeave,
     onMouseMove,
     onCommentButtonMouseDown,
-    onCommentButtonMouseUp,
     onOpenInEditor,
     syntaxTheme,
     onClick,
@@ -83,10 +81,7 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
           {showLineActions && (
             <>
               {onOpenInEditor && <OpenInEditorButton onClick={onOpenInEditor} />}
-              <CommentButton
-                onMouseDown={onCommentButtonMouseDown}
-                onMouseUp={onCommentButtonMouseUp}
-              />
+              <CommentButton onMouseDown={onCommentButtonMouseDown} />
             </>
           )}
         </td>

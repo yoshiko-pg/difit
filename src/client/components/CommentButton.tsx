@@ -3,12 +3,11 @@ import React from 'react';
 
 interface CommentButtonProps {
   onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onMouseUp: (e: React.MouseEvent<HTMLButtonElement>) => void;
   title?: string;
 }
 
 export const CommentButton: React.FC<CommentButtonProps> = React.memo(
-  ({ onMouseDown, onMouseUp, title = 'Add a comment' }) => {
+  ({ onMouseDown, title = 'Add a comment' }) => {
     return (
       <button
         className="absolute -right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded transition-all duration-150 hover:scale-110 z-10"
@@ -27,7 +26,6 @@ export const CommentButton: React.FC<CommentButtonProps> = React.memo(
           e.currentTarget.style.borderColor = 'var(--color-yellow-btn-border)';
         }}
         onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}
         title={title}
       >
         <MessageSquare className="w-4 h-4" />

@@ -48,7 +48,11 @@ interface DiffChunkProps {
     lineIndex: number,
     side: 'left' | 'right',
   ) => void;
-  commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
+  commentTrigger?: {
+    fileIndex: number;
+    chunkIndex: number;
+    lineIndex: number;
+  } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
   onOpenInEditor?: (filePath: string, lineNumber: number) => void;
@@ -77,6 +81,7 @@ export const DiffChunk = memo(function DiffChunk({
 }: DiffChunkProps) {
   const [startLine, setStartLine] = useState<number | null>(null);
   const [endLine, setEndLine] = useState<number | null>(null);
+  const [dragSide, setDragSide] = useState<DiffSide | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [commentingLine, setCommentingLine] = useState<{
     side: DiffSide;
@@ -99,23 +104,6 @@ export const DiffChunk = memo(function DiffChunk({
     }
   }, [commentTrigger, chunk.lines, onCommentTriggerHandled]);
 
-  // Global mouse up handler for drag selection
-  useEffect(() => {
-    if (isDragging) {
-      const handleGlobalMouseUp = () => {
-        setIsDragging(false);
-        setStartLine(null);
-        setEndLine(null);
-      };
-
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-      return () => {
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-      };
-    }
-    return undefined;
-  }, [isDragging]);
-
   const handleAddComment = useCallback(
     (side: DiffSide, lineNumber: LineNumber) => {
       if (commentingLine?.side === side && commentingLine?.lineNumber === lineNumber) {
@@ -126,6 +114,40 @@ export const DiffChunk = memo(function DiffChunk({
     },
     [commentingLine],
   );
+
+  // Global mouse up handler for drag selection: commit the selection wherever
+  // the mouse is released, not only on the comment button itself
+  useEffect(() => {
+    if (!isDragging) {
+      return undefined;
+    }
+
+    const handleGlobalMouseUp = () => {
+      // Defer so the click event fired after mouseup doesn't immediately
+      // close the newly opened (still empty) comment form
+      setTimeout(() => {
+        if (startLine && dragSide) {
+          const actualEndLine = endLine ?? startLine;
+          if (startLine === actualEndLine) {
+            handleAddComment(dragSide, startLine);
+          } else {
+            const min = Math.min(startLine, actualEndLine);
+            const max = Math.max(startLine, actualEndLine);
+            handleAddComment(dragSide, [min, max]);
+          }
+        }
+        setIsDragging(false);
+        setStartLine(null);
+        setEndLine(null);
+        setDragSide(null);
+      }, 0);
+    };
+
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging, startLine, endLine, dragSide, handleAddComment]);
 
   const handleCancelComment = useCallback(() => {
     setCommentingLine(null);
@@ -376,32 +398,9 @@ export const DiffChunk = memo(function DiffChunk({
                     if (lineNumber) {
                       setStartLine(lineNumber);
                       setEndLine(lineNumber);
+                      setDragSide(line.type === 'delete' ? 'old' : 'new');
                       setIsDragging(true);
                     }
-                  }}
-                  onCommentButtonMouseUp={(e) => {
-                    e.stopPropagation();
-                    const lineNumber = line.newLineNumber || line.oldLineNumber;
-                    const side: DiffSide = line.type === 'delete' ? 'old' : 'new';
-                    if (!lineNumber || !startLine) {
-                      setIsDragging(false);
-                      setStartLine(null);
-                      setEndLine(null);
-                      return;
-                    }
-
-                    const actualEndLine = endLine || lineNumber;
-                    if (startLine === actualEndLine) {
-                      handleAddComment(side, lineNumber);
-                    } else {
-                      const min = Math.min(startLine, actualEndLine);
-                      const max = Math.max(startLine, actualEndLine);
-                      handleAddComment(side, [min, max]);
-                    }
-
-                    setIsDragging(false);
-                    setStartLine(null);
-                    setEndLine(null);
                   }}
                   onOpenInEditor={
                     onOpenInEditor &&
