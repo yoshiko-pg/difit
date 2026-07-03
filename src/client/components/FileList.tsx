@@ -369,7 +369,7 @@ export const FileList = memo(function FileList({
                   <Folder size={16} className="text-github-text-secondary" />
                 )}
               </span>
-              <span className="hidden items-center group-hover:flex">
+              <span className="hidden items-center pl-[2px] group-hover:flex">
                 <Checkbox
                   checked={isReviewed}
                   onChange={() => {
