@@ -204,15 +204,14 @@ export const DiffChunk = memo(function DiffChunk({
       const min = Math.min(startLine, endLine);
       const max = Math.max(startLine, endLine);
       if (lineNumber >= min && lineNumber <= max) {
-        let classes =
-          'after:bg-blue-100 after:absolute after:inset-0 after:opacity-30 after:border-l-4 after:border-blue-500 after:pointer-events-none';
+        let classes = 'drag-selected';
         // Add top border for first line
         if (lineNumber === min) {
-          classes += ' after:border-t-2';
+          classes += ' drag-selected-first';
         }
         // Add bottom border for last line
         if (lineNumber === max) {
-          classes += ' after:border-b-2';
+          classes += ' drag-selected-last';
         }
         return classes;
       }
@@ -227,7 +226,7 @@ export const DiffChunk = memo(function DiffChunk({
         ? commentingLine.lineNumber[1]
         : commentingLine.lineNumber;
       if (lineNumber >= start && lineNumber <= end) {
-        return 'after:bg-diff-selected-bg after:absolute after:inset-0 after:border-l-5 after:border-l-diff-selected-border after:pointer-events-none';
+        return 'comment-selected';
       }
     }
 

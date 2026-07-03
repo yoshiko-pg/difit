@@ -157,6 +157,51 @@ td.keyboard-cursor::before {
   z-index: 1;
 }
 
+/* WebKit ignores position:relative on <tr>, so the selection overlays below are
+   anchored to each td instead of the row, like the keyboard-cursor styles above */
+tr.comment-selected td {
+  position: relative;
+}
+
+tr.comment-selected td::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-diff-selected-bg);
+  pointer-events: none;
+}
+
+tr.comment-selected td:first-child::after {
+  border-left: 5px solid var(--color-diff-selected-border);
+}
+
+tr.drag-selected td {
+  position: relative;
+}
+
+/* Colors match the Tailwind blue-100 / blue-500 utilities used in split mode */
+tr.drag-selected td::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: #dbeafe;
+  opacity: 0.3;
+  border: 0 solid #3b82f6;
+  pointer-events: none;
+}
+
+tr.drag-selected td:first-child::after {
+  border-left-width: 4px;
+}
+
+tr.drag-selected-first td::after {
+  border-top-width: 2px;
+}
+
+tr.drag-selected-last td::after {
+  border-bottom-width: 2px;
+}
+
 /* Word highlighting styles */
 .word-token {
   cursor: pointer;
