@@ -22,6 +22,7 @@ interface UseViewedFilesReturn {
   changedSinceViewedFiles: Set<string>;
   hasLoadedInitialViewedFiles: boolean;
   toggleFileViewed: (filePath: string, diffFile: DiffFile) => Promise<void>;
+  setFilesViewed: (diffFiles: DiffFile[], viewed: boolean) => Promise<void>;
   isFileContentChanged: (filePath: string, diffFile: DiffFile) => Promise<boolean>;
   getViewedFileRecord: (filePath: string) => ViewedFileRecord | undefined;
   clearViewedFiles: () => void;
@@ -291,6 +292,52 @@ export function useViewedFiles(
     [viewedFileRecords, getViewedFileRecord, getFileHash, saveViewedFiles, repositoryId],
   );
 
+  // Set viewed state for multiple files at once (e.g. marking an entire folder)
+  const setFilesViewed = useCallback(
+    async (diffFiles: DiffFile[], viewed: boolean): Promise<void> => {
+      if (viewed) {
+        const filesToAdd = diffFiles.filter((file) => !getViewedFileRecord(file.path));
+        if (filesToAdd.length === 0) return;
+
+        const viewedAt = new Date().toISOString();
+        const addedRecords: ViewedFileRecord[] = await Promise.all(
+          filesToAdd.map(async (file) => ({
+            filePath: file.path,
+            viewedAt,
+            diffContentHash: await getFileHash(file),
+          })),
+        );
+
+        saveViewedFiles([...viewedFileRecords, ...addedRecords]);
+        storageService.recordViewedHashes(
+          repositoryId,
+          addedRecords.map((record) => ({
+            filePath: record.filePath,
+            diffContentHash: record.diffContentHash,
+            hashVersion: VIEWED_HASH_VERSION,
+            viewedAt: record.viewedAt,
+          })),
+        );
+      } else {
+        const pathsToRemove = new Set(diffFiles.map((file) => file.path));
+        const removedRecords = viewedFileRecords.filter((record) =>
+          pathsToRemove.has(record.filePath),
+        );
+        if (removedRecords.length === 0) return;
+
+        saveViewedFiles(viewedFileRecords.filter((record) => !pathsToRemove.has(record.filePath)));
+        storageService.removeViewedHashes(
+          repositoryId,
+          removedRecords.map((record) => ({
+            filePath: record.filePath,
+            diffContentHash: record.diffContentHash,
+          })),
+        );
+      }
+    },
+    [viewedFileRecords, getViewedFileRecord, getFileHash, saveViewedFiles, repositoryId],
+  );
+
   // Clear all viewed files
   const clearViewedFiles = useCallback(() => {
     saveViewedFiles([]);
@@ -304,6 +351,7 @@ export function useViewedFiles(
     changedSinceViewedFiles,
     hasLoadedInitialViewedFiles,
     toggleFileViewed,
+    setFilesViewed,
     isFileContentChanged,
     getViewedFileRecord,
     clearViewedFiles,

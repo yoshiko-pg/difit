@@ -26,6 +26,7 @@ interface FileListProps {
   comments: CommentThread[];
   reviewedFiles: Set<string>;
   onToggleReviewed: (path: string) => void;
+  onToggleFolderReviewed: (path: string, reviewed: boolean) => void;
   selectedFileIndex: number | null;
 }
 
@@ -159,6 +160,7 @@ export const FileList = memo(function FileList({
   comments,
   reviewedFiles,
   onToggleReviewed,
+  onToggleFolderReviewed,
   selectedFileIndex,
 }: FileListProps) {
   const fileTree = useMemo(() => buildFileTree(files), [files]);
@@ -360,6 +362,14 @@ export const FileList = memo(function FileList({
               onClick={(event) => handleDirectoryClick(event, node.path)}
             >
               {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              <Checkbox
+                checked={isReviewed}
+                onChange={() => {
+                  onToggleFolderReviewed(node.path, !isReviewed);
+                }}
+                title={isReviewed ? 'Mark all files as not reviewed' : 'Mark all files as reviewed'}
+                className="z-10"
+              />
               {isExpanded ? (
                 <FolderOpen size={16} className="text-github-text-secondary" />
               ) : (

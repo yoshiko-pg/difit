@@ -299,6 +299,7 @@ function App() {
     changedSinceViewedFiles,
     hasLoadedInitialViewedFiles,
     toggleFileViewed,
+    setFilesViewed,
     clearViewedFiles,
   } = useViewedFiles(
     resolvedSelection?.baseCommitish,
@@ -377,6 +378,31 @@ function App() {
       toggleFileViewed,
       viewedFiles,
     ],
+  );
+
+  const toggleFolderReviewed = useCallback(
+    async (folderPath: string, reviewed: boolean) => {
+      if (!diffData) return;
+
+      const folderFiles = diffData.files.filter((file) => file.path.startsWith(`${folderPath}/`));
+      if (folderFiles.length === 0) return;
+
+      await setFilesViewed(folderFiles, reviewed);
+
+      // Keep the collapse state of every file in the folder in sync with its viewed state
+      setCollapsedFiles((prev) => {
+        const newSet = new Set(prev);
+        folderFiles.forEach((file) => {
+          if (reviewed) {
+            newSet.add(file.path);
+          } else {
+            newSet.delete(file.path);
+          }
+        });
+        return newSet;
+      });
+    },
+    [diffData, setFilesViewed],
   );
 
   const toggleFileCollapsed = useCallback((filePath: string) => {
@@ -1306,6 +1332,7 @@ function App() {
                   comments={normalizedThreads}
                   reviewedFiles={viewedFiles}
                   onToggleReviewed={toggleFileReviewed}
+                  onToggleFolderReviewed={toggleFolderReviewed}
                   selectedFileIndex={cursor?.fileIndex ?? null}
                 />
               </div>
