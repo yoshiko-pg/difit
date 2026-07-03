@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.6] - 2026-07-04
+
+### Added
+
+- Add ability to mark an entire folder as reviewed from the file tree (#421)
+- Improve keyboard file navigation: highlight the focused file, add Shift+V to mark viewed and jump to the next unviewed file, and more (#420)
+
 ## [5.0.5] - 2026-07-04
 
 ### Fixed
@@ -1289,7 +1296,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.5...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.6...HEAD
+[5.0.6]: https://github.com/yoshiko-pg/difit/compare/v5.0.5...v5.0.6
 [5.0.5]: https://github.com/yoshiko-pg/difit/compare/v5.0.4...v5.0.5
 [5.0.4]: https://github.com/yoshiko-pg/difit/compare/v5.0.3...v5.0.4
 [5.0.3]: https://github.com/yoshiko-pg/difit/compare/v5.0.2...v5.0.3
