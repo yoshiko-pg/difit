@@ -49,7 +49,11 @@ interface SideBySideDiffChunkProps {
     lineIndex: number,
     side: 'left' | 'right',
   ) => void;
-  commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
+  commentTrigger?: {
+    fileIndex: number;
+    chunkIndex: number;
+    lineIndex: number;
+  } | null;
   onCommentTriggerHandled?: () => void;
   filename?: string;
   onOpenInEditor?: (filePath: string, lineNumber: number) => void;
@@ -131,23 +135,6 @@ export function SideBySideDiffChunk({
     }
   }, [commentTrigger, chunk.lines, onCommentTriggerHandled]);
 
-  // Global mouse up handler for drag selection
-  useEffect(() => {
-    if (isDragging) {
-      const handleGlobalMouseUp = () => {
-        setIsDragging(false);
-        setStartLine(null);
-        setEndLine(null);
-      };
-
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-      return () => {
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-      };
-    }
-    return undefined;
-  }, [isDragging]);
-
   const handleAddComment = useCallback(
     (side: DiffSide, lineNumber: LineNumber) => {
       if (commentingLine?.side === side && commentingLine?.lineNumber === lineNumber) {
@@ -158,6 +145,40 @@ export function SideBySideDiffChunk({
     },
     [commentingLine],
   );
+
+  // Global mouse up handler for drag selection: commit the selection wherever
+  // the mouse is released, not only on the comment button itself
+  useEffect(() => {
+    if (!isDragging) {
+      return undefined;
+    }
+
+    const handleGlobalMouseUp = () => {
+      // Defer so the click event fired after mouseup doesn't immediately
+      // close the newly opened (still empty) comment form
+      setTimeout(() => {
+        if (startLine) {
+          const actualEndLine =
+            endLine && endLine.side === startLine.side ? endLine.lineNumber : startLine.lineNumber;
+          if (startLine.lineNumber === actualEndLine) {
+            handleAddComment(startLine.side, startLine.lineNumber);
+          } else {
+            const min = Math.min(startLine.lineNumber, actualEndLine);
+            const max = Math.max(startLine.lineNumber, actualEndLine);
+            handleAddComment(startLine.side, [min, max]);
+          }
+        }
+        setIsDragging(false);
+        setStartLine(null);
+        setEndLine(null);
+      }, 0);
+    };
+
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging, startLine, endLine, handleAddComment]);
 
   const handleCancelComment = useCallback(() => {
     setCommentingLine(null);
@@ -454,9 +475,15 @@ export function SideBySideDiffChunk({
                       target.closest('td:nth-child(3)') || target.closest('td:nth-child(4)');
 
                     if (isInOldSide && sideLine.oldLineNumber) {
-                      setHoveredLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
+                      setHoveredLine({
+                        side: 'old',
+                        lineNumber: sideLine.oldLineNumber,
+                      });
                     } else if (isInNewSide && sideLine.newLineNumber) {
-                      setHoveredLine({ side: 'new', lineNumber: sideLine.newLineNumber });
+                      setHoveredLine({
+                        side: 'new',
+                        lineNumber: sideLine.newLineNumber,
+                      });
                     }
                   }}
                   onMouseMove={(e) => {
@@ -473,23 +500,35 @@ export function SideBySideDiffChunk({
                         hoveredLine?.side !== 'old' ||
                         hoveredLine?.lineNumber !== sideLine.oldLineNumber
                       ) {
-                        setHoveredLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
+                        setHoveredLine({
+                          side: 'old',
+                          lineNumber: sideLine.oldLineNumber,
+                        });
                       }
                     } else if (isInNewSide && sideLine.newLineNumber) {
                       if (
                         hoveredLine?.side !== 'new' ||
                         hoveredLine?.lineNumber !== sideLine.newLineNumber
                       ) {
-                        setHoveredLine({ side: 'new', lineNumber: sideLine.newLineNumber });
+                        setHoveredLine({
+                          side: 'new',
+                          lineNumber: sideLine.newLineNumber,
+                        });
                       }
                     }
 
                     // Handle dragging
                     if (isDragging && startLine) {
                       if (startLine.side === 'old' && sideLine.oldLineNumber) {
-                        setEndLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
+                        setEndLine({
+                          side: 'old',
+                          lineNumber: sideLine.oldLineNumber,
+                        });
                       } else if (startLine.side === 'new' && sideLine.newLineNumber) {
-                        setEndLine({ side: 'new', lineNumber: sideLine.newLineNumber });
+                        setEndLine({
+                          side: 'new',
+                          lineNumber: sideLine.newLineNumber,
+                        });
                       }
                     }
                   }}
@@ -520,38 +559,16 @@ export function SideBySideDiffChunk({
                             onMouseDown={(e) => {
                               e.stopPropagation();
                               if (sideLine.oldLineNumber) {
-                                setStartLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
-                                setEndLine({ side: 'old', lineNumber: sideLine.oldLineNumber });
+                                setStartLine({
+                                  side: 'old',
+                                  lineNumber: sideLine.oldLineNumber,
+                                });
+                                setEndLine({
+                                  side: 'old',
+                                  lineNumber: sideLine.oldLineNumber,
+                                });
                                 setIsDragging(true);
                               }
-                            }}
-                            onMouseUp={(e) => {
-                              e.stopPropagation();
-                              if (!sideLine.oldLineNumber || !startLine) {
-                                setIsDragging(false);
-                                setStartLine(null);
-                                setEndLine(null);
-                                return;
-                              }
-
-                              const actualEndLine =
-                                endLine && endLine.side === 'old'
-                                  ? endLine.lineNumber
-                                  : sideLine.oldLineNumber;
-                              if (
-                                startLine.side !== 'old' ||
-                                startLine.lineNumber === actualEndLine
-                              ) {
-                                handleAddComment('old', sideLine.oldLineNumber);
-                              } else {
-                                const min = Math.min(startLine.lineNumber, actualEndLine);
-                                const max = Math.max(startLine.lineNumber, actualEndLine);
-                                handleAddComment('old', [min, max]);
-                              }
-
-                              setIsDragging(false);
-                              setStartLine(null);
-                              setEndLine(null);
                             }}
                           />
                         </>
@@ -605,38 +622,16 @@ export function SideBySideDiffChunk({
                             onMouseDown={(e) => {
                               e.stopPropagation();
                               if (sideLine.newLineNumber) {
-                                setStartLine({ side: 'new', lineNumber: sideLine.newLineNumber });
-                                setEndLine({ side: 'new', lineNumber: sideLine.newLineNumber });
+                                setStartLine({
+                                  side: 'new',
+                                  lineNumber: sideLine.newLineNumber,
+                                });
+                                setEndLine({
+                                  side: 'new',
+                                  lineNumber: sideLine.newLineNumber,
+                                });
                                 setIsDragging(true);
                               }
-                            }}
-                            onMouseUp={(e) => {
-                              e.stopPropagation();
-                              if (!sideLine.newLineNumber || !startLine) {
-                                setIsDragging(false);
-                                setStartLine(null);
-                                setEndLine(null);
-                                return;
-                              }
-
-                              const actualEndLine =
-                                endLine && endLine.side === 'new'
-                                  ? endLine.lineNumber
-                                  : sideLine.newLineNumber;
-                              if (
-                                startLine.side !== 'new' ||
-                                startLine.lineNumber === actualEndLine
-                              ) {
-                                handleAddComment('new', sideLine.newLineNumber);
-                              } else {
-                                const min = Math.min(startLine.lineNumber, actualEndLine);
-                                const max = Math.max(startLine.lineNumber, actualEndLine);
-                                handleAddComment('new', [min, max]);
-                              }
-
-                              setIsDragging(false);
-                              setStartLine(null);
-                              setEndLine(null);
                             }}
                           />
                         </>
