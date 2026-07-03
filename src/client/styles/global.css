@@ -145,9 +145,12 @@ tr.keyboard-cursor td:not(:first-child):not(:last-child)::before {
    the file that currently holds the cursor, so the focused file stays visible
    even when its diff is collapsed */
 .keyboard-focused-file-header {
+  /* #3fb950: brighter green than --color-github-accent so the focused header
+     stands out from the accent-colored top border every file header has */
+  background-image: linear-gradient(rgba(63, 185, 80, 0.1), rgba(63, 185, 80, 0.1));
   box-shadow:
-    inset 3px 0 0 0 rgba(255, 253, 84, 0.7),
-    inset 0 0 0 1px rgba(255, 253, 84, 0.35);
+    inset 3px 0 0 0 #3fb950,
+    inset 0 0 0 1px rgba(63, 185, 80, 0.45);
 }
 
 /* Keyboard navigation cursor styles for split mode (td level) */
