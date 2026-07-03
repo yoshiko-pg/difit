@@ -421,7 +421,7 @@ export function useKeyboardNavigation({
   // Move the cursor to the first unviewed file after the given index,
   // wrapping around but never landing back on the starting file
   const focusNextUnviewedFile = useCallback(
-    (afterIndex: number, options?: { scroll?: boolean }) => {
+    (afterIndex: number) => {
       const totalFiles = files.length;
       for (let offset = 1; offset < totalFiles; offset++) {
         const fileIndex = (afterIndex + offset) % totalFiles;
@@ -439,13 +439,33 @@ export function useKeyboardNavigation({
           files,
         );
         setCursor(position);
-        if (options?.scroll !== false) {
-          scrollToElement(getElementId(position, viewMode));
-        }
+        scrollToElement(getElementId(position, viewMode));
         return;
       }
     },
     [files, reviewedFiles, viewMode, scrollToElement],
+  );
+
+  // Update only the remembered navigation position, without showing the
+  // keyboard cursor. Used by mouse interactions (e.g. the Viewed button) so
+  // keyboard navigation resumes from that file while mouse-only usage never
+  // surfaces keyboard UI.
+  const rememberFilePosition = useCallback(
+    (fileIndex: number) => {
+      const file = files[fileIndex];
+      if (!file || !file.chunks[0]?.lines[0]) return;
+
+      lastCursorRef.current = fixSide(
+        {
+          fileIndex,
+          chunkIndex: 0,
+          lineIndex: 0,
+          side: viewMode === 'split' ? 'left' : 'right',
+        },
+        files,
+      );
+    },
+    [files, viewMode],
   );
 
   // File review toggle - targets the cursor file, or the hovered file when
@@ -575,6 +595,6 @@ export function useKeyboardNavigation({
     isHelpOpen,
     setIsHelpOpen,
     setCursorPosition,
-    focusNextUnviewedFile,
+    rememberFilePosition,
   };
 }

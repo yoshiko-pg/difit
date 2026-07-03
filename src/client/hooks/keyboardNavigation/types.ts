@@ -55,7 +55,7 @@ export interface UseKeyboardNavigationReturn {
   isHelpOpen: boolean;
   setIsHelpOpen: (open: boolean) => void;
   setCursorPosition: (position: CursorPosition | null) => void;
-  focusNextUnviewedFile: (afterIndex: number, options?: { scroll?: boolean }) => void;
+  rememberFilePosition: (fileIndex: number) => void;
 }
 
 /**

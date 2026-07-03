@@ -821,7 +821,9 @@ describe('useKeyboardNavigation', () => {
       expect(result.current.cursor?.fileIndex).toBe(1);
     });
 
-    it('should move cursor to next unviewed file with focusNextUnviewedFile', () => {
+    it('should remember a file position without showing the cursor', async () => {
+      const user = userEvent.setup();
+
       const { result } = renderHook(
         () =>
           useKeyboardNavigation({
@@ -835,12 +837,15 @@ describe('useKeyboardNavigation', () => {
       );
 
       act(() => {
-        result.current.focusNextUnviewedFile(0, { scroll: false });
+        result.current.rememberFilePosition(0);
       });
 
+      // No visible cursor appears for a mouse interaction
+      expect(result.current.cursor).toBeNull();
+
+      // But keyboard navigation resumes from the remembered file
+      await user.keyboard('{\\]}');
       expect(result.current.cursor?.fileIndex).toBe(1);
-      expect(result.current.cursor?.chunkIndex).toBe(0);
-      expect(result.current.cursor?.lineIndex).toBe(0);
     });
   });
 

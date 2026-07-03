@@ -547,7 +547,7 @@ function App() {
   const hoveredFileIndexRef = useRef<number | null>(null);
   const getHoveredFileIndex = useCallback(() => hoveredFileIndexRef.current, []);
 
-  const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition, focusNextUnviewedFile } =
+  const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition, rememberFilePosition } =
     useKeyboardNavigation({
       files: navigableFiles,
       comments: normalizedThreads,
@@ -582,20 +582,20 @@ function App() {
       },
     });
 
-  // Viewed button in the diff header: after marking a file as viewed, move
-  // keyboard focus to the next unviewed file so review can continue seamlessly
+  // Viewed button in the diff header: silently remember the toggled file as
+  // the navigation position, so keyboard navigation resumes from it without
+  // showing any keyboard UI for a mouse interaction
   const handleViewedButtonToggle = useCallback(
     (filePath: string) => {
-      const wasViewed = viewedFiles.has(filePath);
       void toggleFileReviewed(filePath);
-      if (!wasViewed && diffData) {
+      if (diffData) {
         const fileIndex = diffData.files.findIndex((f) => f.path === filePath);
         if (fileIndex !== -1) {
-          focusNextUnviewedFile(fileIndex, { scroll: false });
+          rememberFilePosition(fileIndex);
         }
       }
     },
-    [viewedFiles, toggleFileReviewed, diffData, focusNextUnviewedFile],
+    [toggleFileReviewed, diffData, rememberFilePosition],
   );
 
   useEffect(() => {
