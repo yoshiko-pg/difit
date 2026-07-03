@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { DEFAULT_DIFF_VIEW_MODE } from '../../utils/diffMode';
@@ -34,9 +34,19 @@ export function useKeyboardNavigation({
   onDeleteAllComments,
   onShowCommentsList,
   onRefresh,
+  getHoveredFileIndex,
 }: UseKeyboardNavigationProps): UseKeyboardNavigationReturn {
   const [cursor, setCursor] = useState<CursorPosition | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  // Remember the last cursor so navigation resumes from it after the cursor
+  // is cleared (e.g. by a mouse click) instead of restarting from the top
+  const lastCursorRef = useRef<CursorPosition | null>(null);
+  useEffect(() => {
+    if (cursor) {
+      lastCursorRef.current = cursor;
+    }
+  }, [cursor]);
 
   // Create scroll function
   const scrollToElement = useMemo(() => createScrollToElement(), []);
@@ -68,7 +78,7 @@ export function useKeyboardNavigation({
         return { position: null, scrollTarget: null };
       }
 
-      const startPosition = getStartPosition(cursor);
+      const startPosition = getStartPosition(cursor ?? lastCursorRef.current);
       return findNextMatchingPosition(startPosition, direction, filter, files, viewMode);
     },
     [cursor, files, viewMode],
@@ -188,7 +198,11 @@ export function useKeyboardNavigation({
             const chunk = file.chunks[chunkIdx];
             if (!chunk) continue;
             for (let lineIdx = 0; lineIdx < chunk.lines.length; lineIdx++) {
-              const testPos = { ...newCursor, chunkIndex: chunkIdx, lineIndex: lineIdx };
+              const testPos = {
+                ...newCursor,
+                chunkIndex: chunkIdx,
+                lineIndex: lineIdx,
+              };
               if (hasContentOnSide(testPos, files)) {
                 newCursor = testPos;
                 break;
@@ -203,7 +217,11 @@ export function useKeyboardNavigation({
               const chunk = file.chunks[chunkIdx];
               if (!chunk) continue;
               for (let lineIdx = chunk.lines.length - 1; lineIdx >= 0; lineIdx--) {
-                const testPos = { ...newCursor, chunkIndex: chunkIdx, lineIndex: lineIdx };
+                const testPos = {
+                  ...newCursor,
+                  chunkIndex: chunkIdx,
+                  lineIndex: lineIdx,
+                };
                 if (hasContentOnSide(testPos, files)) {
                   newCursor = testPos;
                   break;
@@ -245,7 +263,12 @@ export function useKeyboardNavigation({
           const sides = viewMode === 'split' ? (['left', 'right'] as const) : (['right'] as const);
 
           for (const side of sides) {
-            const position: CursorPosition = { fileIndex, chunkIndex, lineIndex, side };
+            const position: CursorPosition = {
+              fileIndex,
+              chunkIndex,
+              lineIndex,
+              side,
+            };
 
             // Skip positions without content in split mode
             if (viewMode === 'split' && !hasContentOnSide(position, files)) {
@@ -395,19 +418,90 @@ export function useKeyboardNavigation({
     [switchSide, viewMode],
   );
 
-  // File review toggle
+  // Move the cursor to the first unviewed file after the given index,
+  // wrapping around but never landing back on the starting file
+  const focusNextUnviewedFile = useCallback(
+    (afterIndex: number) => {
+      const totalFiles = files.length;
+      for (let offset = 1; offset < totalFiles; offset++) {
+        const fileIndex = (afterIndex + offset) % totalFiles;
+        const file = files[fileIndex];
+        if (!file || !file.chunks[0]?.lines[0]) continue;
+        if (reviewedFiles.has(file.path)) continue;
+
+        const position = fixSide(
+          {
+            fileIndex,
+            chunkIndex: 0,
+            lineIndex: 0,
+            side: viewMode === 'split' ? 'left' : 'right',
+          },
+          files,
+        );
+        setCursor(position);
+        scrollToElement(getElementId(position, viewMode));
+        return;
+      }
+    },
+    [files, reviewedFiles, viewMode, scrollToElement],
+  );
+
+  // Update only the remembered navigation position, without showing the
+  // keyboard cursor. Used by mouse interactions (e.g. the Viewed button) so
+  // keyboard navigation resumes from that file while mouse-only usage never
+  // surfaces keyboard UI.
+  const rememberFilePosition = useCallback(
+    (fileIndex: number) => {
+      const file = files[fileIndex];
+      if (!file || !file.chunks[0]?.lines[0]) return;
+
+      lastCursorRef.current = fixSide(
+        {
+          fileIndex,
+          chunkIndex: 0,
+          lineIndex: 0,
+          side: viewMode === 'split' ? 'left' : 'right',
+        },
+        files,
+      );
+    },
+    [files, viewMode],
+  );
+
+  // File review toggle - targets the cursor file, or the hovered file when
+  // there is no cursor (e.g. after a mouse click cleared it)
   useHotkeys(
     'v',
     () => {
-      if (cursor) {
-        const file = files[cursor.fileIndex];
+      const fileIndex = cursor?.fileIndex ?? getHoveredFileIndex?.() ?? null;
+      if (fileIndex !== null) {
+        const file = files[fileIndex];
         if (file) {
           onToggleReviewed(file.path);
         }
       }
     },
     hotkeyOptions,
-    [cursor, files, onToggleReviewed],
+    [cursor, files, onToggleReviewed, getHoveredFileIndex],
+  );
+
+  // Mark current file as viewed (collapse) and move to the next unviewed file
+  useHotkeys(
+    'shift+v',
+    () => {
+      const fileIndex =
+        cursor?.fileIndex ?? getHoveredFileIndex?.() ?? lastCursorRef.current?.fileIndex ?? null;
+      if (fileIndex === null) return;
+      const file = files[fileIndex];
+      if (!file) return;
+
+      if (!reviewedFiles.has(file.path)) {
+        onToggleReviewed(file.path);
+      }
+      focusNextUnviewedFile(fileIndex);
+    },
+    hotkeyOptions,
+    [cursor, files, reviewedFiles, onToggleReviewed, getHoveredFileIndex, focusNextUnviewedFile],
   );
 
   // Refresh
@@ -501,5 +595,6 @@ export function useKeyboardNavigation({
     isHelpOpen,
     setIsHelpOpen,
     setCursorPosition,
+    rememberFilePosition,
   };
 }

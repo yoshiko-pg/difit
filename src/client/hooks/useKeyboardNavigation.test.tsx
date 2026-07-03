@@ -73,8 +73,18 @@ const mockFiles: DiffFile[] = [
         lines: [
           { type: 'delete', oldLineNumber: 1, content: '- old line' },
           { type: 'add', newLineNumber: 1, content: '+ new line' },
-          { type: 'normal', oldLineNumber: 2, newLineNumber: 2, content: '  unchanged' },
-          { type: 'normal', oldLineNumber: 3, newLineNumber: 3, content: '  another unchanged' },
+          {
+            type: 'normal',
+            oldLineNumber: 2,
+            newLineNumber: 2,
+            content: '  unchanged',
+          },
+          {
+            type: 'normal',
+            oldLineNumber: 3,
+            newLineNumber: 3,
+            content: '  another unchanged',
+          },
         ],
         header: '@@ -1,3 +1,4 @@',
       },
@@ -92,7 +102,12 @@ const mockFiles: DiffFile[] = [
         newStart: 1,
         newLines: 2,
         lines: [
-          { type: 'normal', oldLineNumber: 1, newLineNumber: 1, content: '  first line' },
+          {
+            type: 'normal',
+            oldLineNumber: 1,
+            newLineNumber: 1,
+            content: '  first line',
+          },
           { type: 'add', newLineNumber: 2, content: '+ added line' },
         ],
         header: '@@ -1,2 +1,2 @@',
@@ -599,6 +614,59 @@ describe('useKeyboardNavigation', () => {
       expect(onToggleReviewed).toHaveBeenCalledWith('file1.js');
     });
 
+    it('should toggle reviewed state of hovered file when there is no cursor', async () => {
+      const user = userEvent.setup();
+      const onToggleReviewed = vi.fn();
+
+      renderHook(
+        () =>
+          useKeyboardNavigation({
+            files: mockFiles,
+            comments: [],
+            viewMode: 'unified',
+            onToggleReviewed,
+            reviewedFiles: new Set<string>(),
+            getHoveredFileIndex: () => 1,
+          }),
+        { wrapper },
+      );
+
+      await user.keyboard('v');
+
+      expect(onToggleReviewed).toHaveBeenCalledWith('file2.js');
+    });
+
+    it('should prefer cursor file over hovered file', async () => {
+      const user = userEvent.setup();
+      const onToggleReviewed = vi.fn();
+
+      const { result } = renderHook(
+        () =>
+          useKeyboardNavigation({
+            files: mockFiles,
+            comments: [],
+            viewMode: 'unified',
+            onToggleReviewed,
+            reviewedFiles: new Set<string>(),
+            getHoveredFileIndex: () => 1,
+          }),
+        { wrapper },
+      );
+
+      act(() => {
+        result.current.setCursorPosition({
+          fileIndex: 0,
+          chunkIndex: 0,
+          lineIndex: 0,
+          side: 'left',
+        });
+      });
+
+      await user.keyboard('v');
+
+      expect(onToggleReviewed).toHaveBeenCalledWith('file1.js');
+    });
+
     it('should not toggle reviewed state when no file is selected', async () => {
       const user = userEvent.setup();
       const onToggleReviewed = vi.fn();
@@ -618,6 +686,166 @@ describe('useKeyboardNavigation', () => {
       await user.keyboard('v');
 
       expect(onToggleReviewed).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Mark Viewed and Advance (Shift+V)', () => {
+    it('should mark current file as viewed and move cursor to next unviewed file', async () => {
+      const user = userEvent.setup();
+      const onToggleReviewed = vi.fn();
+
+      const { result } = renderHook(
+        () =>
+          useKeyboardNavigation({
+            files: mockFiles,
+            comments: [],
+            viewMode: 'unified',
+            onToggleReviewed,
+            reviewedFiles: new Set<string>(),
+          }),
+        { wrapper },
+      );
+
+      act(() => {
+        result.current.setCursorPosition({
+          fileIndex: 0,
+          chunkIndex: 0,
+          lineIndex: 0,
+          side: 'left',
+        });
+      });
+
+      await user.keyboard('{Shift>}v{/Shift}');
+
+      expect(onToggleReviewed).toHaveBeenCalledWith('file1.js');
+      expect(result.current.cursor?.fileIndex).toBe(1);
+    });
+
+    it('should not mark again when the current file is already viewed', async () => {
+      const user = userEvent.setup();
+      const onToggleReviewed = vi.fn();
+
+      const { result } = renderHook(
+        () =>
+          useKeyboardNavigation({
+            files: mockFiles,
+            comments: [],
+            viewMode: 'unified',
+            onToggleReviewed,
+            reviewedFiles: new Set<string>(['file1.js']),
+          }),
+        { wrapper },
+      );
+
+      act(() => {
+        result.current.setCursorPosition({
+          fileIndex: 0,
+          chunkIndex: 0,
+          lineIndex: 0,
+          side: 'left',
+        });
+      });
+
+      await user.keyboard('{Shift>}v{/Shift}');
+
+      expect(onToggleReviewed).not.toHaveBeenCalled();
+      expect(result.current.cursor?.fileIndex).toBe(1);
+    });
+
+    it('should keep cursor when all other files are already viewed', async () => {
+      const user = userEvent.setup();
+      const onToggleReviewed = vi.fn();
+
+      const { result } = renderHook(
+        () =>
+          useKeyboardNavigation({
+            files: mockFiles,
+            comments: [],
+            viewMode: 'unified',
+            onToggleReviewed,
+            reviewedFiles: new Set<string>(['file2.js']),
+          }),
+        { wrapper },
+      );
+
+      act(() => {
+        result.current.setCursorPosition({
+          fileIndex: 0,
+          chunkIndex: 0,
+          lineIndex: 0,
+          side: 'left',
+        });
+      });
+
+      await user.keyboard('{Shift>}v{/Shift}');
+
+      expect(onToggleReviewed).toHaveBeenCalledWith('file1.js');
+      expect(result.current.cursor?.fileIndex).toBe(0);
+    });
+  });
+
+  describe('Cursor Memory', () => {
+    it('should resume file navigation from the last cursor after it is cleared', async () => {
+      const user = userEvent.setup();
+
+      const { result } = renderHook(
+        () =>
+          useKeyboardNavigation({
+            files: mockFiles,
+            comments: [],
+            viewMode: 'unified',
+            onToggleReviewed: vi.fn(),
+            reviewedFiles: new Set<string>(),
+          }),
+        { wrapper },
+      );
+
+      // Navigate to a position, then clear the cursor (as a mouse click does)
+      act(() => {
+        result.current.setCursorPosition({
+          fileIndex: 0,
+          chunkIndex: 0,
+          lineIndex: 2,
+          side: 'right',
+        });
+      });
+      act(() => {
+        result.current.setCursorPosition(null);
+      });
+
+      expect(result.current.cursor).toBeNull();
+
+      await user.keyboard('{\\]}');
+
+      // Should move to the file after the remembered position, not wrap to the end
+      expect(result.current.cursor?.fileIndex).toBe(1);
+    });
+
+    it('should remember a file position without showing the cursor', async () => {
+      const user = userEvent.setup();
+
+      const { result } = renderHook(
+        () =>
+          useKeyboardNavigation({
+            files: mockFiles,
+            comments: [],
+            viewMode: 'unified',
+            onToggleReviewed: vi.fn(),
+            reviewedFiles: new Set<string>(),
+          }),
+        { wrapper },
+      );
+
+      act(() => {
+        result.current.rememberFilePosition(0);
+      });
+
+      // No visible cursor appears for a mouse interaction
+      expect(result.current.cursor).toBeNull();
+
+      // But keyboard navigation resumes from the remembered file
+      await user.keyboard('{\\]}');
+      expect(result.current.cursor?.fileIndex).toBe(1);
     });
   });
 

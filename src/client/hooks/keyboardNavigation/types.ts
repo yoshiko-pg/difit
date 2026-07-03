@@ -44,6 +44,7 @@ export interface UseKeyboardNavigationProps {
   onShowCommentsList?: () => void;
   onRefresh?: () => void;
   isModalOpen?: boolean;
+  getHoveredFileIndex?: () => number | null;
 }
 
 /**
@@ -54,6 +55,7 @@ export interface UseKeyboardNavigationReturn {
   isHelpOpen: boolean;
   setIsHelpOpen: (open: boolean) => void;
   setCursorPosition: (position: CursorPosition | null) => void;
+  rememberFilePosition: (fileIndex: number) => void;
 }
 
 /**
