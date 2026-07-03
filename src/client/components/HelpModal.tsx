@@ -243,7 +243,21 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   v
                 </kbd>
                 <span className="text-github-text-secondary">
-                  Toggle viewed state of current file
+                  Toggle viewed state of current (or hovered) file
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <div className="flex items-center gap-1">
+                  <kbd className="px-2 py-1 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary font-mono">
+                    Shift
+                  </kbd>
+                  <span className="text-github-text-muted">+</span>
+                  <kbd className="px-2 py-1 bg-github-bg-tertiary border border-github-border rounded text-github-text-primary font-mono">
+                    V
+                  </kbd>
+                </div>
+                <span className="text-github-text-secondary">
+                  Mark file as viewed and go to next unviewed file
                 </span>
               </div>
               <div className="flex justify-between text-sm">

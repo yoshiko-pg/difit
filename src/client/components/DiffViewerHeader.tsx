@@ -17,6 +17,7 @@ import { copyTextToClipboard } from '../utils/clipboard';
 interface DiffViewerHeaderProps {
   file: DiffFile;
   isCollapsed: boolean;
+  isFocused?: boolean;
   isReviewed: boolean;
   isChangedSinceViewed?: boolean;
   onToggleCollapsed: (path: string) => void;
@@ -40,6 +41,7 @@ const getFileIcon = (status: DiffFile['status']) => {
 export const DiffViewerHeader = ({
   file,
   isCollapsed,
+  isFocused = false,
   isReviewed,
   isChangedSinceViewed = false,
   onToggleCollapsed,
@@ -49,7 +51,11 @@ export const DiffViewerHeader = ({
   const [isCopied, setIsCopied] = useState(false);
 
   return (
-    <div className="bg-github-bg-secondary border-t-2 border-t-github-accent border-b border-github-border px-5 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10">
+    <div
+      className={`bg-github-bg-secondary border-t-2 border-t-github-accent border-b border-github-border px-5 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-10 ${
+        isFocused ? 'keyboard-focused-file-header' : ''
+      }`}
+    >
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <button
           onClick={(e) => {

@@ -46,6 +46,7 @@ interface DiffViewerProps {
   baseCommitish?: string;
   targetCommitish?: string;
   cursor?: CursorPosition | null;
+  isFocused?: boolean;
   fileIndex?: number;
   mergedChunks: MergedChunk[];
   expandLines: (
@@ -67,7 +68,11 @@ interface DiffViewerProps {
     lineIndex: number,
     side: 'left' | 'right',
   ) => void;
-  commentTrigger?: { fileIndex: number; chunkIndex: number; lineIndex: number } | null;
+  commentTrigger?: {
+    fileIndex: number;
+    chunkIndex: number;
+    lineIndex: number;
+  } | null;
   onCommentTriggerHandled?: () => void;
   diffVersion?: number;
 }
@@ -192,6 +197,7 @@ export const DiffViewer = memo(function DiffViewer({
   baseCommitish,
   targetCommitish,
   cursor = null,
+  isFocused = false,
   fileIndex = 0,
   onLineClick,
   commentTrigger,
@@ -362,6 +368,7 @@ export const DiffViewer = memo(function DiffViewer({
       <DiffViewerHeader
         file={file}
         isCollapsed={isCollapsed}
+        isFocused={isFocused}
         isReviewed={reviewedFiles.has(file.path)}
         isChangedSinceViewed={isChangedSinceViewed}
         onToggleCollapsed={onToggleCollapsed}

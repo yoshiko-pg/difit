@@ -543,38 +543,60 @@ function App() {
     handleCommentsChanged,
   );
 
-  const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition } = useKeyboardNavigation({
-    files: navigableFiles,
-    comments: normalizedThreads,
-    viewMode: diffMode,
-    reviewedFiles: viewedFiles,
-    onToggleReviewed: toggleFileReviewed,
-    onCreateComment: () => {
-      if (cursor) {
-        setCommentTrigger({
-          fileIndex: cursor.fileIndex,
-          chunkIndex: cursor.chunkIndex,
-          lineIndex: cursor.lineIndex,
-        });
+  // Track which file the mouse is over so `v` works without a cursor
+  const hoveredFileIndexRef = useRef<number | null>(null);
+  const getHoveredFileIndex = useCallback(() => hoveredFileIndexRef.current, []);
+
+  const { cursor, isHelpOpen, setIsHelpOpen, setCursorPosition, focusNextUnviewedFile } =
+    useKeyboardNavigation({
+      files: navigableFiles,
+      comments: normalizedThreads,
+      viewMode: diffMode,
+      reviewedFiles: viewedFiles,
+      onToggleReviewed: toggleFileReviewed,
+      getHoveredFileIndex,
+      onCreateComment: () => {
+        if (cursor) {
+          setCommentTrigger({
+            fileIndex: cursor.fileIndex,
+            chunkIndex: cursor.chunkIndex,
+            lineIndex: cursor.lineIndex,
+          });
+        }
+      },
+      onCopyAllComments: () => {
+        if (threads.length > 0) {
+          void handleCopyAllComments();
+        }
+      },
+      onDeleteAllComments: () => {
+        if (threads.length > 0 && confirm('Delete all comments?')) {
+          clearAllComments();
+        }
+      },
+      onShowCommentsList: () => {
+        setIsCommentsListOpen(true);
+      },
+      onRefresh: () => {
+        reload();
+      },
+    });
+
+  // Viewed button in the diff header: after marking a file as viewed, move
+  // keyboard focus to the next unviewed file so review can continue seamlessly
+  const handleViewedButtonToggle = useCallback(
+    (filePath: string) => {
+      const wasViewed = viewedFiles.has(filePath);
+      void toggleFileReviewed(filePath);
+      if (!wasViewed && diffData) {
+        const fileIndex = diffData.files.findIndex((f) => f.path === filePath);
+        if (fileIndex !== -1) {
+          focusNextUnviewedFile(fileIndex, { scroll: false });
+        }
       }
     },
-    onCopyAllComments: () => {
-      if (threads.length > 0) {
-        void handleCopyAllComments();
-      }
-    },
-    onDeleteAllComments: () => {
-      if (threads.length > 0 && confirm('Delete all comments?')) {
-        clearAllComments();
-      }
-    },
-    onShowCommentsList: () => {
-      setIsCommentsListOpen(true);
-    },
-    onRefresh: () => {
-      reload();
-    },
-  });
+    [viewedFiles, toggleFileReviewed, diffData, focusNextUnviewedFile],
+  );
 
   useEffect(() => {
     if (!diffData || !cursor) return;
@@ -1363,6 +1385,14 @@ function App() {
                   data-rendered={isRendered ? 'true' : 'false'}
                   ref={(node) => registerLazyFileContainer(file.path, node)}
                   className="mb-6"
+                  onMouseEnter={() => {
+                    hoveredFileIndexRef.current = fileIndex;
+                  }}
+                  onMouseLeave={() => {
+                    if (hoveredFileIndexRef.current === fileIndex) {
+                      hoveredFileIndexRef.current = null;
+                    }
+                  }}
                 >
                   {isRendered ? (
                     <DiffViewer
@@ -1372,7 +1402,7 @@ function App() {
                       diffMode={diffMode}
                       reviewedFiles={viewedFiles}
                       isChangedSinceViewed={changedSinceViewedFiles.has(file.path)}
-                      onToggleReviewed={toggleFileReviewed}
+                      onToggleReviewed={handleViewedButtonToggle}
                       collapsedFiles={collapsedFiles}
                       onToggleCollapsed={toggleFileCollapsed}
                       onToggleAllCollapsed={toggleAllFilesCollapsed}
@@ -1387,6 +1417,7 @@ function App() {
                       baseCommitish={diffData.baseCommitish}
                       targetCommitish={diffData.targetCommitish}
                       cursor={cursor?.fileIndex === fileIndex ? cursor : null}
+                      isFocused={cursor?.fileIndex === fileIndex}
                       fileIndex={fileIndex}
                       onLineClick={handleLineClick}
                       commentTrigger={
