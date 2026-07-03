@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
@@ -39,6 +39,7 @@ describe('FileList', () => {
         comments={[]}
         reviewedFiles={new Set()}
         onToggleReviewed={vi.fn()}
+        onToggleFolderReviewed={vi.fn()}
         selectedFileIndex={null}
       />,
     );
@@ -60,6 +61,7 @@ describe('FileList', () => {
       onScrollToFile: vi.fn(),
       comments: [],
       onToggleReviewed: vi.fn(),
+      onToggleFolderReviewed: vi.fn(),
       selectedFileIndex: null,
     };
     const { rerender } = render(
@@ -86,5 +88,51 @@ describe('FileList', () => {
     expect(getTreeRow('cli')).toHaveClass('opacity-70');
     expect(getLabel('client')).toHaveClass('line-through');
     expect(getTreeRow('client')).toHaveClass('opacity-70');
+  });
+
+  it('marks all files in a folder as reviewed via the directory checkbox', () => {
+    const onToggleFolderReviewed = vi.fn();
+    render(
+      <FileList
+        files={[
+          createFile('src/cli/index.ts'),
+          createFile('src/client/App.tsx'),
+          createFile('README.md'),
+        ]}
+        onScrollToFile={vi.fn()}
+        comments={[]}
+        reviewedFiles={new Set()}
+        onToggleReviewed={vi.fn()}
+        onToggleFolderReviewed={onToggleFolderReviewed}
+        selectedFileIndex={null}
+      />,
+    );
+
+    const checkbox = within(getTreeRow('src')).getByRole('checkbox');
+    expect(checkbox).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(checkbox);
+    expect(onToggleFolderReviewed).toHaveBeenCalledWith('src', true);
+  });
+
+  it('unmarks all files in a fully reviewed folder via the directory checkbox', () => {
+    const onToggleFolderReviewed = vi.fn();
+    render(
+      <FileList
+        files={[createFile('src/cli/index.ts'), createFile('src/client/App.tsx')]}
+        onScrollToFile={vi.fn()}
+        comments={[]}
+        reviewedFiles={new Set(['src/cli/index.ts', 'src/client/App.tsx'])}
+        onToggleReviewed={vi.fn()}
+        onToggleFolderReviewed={onToggleFolderReviewed}
+        selectedFileIndex={null}
+      />,
+    );
+
+    const checkbox = within(getTreeRow('src')).getByRole('checkbox');
+    expect(checkbox).toHaveAttribute('aria-checked', 'true');
+
+    fireEvent.click(checkbox);
+    expect(onToggleFolderReviewed).toHaveBeenCalledWith('src', false);
   });
 });

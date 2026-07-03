@@ -261,6 +261,112 @@ describe('useViewedFiles', () => {
     });
   });
 
+  describe('setFilesViewed', () => {
+    it('marks multiple files as viewed at once', async () => {
+      const files = [createMockDiffFile('src/dir/a.ts'), createMockDiffFile('src/dir/b.ts')];
+      const { result } = renderHook(() =>
+        useViewedFiles('main', 'feature-branch', 'abc', undefined, files, 'repo-1'),
+      );
+
+      await waitFor(() => {
+        expect(result.current.hasLoadedInitialViewedFiles).toBe(true);
+      });
+
+      await act(async () => {
+        await result.current.setFilesViewed(files, true);
+      });
+
+      expect(result.current.viewedFiles.has('src/dir/a.ts')).toBe(true);
+      expect(result.current.viewedFiles.has('src/dir/b.ts')).toBe(true);
+      expect(mockRecordViewedHashes).toHaveBeenCalledTimes(1);
+      const entries = mockRecordViewedHashes.mock.calls[0]![1];
+      expect(entries).toHaveLength(2);
+    });
+
+    it('skips files that are already viewed when marking', async () => {
+      const files = [createMockDiffFile('src/dir/a.ts'), createMockDiffFile('src/dir/b.ts')];
+      mockGetViewedFiles.mockReturnValue([
+        {
+          filePath: 'src/dir/a.ts',
+          viewedAt: '2024-01-01T00:00:00Z',
+          diffContentHash: 'existing-hash',
+        },
+      ]);
+      const { result } = renderHook(() =>
+        useViewedFiles('main', 'feature-branch', 'abc', undefined, files, 'repo-1'),
+      );
+
+      await waitFor(() => {
+        expect(result.current.hasLoadedInitialViewedFiles).toBe(true);
+      });
+
+      await act(async () => {
+        await result.current.setFilesViewed(files, true);
+      });
+
+      expect(result.current.viewedFiles.size).toBe(2);
+      expect(mockRecordViewedHashes).toHaveBeenCalledTimes(1);
+      const entries = mockRecordViewedHashes.mock.calls[0]![1];
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.filePath).toBe('src/dir/b.ts');
+      // The already viewed file keeps its original record
+      expect(result.current.getViewedFileRecord('src/dir/a.ts')?.diffContentHash).toBe(
+        'existing-hash',
+      );
+    });
+
+    it('unmarks multiple files at once and removes their index entries', async () => {
+      const files = [createMockDiffFile('src/dir/a.ts'), createMockDiffFile('src/dir/b.ts')];
+      mockGetViewedFiles.mockReturnValue([
+        {
+          filePath: 'src/dir/a.ts',
+          viewedAt: '2024-01-01T00:00:00Z',
+          diffContentHash: 'hash-a',
+        },
+        {
+          filePath: 'src/dir/b.ts',
+          viewedAt: '2024-01-01T00:00:00Z',
+          diffContentHash: 'hash-b',
+        },
+      ]);
+      const { result } = renderHook(() =>
+        useViewedFiles('main', 'feature-branch', 'abc', undefined, files, 'repo-1'),
+      );
+
+      await waitFor(() => {
+        expect(result.current.viewedFiles.size).toBe(2);
+      });
+
+      await act(async () => {
+        await result.current.setFilesViewed(files, false);
+      });
+
+      expect(result.current.viewedFiles.size).toBe(0);
+      expect(mockRemoveViewedHashes).toHaveBeenCalledWith('repo-1', [
+        { filePath: 'src/dir/a.ts', diffContentHash: 'hash-a' },
+        { filePath: 'src/dir/b.ts', diffContentHash: 'hash-b' },
+      ]);
+    });
+
+    it('does nothing when unmarking files that are not viewed', async () => {
+      const files = [createMockDiffFile('src/dir/a.ts')];
+      const { result } = renderHook(() =>
+        useViewedFiles('main', 'feature-branch', 'abc', undefined, files, 'repo-1'),
+      );
+
+      await waitFor(() => {
+        expect(result.current.hasLoadedInitialViewedFiles).toBe(true);
+      });
+
+      await act(async () => {
+        await result.current.setFilesViewed(files, false);
+      });
+
+      expect(mockSaveViewedFiles).not.toHaveBeenCalled();
+      expect(mockRemoveViewedHashes).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getViewedFileRecord', () => {
     it('should return record for viewed file', async () => {
       const storedRecords: ViewedFileRecord[] = [

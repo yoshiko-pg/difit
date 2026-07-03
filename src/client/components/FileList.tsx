@@ -26,6 +26,7 @@ interface FileListProps {
   comments: CommentThread[];
   reviewedFiles: Set<string>;
   onToggleReviewed: (path: string) => void;
+  onToggleFolderReviewed: (path: string, reviewed: boolean) => void;
   selectedFileIndex: number | null;
 }
 
@@ -159,6 +160,7 @@ export const FileList = memo(function FileList({
   comments,
   reviewedFiles,
   onToggleReviewed,
+  onToggleFolderReviewed,
   selectedFileIndex,
 }: FileListProps) {
   const fileTree = useMemo(() => buildFileTree(files), [files]);
@@ -344,7 +346,7 @@ export const FileList = memo(function FileList({
         >
           {node.name && (
             <div
-              className={`${shouldUseStickyDirectoryHeaders ? 'sticky ' : ''}flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer ${
+              className={`${shouldUseStickyDirectoryHeaders ? 'sticky ' : ''}group flex h-9 items-center gap-2 bg-github-bg-secondary px-4 hover:bg-github-bg-tertiary cursor-pointer ${
                 isReviewed ? 'opacity-70' : ''
               }`}
               data-dir-header="true"
@@ -360,11 +362,25 @@ export const FileList = memo(function FileList({
               onClick={(event) => handleDirectoryClick(event, node.path)}
             >
               {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              {isExpanded ? (
-                <FolderOpen size={16} className="text-github-text-secondary" />
-              ) : (
-                <Folder size={16} className="text-github-text-secondary" />
-              )}
+              <span className="flex items-center group-hover:hidden">
+                {isExpanded ? (
+                  <FolderOpen size={16} className="text-github-text-secondary" />
+                ) : (
+                  <Folder size={16} className="text-github-text-secondary" />
+                )}
+              </span>
+              <span className="hidden items-center pl-[2px] group-hover:flex">
+                <Checkbox
+                  checked={isReviewed}
+                  onChange={() => {
+                    onToggleFolderReviewed(node.path, !isReviewed);
+                  }}
+                  title={
+                    isReviewed ? 'Mark all files as not reviewed' : 'Mark all files as reviewed'
+                  }
+                  className="z-10"
+                />
+              </span>
               <span
                 className={`text-sm text-github-text-primary font-medium flex-1 overflow-hidden text-ellipsis whitespace-nowrap ${
                   isReviewed ? 'line-through text-github-text-muted' : ''
