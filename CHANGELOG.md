@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.5] - 2026-07-04
+
+### Fixed
+
+- Anchor unified-mode selection overlay to td for Safari (#416)
+- Keep collapsed file stationary when marking viewed with header visible (#417)
+- Commit drag selection on mouse release anywhere, not only on the comment button (#418)
+
+### Changed
+
+- Update dependencies (#411 #412 #413 #414)
+
+### Thanks
+
+- [@ei-sugimoto](https://github.com/ei-sugimoto) for anchoring the unified-mode selection overlay to td for Safari (#416)
+
 ## [5.0.4] - 2026-06-29
 
 ### Added
@@ -1273,7 +1289,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.4...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.5...HEAD
+[5.0.5]: https://github.com/yoshiko-pg/difit/compare/v5.0.4...v5.0.5
 [5.0.4]: https://github.com/yoshiko-pg/difit/compare/v5.0.3...v5.0.4
 [5.0.3]: https://github.com/yoshiko-pg/difit/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/yoshiko-pg/difit/compare/v5.0.1...v5.0.2
