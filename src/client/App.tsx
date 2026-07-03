@@ -329,6 +329,7 @@ function App() {
     ensureFilesRenderedUpTo,
     registerLazyFileContainer,
     scrollFileIntoDiffContainer,
+    isFileScrolledPastContainerTop,
   } = useLazyDiffRendering({
     diffData,
     diffScrollContainerRef,
@@ -343,6 +344,11 @@ function App() {
       if (!file) return;
 
       const wasViewed = viewedFiles.has(filePath);
+      // Measure before the collapse re-renders: only re-anchor the header when
+      // the user is scrolled past it (deep inside a long file), so the viewport
+      // doesn't land in unrelated content after collapsing (#164). If the header
+      // is already visible, stay stationary and let files below fill up (#402).
+      const shouldScrollToHeader = !wasViewed && isFileScrolledPastContainerTop(filePath);
       await toggleFileViewed(filePath, file);
 
       // Update collapsed state based on viewed state
@@ -358,14 +364,19 @@ function App() {
         return newSet;
       });
 
-      // When marking as reviewed (closing file), scroll to the file header
-      if (!wasViewed) {
+      if (shouldScrollToHeader) {
         setTimeout(() => {
           scrollFileIntoDiffContainer(filePath);
         }, 100);
       }
     },
-    [diffData, scrollFileIntoDiffContainer, toggleFileViewed, viewedFiles],
+    [
+      diffData,
+      isFileScrolledPastContainerTop,
+      scrollFileIntoDiffContainer,
+      toggleFileViewed,
+      viewedFiles,
+    ],
   );
 
   const toggleFileCollapsed = useCallback((filePath: string) => {
@@ -1080,7 +1091,12 @@ function App() {
             }}
           >
             <h1>
-              <Logo style={{ height: '18px', color: 'var(--color-github-text-secondary)' }} />
+              <Logo
+                style={{
+                  height: '18px',
+                  color: 'var(--color-github-text-secondary)',
+                }}
+              />
             </h1>
             <div className="flex items-center gap-1">
               <button

@@ -20,6 +20,7 @@ interface UseLazyDiffRenderingReturn {
   ensureFilesRenderedUpTo: (filePath: string) => void;
   registerLazyFileContainer: (filePath: string, node: HTMLDivElement | null) => void;
   scrollFileIntoDiffContainer: (filePath: string) => void;
+  isFileScrolledPastContainerTop: (filePath: string) => boolean;
 }
 
 export function useLazyDiffRendering({
@@ -175,6 +176,21 @@ export function useLazyDiffRendering({
     [diffData],
   );
 
+  const isFileScrolledPastContainerTop = useCallback(
+    (filePath: string) => {
+      const scrollContainer = diffScrollContainerRef.current;
+      const target = document.getElementById(getFileElementId(filePath));
+      if (!scrollContainer || !target) {
+        return false;
+      }
+
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      return targetRect.top < containerRect.top - 1;
+    },
+    [diffScrollContainerRef],
+  );
+
   const scrollFileIntoDiffContainer = useCallback(
     (filePath: string) => {
       ensureFilesRenderedUpTo(filePath);
@@ -311,5 +327,6 @@ export function useLazyDiffRendering({
     ensureFilesRenderedUpTo,
     registerLazyFileContainer,
     scrollFileIntoDiffContainer,
+    isFileScrolledPastContainerTop,
   };
 }
