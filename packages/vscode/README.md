@@ -34,3 +34,5 @@ pnpm -C packages/vscode run package   # produces the .vsix
 ## Release
 
 Publishing is automated: when a difit GitHub release is published, the `Publish VS Code Extension` workflow rebuilds the extension, sets its version to the released difit version, publishes it to the VS Code Marketplace (and Open VSX when `OVSX_PAT` is configured), and attaches the `.vsix` to the GitHub release. The `version` field in this package.json is a placeholder; it is rewritten in CI at publish time.
+
+Marketplace authentication uses [secure automated publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) (Microsoft Entra ID workload identity federation + `vsce publish --azure-credential`) instead of a PAT: the workflow's `release` environment exchanges a GitHub OIDC token for an Entra ID credential of an identity that is a member of the `yoshiko-pg` publisher. Required repository secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.

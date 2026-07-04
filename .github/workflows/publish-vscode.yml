@@ -13,9 +13,14 @@ jobs:
   publish:
     name: Publish to VS Code Marketplace
     runs-on: ubuntu-latest
+    # Must match the federated credential subject configured on the Entra ID
+    # identity (repo:yoshiko-pg/difit:environment:release).
+    environment: release
     permissions:
-      # Required to attach the .vsix to the GitHub release.
+      # Attach the .vsix to the GitHub release.
       contents: write
+      # Issue the OIDC token for Entra ID workload identity federation.
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -46,11 +51,19 @@ jobs:
       - name: Package VS Code extension
         run: pnpm run package:vscode
 
+      # Secure automated publishing: no PAT. The workflow exchanges its OIDC
+      # token for an Entra ID session, and vsce publishes with that credential.
+      # https://code.visualstudio.com/api/working-with-extensions/publishing-extension
+      - name: Azure login (workload identity federation)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Publish to VS Code Marketplace
         working-directory: packages/vscode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: pnpm exec vsce publish --no-dependencies --packagePath difit-vscode-*.vsix
+        run: pnpm exec vsce publish --no-dependencies --azure-credential --packagePath difit-vscode-*.vsix
 
       - name: Publish to Open VSX
         if: ${{ secrets.OVSX_PAT != '' }}
