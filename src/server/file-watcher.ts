@@ -1,6 +1,5 @@
 import { join, resolve } from 'path';
 
-import { subscribe } from '@parcel/watcher';
 import { type Response } from 'express';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
@@ -88,6 +87,11 @@ export class FileWatcherService {
   }
 
   private async setupWatchers(modeConfig: ModeWatchConfig, basePath: string): Promise<void> {
+    // Loaded lazily so environments without a native @parcel/watcher binding
+    // (e.g. an unsupported platform) degrade to no live reload instead of
+    // failing at module load time.
+    const { subscribe } = await import('@parcel/watcher');
+
     for (const watchPath of modeConfig.watchPaths) {
       let fullPath = join(basePath, watchPath);
 

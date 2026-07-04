@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import { fstatSync, type Stats } from 'node:fs';
-import { createInterface } from 'readline/promises';
+import { createInterface } from 'node:readline/promises';
 
 import type { SimpleGit } from 'simple-git';
 

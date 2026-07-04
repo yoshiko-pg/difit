@@ -1,56 +1,41 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import path from 'node:path';
+import { type ChildProcess, fork, spawn } from 'node:child_process';
 
 import * as vscode from 'vscode';
 
+import { type DiffSelection } from '../../../src/types/diff.js';
+import { DiffMode } from '../../../src/types/watch.js';
+import { createDiffSelection, getDiffSelectionKey } from '../../../src/utils/diffSelection.js';
+
 const OPEN_REVIEW_COMMAND = 'difit.openReview';
 const STOP_REVIEW_COMMAND = 'difit.stopReview';
+const STARTUP_TIMEOUT_MS = 30_000;
 const SERVER_URL_PATTERN = /difit server started on (https?:\/\/\S+)/i;
-const STARTUP_TIMEOUT_MS = 20_000;
-const INSTALL_ACTION_LABEL = 'Install';
-const DEFAULT_LOGIN_SHELL = process.env.SHELL?.trim() || '/bin/zsh';
-const LOGIN_SHELL_ARGS_PREFIX = ['-i', '-l', '-c'] as const;
-const EXTENSION_HOST_NODE_DIR = path.dirname(process.execPath);
 
-type LaunchStrategy = 'direct' | 'login-shell';
-
-type DifitSession = {
-  readonly process: ChildProcessWithoutNullStreams;
-  readonly workspaceFolder: vscode.WorkspaceFolder;
-  readonly difitArgs: readonly string[];
-  readonly launchStrategy: LaunchStrategy;
-  startupPromise: Promise<string>;
-  url?: string;
-};
-
-const sessions = new Map<string, DifitSession>();
-let outputChannel: vscode.OutputChannel | undefined;
-
-class StartupExitError extends Error {
-  readonly code: number | null;
-  readonly signal: NodeJS.Signals | null;
-
-  constructor(workspaceName: string, code: number | null, signal: NodeJS.Signals | null) {
-    super(
-      `difit exited before startup in ${workspaceName} (code: ${String(code)}, signal: ${String(signal)})`,
-    );
-    this.name = 'StartupExitError';
-    this.code = code;
-    this.signal = signal;
-  }
+interface ReviewTarget {
+  selection: DiffSelection;
+  diffMode: DiffMode;
+  /** Positional argument used when launching an external difit CLI. */
+  cliArg: string;
 }
 
+interface Session {
+  readonly child: ChildProcess;
+  readonly selectionKey: string;
+  readonly url: Promise<string>;
+}
+
+const sessions = new Map<string, Session>();
+let extensionContext: vscode.ExtensionContext | undefined;
+let outputChannel: vscode.OutputChannel | undefined;
+
 export function activate(context: vscode.ExtensionContext): void {
-  outputChannel = vscode.window.createOutputChannel('difit');
-  context.subscriptions.push(outputChannel);
+  extensionContext = context;
+  context.subscriptions.push(getOutputChannel());
 
   context.subscriptions.push(
     vscode.commands.registerCommand(OPEN_REVIEW_COMMAND, () => {
       void openReview();
     }),
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerCommand(STOP_REVIEW_COMMAND, () => {
       stopReview();
     }),
@@ -79,86 +64,49 @@ async function openReview(): Promise<void> {
     return;
   }
 
-  const key = workspaceKey(workspaceFolder);
-  const existingSession = sessions.get(key);
-
-  if (existingSession && isProcessAlive(existingSession.process)) {
-    try {
-      const url = existingSession.url ?? (await existingSession.startupPromise);
-      await openInSimpleBrowser(url);
-    } catch (error) {
-      sessions.delete(key);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      void vscode.window.showErrorMessage(`difit: ${message}`);
-    }
-    return;
-  }
-
-  sessions.delete(key);
-
-  const executablePath = getExecutablePath();
-  const availability = await checkDifitExecutable(executablePath);
-
-  if (availability === 'missing') {
-    await promptInstallFlow(getInstallCommand());
-    return;
-  }
-
-  if (availability === 'error') {
+  let repoRoot: string;
+  try {
+    repoRoot = (await runGit(workspaceFolder.uri.fsPath, ['rev-parse', '--show-toplevel'])).trim();
+  } catch {
     void vscode.window.showErrorMessage(
-      `difit: Failed to run '${executablePath} --version'. Check "difit.executablePath".`,
+      `difit: "${workspaceFolder.name}" is not inside a Git repository.`,
     );
     return;
   }
 
-  const difitArgs = await resolveDifitLaunchArgs(workspaceFolder);
-  let session = createSession(workspaceFolder, executablePath, difitArgs, 'direct');
-  sessions.set(key, session);
+  const target = await resolveReviewTarget(repoRoot);
+  const selectionKey = getDiffSelectionKey(target.selection);
+
+  const existing = sessions.get(repoRoot);
+  if (existing && isProcessAlive(existing.child)) {
+    if (existing.selectionKey === selectionKey) {
+      try {
+        await openInBrowser(await existing.url);
+        return;
+      } catch {
+        // Fall through and restart the session.
+      }
+    }
+    // The repository state changed (e.g. changes were committed) or the
+    // session is broken; restart with the new selection.
+    stopSession(existing);
+  }
+  sessions.delete(repoRoot);
 
   try {
-    const url = await session.startupPromise;
-    await openInSimpleBrowser(url);
+    const url = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Window, title: 'Starting difit...' },
+      () => startSession(repoRoot, target),
+    );
+    await openInBrowser(url);
   } catch (error) {
-    if (shouldRetryWithLoginShell(error)) {
-      sessions.delete(key);
-      getOutputChannel().appendLine(
-        `[${workspaceFolder.name}] direct launch exited with code 127. Retrying via login shell.`,
-      );
-      session = createSession(workspaceFolder, executablePath, difitArgs, 'login-shell');
-      sessions.set(key, session);
-
-      try {
-        const url = await session.startupPromise;
-        await openInSimpleBrowser(url);
-      } catch (retryError) {
-        sessions.delete(key);
-        const message = formatStartupError(retryError, executablePath);
-        void vscode.window.showErrorMessage(`difit: ${message}`);
-      }
-      return;
-    }
-
-    sessions.delete(key);
-    const message = formatStartupError(error, executablePath);
+    sessions.delete(repoRoot);
+    const message = error instanceof Error ? error.message : String(error);
     void vscode.window.showErrorMessage(`difit: ${message}`);
   }
 }
 
 function stopReview(): void {
-  const workspaceFolder = resolveTargetWorkspaceFolder();
-  if (workspaceFolder) {
-    const key = workspaceKey(workspaceFolder);
-    const session = sessions.get(key);
-    if (session) {
-      stopSession(session);
-      sessions.delete(key);
-      void vscode.window.showInformationMessage(
-        `difit: Stopped review server for ${workspaceFolder.name}.`,
-      );
-      return;
-    }
-  }
-
   if (sessions.size === 0) {
     void vscode.window.showInformationMessage('difit: No running review server.');
     return;
@@ -171,176 +119,198 @@ function stopReview(): void {
   void vscode.window.showInformationMessage('difit: Stopped all running review servers.');
 }
 
-function stopSession(session: DifitSession): void {
-  if (!isProcessAlive(session.process)) {
-    return;
+/**
+ * Review uncommitted changes when there are any (like `difit .`), otherwise
+ * review the latest commit (like `difit HEAD`).
+ */
+async function resolveReviewTarget(repoRoot: string): Promise<ReviewTarget> {
+  const status = await runGit(repoRoot, ['status', '--porcelain']).catch(() => '');
+  // Untracked files are excluded: including them requires `git add
+  // --intent-to-add`, which mutates the user's repository state.
+  const hasTrackedChanges = status
+    .split('\n')
+    .some((line) => line.trim().length > 0 && !line.startsWith('??'));
+
+  if (hasTrackedChanges) {
+    return {
+      selection: createDiffSelection('HEAD', '.'),
+      diffMode: DiffMode.DOT,
+      cliArg: '.',
+    };
   }
 
-  const stoppedWithSigInt = session.process.kill('SIGINT');
-  if (!stoppedWithSigInt) {
-    session.process.kill();
-  }
+  return {
+    selection: createDiffSelection('HEAD^', 'HEAD'),
+    diffMode: DiffMode.DEFAULT,
+    cliArg: 'HEAD',
+  };
 }
 
-function createSession(
-  workspaceFolder: vscode.WorkspaceFolder,
-  executablePath: string,
-  difitArgs: readonly string[],
-  launchStrategy: LaunchStrategy,
-): DifitSession {
-  const channel = getOutputChannel();
-  const command = launchStrategy === 'direct' ? executablePath : DEFAULT_LOGIN_SHELL;
-  const commandArgs =
-    launchStrategy === 'direct'
-      ? [...difitArgs]
-      : [...LOGIN_SHELL_ARGS_PREFIX, buildShellCommand(executablePath, difitArgs)];
+function startSession(repoRoot: string, target: ReviewTarget): Promise<string> {
+  const externalPath = getConfiguredExecutablePath();
+  const child = externalPath
+    ? spawnExternal(externalPath, repoRoot, target)
+    : forkBundled(repoRoot, target);
 
-  const child = spawn(command, commandArgs, {
-    cwd: workspaceFolder.uri.fsPath,
-    env: buildSpawnEnv(),
-    stdio: ['pipe', 'pipe', 'pipe'],
+  const url = waitForStartup(child, repoRoot);
+  const session: Session = {
+    child,
+    selectionKey: getDiffSelectionKey(target.selection),
+    url,
+  };
+  sessions.set(repoRoot, session);
+
+  child.once('exit', (code, signal) => {
+    getOutputChannel().appendLine(
+      `[${repoRoot}] server exited (code: ${String(code)}, signal: ${String(signal)})`,
+    );
+    if (sessions.get(repoRoot)?.child === child) {
+      sessions.delete(repoRoot);
+    }
   });
 
-  if (launchStrategy === 'direct') {
-    channel.appendLine(
-      `[${workspaceFolder.name}] starting: ${executablePath} ${difitArgs.join(' ')} (cwd: ${workspaceFolder.uri.fsPath})`,
-    );
-  } else {
-    channel.appendLine(
-      `[${workspaceFolder.name}] starting via login shell: ${DEFAULT_LOGIN_SHELL} ${LOGIN_SHELL_ARGS_PREFIX.join(' ')} ${buildShellCommand(executablePath, difitArgs)} (cwd: ${workspaceFolder.uri.fsPath})`,
-    );
+  return url;
+}
+
+function forkBundled(repoRoot: string, target: ReviewTarget): ChildProcess {
+  const context = extensionContext;
+  if (!context) {
+    throw new Error('Extension is not activated.');
   }
 
-  const session: DifitSession = {
-    process: child,
-    workspaceFolder,
-    difitArgs,
-    launchStrategy,
-    startupPromise: Promise.resolve(''),
+  const serverModule = context.asAbsolutePath('dist/server/index.js');
+  const request = {
+    selection: target.selection,
+    diffMode: target.diffMode,
+    repoPath: repoRoot,
   };
 
-  let settled = false;
-  let timeoutHandle: NodeJS.Timeout | undefined;
+  getOutputChannel().appendLine(
+    `[${repoRoot}] starting bundled difit (reviewing ${target.cliArg})`,
+  );
 
-  const settleResolve = (url: string, resolve: (value: string) => void): void => {
-    if (settled) {
-      return;
-    }
+  return fork(serverModule, [JSON.stringify(request)], {
+    cwd: repoRoot,
+    silent: true,
+    // Never inherit the extension host's execArgv (e.g. --inspect), which
+    // would make the child fight over the debug port.
+    execArgv: [],
+    env: { ...process.env, NODE_ENV: 'production' },
+  });
+}
 
-    settled = true;
-    session.url = url;
-    if (timeoutHandle) {
-      clearTimeout(timeoutHandle);
-    }
-    resolve(url);
-  };
+function spawnExternal(
+  executablePath: string,
+  repoRoot: string,
+  target: ReviewTarget,
+): ChildProcess {
+  const args = [target.cliArg, '--no-open', '--keep-alive'];
+  getOutputChannel().appendLine(
+    `[${repoRoot}] starting external difit: ${executablePath} ${args.join(' ')}`,
+  );
 
-  const settleReject = (error: Error, reject: (reason: Error) => void): void => {
-    if (settled) {
-      return;
-    }
+  return spawn(executablePath, args, {
+    cwd: repoRoot,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
 
-    settled = true;
-    if (timeoutHandle) {
-      clearTimeout(timeoutHandle);
-    }
-    reject(error);
-  };
+function waitForStartup(child: ChildProcess, repoRoot: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    let settled = false;
 
-  session.startupPromise = new Promise<string>((resolve, reject) => {
-    const handleOutput = (source: 'stdout' | 'stderr', data: Buffer): void => {
-      const text = data.toString();
-      appendOutput(channel, workspaceFolder.name, source, text);
-
-      const matchedUrl = extractServerUrl(text);
-      if (matchedUrl) {
-        settleResolve(matchedUrl, resolve);
+    const settle = (fn: () => void): void => {
+      if (settled) {
+        return;
       }
+      settled = true;
+      clearTimeout(timeoutHandle);
+      fn();
     };
 
-    child.stdout.on('data', (data: Buffer) => {
-      handleOutput('stdout', data);
+    const timeoutHandle = setTimeout(() => {
+      settle(() => {
+        child.kill();
+        reject(new Error('Timed out waiting for the difit server to start.'));
+      });
+    }, STARTUP_TIMEOUT_MS);
+
+    // The bundled server reports readiness over the fork IPC channel.
+    child.on('message', (message: unknown) => {
+      const payload = message as {
+        type?: string;
+        url?: string;
+        message?: string;
+      };
+      if (payload.type === 'ready' && typeof payload.url === 'string') {
+        const url = payload.url;
+        settle(() => {
+          resolve(url);
+        });
+      } else if (payload.type === 'error') {
+        settle(() => {
+          reject(new Error(payload.message ?? 'difit failed to start.'));
+        });
+      }
     });
 
-    child.stderr.on('data', (data: Buffer) => {
-      handleOutput('stderr', data);
-    });
+    // An external difit CLI reports its URL on stdout instead.
+    const handleOutput = (data: Buffer): void => {
+      const text = data.toString();
+      appendServerOutput(repoRoot, text);
+      const matchedUrl = text.match(SERVER_URL_PATTERN)?.[1];
+      if (matchedUrl) {
+        settle(() => {
+          resolve(matchedUrl);
+        });
+      }
+    };
+    child.stdout?.on('data', handleOutput);
+    child.stderr?.on('data', handleOutput);
 
     child.once('error', (error) => {
-      appendOutput(channel, workspaceFolder.name, 'stderr', String(error));
-      settleReject(
-        new Error(
-          `Failed to start difit in ${workspaceFolder.name}: ${error.message || String(error)}`,
-        ),
-        reject,
-      );
+      settle(() => {
+        const hint =
+          (error as NodeJS.ErrnoException).code === 'ENOENT'
+            ? ' Check the "difit.executablePath" setting.'
+            : '';
+        reject(new Error(`Failed to launch difit: ${error.message}.${hint}`));
+      });
     });
 
-    child.once('close', (code, signal) => {
-      channel.appendLine(
-        `[${workspaceFolder.name}] process exited (code: ${String(code)}, signal: ${String(signal)})`,
-      );
-
-      const key = workspaceKey(workspaceFolder);
-      const current = sessions.get(key);
-      if (current?.process === child) {
-        sessions.delete(key);
-      }
-
-      if (!settled) {
-        settleReject(new StartupExitError(workspaceFolder.name, code, signal), reject);
-      }
+    child.once('exit', (code, signal) => {
+      settle(() => {
+        reject(
+          new Error(
+            `difit exited before startup (code: ${String(code)}, signal: ${String(signal)}).`,
+          ),
+        );
+      });
     });
-
-    timeoutHandle = setTimeout(() => {
-      settleReject(
-        new Error(`Timed out waiting for difit startup in ${workspaceFolder.name}.`),
-        reject,
-      );
-    }, STARTUP_TIMEOUT_MS);
   });
-
-  return session;
 }
 
-function buildShellCommand(executablePath: string, difitArgs: readonly string[]): string {
-  return [executablePath, ...difitArgs].map(shellQuote).join(' ');
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-function shouldRetryWithLoginShell(error: unknown): boolean {
-  return error instanceof StartupExitError && error.code === 127;
-}
-
-function formatStartupError(error: unknown, executablePath: string): string {
-  if (shouldRetryWithLoginShell(error)) {
-    return `Launch failed with exit code 127. Check "${executablePath}" and ensure Node.js is available in VS Code PATH.`;
+function stopSession(session: Session): void {
+  if (!isProcessAlive(session.child)) {
+    return;
   }
-
-  return error instanceof Error ? error.message : 'Unknown error';
+  session.child.kill();
 }
 
-function appendOutput(
-  channel: vscode.OutputChannel,
-  workspaceName: string,
-  source: 'stdout' | 'stderr',
-  output: string,
-): void {
-  const lines = output.split(/\r?\n/u);
-  for (const line of lines) {
-    if (!line.trim()) {
-      continue;
-    }
-    channel.appendLine(`[${workspaceName}] ${source}: ${line}`);
+function isProcessAlive(child: ChildProcess): boolean {
+  return child.exitCode === null && child.signalCode === null && !child.killed;
+}
+
+async function openInBrowser(url: string): Promise<void> {
+  try {
+    await vscode.commands.executeCommand('simpleBrowser.api.open', vscode.Uri.parse(url), {
+      viewColumn: vscode.ViewColumn.Beside,
+      preserveFocus: false,
+    });
+  } catch {
+    // Simple Browser is unavailable (disabled built-in); open externally.
+    await vscode.env.openExternal(vscode.Uri.parse(url));
   }
-}
-
-function extractServerUrl(output: string): string | undefined {
-  const match = output.match(SERVER_URL_PATTERN);
-  return match?.[1];
 }
 
 function resolveTargetWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
@@ -355,164 +325,49 @@ function resolveTargetWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
   return vscode.workspace.workspaceFolders?.[0];
 }
 
-function workspaceKey(workspaceFolder: vscode.WorkspaceFolder): string {
-  return workspaceFolder.uri.toString();
+function getConfiguredExecutablePath(): string {
+  return vscode.workspace.getConfiguration('difit').get<string>('executablePath', '').trim();
 }
 
-function isProcessAlive(process: ChildProcessWithoutNullStreams): boolean {
-  return process.exitCode === null && !process.killed;
-}
-
-async function openInSimpleBrowser(url: string): Promise<void> {
-  try {
-    await vscode.commands.executeCommand('simpleBrowser.api.open', vscode.Uri.parse(url), {
-      viewColumn: vscode.ViewColumn.Beside,
-      preserveFocus: false,
-    });
-  } catch {
-    void vscode.window.showErrorMessage(
-      `difit: Failed to open URL in Simple Browser. Install/enable the built-in Simple Browser extension. URL: ${url}`,
-    );
-  }
-}
-
-type ExecutableAvailability = 'available' | 'missing' | 'error';
-
-async function resolveDifitLaunchArgs(
-  workspaceFolder: vscode.WorkspaceFolder,
-): Promise<readonly string[]> {
-  const hasUncommittedChanges = await detectUncommittedChanges(workspaceFolder);
-  return hasUncommittedChanges ? ['.', '--no-open'] : ['HEAD', '--no-open'];
-}
-
-async function detectUncommittedChanges(workspaceFolder: vscode.WorkspaceFolder): Promise<boolean> {
-  return await new Promise<boolean>((resolve) => {
-    const gitStatus = spawn('git', ['status', '--porcelain'], {
-      cwd: workspaceFolder.uri.fsPath,
-      stdio: ['ignore', 'pipe', 'ignore'],
+async function runGit(cwd: string, args: readonly string[]): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
+    const child = spawn('git', [...args], {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    let output = '';
-    gitStatus.stdout.on('data', (data: Buffer) => {
-      output += data.toString();
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (data: Buffer) => {
+      stdout += data.toString();
+    });
+    child.stderr.on('data', (data: Buffer) => {
+      stderr += data.toString();
     });
 
-    gitStatus.once('error', () => {
-      resolve(false);
-    });
-
-    gitStatus.once('close', (code) => {
-      if (code !== 0) {
-        resolve(false);
-        return;
-      }
-      resolve(output.trim().length > 0);
-    });
-  });
-}
-
-async function checkDifitExecutable(executablePath: string): Promise<ExecutableAvailability> {
-  return await new Promise<ExecutableAvailability>((resolve) => {
-    const probe = spawn(executablePath, ['--version'], {
-      env: buildSpawnEnv(),
-      stdio: 'ignore',
-    });
-
-    let settled = false;
-
-    const settle = (value: ExecutableAvailability): void => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      resolve(value);
-    };
-
-    probe.once('error', (error) => {
-      const errNoException = error as NodeJS.ErrnoException;
-      if (errNoException.code === 'ENOENT') {
-        settle('missing');
-        return;
-      }
-      settle('error');
-    });
-
-    probe.once('exit', (code, signal) => {
-      if (signal) {
-        settle('error');
-        return;
-      }
-
-      if (code !== 0) {
-        getOutputChannel().appendLine(
-          `[probe] '${executablePath} --version' exited with code ${String(code)}. Continuing launch.`,
+    child.once('error', reject);
+    child.once('close', (code) => {
+      if (code === 0) {
+        resolve(stdout);
+      } else {
+        reject(
+          new Error(stderr.trim() || `git ${args.join(' ')} exited with code ${String(code)}`),
         );
       }
-      settle('available');
     });
   });
 }
 
-function buildSpawnEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env };
-  const pathKey = resolvePathKey(env);
-  const currentPath = env[pathKey] ?? '';
-  const entries = currentPath.split(path.delimiter).filter((entry) => entry.length > 0);
-
-  if (!entries.includes(EXTENSION_HOST_NODE_DIR)) {
-    entries.unshift(EXTENSION_HOST_NODE_DIR);
+function appendServerOutput(repoRoot: string, output: string): void {
+  const channel = getOutputChannel();
+  for (const line of output.split(/\r?\n/u)) {
+    if (line.trim()) {
+      channel.appendLine(`[${repoRoot}] ${line}`);
+    }
   }
-
-  env[pathKey] = entries.join(path.delimiter);
-  return env;
-}
-
-function resolvePathKey(env: NodeJS.ProcessEnv): string {
-  const existing = Object.keys(env).find((key) => key.toLowerCase() === 'path');
-  return existing ?? 'PATH';
-}
-
-async function promptInstallFlow(installCommand: string): Promise<void> {
-  const action = await vscode.window.showInformationMessage(
-    'difit command was not found. Install it globally?',
-    {
-      modal: true,
-      detail: `The following command will run in VS Code terminal:\n${installCommand}`,
-    },
-    INSTALL_ACTION_LABEL,
-  );
-
-  if (action !== INSTALL_ACTION_LABEL) {
-    return;
-  }
-
-  const terminal = vscode.window.createTerminal({ name: 'difit setup' });
-  terminal.show(true);
-  terminal.sendText(installCommand, true);
-  void vscode.window.showInformationMessage(
-    'difit install command was sent to the terminal. Run "difit: Open Review" again after install finishes.',
-  );
-}
-
-function getExecutablePath(): string {
-  const configured = vscode.workspace
-    .getConfiguration('difit')
-    .get<string>('executablePath', 'difit');
-  const normalized = configured.trim();
-  return normalized.length > 0 ? normalized : 'difit';
-}
-
-function getInstallCommand(): string {
-  const configured = vscode.workspace
-    .getConfiguration('difit')
-    .get<string>('installCommand', 'npm install -g difit');
-  const normalized = configured.trim();
-  return normalized.length > 0 ? normalized : 'npm install -g difit';
 }
 
 function getOutputChannel(): vscode.OutputChannel {
-  if (!outputChannel) {
-    outputChannel = vscode.window.createOutputChannel('difit');
-  }
+  outputChannel ??= vscode.window.createOutputChannel('difit');
   return outputChannel;
 }

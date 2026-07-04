@@ -54,3 +54,4 @@ openspec/
 
 # VS Code extension artifacts
 packages/vscode/*.vsix
+packages/vscode/.cache/
