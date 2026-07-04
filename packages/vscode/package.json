@@ -2,7 +2,7 @@
   "name": "difit-vscode",
   "displayName": "difit",
   "version": "0.1.0",
-  "description": "Launch difit and open it in a VS Code tab.",
+  "description": "GitHub-like diff review inside VS Code. difit is bundled — no extra install needed.",
   "categories": [
     "Other"
   ],
@@ -18,15 +18,17 @@
   "publisher": "yoshiko-pg",
   "main": "./dist/extension.js",
   "scripts": {
-    "build": "tsc -p .",
-    "watch": "tsc -w -p .",
-    "lint": "tsc -p . --noEmit",
-    "package": "pnpm run build && vsce package"
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "package": "pnpm --dir ../.. run build && node build.mjs && vsce package --no-dependencies"
   },
   "devDependencies": {
+    "@parcel/watcher": "^2.5.1",
     "@types/node": "^24.0.8",
-    "@types/vscode": "^1.98.0",
+    "@types/vscode": "^1.102.0",
     "@vscode/vsce": "^3.6.2",
+    "detect-libc": "^2.0.3",
+    "esbuild": "^0.25.0",
     "typescript": "^6.0.0"
   },
   "contributes": {
@@ -57,24 +59,17 @@
       "properties": {
         "difit.executablePath": {
           "type": "string",
-          "default": "difit",
-          "description": "Path to the difit executable."
-        },
-        "difit.installCommand": {
-          "type": "string",
-          "default": "npm install -g difit",
-          "description": "Command sent to an integrated terminal when difit is not installed."
+          "default": "",
+          "description": "Optional path to an external difit executable. Leave empty to use the difit version bundled with this extension."
         }
       }
     }
   },
   "activationEvents": [
-    "onCommand:difit.openReview",
-    "onCommand:difit.stopReview",
     "onStartupFinished"
   ],
   "icon": "assets/logo.png",
   "engines": {
-    "vscode": "^1.98.0"
+    "vscode": "^1.102.0"
   }
 }

@@ -1,48 +1,32 @@
-# difit VS Code Extension
+# difit for VS Code
 
-Open difit with one click and render it in a VS Code tab using Simple Browser.
+Review your Git changes in a GitHub-like diff viewer, right inside VS Code.
 
-- Project: https://github.com/yoshiko-pg/difit
+[difit](https://github.com/yoshiko-pg/difit) is bundled with this extension — no separate install, no PATH setup, no Node version manager headaches. The server runs on the Node.js runtime that ships with VS Code.
 
-## Requirements
+## Usage
 
-- VS Code `^1.98.0`
-- `difit` CLI installed on your machine (or install from the extension prompt)
-
-## What It Does
-
-- Adds `difit: Open Review` and `difit: Stop Review` commands.
-- Shows an editor title button (top-right icon) for quick open.
-- Shows a status bar button (`difit`) for quick open.
-- Reuses a running difit process per workspace.
-- Chooses launch args automatically:
-  - with uncommitted changes: `difit . --no-open`
-  - without uncommitted changes: `difit HEAD --no-open`
-- Opens the URL in a VS Code tab via `simpleBrowser.api.open`.
-- Writes runtime logs to Output channel `difit`.
+- Click the **difit** status bar item (or the icon in the editor title), or run **difit: Open Review** from the command palette.
+- With uncommitted changes, it reviews them (like `difit .`). With a clean working tree, it reviews the latest commit (like `difit HEAD`).
+- The review opens beside your editor in the built-in Simple Browser. Comments, viewed-state, and live reload work just like the difit CLI.
+- Run **difit: Stop Review** to shut the server down. It also stops automatically when VS Code exits.
 
 ## Settings
 
-- `difit.executablePath` (default: `difit`)
-- `difit.installCommand` (default: `npm install -g difit`)
+| Setting                | Description                                                                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `difit.executablePath` | Optional path to an external `difit` executable. Leave empty (default) to use the bundled difit. Set this if you want to run a newer or local build of the CLI instead. |
 
-## Build VSIX Locally
+## How it works
 
-From repository root:
+The extension forks the bundled difit server with VS Code's own Node.js runtime and talks to it over IPC, so it works regardless of your shell or Node setup. Native file-watcher binaries for all supported platforms are included; on an unsupported platform difit still works, just without live reload.
+
+## Development
 
 ```bash
+# from the repository root
 pnpm install
-pnpm run package:vscode
+pnpm run build              # builds the difit client assets into dist/client
+pnpm -C packages/vscode run build     # bundles the extension into packages/vscode/dist
+pnpm -C packages/vscode run package   # produces the .vsix
 ```
-
-Generated file:
-
-- `packages/vscode/difit-vscode-<version>.vsix`
-
-## Install VSIX
-
-1. Open Extensions view.
-2. Click `...` (More Actions).
-3. Choose `Install from VSIX...`.
-4. Select `packages/vscode/difit-vscode-<version>.vsix`.
-5. Run `Developer: Reload Window`.
