@@ -46,7 +46,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           (cd packages/vscode && npm pkg set version="$VERSION")
-          echo "Publishing difit-vscode $VERSION"
+          echo "Publishing yoshiko-pg.difit $VERSION"
 
       - name: Package VS Code extension
         run: pnpm run package:vscode
@@ -63,17 +63,17 @@ jobs:
 
       - name: Publish to VS Code Marketplace
         working-directory: packages/vscode
-        run: pnpm exec vsce publish --no-dependencies --azure-credential --packagePath difit-vscode-*.vsix
+        run: pnpm exec vsce publish --no-dependencies --azure-credential --packagePath difit-*.vsix
 
       - name: Publish to Open VSX
         if: ${{ secrets.OVSX_PAT != '' }}
         working-directory: packages/vscode
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: pnpm dlx ovsx publish difit-vscode-*.vsix -p "$OVSX_PAT"
+        run: pnpm dlx ovsx publish difit-*.vsix -p "$OVSX_PAT"
 
       - name: Attach VSIX to GitHub release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" packages/vscode/difit-vscode-*.vsix --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" packages/vscode/difit-*.vsix --clobber

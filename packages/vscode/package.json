@@ -1,5 +1,5 @@
 {
-  "name": "difit-vscode",
+  "name": "difit",
   "displayName": "difit",
   "version": "0.1.0",
   "description": "GitHub-like diff review inside VS Code. difit is bundled — no extra install needed.",
