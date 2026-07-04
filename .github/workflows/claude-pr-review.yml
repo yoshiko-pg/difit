@@ -1,0 +1,44 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+jobs:
+  review:
+    # Secrets are not available to fork PRs on the pull_request event,
+    # so skip them instead of failing. Drafts are reviewed once marked ready.
+    if: ${{ !github.event.pull_request.draft && !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code for PR Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request:
+            1. **Correctness** – bugs, edge cases, error handling
+            2. **Security** – input validation, injection risks, unsafe patterns
+            3. **Quality** – readability, consistency with the existing codebase
+            4. **Tests** – missing or inadequate test coverage
+
+            Use inline comments for specific issues and a top-level comment for
+            the overall summary. Only point out things that matter; skip nitpicks.
+            Write the review in the same language the PR author used.
+          claude_args: |
+            --max-turns 20
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"
