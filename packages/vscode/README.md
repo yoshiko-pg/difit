@@ -30,3 +30,7 @@ pnpm run build              # builds the difit client assets into dist/client
 pnpm -C packages/vscode run build     # bundles the extension into packages/vscode/dist
 pnpm -C packages/vscode run package   # produces the .vsix
 ```
+
+## Release
+
+Publishing is automated: when a difit GitHub release is published, the `Publish VS Code Extension` workflow rebuilds the extension, sets its version to the released difit version, publishes it to the VS Code Marketplace (and Open VSX when `OVSX_PAT` is configured), and attaches the `.vsix` to the GitHub release. The `version` field in this package.json is a placeholder; it is rewritten in CI at publish time.
