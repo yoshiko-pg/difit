@@ -37,7 +37,7 @@ The detailed procedure is as follows.
 
 - **difit launch options**
   - Use `<difit-command> <target> [compare-with]` to specify the target diff.
-  - For uncommitted changes use `<difit-command> .`, for working tree changes use `<difit-command> working`, and for staged changes use `<difit-command> staging`.
+  - For uncommitted changes use `<difit-command> .`, for working tree changes use `<difit-command> working`, and for staged changes use `<difit-command> staged`.
   - For stdin input, use a form such as `diff -u file1.txt file2.txt | <difit-command>`.
 - **Comment arguments**
   - Use `type: "thread"` for each comment.
