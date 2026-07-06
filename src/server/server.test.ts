@@ -222,7 +222,10 @@ describe('Server Integration Tests', () => {
 
     it('merges concurrent agent additions instead of clobbering on a stale push', async () => {
       const port = await getAvailablePort(4966);
-      const result = await startServer({ preferredPort: port, openBrowser: false });
+      const result = await startServer({
+        preferredPort: port,
+        openBrowser: false,
+      });
 
       try {
         // Browser establishes a thread; it now knows version 1.
@@ -273,7 +276,10 @@ describe('Server Integration Tests', () => {
 
     it('replaces (honoring deletions) when the push version matches', async () => {
       const port = await getAvailablePort(4966);
-      const result = await startServer({ preferredPort: port, openBrowser: false });
+      const result = await startServer({
+        preferredPort: port,
+        openBrowser: false,
+      });
 
       try {
         await postThreads(result.port, [makeThread('t1', 'src/a.ts', 10, 'human thread')]);
@@ -300,7 +306,10 @@ describe('Server Integration Tests', () => {
 
     it('bumps the version when a reply is imported (so the change is broadcast)', async () => {
       const port = await getAvailablePort(4966);
-      const result = await startServer({ preferredPort: port, openBrowser: false });
+      const result = await startServer({
+        preferredPort: port,
+        openBrowser: false,
+      });
 
       try {
         await postThreads(result.port, [makeThread('t1', 'src/a.ts', 10, 'human thread')]);
@@ -980,6 +989,53 @@ describe('Server Integration Tests', () => {
       expect(threads).toHaveLength(1);
     });
 
+    it('DELETE /api/comments/:threadId removes the thread and bumps the version', async () => {
+      await fetch(`http://localhost:${port}/api/comment-imports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([
+          {
+            type: 'thread',
+            id: 'delete-me',
+            filePath: 'src/delete-test.ts',
+            position: { side: 'new', line: 3 },
+            body: 'Thread to delete',
+          },
+        ]),
+      });
+
+      const beforeResponse = await fetch(`http://localhost:${port}/api/comments-json`);
+      const before = (await beforeResponse.json()) as any;
+      expect(before.threads.some((t: any) => t.id === 'delete-me')).toBe(true);
+
+      const deleteResponse = await fetch(`http://localhost:${port}/api/comments/delete-me`, {
+        method: 'DELETE',
+      });
+      const deleteData = (await deleteResponse.json()) as any;
+
+      expect(deleteResponse.ok).toBe(true);
+      expect(deleteData).toMatchObject({
+        success: true,
+        threadId: 'delete-me',
+      });
+      expect(deleteData.version).toBe(before.version + 1);
+
+      const afterResponse = await fetch(`http://localhost:${port}/api/comments-json`);
+      const after = (await afterResponse.json()) as any;
+      expect(after.threads.some((t: any) => t.id === 'delete-me')).toBe(false);
+    });
+
+    it('DELETE /api/comments/:threadId returns 404 for unknown thread', async () => {
+      const response = await fetch(`http://localhost:${port}/api/comments/does-not-exist`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(404);
+      const data = (await response.json()) as any;
+      expect(data).toHaveProperty('error');
+      expect(data.error).toContain('does-not-exist');
+    });
+
     it('isolates comment sessions between different diff selections', async () => {
       const importServer = await startServer({
         selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
@@ -1187,7 +1243,10 @@ describe('Server Integration Tests', () => {
 
       expect(response.ok).toBe(true);
       expect(data.specialOptions).toHaveLength(3);
-      expect(data.specialOptions).not.toContainEqual({ value: 'merge-base', label: 'Merge Base' });
+      expect(data.specialOptions).not.toContainEqual({
+        value: 'merge-base',
+        label: 'Merge Base',
+      });
       expect(data.branches).toEqual([{ name: 'main', current: true }]);
       expect(data.commits).toEqual([
         { hash: 'abc1234', shortHash: 'abc1234', message: 'Test commit' },

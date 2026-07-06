@@ -9,10 +9,11 @@ describe('createCommentCommand', () => {
     expect(command.name()).toBe('comment');
   });
 
-  it('has "add" and "get" subcommands', () => {
+  it('has "add", "get", and "resolve" subcommands', () => {
     const subcommandNames = command.commands.map((c) => c.name());
     expect(subcommandNames).toContain('add');
     expect(subcommandNames).toContain('get');
+    expect(subcommandNames).toContain('resolve');
   });
 
   describe('add subcommand', () => {
@@ -46,6 +47,28 @@ describe('createCommentCommand', () => {
       expect(formatOption).toBeDefined();
       expect(formatOption?.defaultValue).toBe('text');
       expect(formatOption?.argChoices).toEqual(['text', 'json']);
+    });
+  });
+
+  describe('resolve subcommand', () => {
+    const resolveCommand = command.commands.find((c) => c.name() === 'resolve')!;
+
+    it('has "remove" alias', () => {
+      expect(resolveCommand.aliases()).toContain('remove');
+    });
+
+    it('requires --port option', () => {
+      const portOption = resolveCommand.options.find((o) => o.long === '--port');
+      expect(portOption).toBeDefined();
+      expect(portOption?.mandatory).toBe(true);
+    });
+
+    it('accepts variadic threadIds argument', () => {
+      const args = resolveCommand.registeredArguments;
+      expect(args).toHaveLength(1);
+      expect(args[0].name()).toBe('threadIds');
+      expect(args[0].required).toBe(true);
+      expect(args[0].variadic).toBe(true);
     });
   });
 });
@@ -202,6 +225,92 @@ describe('comment subcommand integration', () => {
       await command.parseAsync(['node', 'difit', 'get', '--port', '4966']);
 
       expect(consoleOutput).toHaveLength(0);
+    });
+  });
+
+  describe('resolve', () => {
+    it('sends DELETE requests for each thread ID', async () => {
+      mockFetch.mockResolvedValue(jsonResponse({ success: true, threadId: 'abc123', version: 2 }));
+
+      const command = createCommentCommand();
+      await command.parseAsync(['node', 'difit', 'resolve', '--port', '4966', 'abc123', 'def456']);
+
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:4966/api/comments/abc123', {
+        method: 'DELETE',
+      });
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:4966/api/comments/def456', {
+        method: 'DELETE',
+      });
+      expect(consoleOutput[0]).toBe(
+        JSON.stringify({
+          success: true,
+          resolved: ['abc123', 'def456'],
+          notFound: [],
+        }),
+      );
+      expect(process.exit).not.toHaveBeenCalled();
+    });
+
+    it('works via the remove alias', async () => {
+      mockFetch.mockResolvedValue(jsonResponse({ success: true, threadId: 'abc123', version: 2 }));
+
+      const command = createCommentCommand();
+      await command.parseAsync(['node', 'difit', 'remove', '--port', '4966', 'abc123']);
+
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:4966/api/comments/abc123', {
+        method: 'DELETE',
+      });
+      expect(consoleOutput[0]).toContain('"success":true');
+    });
+
+    it('URL-encodes thread IDs', async () => {
+      mockFetch.mockResolvedValue(jsonResponse({ success: true }));
+
+      const command = createCommentCommand();
+      await command.parseAsync(['node', 'difit', 'resolve', '--port', '4966', 'a/b c']);
+
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:4966/api/comments/a%2Fb%20c', {
+        method: 'DELETE',
+      });
+    });
+
+    it('reports unknown thread IDs and exits with an error', async () => {
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse({ success: true, threadId: 'abc123', version: 2 }))
+        .mockResolvedValueOnce(jsonResponse({ error: 'Thread not found: missing' }, 404));
+
+      const command = createCommentCommand();
+      await command.parseAsync(['node', 'difit', 'resolve', '--port', '4966', 'abc123', 'missing']);
+
+      expect(consoleOutput[0]).toBe(
+        JSON.stringify({
+          success: false,
+          resolved: ['abc123'],
+          notFound: ['missing'],
+        }),
+      );
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('handles server error response', async () => {
+      mockFetch.mockResolvedValue(jsonResponse({ error: 'Internal error' }, 500));
+
+      const command = createCommentCommand();
+      await command.parseAsync(['node', 'difit', 'resolve', '--port', '4966', 'abc123']);
+
+      expect(consoleErrors[0]).toContain('Internal error');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('handles connection error', async () => {
+      mockFetch.mockRejectedValue(new TypeError('fetch failed'));
+
+      const command = createCommentCommand();
+      await command.parseAsync(['node', 'difit', 'resolve', '--port', '9999', 'abc123']);
+
+      expect(consoleErrors[0]).toContain('Cannot connect');
+      expect(consoleErrors[0]).toContain('9999');
+      expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
 });

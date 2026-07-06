@@ -30,7 +30,7 @@ async function parseCommentAddInput(json?: string): Promise<string> {
 
 export function createCommentCommand(): Command {
   const comment = new Command('comment').description(
-    'Add or retrieve comments on a running difit server',
+    'Add, retrieve, or resolve comments on a running difit server',
   );
 
   comment
@@ -50,7 +50,9 @@ export function createCommentCommand(): Command {
         });
 
         if (!response.ok) {
-          const errorBody = (await response.json().catch(() => ({}))) as { error?: string };
+          const errorBody = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
           console.error(`Error: ${errorBody.error ?? 'Failed to add comments'}`);
           process.exit(1);
         }
@@ -101,6 +103,62 @@ export function createCommentCommand(): Command {
           if (text.trim()) {
             console.log(text);
           }
+        }
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch failed')) {
+          console.error(
+            `Error: Cannot connect to difit server on port ${opts.port}. Is the server running?`,
+          );
+        } else {
+          console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        process.exit(1);
+      }
+    });
+
+  comment
+    .command('resolve')
+    .alias('remove')
+    .description('Resolve (remove) comment threads on a running difit server')
+    .argument('<threadIds...>', 'thread IDs to resolve')
+    .requiredOption('--port <port>', 'port of the running difit server', parseInt)
+    .action(async (threadIds: string[], opts: { port: number }) => {
+      try {
+        const resolved: string[] = [];
+        const notFound: string[] = [];
+
+        for (const threadId of threadIds) {
+          const response = await fetch(
+            `http://localhost:${opts.port}/api/comments/${encodeURIComponent(threadId)}`,
+            { method: 'DELETE' },
+          );
+
+          if (response.ok) {
+            resolved.push(threadId);
+            continue;
+          }
+
+          if (response.status === 404) {
+            notFound.push(threadId);
+            continue;
+          }
+
+          const errorBody = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          console.error(`Error: ${errorBody.error ?? `Failed to resolve thread ${threadId}`}`);
+          process.exit(1);
+        }
+
+        console.log(
+          JSON.stringify({
+            success: notFound.length === 0,
+            resolved,
+            notFound,
+          }),
+        );
+        if (notFound.length > 0) {
+          process.exit(1);
         }
       } catch (error) {
         if (error instanceof TypeError && error.message.includes('fetch failed')) {
