@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.7] - 2026-07-07
+
+### Added
+
+- Render comment bodies as markdown (GFM) with syntax-highlighted code blocks and diff-colored ```diff blocks (#430)
+- Add `difit comment resolve <threadIds...>` CLI verb (alias: `remove`) backed by a new `DELETE /api/comments/:threadId` endpoint, so agents can resolve or remove comment threads without re-posting the full thread set (#428)
+
+### Changed
+
+- Replace the browser confirm() dialog for resolve/delete with an inline confirm/cancel UI inside the comment card (#429)
+- Bundle difit into the VS Code extension so it no longer requires a global difit install; `difit.executablePath` remains as an opt-in escape hatch (#423)
+
+### Fixed
+
+- Correct SKILL.md wording: staging -> staged (#427)
+
+### Thanks
+
+- [@moeyashi](https://github.com/moeyashi) for correcting the SKILL.md wording (#427)
+
 ## [5.0.6] - 2026-07-04
 
 ### Added
@@ -1296,7 +1316,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.6...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.7...HEAD
+[5.0.7]: https://github.com/yoshiko-pg/difit/compare/v5.0.6...v5.0.7
 [5.0.6]: https://github.com/yoshiko-pg/difit/compare/v5.0.5...v5.0.6
 [5.0.5]: https://github.com/yoshiko-pg/difit/compare/v5.0.4...v5.0.5
 [5.0.4]: https://github.com/yoshiko-pg/difit/compare/v5.0.3...v5.0.4
