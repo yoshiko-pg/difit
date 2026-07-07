@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { CommentThread } from '../../types/diff';
 
@@ -33,10 +33,6 @@ const mockThread: CommentThread = {
 };
 
 describe('CommentThreadCard', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it('does not show delete action for replies authored by someone else', () => {
     render(
       <CommentThreadCard
@@ -77,11 +73,9 @@ describe('CommentThreadCard', () => {
     expect(screen.queryByTitle('Edit message')).not.toBeInTheDocument();
   });
 
-  it('confirms before resolving a root comment by default', async () => {
+  it('shows an inline confirmation before resolving a root comment by default', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.fn(() => false);
     const onRemoveThread = vi.fn();
-    vi.stubGlobal('confirm', confirmSpy);
 
     render(
       <CommentThreadCard
@@ -96,8 +90,131 @@ describe('CommentThreadCard', () => {
 
     await user.click(screen.getByTitle('Resolve thread'));
 
-    expect(confirmSpy).toHaveBeenCalledWith('Resolve this thread?\n\n"Root comment"');
     expect(onRemoveThread).not.toHaveBeenCalled();
+    expect(screen.getByText('Resolve?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Resolve' }));
+
+    expect(onRemoveThread).toHaveBeenCalledWith('thread-1');
+  });
+
+  it('cancels the inline resolve confirmation with the cancel button', async () => {
+    const user = userEvent.setup();
+    const onRemoveThread = vi.fn();
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={onRemoveThread}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTitle('Resolve thread'));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(onRemoveThread).not.toHaveBeenCalled();
+    expect(screen.queryByText('Resolve?')).not.toBeInTheDocument();
+    expect(screen.getByTitle('Resolve thread')).toBeInTheDocument();
+  });
+
+  it('cancels the inline resolve confirmation with Escape', async () => {
+    const user = userEvent.setup();
+    const onRemoveThread = vi.fn();
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={onRemoveThread}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTitle('Resolve thread'));
+    await user.keyboard('{Escape}');
+
+    expect(onRemoveThread).not.toHaveBeenCalled();
+    expect(screen.queryByText('Resolve?')).not.toBeInTheDocument();
+  });
+
+  it('consumes Escape so surrounding Escape handlers do not fire', async () => {
+    const user = userEvent.setup();
+    const outerKeyDown = vi.fn();
+    document.addEventListener('keydown', outerKeyDown);
+
+    try {
+      render(
+        <CommentThreadCard
+          thread={mockThread}
+          onGeneratePrompt={() => 'thread prompt'}
+          onRemoveThread={vi.fn()}
+          onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+          onRemoveMessage={vi.fn()}
+          onUpdateMessage={vi.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTitle('Resolve thread'));
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByText('Resolve?')).not.toBeInTheDocument();
+      expect(outerKeyDown).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', outerKeyDown);
+    }
+  });
+
+  it('cancels the inline resolve confirmation when clicking outside', async () => {
+    const user = userEvent.setup();
+    const onRemoveThread = vi.fn();
+
+    render(
+      <div>
+        <button type="button">outside</button>
+        <CommentThreadCard
+          thread={mockThread}
+          onGeneratePrompt={() => 'thread prompt'}
+          onRemoveThread={onRemoveThread}
+          onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+          onRemoveMessage={vi.fn()}
+          onUpdateMessage={vi.fn()}
+        />
+      </div>,
+    );
+
+    await user.click(screen.getByTitle('Resolve thread'));
+    await user.click(screen.getByRole('button', { name: 'outside' }));
+
+    expect(onRemoveThread).not.toHaveBeenCalled();
+    expect(screen.queryByText('Resolve?')).not.toBeInTheDocument();
+  });
+
+  it('resolves immediately without confirmation when confirmRootAction is false', async () => {
+    const user = userEvent.setup();
+    const onRemoveThread = vi.fn();
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        confirmRootAction={false}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={onRemoveThread}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTitle('Resolve thread'));
+
+    expect(screen.queryByText('Resolve?')).not.toBeInTheDocument();
+    expect(onRemoveThread).toHaveBeenCalledWith('thread-1');
   });
 
   it('shows the "Outdated" badge when the thread is marked outdated', () => {
@@ -133,11 +250,9 @@ describe('CommentThreadCard', () => {
     expect(screen.queryByLabelText('Outdated comment')).not.toBeInTheDocument();
   });
 
-  it('confirms before deleting a user-authored reply', async () => {
+  it('shows an inline confirmation before deleting a user-authored reply', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.fn(() => false);
     const onRemoveMessage = vi.fn();
-    vi.stubGlobal('confirm', confirmSpy);
 
     render(
       <CommentThreadCard
@@ -161,7 +276,11 @@ describe('CommentThreadCard', () => {
 
     await user.click(screen.getByTitle('Delete reply'));
 
-    expect(confirmSpy).toHaveBeenCalledWith('Delete this reply?\n\n"Reply comment"');
     expect(onRemoveMessage).not.toHaveBeenCalled();
+    expect(screen.getByText('Delete?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onRemoveMessage).toHaveBeenCalledWith('thread-1', 'message-2');
   });
 });

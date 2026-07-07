@@ -1,5 +1,7 @@
 import { Copy, Eraser, ChevronDown, Check, List } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
+
+import { useClickOutside } from '../hooks/useClickOutside';
 
 interface CommentsDropdownProps {
   commentsCount: number;
@@ -25,16 +27,7 @@ export function CommentsDropdown({
   const isCompact = compact;
   const isUp = direction === 'up';
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useClickOutside(dropdownRef, () => setIsOpen(false));
 
   const handleCopyAll = () => {
     onCopyAll();

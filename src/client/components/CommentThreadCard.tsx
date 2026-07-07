@@ -1,7 +1,8 @@
 import { Check, Copy, Edit2, MessageSquareReply, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { type CommentThread, type DiffCommentMessage } from '../../types/diff';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { copyTextToClipboard } from '../utils/clipboard';
 
 import { CommentBodyRenderer } from './CommentBodyRenderer';
@@ -18,7 +19,7 @@ interface ThreadMessageItemProps {
   onUpdate: (newBody: string) => void;
   onResolveOrDelete: () => void;
   actionLabel: string;
-  confirmMessage?: string;
+  confirmPrompt?: string;
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -32,12 +33,36 @@ function ThreadMessageItem({
   onUpdate,
   onResolveOrDelete,
   actionLabel,
-  confirmMessage,
+  confirmPrompt,
   onClick,
 }: ThreadMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const confirmContainerRef = useRef<HTMLDivElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const showAuthorHeader = showAuthorBadge && Boolean(message.author);
   const isUserAuthoredMessage = message.author?.trim() === 'User';
+
+  useClickOutside(confirmContainerRef, () => setIsConfirming(false), isConfirming);
+
+  useEffect(() => {
+    if (!isConfirming) return;
+
+    confirmButtonRef.current?.focus();
+
+    // Capture phase so Escape only cancels the confirmation and never reaches
+    // surrounding Escape handlers (e.g. the CommentsListModal close hotkey).
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsConfirming(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [isConfirming]);
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -76,37 +101,73 @@ function ThreadMessageItem({
               syntaxTheme={syntaxTheme}
             />
           </div>
-          {(isRootMessage || isUserAuthoredMessage) && (
-            <div className="flex shrink-0 items-start gap-2 pt-0.5">
-              {isUserAuthoredMessage && (
+          {(isRootMessage || isUserAuthoredMessage) &&
+            (isConfirming ? (
+              <div
+                ref={confirmContainerRef}
+                className="flex shrink-0 items-center gap-1.5 pt-0.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="whitespace-nowrap text-xs text-github-text-secondary">
+                  {confirmPrompt}
+                </span>
+                <button
+                  ref={confirmButtonRef}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsConfirming(false);
+                    onResolveOrDelete();
+                  }}
+                  className={`whitespace-nowrap rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs font-medium transition-all hover:bg-github-bg-primary ${
+                    isRootMessage ? 'text-green-700 hover:text-green-800' : 'text-github-danger'
+                  }`}
+                >
+                  {isRootMessage ? 'Resolve' : 'Delete'}
+                </button>
                 <button
                   type="button"
-                  onClick={handleStartEdit}
-                  className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
-                  title="Edit message"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsConfirming(false);
+                  }}
+                  className="whitespace-nowrap rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs text-github-text-primary transition-all hover:bg-github-bg-primary"
                 >
-                  <Edit2 size={12} />
+                  Cancel
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirmMessage && !confirm(confirmMessage)) {
-                    return;
-                  }
-                  onResolveOrDelete();
-                }}
-                className={`rounded border border-github-border bg-github-bg-tertiary p-1.5 transition-all hover:bg-github-bg-primary ${
-                  isRootMessage ? 'text-green-700 hover:text-green-800' : 'text-github-danger'
-                }`}
-                title={actionLabel}
-                aria-label={actionLabel}
-              >
-                {isRootMessage ? <Check size={12} /> : <Trash2 size={12} />}
-              </button>
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="flex shrink-0 items-start gap-2 pt-0.5">
+                {isUserAuthoredMessage && (
+                  <button
+                    type="button"
+                    onClick={handleStartEdit}
+                    className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
+                    title="Edit message"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirmPrompt) {
+                      setIsConfirming(true);
+                      return;
+                    }
+                    onResolveOrDelete();
+                  }}
+                  className={`rounded border border-github-border bg-github-bg-tertiary p-1.5 transition-all hover:bg-github-bg-primary ${
+                    isRootMessage ? 'text-green-700 hover:text-green-800' : 'text-github-danger'
+                  }`}
+                  title={actionLabel}
+                  aria-label={actionLabel}
+                >
+                  {isRootMessage ? <Check size={12} /> : <Trash2 size={12} />}
+                </button>
+              </div>
+            ))}
         </>
       ) : (
         <CommentForm
@@ -244,9 +305,7 @@ export function CommentThreadCard({
           onUpdate={(newBody) => onUpdateMessage(thread.id, rootMessage.id, newBody)}
           onResolveOrDelete={() => onRemoveThread(thread.id)}
           actionLabel="Resolve thread"
-          confirmMessage={
-            confirmRootAction ? `Resolve this thread?\n\n"${rootMessage.body}"` : undefined
-          }
+          confirmPrompt={confirmRootAction ? 'Resolve?' : undefined}
         />
 
         {thread.messages.slice(1).map((message) => (
@@ -260,7 +319,7 @@ export function CommentThreadCard({
               onUpdate={(newBody) => onUpdateMessage(thread.id, message.id, newBody)}
               onResolveOrDelete={() => onRemoveMessage(thread.id, message.id)}
               actionLabel="Delete reply"
-              confirmMessage={`Delete this reply?\n\n"${message.body}"`}
+              confirmPrompt="Delete?"
             />
           </div>
         ))}
