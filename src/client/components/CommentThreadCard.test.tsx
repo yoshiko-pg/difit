@@ -143,6 +143,33 @@ describe('CommentThreadCard', () => {
     expect(screen.queryByText('Resolve?')).not.toBeInTheDocument();
   });
 
+  it('consumes Escape so surrounding Escape handlers do not fire', async () => {
+    const user = userEvent.setup();
+    const outerKeyDown = vi.fn();
+    document.addEventListener('keydown', outerKeyDown);
+
+    try {
+      render(
+        <CommentThreadCard
+          thread={mockThread}
+          onGeneratePrompt={() => 'thread prompt'}
+          onRemoveThread={vi.fn()}
+          onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+          onRemoveMessage={vi.fn()}
+          onUpdateMessage={vi.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTitle('Resolve thread'));
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByText('Resolve?')).not.toBeInTheDocument();
+      expect(outerKeyDown).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', outerKeyDown);
+    }
+  });
+
   it('cancels the inline resolve confirmation when clicking outside', async () => {
     const user = userEvent.setup();
     const onRemoveThread = vi.fn();

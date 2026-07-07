@@ -2,6 +2,7 @@ import { Check, Copy, Edit2, MessageSquareReply, Trash2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { type CommentThread, type DiffCommentMessage } from '../../types/diff';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { copyTextToClipboard } from '../utils/clipboard';
 
 import { CommentBodyRenderer } from './CommentBodyRenderer';
@@ -42,28 +43,25 @@ function ThreadMessageItem({
   const showAuthorHeader = showAuthorBadge && Boolean(message.author);
   const isUserAuthoredMessage = message.author?.trim() === 'User';
 
+  useClickOutside(confirmContainerRef, () => setIsConfirming(false), isConfirming);
+
   useEffect(() => {
     if (!isConfirming) return;
 
     confirmButtonRef.current?.focus();
 
+    // Capture phase so Escape only cancels the confirmation and never reaches
+    // surrounding Escape handlers (e.g. the CommentsListModal close hotkey).
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsConfirming(false);
-      }
-    };
-    const handleMouseDown = (event: MouseEvent) => {
-      if (!confirmContainerRef.current?.contains(event.target as Node)) {
+        event.preventDefault();
+        event.stopPropagation();
         setIsConfirming(false);
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousedown', handleMouseDown);
-    };
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [isConfirming]);
 
   const handleStartEdit = (e: React.MouseEvent) => {
