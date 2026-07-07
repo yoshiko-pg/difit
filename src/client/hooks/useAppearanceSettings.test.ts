@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_EDITOR_OPTION } from '../../utils/editorOptions';
+import { resetClientSettingsForTests } from '../services/userSettings';
 import { APPEARANCE_STORAGE_KEY } from '../utils/appearanceTheme';
 
 import { useAppearanceSettings } from './useAppearanceSettings';
@@ -40,7 +41,10 @@ const setMatchMedia = (initialMatches: boolean) => {
   return {
     setMatches(nextMatches: boolean) {
       matches = nextMatches;
-      const event = { matches: nextMatches, media: mediaQueryList.media } as MediaQueryListEvent;
+      const event = {
+        matches: nextMatches,
+        media: mediaQueryList.media,
+      } as MediaQueryListEvent;
       listeners.forEach((listener) => listener(event));
     },
   };
@@ -128,7 +132,11 @@ describe('useAppearanceSettings', () => {
       localStorage.setItem(
         APPEARANCE_STORAGE_KEY,
         JSON.stringify({
-          editor: { id: 'custom', command: 'emacsclient', argsTemplate: '+%line %file' },
+          editor: {
+            id: 'custom',
+            command: 'emacsclient',
+            argsTemplate: '+%line %file',
+          },
         }),
       );
 
@@ -151,6 +159,66 @@ describe('useAppearanceSettings', () => {
         command: DEFAULT_EDITOR_OPTION.command,
         argsTemplate: DEFAULT_EDITOR_OPTION.argsTemplate,
       });
+    });
+  });
+
+  describe('server-persisted settings', () => {
+    beforeEach(() => {
+      setMatchMedia(false);
+      resetClientSettingsForTests();
+    });
+
+    it('hydrates settings from the server config and caches them locally', async () => {
+      (global.fetch as any).mockImplementation((url: string) => {
+        if (url.includes('/api/user-settings')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              version: 1,
+              client: { appearance: { theme: 'light', fontSize: 16 } },
+            }),
+          });
+        }
+        return Promise.resolve({ ok: false });
+      });
+
+      const { result } = renderHook(() => useAppearanceSettings());
+
+      await waitFor(() => {
+        expect(result.current.settings.theme).toBe('light');
+        expect(result.current.settings.fontSize).toBe(16);
+      });
+
+      expect(JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) ?? '{}')).toMatchObject({
+        theme: 'light',
+        fontSize: 16,
+      });
+    });
+
+    it('seeds the server from localStorage when the server has no appearance settings', async () => {
+      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ theme: 'light' }));
+
+      const putBodies: any[] = [];
+      (global.fetch as any).mockImplementation((url: string, init?: RequestInit) => {
+        if (url.includes('/api/user-settings') && init?.method === 'PUT') {
+          putBodies.push(JSON.parse(String(init.body)));
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+        }
+        if (url.includes('/api/user-settings')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ version: 1, client: {} }),
+          });
+        }
+        return Promise.resolve({ ok: false });
+      });
+
+      renderHook(() => useAppearanceSettings());
+
+      await waitFor(() => {
+        expect(putBodies.length).toBeGreaterThan(0);
+      });
+      expect(putBodies[0].client.appearance).toMatchObject({ theme: 'light' });
     });
   });
 });
