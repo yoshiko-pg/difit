@@ -6,6 +6,7 @@ import type { DiffLine } from '../../types/diff';
 import { MermaidDiagram } from '../components/MermaidDiagram';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
+import { extractMarkdownText, isElementWithCodeProps, isSafeUrl } from '../utils/markdownUtils';
 
 import { PreviewModeTabs, type PreviewMode } from './PreviewModeTabs';
 import { TextDiffViewer } from './TextDiffViewer';
@@ -57,8 +58,6 @@ const isDeletionLine = (line: DiffLine) => line.type === 'delete' || line.type =
 
 const isContextLine = (line: DiffLine) => line.type === 'normal' || line.type === 'context';
 
-const isSafeUrl = (url: string) => /^(https?:|mailto:|#|\.{0,2}\/|\/)/i.test(url.trim());
-
 const appendBlockLine = (blocks: PreviewBlock[], type: PreviewBlockType, line: string) => {
   const last = blocks[blocks.length - 1];
   if (last && last.type === type) {
@@ -108,31 +107,6 @@ const buildPreviewBlocks = (chunks: MergedChunk[]): PreviewBlock[] => {
   });
 
   return blocks;
-};
-
-const isElementWithChildren = (
-  node: React.ReactNode,
-): node is React.ReactElement<{ children?: React.ReactNode }> => React.isValidElement(node);
-
-const isElementWithCodeProps = (
-  node: React.ReactNode,
-): node is React.ReactElement<{ className?: string; children?: React.ReactNode }> =>
-  React.isValidElement(node);
-
-const extractText = (node: React.ReactNode): string => {
-  if (node === null || node === undefined || typeof node === 'boolean') {
-    return '';
-  }
-  if (typeof node === 'string' || typeof node === 'number') {
-    return String(node);
-  }
-  if (Array.isArray(node)) {
-    return node.map(extractText).join('');
-  }
-  if (isElementWithChildren(node)) {
-    return extractText(node.props.children);
-  }
-  return '';
 };
 
 const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme']) => ({
@@ -204,7 +178,7 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
   pre: ({ children }: { children?: React.ReactNode }) => {
     const nodes = Array.isArray(children) ? children : [children];
     const codeElement = nodes.find(isElementWithCodeProps);
-    const codeText = extractText(codeElement ?? children);
+    const codeText = extractMarkdownText(codeElement ?? children);
     const match = /language-(\S+)/.exec(codeElement?.props.className ?? '');
     const language = match?.[1];
     const normalizedCodeText = codeText.replace(/\n$/, '');
