@@ -199,11 +199,12 @@ export async function startServer(
     Boolean(options.stdinDiff),
   );
 
-  function parseRepositoryRelativePath(
-    filepath: unknown,
-  ):
+  function parseRepositoryRelativePath(filepath: unknown):
     | { ok: true; path: string }
-    | { ok: false; error: 'Invalid file path' | 'File path outside repository' } {
+    | {
+        ok: false;
+        error: 'Invalid file path' | 'File path outside repository';
+      } {
     if (typeof filepath !== 'string' || filepath.length === 0) {
       return { ok: false, error: 'Invalid file path' };
     }
@@ -772,6 +773,26 @@ export async function startServer(
       console.error('Error parsing comment imports:', error);
       res.status(400).json({ error: 'Invalid comment import data' });
     }
+  });
+
+  app.delete('/api/comments/:threadId', (req, res) => {
+    const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
+    const session = getOrCreateCommentSession(selection);
+    const threadId = req.params.threadId;
+    const nextThreads = session.threads.filter((thread) => thread.id !== threadId);
+
+    if (nextThreads.length === session.threads.length) {
+      res.status(404).json({ error: `Thread not found: ${threadId}` });
+      return;
+    }
+
+    updateCommentSession(selection, nextThreads);
+
+    res.json({
+      success: true,
+      threadId,
+      version: session.version,
+    });
   });
 
   app.get('/api/comments-json', (req, res) => {
