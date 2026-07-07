@@ -11,6 +11,10 @@ import { DiffCodeLine } from './DiffCodeLine';
 import { PrismSyntaxHighlighter } from './PrismSyntaxHighlighter';
 import type { AppearanceSettings } from './SettingsModal';
 
+const COMMENT_REMARK_PLUGINS = [remarkGfm, remarkBreaks];
+
+const transformCommentUrl = (url: string) => (isSafeUrl(url) ? url : '');
+
 type SuggestionPart = {
   type: 'text';
   content: string;
@@ -101,8 +105,10 @@ const getCommentMarkdownComponents = (syntaxTheme?: AppearanceSettings['syntaxTh
   h6: ({ children }: { children?: React.ReactNode }) => (
     <h6 className="text-sm font-semibold mt-3 mb-1 first:mt-0">{children}</h6>
   ),
+  // whitespace-pre-wrap keeps consecutive spaces/tabs inside a paragraph, which the
+  // pre-markdown plain-text rendering preserved (e.g. agent comments aligned with spaces).
   p: ({ children }: { children?: React.ReactNode }) => (
-    <p className="my-2 first:mt-0 last:mb-0">{children}</p>
+    <p className="my-2 first:mt-0 last:mb-0 whitespace-pre-wrap">{children}</p>
   ),
   ul: ({ children }: { children?: React.ReactNode }) => (
     <ul className="list-disc pl-5 my-2 first:mt-0 last:mb-0 space-y-0.5">{children}</ul>
@@ -110,7 +116,9 @@ const getCommentMarkdownComponents = (syntaxTheme?: AppearanceSettings['syntaxTh
   ol: ({ children }: { children?: React.ReactNode }) => (
     <ol className="list-decimal pl-5 my-2 first:mt-0 last:mb-0 space-y-0.5">{children}</ol>
   ),
-  li: ({ children }: { children?: React.ReactNode }) => <li>{children}</li>,
+  li: ({ children }: { children?: React.ReactNode }) => (
+    <li className="whitespace-pre-wrap">{children}</li>
+  ),
   blockquote: ({ children }: { children?: React.ReactNode }) => (
     <blockquote className="border-l-4 border-github-border pl-3 my-2 text-github-text-muted">
       {children}
@@ -277,8 +285,8 @@ export function CommentBodyRenderer({
           return (
             <div key={index}>
               <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                urlTransform={(url) => (isSafeUrl(url) ? url : '')}
+                remarkPlugins={COMMENT_REMARK_PLUGINS}
+                urlTransform={transformCommentUrl}
                 components={markdownComponents}
               >
                 {part.content}

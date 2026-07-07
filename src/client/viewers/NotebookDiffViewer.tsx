@@ -7,6 +7,7 @@ import type { DiffLine } from '../../types/diff';
 import { EnhancedPrismSyntaxHighlighter } from '../components/EnhancedPrismSyntaxHighlighter';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
+import { extractMarkdownText, isElementWithCodeProps, isSafeUrl } from '../utils/markdownUtils';
 
 import { PreviewModeTabs, type PreviewMode } from './PreviewModeTabs';
 import { TextDiffViewer } from './TextDiffViewer';
@@ -506,11 +507,17 @@ const buildDiffLines = (beforeText: string, afterText: string): NotebookDiffLine
   if (!beforeText && !afterText) return [];
 
   if (!beforeText) {
-    return splitDiffValue(afterText).map((line) => ({ type: 'add', content: line }));
+    return splitDiffValue(afterText).map((line) => ({
+      type: 'add',
+      content: line,
+    }));
   }
 
   if (!afterText) {
-    return splitDiffValue(beforeText).map((line) => ({ type: 'delete', content: line }));
+    return splitDiffValue(beforeText).map((line) => ({
+      type: 'delete',
+      content: line,
+    }));
   }
 
   return diffLines(beforeText, afterText).flatMap((change) => {
@@ -521,31 +528,6 @@ const buildDiffLines = (beforeText: string, afterText: string): NotebookDiffLine
       content: line,
     }));
   });
-};
-
-const isElementWithChildren = (
-  node: React.ReactNode,
-): node is React.ReactElement<{ children?: React.ReactNode }> => React.isValidElement(node);
-
-const isElementWithCodeProps = (
-  node: React.ReactNode,
-): node is React.ReactElement<{ className?: string; children?: React.ReactNode }> =>
-  React.isValidElement(node);
-
-const extractText = (node: React.ReactNode): string => {
-  if (node === null || node === undefined || typeof node === 'boolean') {
-    return '';
-  }
-  if (typeof node === 'string' || typeof node === 'number') {
-    return String(node);
-  }
-  if (Array.isArray(node)) {
-    return node.map(extractText).join('');
-  }
-  if (isElementWithChildren(node)) {
-    return extractText(node.props.children);
-  }
-  return '';
 };
 
 const getCellBorderStyle = (status: NotebookCellStatus) => {
@@ -604,8 +586,6 @@ const getCodeLinePrefixClass = (type: PreviewLineType) => {
       return 'text-github-text-muted';
   }
 };
-
-const isSafeUrl = (url: string) => /^(https?:|mailto:|#|\.{0,2}\/|\/)/i.test(url.trim());
 
 const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme']) => ({
   h1: ({ children }: { children?: React.ReactNode }) => (
@@ -676,7 +656,7 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
   pre: ({ children }: { children?: React.ReactNode }) => {
     const nodes = Array.isArray(children) ? children : [children];
     const codeElement = nodes.find(isElementWithCodeProps);
-    const codeText = extractText(codeElement ?? children);
+    const codeText = extractMarkdownText(codeElement ?? children);
     const match = /language-(\S+)/.exec(codeElement?.props.className ?? '');
     const language = match?.[1];
 
@@ -743,11 +723,19 @@ const buildSectionsForCell = (cell: NotebookCellPreview): Section[] => {
   }
 
   if (cell.status === 'delete') {
-    sections.push({ label: 'Before', content: beforeText || afterText, tone: 'before' });
+    sections.push({
+      label: 'Before',
+      content: beforeText || afterText,
+      tone: 'before',
+    });
     return sections;
   }
 
-  sections.push({ label: 'After', content: afterText || beforeText, tone: 'after' });
+  sections.push({
+    label: 'After',
+    content: afterText || beforeText,
+    tone: 'after',
+  });
   return sections;
 };
 

@@ -44,6 +44,23 @@ describe('CommentBodyRenderer', () => {
     expect(container).toHaveTextContent('line two');
   });
 
+  it('keeps consecutive spaces inside paragraphs', () => {
+    const { container } = render(<CommentBodyRenderer body={'aligned:    value'} />);
+
+    const paragraph = container.querySelector('p');
+    expect(paragraph).not.toBeNull();
+    expect(paragraph?.textContent).toBe('aligned:    value');
+    expect(paragraph?.className).toContain('whitespace-pre-wrap');
+  });
+
+  it('treats 4-space indented lines as code blocks (markdown semantics)', () => {
+    const { container } = render(<CommentBodyRenderer body={'intro\n\n    indented line'} />);
+
+    const pre = container.querySelector('pre');
+    expect(pre).not.toBeNull();
+    expect(pre).toHaveTextContent('indented line');
+  });
+
   it('renders fenced code blocks inside <pre>', () => {
     const { container } = render(
       <CommentBodyRenderer body={'Check this:\n\n```ts\nconst x = 1;\n```'} />,
