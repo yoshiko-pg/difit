@@ -246,6 +246,7 @@ describe('comment subcommand integration', () => {
           success: true,
           resolved: ['abc123', 'def456'],
           notFound: [],
+          errors: [],
         }),
       );
       expect(process.exit).not.toHaveBeenCalled();
@@ -287,18 +288,28 @@ describe('comment subcommand integration', () => {
           success: false,
           resolved: ['abc123'],
           notFound: ['missing'],
+          errors: [],
         }),
       );
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
-    it('handles server error response', async () => {
-      mockFetch.mockResolvedValue(jsonResponse({ error: 'Internal error' }, 500));
+    it('collects server errors without dropping remaining thread IDs', async () => {
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse({ error: 'Internal error' }, 500))
+        .mockResolvedValueOnce(jsonResponse({ success: true, threadId: 'def456', version: 2 }));
 
       const command = createCommentCommand();
-      await command.parseAsync(['node', 'difit', 'resolve', '--port', '4966', 'abc123']);
+      await command.parseAsync(['node', 'difit', 'resolve', '--port', '4966', 'abc123', 'def456']);
 
-      expect(consoleErrors[0]).toContain('Internal error');
+      expect(consoleOutput[0]).toBe(
+        JSON.stringify({
+          success: false,
+          resolved: ['def456'],
+          notFound: [],
+          errors: [{ threadId: 'abc123', error: 'Internal error' }],
+        }),
+      );
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 

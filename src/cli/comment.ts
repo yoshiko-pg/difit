@@ -11,6 +11,15 @@ interface CommentImportResponse {
   warnings?: string[];
 }
 
+function handleCommandError(error: unknown, port: number): never {
+  if (error instanceof TypeError && error.message.includes('fetch failed')) {
+    console.error(`Error: Cannot connect to difit server on port ${port}. Is the server running?`);
+  } else {
+    console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+  process.exit(1);
+}
+
 async function parseCommentAddInput(json?: string): Promise<string> {
   if (typeof json === 'string') {
     return json;
@@ -67,14 +76,7 @@ export function createCommentCommand(): Command {
           }),
         );
       } catch (error) {
-        if (error instanceof TypeError && error.message.includes('fetch failed')) {
-          console.error(
-            `Error: Cannot connect to difit server on port ${opts.port}. Is the server running?`,
-          );
-        } else {
-          console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-        process.exit(1);
+        handleCommandError(error, opts.port);
       }
     });
 
@@ -105,14 +107,7 @@ export function createCommentCommand(): Command {
           }
         }
       } catch (error) {
-        if (error instanceof TypeError && error.message.includes('fetch failed')) {
-          console.error(
-            `Error: Cannot connect to difit server on port ${opts.port}. Is the server running?`,
-          );
-        } else {
-          console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-        process.exit(1);
+        handleCommandError(error, opts.port);
       }
     });
 
@@ -124,51 +119,62 @@ export function createCommentCommand(): Command {
     .requiredOption('--port <port>', 'port of the running difit server', parseInt)
     .action(async (threadIds: string[], opts: { port: number }) => {
       try {
-        const resolved: string[] = [];
-        const notFound: string[] = [];
+        const results = await Promise.all(
+          threadIds.map(
+            async (
+              threadId,
+            ): Promise<{
+              threadId: string;
+              status: 'resolved' | 'notFound' | 'error';
+              error?: string;
+            }> => {
+              const response = await fetch(
+                `http://localhost:${opts.port}/api/comments/${encodeURIComponent(threadId)}`,
+                { method: 'DELETE' },
+              );
 
-        for (const threadId of threadIds) {
-          const response = await fetch(
-            `http://localhost:${opts.port}/api/comments/${encodeURIComponent(threadId)}`,
-            { method: 'DELETE' },
-          );
+              if (response.ok) {
+                return { threadId, status: 'resolved' };
+              }
 
-          if (response.ok) {
-            resolved.push(threadId);
-            continue;
-          }
+              if (response.status === 404) {
+                return { threadId, status: 'notFound' };
+              }
 
-          if (response.status === 404) {
-            notFound.push(threadId);
-            continue;
-          }
+              const errorBody = (await response.json().catch(() => ({}))) as {
+                error?: string;
+              };
+              return {
+                threadId,
+                status: 'error',
+                error: errorBody.error ?? `Failed to resolve thread ${threadId}`,
+              };
+            },
+          ),
+        );
 
-          const errorBody = (await response.json().catch(() => ({}))) as {
-            error?: string;
-          };
-          console.error(`Error: ${errorBody.error ?? `Failed to resolve thread ${threadId}`}`);
-          process.exit(1);
-        }
+        const resolved = results.filter((r) => r.status === 'resolved').map((r) => r.threadId);
+        const notFound = results.filter((r) => r.status === 'notFound').map((r) => r.threadId);
+        const errors = results
+          .filter((r) => r.status === 'error')
+          .map((r) => ({
+            threadId: r.threadId,
+            error: r.error ?? `Failed to resolve thread ${r.threadId}`,
+          }));
 
         console.log(
           JSON.stringify({
-            success: notFound.length === 0,
+            success: notFound.length === 0 && errors.length === 0,
             resolved,
             notFound,
+            errors,
           }),
         );
-        if (notFound.length > 0) {
+        if (notFound.length > 0 || errors.length > 0) {
           process.exit(1);
         }
       } catch (error) {
-        if (error instanceof TypeError && error.message.includes('fetch failed')) {
-          console.error(
-            `Error: Cannot connect to difit server on port ${opts.port}. Is the server running?`,
-          );
-        } else {
-          console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-        process.exit(1);
+        handleCommandError(error, opts.port);
       }
     });
 
