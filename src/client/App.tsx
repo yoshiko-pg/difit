@@ -1070,9 +1070,10 @@ function App() {
     const target = e.target as HTMLElement;
     const isCommentButton = target.closest('[data-comment-button="true"]');
     const isOpenInEditorButton = target.closest('[data-open-in-editor-button="true"]');
+    const isShiftRangeClick = e.shiftKey && target.closest('[data-diff-line-row="true"]');
 
     // Close empty comment forms (unless clicking on a comment button)
-    if (!isCommentButton && !isOpenInEditorButton) {
+    if (!isCommentButton && !isOpenInEditorButton && !isShiftRangeClick) {
       closeEmptyCommentForms(e);
     }
   };
