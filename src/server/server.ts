@@ -306,7 +306,6 @@ export async function startServer(
     const shouldIncludeCommentImports =
       initialCommentImports.length > 0 &&
       (Boolean(options.stdinDiff) || diffSelectionsEqual(requestedSelection, initialSelection));
-    currentSelection = requestedSelection;
 
     let responseDiffData = initialDiffData;
     if (!options.stdinDiff) {
@@ -315,15 +314,25 @@ export async function startServer(
       if (cached) {
         responseDiffData = cached;
       } else {
-        responseDiffData = await parser.parseDiff(
-          requestedSelection,
-          ignoreWhitespace,
-          options.contextLines,
-        );
+        try {
+          responseDiffData = await parser.parseDiff(
+            requestedSelection,
+            ignoreWhitespace,
+            options.contextLines,
+          );
+        } catch (error) {
+          console.error('Error fetching diff:', error);
+          res.status(500).json({
+            error: error instanceof Error ? error.message : 'Failed to fetch diff',
+          });
+          return;
+        }
         setCachedDiffResponse(diffDataCache, cacheKey, responseDiffData);
         generatedStatusCache.clear();
       }
     }
+
+    currentSelection = requestedSelection;
 
     currentCommentSelection = createResolvedCommentSelection(
       responseDiffData,
