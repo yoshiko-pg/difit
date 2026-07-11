@@ -217,6 +217,76 @@ describe('CommentThreadCard', () => {
     expect(onRemoveThread).toHaveBeenCalledWith('thread-1');
   });
 
+  it('collapses the thread into a single line and expands it back', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Collapse thread' }));
+
+    // Messages and actions are hidden; a one-line summary with the count remains
+    expect(screen.queryByText('Reply comment')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Copy Prompt/)).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Resolve thread')).not.toBeInTheDocument();
+    expect(screen.getByText('Root comment')).toBeInTheDocument();
+    expect(screen.getByLabelText('2 messages in thread')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Expand thread' }));
+
+    expect(screen.getByText('Reply comment')).toBeInTheDocument();
+    expect(screen.getByTitle('Resolve thread')).toBeInTheDocument();
+  });
+
+  it('expands a collapsed thread by clicking the summary line', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Collapse thread' }));
+    await user.click(screen.getByText('Root comment'));
+
+    expect(screen.getByText('Reply comment')).toBeInTheDocument();
+  });
+
+  it('does not trigger the card click when toggling collapse', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+        onClick={onClick}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Collapse thread' }));
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it('shows the "Outdated" badge when the thread is marked outdated', () => {
     render(
       <CommentThreadCard

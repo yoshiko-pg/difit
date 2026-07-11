@@ -1,4 +1,13 @@
-import { Check, Copy, Edit2, MessageSquareReply, Trash2 } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Edit2,
+  MessageSquare,
+  MessageSquareReply,
+  Trash2,
+} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { type CommentThread, type DiffCommentMessage } from '../../types/diff';
@@ -214,9 +223,15 @@ export function CommentThreadCard({
 }: CommentThreadCardProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const lineLabel = Array.isArray(thread.line)
     ? `${thread.line[0]}-${thread.line[1]}`
     : thread.line;
+
+  const toggleCollapsed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCollapsed((prev) => !prev);
+  };
 
   const handleCopyThread = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -241,8 +256,18 @@ export function CommentThreadCard({
       }`}
       onClick={onClick}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-xs text-github-text-secondary">
+      <div className={`flex items-center justify-between gap-3 ${isCollapsed ? '' : 'mb-3'}`}>
+        <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-github-text-secondary">
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-expanded={!isCollapsed}
+            aria-label={isCollapsed ? 'Expand thread' : 'Collapse thread'}
+            title={isCollapsed ? 'Expand thread' : 'Collapse thread'}
+            className="shrink-0 rounded p-0.5 text-github-text-secondary transition-colors hover:bg-github-bg-primary hover:text-github-text-primary"
+          >
+            {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+          </button>
           <span
             className="font-mono px-1 py-0.5 rounded overflow-hidden text-ellipsis whitespace-nowrap"
             style={{
@@ -261,91 +286,114 @@ export function CommentThreadCard({
               Outdated
             </span>
           )}
+          {isCollapsed && (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              title="Expand thread"
+            >
+              <span className="min-w-0 flex-1 truncate text-github-text-secondary">
+                {rootMessage.body.split('\n')[0]}
+              </span>
+              <span
+                className="inline-flex shrink-0 items-center gap-1 text-github-text-muted"
+                aria-label={`${thread.messages.length} messages in thread`}
+              >
+                <MessageSquare size={12} />
+                {thread.messages.length}
+              </span>
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleCopyThread}
-            className="whitespace-nowrap rounded px-2 py-1 text-xs transition-all"
-            style={{
-              backgroundColor: 'var(--color-yellow-btn-bg)',
-              color: 'var(--color-yellow-btn-text)',
-              border: '1px solid var(--color-yellow-btn-border)',
-            }}
-            title="Copy thread prompt for AI coding agent"
-          >
-            <span className="inline-flex items-center gap-1">
-              <Copy size={12} />
-              {isCopied ? 'Copied!' : 'Copy Prompt'}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsReplying((prev) => !prev);
-            }}
-            aria-label="Reply"
-            className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
-            title="Reply to thread"
-          >
-            <MessageSquareReply size={14} />
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <ThreadMessageItem
-          message={rootMessage}
-          isRootMessage={true}
-          showAuthorBadge={showAuthorBadges}
-          syntaxTheme={syntaxTheme}
-          filename={thread.file}
-          originalCode={thread.codeContent}
-          onUpdate={(newBody) => onUpdateMessage(thread.id, rootMessage.id, newBody)}
-          onResolveOrDelete={() => onRemoveThread(thread.id)}
-          actionLabel="Resolve thread"
-          confirmPrompt={confirmRootAction ? 'Resolve?' : undefined}
-        />
-
-        {thread.messages.slice(1).map((message) => (
-          <div key={message.id} className="ml-4 border-l border-github-border pl-3">
-            <ThreadMessageItem
-              message={message}
-              showAuthorBadge={showAuthorBadges}
-              syntaxTheme={syntaxTheme}
-              filename={thread.file}
-              originalCode={thread.codeContent}
-              onUpdate={(newBody) => onUpdateMessage(thread.id, message.id, newBody)}
-              onResolveOrDelete={() => onRemoveMessage(thread.id, message.id)}
-              actionLabel="Delete reply"
-              confirmPrompt="Delete?"
-            />
-          </div>
-        ))}
-
-        {isReplying && (
-          <div
-            className="ml-4 border-l border-github-border pl-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CommentForm
-              onSubmit={async (body) => {
-                await onReplyToThread(thread.id, body);
-                setIsReplying(false);
+        {!isCollapsed && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyThread}
+              className="whitespace-nowrap rounded px-2 py-1 text-xs transition-all"
+              style={{
+                backgroundColor: 'var(--color-yellow-btn-bg)',
+                color: 'var(--color-yellow-btn-text)',
+                border: '1px solid var(--color-yellow-btn-border)',
               }}
-              onCancel={() => setIsReplying(false)}
-              selectedCode={thread.codeContent}
-              syntaxTheme={syntaxTheme}
-              filename={thread.file}
-              embedded={true}
+              title="Copy thread prompt for AI coding agent"
+            >
+              <span className="inline-flex items-center gap-1">
+                <Copy size={12} />
+                {isCopied ? 'Copied!' : 'Copy Prompt'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsReplying((prev) => !prev);
+              }}
+              aria-label="Reply"
+              className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
               title="Reply to thread"
-              submitLabel="Reply"
-              placeholder="Write a reply..."
-            />
+            >
+              <MessageSquareReply size={14} />
+            </button>
           </div>
         )}
       </div>
+
+      {!isCollapsed && (
+        <div className="space-y-3">
+          <ThreadMessageItem
+            message={rootMessage}
+            isRootMessage={true}
+            showAuthorBadge={showAuthorBadges}
+            syntaxTheme={syntaxTheme}
+            filename={thread.file}
+            originalCode={thread.codeContent}
+            onUpdate={(newBody) => onUpdateMessage(thread.id, rootMessage.id, newBody)}
+            onResolveOrDelete={() => onRemoveThread(thread.id)}
+            actionLabel="Resolve thread"
+            confirmPrompt={confirmRootAction ? 'Resolve?' : undefined}
+          />
+
+          {thread.messages.slice(1).map((message) => (
+            <div key={message.id} className="ml-4 border-l border-github-border pl-3">
+              <ThreadMessageItem
+                message={message}
+                showAuthorBadge={showAuthorBadges}
+                syntaxTheme={syntaxTheme}
+                filename={thread.file}
+                originalCode={thread.codeContent}
+                onUpdate={(newBody) => onUpdateMessage(thread.id, message.id, newBody)}
+                onResolveOrDelete={() => onRemoveMessage(thread.id, message.id)}
+                actionLabel="Delete reply"
+                confirmPrompt="Delete?"
+              />
+            </div>
+          ))}
+
+          {isReplying && (
+            <div
+              className="ml-4 border-l border-github-border pl-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <CommentForm
+                onSubmit={async (body) => {
+                  await onReplyToThread(thread.id, body);
+                  setIsReplying(false);
+                }}
+                onCancel={() => setIsReplying(false)}
+                selectedCode={thread.codeContent}
+                syntaxTheme={syntaxTheme}
+                filename={thread.file}
+                embedded={true}
+                title="Reply to thread"
+                submitLabel="Reply"
+                placeholder="Write a reply..."
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
