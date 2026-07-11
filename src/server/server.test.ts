@@ -462,6 +462,31 @@ describe('Server Integration Tests', () => {
       expect(data).toHaveProperty('requestedTargetCommitish', 'HEAD');
     });
 
+    it('GET /api/diff returns a JSON 500 on parse failure and does not poison subsequent requests', async () => {
+      const parser = parserInstances.at(-1);
+      parser?.parseDiff.mockClear();
+      parser?.parseDiff.mockRejectedValueOnce(
+        new Error('Failed to parse diff for nonexistent vs HEAD: unknown revision'),
+      );
+
+      const errorResponse = await fetch(`http://localhost:${port}/api/diff?target=nonexistent`);
+      expect(errorResponse.status).toBe(500);
+      expect(errorResponse.headers.get('content-type')).toContain('application/json');
+      const errorBody = (await errorResponse.json()) as any;
+      expect(typeof errorBody.error).toBe('string');
+
+      const recoveredResponse = await fetch(
+        `http://localhost:${port}/api/diff?ignoreWhitespace=true`,
+      );
+      expect(recoveredResponse.status).toBe(200);
+
+      expect(parser?.parseDiff).toHaveBeenLastCalledWith(
+        { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
+        true,
+        undefined,
+      );
+    });
+
     it('GET /api/diff?ignoreWhitespace=true handles whitespace ignore', async () => {
       const response = await fetch(`http://localhost:${port}/api/diff?ignoreWhitespace=true`);
       const data = (await response.json()) as any;
@@ -1258,12 +1283,6 @@ describe('Server Integration Tests', () => {
   });
 
   describe('Error handling', () => {
-    it.skip('handles invalid commit gracefully', async () => {
-      // This test is skipped due to mocking complexity
-      // The validation happens during server startup and is hard to mock properly
-      expect(true).toBe(true);
-    });
-
     it('handles malformed comment data', async () => {
       const result = await startServer({
         selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
