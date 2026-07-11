@@ -200,7 +200,7 @@ npx skills add yoshiko-pg/difit
 - **系统语言**：C, C++, C#, Rust, Go
 - **移动语言**：Swift, Kotlin, Dart
 - **基础设施即代码**：Terraform (HCL), Nix
-- **其他**：Python, Protobuf, YAML, Solidity, Vim Script
+- **其他**：Python, Protobuf, YAML, Solidity, Vim Script, GDScript
 
 ## 🔍 自动折叠文件
 
