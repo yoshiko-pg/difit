@@ -133,6 +133,21 @@ describe('useFileLevelTokens', () => {
     expect(result.current.getNewTokens).toBeNull();
   });
 
+  it('stdin diffではenabled=trueでもblobをfetchしない', () => {
+    const { result } = renderHook(() =>
+      useFileLevelTokens({
+        file: createVueFile(),
+        enabled: true,
+        baseCommitish: 'stdin',
+        targetCommitish: 'stdin',
+      }),
+    );
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(result.current.getOldTokens).toBeNull();
+    expect(result.current.getNewTokens).toBeNull();
+  });
+
   it('enabled=trueなら.tsファイルでもファイル単位トークン化する（拡張子で判断しない）', async () => {
     const tsContent = "const greeting = 'hi';\n";
     mockBlobFetch({ HEAD: tsContent, '.': tsContent });

@@ -170,7 +170,7 @@ export class GitDiffParser {
   }
 
   private splitPlainUnifiedDiff(diffText: string): string[] {
-    const lines = diffText.split('\n');
+    const lines = diffText.split(/\r?\n/);
     const blocks: string[] = [];
     let blockStart: number | null = null;
     let remainingOldLines = 0;

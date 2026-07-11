@@ -939,6 +939,31 @@ index 0000000..1234567
       });
     });
 
+    it('normalizes CRLF in plain unified diff output', () => {
+      const diffContent = [
+        '--- old.txt',
+        '+++ new.txt',
+        '@@ -1 +1 @@',
+        '-old content',
+        '+new content',
+      ].join('\r\n');
+
+      const result = parser.parseStdinDiff(diffContent);
+
+      expect(result.files).toHaveLength(1);
+      expect(result.files[0]).toMatchObject({
+        path: 'new.txt',
+        chunks: [
+          {
+            lines: [
+              { type: 'delete', content: 'old content' },
+              { type: 'add', content: 'new content' },
+            ],
+          },
+        ],
+      });
+    });
+
     it('parses multiple concatenated plain unified diffs', () => {
       const diffContent = `--- first-old.txt
 +++ first-new.txt
