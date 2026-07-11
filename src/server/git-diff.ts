@@ -147,15 +147,75 @@ export class GitDiffParser {
     const files: DiffFile[] = [];
     const fileBlocks = diffText.split(/^diff --git /m).slice(1);
 
-    for (const fileBlock of fileBlocks) {
-      const block = `diff --git ${fileBlock}`;
-      const file = this.parseFileBlock(block);
+    if (fileBlocks.length > 0) {
+      for (const fileBlock of fileBlocks) {
+        const block = `diff --git ${fileBlock}`;
+        const file = this.parseFileBlock(block);
+        if (file) {
+          files.push(file);
+        }
+      }
+
+      return files;
+    }
+
+    for (const fileBlock of this.splitPlainUnifiedDiff(diffText)) {
+      const file = this.parseFileBlock(fileBlock, 'plain');
       if (file) {
         files.push(file);
       }
     }
 
     return files;
+  }
+
+  private splitPlainUnifiedDiff(diffText: string): string[] {
+    const lines = diffText.split('\n');
+    const blocks: string[] = [];
+    let blockStart: number | null = null;
+    let remainingOldLines = 0;
+    let remainingNewLines = 0;
+
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
+
+      if (blockStart !== null && line.startsWith('@@')) {
+        const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+        if (match) {
+          remainingOldLines = parseInt(match[2] ?? '1');
+          remainingNewLines = parseInt(match[4] ?? '1');
+        }
+        continue;
+      }
+
+      if (blockStart !== null && (remainingOldLines > 0 || remainingNewLines > 0)) {
+        if (line.startsWith('\\')) {
+          continue;
+        }
+        if (line.startsWith('+')) {
+          remainingNewLines--;
+        } else if (line.startsWith('-')) {
+          remainingOldLines--;
+        } else if (line.startsWith(' ')) {
+          remainingOldLines--;
+          remainingNewLines--;
+        }
+        continue;
+      }
+
+      if (line.startsWith('--- ') && lines[index + 1]?.startsWith('+++ ')) {
+        if (blockStart !== null) {
+          blocks.push(lines.slice(blockStart, index).join('\n'));
+        }
+        blockStart = index;
+      }
+    }
+
+    if (blockStart !== null) {
+      blocks.push(lines.slice(blockStart).join('\n'));
+    }
+
+    return blocks;
   }
 
   private getGitattributesSourceArgs(ref: string): string[] {
@@ -237,26 +297,30 @@ export class GitDiffParser {
     );
   }
 
-  private decodeGitPath(rawPath: string | undefined): string | undefined {
+  private decodeGitPath(
+    rawPath: string | undefined,
+    stripGitPrefix: boolean = true,
+  ): string | undefined {
     if (typeof rawPath !== 'string') {
       return undefined;
     }
 
+    const tabIndex = rawPath.indexOf('\t');
+    const pathWithoutTimestamp = tabIndex === -1 ? rawPath : rawPath.slice(0, tabIndex);
     const trimmed =
-      rawPath.startsWith('"') && rawPath.endsWith('"') ? rawPath.slice(1, -1) : rawPath;
+      pathWithoutTimestamp.startsWith('"') && pathWithoutTimestamp.endsWith('"')
+        ? pathWithoutTimestamp.slice(1, -1)
+        : pathWithoutTimestamp;
 
     const gitPrefixes = ['a/', 'b/', 'c/', 'i/', 'w/'];
     let withoutPrefix = trimmed;
-    for (const prefix of gitPrefixes) {
-      if (withoutPrefix.startsWith(prefix)) {
-        withoutPrefix = withoutPrefix.slice(prefix.length);
-        break;
+    if (stripGitPrefix) {
+      for (const prefix of gitPrefixes) {
+        if (withoutPrefix.startsWith(prefix)) {
+          withoutPrefix = withoutPrefix.slice(prefix.length);
+          break;
+        }
       }
-    }
-
-    const tabIndex = withoutPrefix.indexOf('\t');
-    if (tabIndex !== -1) {
-      withoutPrefix = withoutPrefix.slice(0, tabIndex);
     }
 
     if (withoutPrefix === '/dev/null') {
@@ -333,12 +397,16 @@ export class GitDiffParser {
     return Buffer.from(bytes).toString('utf8');
   }
 
-  private extractPathFromLine(line: string | undefined, prefix: string): string | undefined {
+  private extractPathFromLine(
+    line: string | undefined,
+    prefix: string,
+    stripGitPrefix: boolean = true,
+  ): string | undefined {
     if (!line?.startsWith(prefix)) {
       return undefined;
     }
 
-    return this.decodeGitPath(line.slice(prefix.length));
+    return this.decodeGitPath(line.slice(prefix.length), stripGitPrefix);
   }
 
   private parseDiffHeaderPaths(
@@ -389,7 +457,7 @@ export class GitDiffParser {
     };
   }
 
-  private parseFileBlock(block: string): DiffFile | null {
+  private parseFileBlock(block: string, format: 'git' | 'plain' | null = 'git'): DiffFile | null {
     const lines = block.split('\n');
     const headerLine = lines[0];
     const headerPaths = this.parseDiffHeaderPaths(headerLine);
@@ -399,12 +467,15 @@ export class GitDiffParser {
     const renameFromLine = lines.find((line) => line.startsWith('rename from '));
     const renameToLine = lines.find((line) => line.startsWith('rename to '));
 
-    const plusPath = this.extractPathFromLine(plusLine, '+++ ');
-    const minusPath = this.extractPathFromLine(minusLine, '--- ');
+    const stripGitPrefix = format !== 'plain';
+    const plusPath = this.extractPathFromLine(plusLine, '+++ ', stripGitPrefix);
+    const minusPath = this.extractPathFromLine(minusLine, '--- ', stripGitPrefix);
     const renameFromPath = this.extractPathFromLine(renameFromLine, 'rename from ');
     const renameToPath = this.extractPathFromLine(renameToLine, 'rename to ');
-    const newPath = renameToPath ?? plusPath ?? headerPaths?.newPath;
-    const oldPath = renameFromPath ?? minusPath ?? headerPaths?.oldPath ?? newPath;
+    const parsedNewPath = renameToPath ?? plusPath ?? headerPaths?.newPath;
+    const parsedOldPath = renameFromPath ?? minusPath ?? headerPaths?.oldPath;
+    const newPath = parsedNewPath ?? parsedOldPath;
+    const oldPath = parsedOldPath ?? newPath;
 
     if (!newPath) {
       return null;
@@ -423,7 +494,7 @@ export class GitDiffParser {
       status = 'added';
     } else if (deletedFileMode || plusLine?.includes('/dev/null')) {
       status = 'deleted';
-    } else if (oldPath !== newPath) {
+    } else if (format !== 'plain' && oldPath !== newPath) {
       status = 'renamed';
     }
 

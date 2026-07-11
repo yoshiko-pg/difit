@@ -176,4 +176,23 @@ describe('useExpandedLines', () => {
       'base a rewritten line 1',
     );
   });
+
+  it('does not request unavailable blob data for stdin diffs', async () => {
+    const file = createMockDiffFile();
+    const { result } = renderHook(() =>
+      useExpandedLines({
+        baseCommitish: 'stdin',
+        targetCommitish: 'stdin',
+        diffIdentity: 'stdin-diff',
+      }),
+    );
+
+    await act(async () => {
+      await result.current.prefetchFileContent(file);
+      await result.current.expandLines(file, 0, 'up', 1);
+    });
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(result.current.expandedState).toEqual({});
+  });
 });

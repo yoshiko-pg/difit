@@ -914,6 +914,106 @@ index 0000000..1234567
       });
     });
 
+    it('parses plain unified diff output without git headers', () => {
+      const diffContent = `--- file1.txt\t2026-07-11 12:00:00
++++ file2.txt\t2026-07-11 12:00:01
+@@ -1,2 +1,2 @@
+ unchanged
+-old content
++new content`;
+
+      const result = parser.parseStdinDiff(diffContent);
+
+      expect(result).toMatchObject({
+        commit: 'stdin diff',
+        isEmpty: false,
+        files: [
+          {
+            path: 'file2.txt',
+            status: 'modified',
+            additions: 1,
+            deletions: 1,
+            isGenerated: false,
+          },
+        ],
+      });
+    });
+
+    it('parses multiple concatenated plain unified diffs', () => {
+      const diffContent = `--- first-old.txt
++++ first-new.txt
+@@ -1 +1 @@
+-before
++after
+--- second-old.txt
++++ second-new.txt
+@@ -1 +1,2 @@
+ existing
++added`;
+
+      const result = parser.parseStdinDiff(diffContent);
+
+      expect(result.files).toMatchObject([
+        {
+          path: 'first-new.txt',
+          status: 'modified',
+          additions: 1,
+          deletions: 1,
+        },
+        {
+          path: 'second-new.txt',
+          status: 'modified',
+          additions: 1,
+          deletions: 0,
+        },
+      ]);
+    });
+
+    it('does not treat header-like hunk content as another plain diff', () => {
+      const diffContent = `--- old.txt
++++ new.txt
+@@ -1,2 +1,2 @@
+--- deleted content
++++ added content`;
+
+      const result = parser.parseStdinDiff(diffContent);
+
+      expect(result.files).toHaveLength(1);
+      expect(result.files[0]).toMatchObject({
+        path: 'new.txt',
+        additions: 1,
+        deletions: 1,
+      });
+    });
+
+    it('detects added and deleted files in plain unified diffs', () => {
+      const diffContent = `--- /dev/null
++++ added.txt
+@@ -0,0 +1 @@
++added
+--- deleted.txt
++++ /dev/null
+@@ -1 +0,0 @@
+-deleted`;
+
+      const result = parser.parseStdinDiff(diffContent);
+
+      expect(result.files).toMatchObject([
+        {
+          path: 'added.txt',
+          status: 'added',
+          additions: 1,
+          deletions: 0,
+        },
+        {
+          path: 'deleted.txt',
+          status: 'deleted',
+          additions: 0,
+          deletions: 1,
+        },
+      ]);
+    });
+
     it('should handle deleted files', async () => {
       const diffContent = `diff --git a/deleted.txt b/deleted.txt
 deleted file mode 100644

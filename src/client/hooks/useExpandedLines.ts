@@ -88,6 +88,7 @@ export function useExpandedLines({
   targetCommitish,
   diffIdentity,
 }: UseExpandedLinesOptions): UseExpandedLinesResult {
+  const isStdinDiff = baseCommitish === 'stdin' || targetCommitish === 'stdin';
   const [expandedState, setExpandedState] = useState<ExpandedLinesState>({});
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdatedFilePath, setLastUpdatedFilePath] = useState<string | null>(null);
@@ -111,6 +112,10 @@ export function useExpandedLines({
 
   const ensureFileContent = useCallback(
     async (file: DiffFile): Promise<FileExpandedState | null> => {
+      if (isStdinDiff) {
+        return null;
+      }
+
       const revisionGeneration = revisionGenerationRef.current;
       const pendingFetchKey = `${revisionGeneration}:${file.path}`;
 
@@ -178,7 +183,7 @@ export function useExpandedLines({
         pendingFetchesRef.current.delete(pendingFetchKey);
       }
     },
-    [baseCommitish, targetCommitish],
+    [baseCommitish, targetCommitish, isStdinDiff],
   );
 
   const markFileUpdated = useCallback((filePath: string) => {
@@ -337,6 +342,10 @@ export function useExpandedLines({
   // Pre-fetch only line counts (lightweight) to show bottom expand button
   const prefetchFileContent = useCallback(
     async (file: DiffFile) => {
+      if (isStdinDiff) {
+        return;
+      }
+
       const revisionGeneration = revisionGenerationRef.current;
       // Skip if we already have total lines info
       const existing = expandedStateRef.current[file.path];
@@ -380,7 +389,7 @@ export function useExpandedLines({
         console.error('Failed to prefetch line count:', error);
       }
     },
-    [baseCommitish, targetCommitish, markFileUpdated],
+    [baseCommitish, targetCommitish, isStdinDiff, markFileUpdated],
   );
 
   const getExpandedCount = useCallback(
