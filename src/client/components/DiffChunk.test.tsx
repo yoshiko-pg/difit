@@ -145,4 +145,83 @@ describe('DiffChunk range comments', () => {
       expect(onAddComment).toHaveBeenCalledWith(12, 'Single line only', 'const third = 3;', 'new');
     });
   });
+
+  it('keeps a unified range when shift-clicking the comment button', async () => {
+    const onAddComment = vi.fn().mockResolvedValue(undefined);
+    const { container } = renderWithProviders(
+      <DiffChunk
+        chunk={testChunk}
+        chunkIndex={0}
+        threads={[]}
+        mode="unified"
+        onAddComment={onAddComment}
+        onGenerateThreadPrompt={() => ''}
+        onRemoveThread={noop}
+        onReplyToThread={asyncNoop}
+        onRemoveMessage={noop}
+        onUpdateMessage={noop}
+        filename="src/example.ts"
+      />,
+    );
+
+    const rows = container.querySelectorAll('[data-diff-line-row="true"]');
+    fireEvent.click(rows[0]!);
+    fireEvent.mouseEnter(rows[2]!);
+    const commentButton = screen.getByRole('button', { name: 'Add a comment' });
+    fireEvent.mouseDown(commentButton, { shiftKey: true });
+    fireEvent.click(commentButton, { shiftKey: true });
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Please revisit this range' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+    await waitFor(() => {
+      expect(onAddComment).toHaveBeenCalledWith(
+        [10, 12],
+        'Please revisit this range',
+        ['const first = 1;', 'const second = 2;', 'const third = 3;'].join('\n'),
+        'new',
+      );
+    });
+  });
+
+  it('keeps a split-view range when shift-clicking the comment button', async () => {
+    const onAddComment = vi.fn().mockResolvedValue(undefined);
+    const { container } = renderWithProviders(
+      <SideBySideDiffChunk
+        chunk={testChunk}
+        chunkIndex={0}
+        threads={[]}
+        onAddComment={onAddComment}
+        onGenerateThreadPrompt={() => ''}
+        onRemoveThread={noop}
+        onReplyToThread={asyncNoop}
+        onRemoveMessage={noop}
+        onUpdateMessage={noop}
+        filename="src/example.ts"
+      />,
+    );
+
+    const rows = container.querySelectorAll('[data-diff-line-row="true"]');
+    fireEvent.click(rows[0]!.children[2]!);
+    fireEvent.mouseEnter(rows[2]!.children[2]!);
+    const commentButton = screen.getByRole('button', { name: 'Add a comment' });
+    fireEvent.mouseDown(commentButton, { shiftKey: true });
+    fireEvent.click(commentButton, { shiftKey: true });
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Please revisit this range' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+    await waitFor(() => {
+      expect(onAddComment).toHaveBeenCalledWith(
+        [10, 12],
+        'Please revisit this range',
+        ['const first = 1;', 'const second = 2;', 'const third = 3;'].join('\n'),
+        'new',
+      );
+    });
+  });
 });

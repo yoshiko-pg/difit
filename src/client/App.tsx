@@ -1083,7 +1083,7 @@ function App() {
     emptyForms.forEach((form) => {
       // Don't close if clicking inside the form itself
       if (!form.contains(e.target as Node)) {
-        const cancelButton = form.querySelector('button[type="button"]') as HTMLButtonElement;
+        const cancelButton = form.querySelector<HTMLButtonElement>('[data-comment-cancel="true"]');
         cancelButton?.click();
       }
     });
