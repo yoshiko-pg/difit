@@ -69,6 +69,7 @@
     "commander": "^15.0.0",
     "diff": "^9.0.0",
     "express": "^5.1.0",
+    "js-yaml": "^5.2.1",
     "lucide-react": "^1.0.0",
     "mermaid": "^11.13.0",
     "open": "^11.0.0",
@@ -80,6 +81,7 @@
     "react-hotkeys-hook": "^5.2.4",
     "react-markdown": "^10.1.0",
     "remark-breaks": "^4.0.0",
+    "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "simple-git": "^3.28.0"
   },
@@ -90,6 +92,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@tsconfig/strictest": "^2.0.5",
     "@types/express": "^5.0.3",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.8",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

@@ -1,5 +1,6 @@
 {
   "ignoreBinaries": ["gh"],
+  "ignoreDependencies": ["remark-frontmatter", "@types/js-yaml"],
   "workspaces": {
     ".": {},
     "packages/vscode": {
