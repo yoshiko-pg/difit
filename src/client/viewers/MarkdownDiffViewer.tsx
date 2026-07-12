@@ -47,6 +47,18 @@ type FenceInfo = {
 
 const isFetchableRef = (ref?: string) => Boolean(ref && ref !== 'stdin');
 
+type PreviewSource = { path: string; ref: string } | null;
+
+type PreviewSourcePair = {
+  base: PreviewSource;
+  target: PreviewSource;
+};
+
+type PreviewContents = {
+  base: string | null;
+  target: string | null;
+};
+
 const headingStyles = [
   'text-[26px] font-semibold',
   'text-[22px] font-semibold',
@@ -467,38 +479,52 @@ const MarkdownFullPreview = ({
 export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   const { file, baseCommitish, targetCommitish, mergedChunks, syntaxTheme } = props;
   const [mode, setMode] = useState<PreviewMode>('diff');
-  const [fullContent, setFullContent] = useState<string | null>(null);
+  const [contents, setContents] = useState<PreviewContents>({ base: null, target: null });
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [loadedSourceKey, setLoadedSourceKey] = useState<string | null>(null);
+  const [loadedSourcesKey, setLoadedSourcesKey] = useState<string | null>(null);
   const previewBlocks = useMemo(() => buildPreviewBlocks(mergedChunks), [mergedChunks]);
-  const previewSource = useMemo(() => {
-    if (!baseCommitish && !targetCommitish) return null;
 
-    if (file.status === 'added') {
-      return targetCommitish ? { path: file.path, ref: targetCommitish } : null;
-    }
+  const previewSources = useMemo<PreviewSourcePair>(() => {
+    const target: PreviewSource =
+      file.status === 'deleted'
+        ? null
+        : targetCommitish
+          ? { path: file.path, ref: targetCommitish }
+          : null;
 
-    if (file.status === 'deleted') {
-      return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
-    }
+    const base: PreviewSource =
+      file.status === 'added'
+        ? null
+        : baseCommitish
+          ? { path: file.oldPath || file.path, ref: baseCommitish }
+          : null;
 
-    if (targetCommitish) {
-      return { path: file.path, ref: targetCommitish };
-    }
-
-    return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
+    return { base, target };
   }, [baseCommitish, targetCommitish, file.path, file.oldPath, file.status]);
 
-  const previewSourceKey = useMemo(
-    () => (previewSource ? `${previewSource.ref}:${previewSource.path}` : null),
-    [previewSource],
-  );
+  const previewSourcesKey = useMemo(() => {
+    const baseKey = previewSources.base
+      ? `${previewSources.base.ref}:${previewSources.base.path}`
+      : '';
+    const targetKey = previewSources.target
+      ? `${previewSources.target.ref}:${previewSources.target.path}`
+      : '';
+    if (!baseKey && !targetKey) return null;
+    return `${baseKey}|${targetKey}`;
+  }, [previewSources]);
 
   useEffect(() => {
-    if (!previewSource || !previewSourceKey || !isFetchableRef(previewSource.ref)) {
-      setFullContent(null);
-      setLoadedSourceKey(null);
+    const baseSource =
+      previewSources.base && isFetchableRef(previewSources.base.ref) ? previewSources.base : null;
+    const targetSource =
+      previewSources.target && isFetchableRef(previewSources.target.ref)
+        ? previewSources.target
+        : null;
+
+    if (!previewSourcesKey || (!baseSource && !targetSource)) {
+      setContents({ base: null, target: null });
+      setLoadedSourcesKey(null);
       setPreviewError(null);
       setIsPreviewLoading(false);
       return;
@@ -506,50 +532,77 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
 
     let isCanceled = false;
 
-    const fetchContent = async () => {
-      if (previewSourceKey !== loadedSourceKey) {
-        setFullContent(null);
+    const fetchBlob = async (source: PreviewSource): Promise<string | null> => {
+      if (!source) return null;
+      const encodedPath = encodeURIComponent(source.path);
+      const response = await fetch(
+        `/api/blob/${encodedPath}?ref=${encodeURIComponent(source.ref)}`,
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch preview: ${response.statusText}`);
+      }
+      return response.text();
+    };
+
+    const run = async () => {
+      if (previewSourcesKey !== loadedSourcesKey) {
+        setContents({ base: null, target: null });
       }
       setIsPreviewLoading(true);
       setPreviewError(null);
-      try {
-        const encodedPath = encodeURIComponent(previewSource.path);
-        const response = await fetch(
-          `/api/blob/${encodedPath}?ref=${encodeURIComponent(previewSource.ref)}`,
+
+      const [baseResult, targetResult] = await Promise.allSettled([
+        fetchBlob(baseSource),
+        fetchBlob(targetSource),
+      ]);
+
+      if (isCanceled) return;
+
+      const nextBase = baseResult.status === 'fulfilled' ? baseResult.value : null;
+      const nextTarget = targetResult.status === 'fulfilled' ? targetResult.value : null;
+
+      const failures: string[] = [];
+      if (baseSource && baseResult.status === 'rejected') {
+        failures.push(
+          baseResult.reason instanceof Error ? baseResult.reason.message : 'base fetch failed',
         );
-        if (!response.ok) {
-          throw new Error(`Failed to fetch preview: ${response.statusText}`);
-        }
-        const text = await response.text();
-        if (!isCanceled) {
-          setFullContent(text);
-          setLoadedSourceKey(previewSourceKey);
-        }
-      } catch (error) {
-        if (!isCanceled) {
-          setFullContent(null);
-          setLoadedSourceKey(null);
-          setPreviewError(error instanceof Error ? error.message : 'Failed to load preview');
-        }
-      } finally {
-        if (!isCanceled) {
-          setIsPreviewLoading(false);
-        }
       }
+      if (targetSource && targetResult.status === 'rejected') {
+        failures.push(
+          targetResult.reason instanceof Error
+            ? targetResult.reason.message
+            : 'target fetch failed',
+        );
+      }
+
+      setContents({ base: nextBase, target: nextTarget });
+      setLoadedSourcesKey(previewSourcesKey);
+
+      const baseFailed = baseSource !== null && baseResult.status === 'rejected';
+      const targetFailed = targetSource !== null && targetResult.status === 'rejected';
+      const allFailed =
+        (baseSource ? baseFailed : true) &&
+        (targetSource ? targetFailed : true) &&
+        failures.length > 0;
+
+      setPreviewError(allFailed ? failures.join('; ') : null);
+      setIsPreviewLoading(false);
     };
 
-    if (previewSourceKey !== loadedSourceKey || fullContent === null) {
-      void fetchContent();
+    if (previewSourcesKey !== loadedSourcesKey || contents.target === null) {
+      void run();
+    } else {
+      setIsPreviewLoading(false);
     }
 
     return () => {
       isCanceled = true;
     };
-  }, [fullContent, loadedSourceKey, previewSource, previewSourceKey]);
+  }, [contents.target, loadedSourcesKey, previewSources, previewSourcesKey]);
 
   const hasFullPreview = useMemo(
-    () => previewSourceKey === loadedSourceKey && fullContent !== null,
-    [fullContent, loadedSourceKey, previewSourceKey],
+    () => previewSourcesKey === loadedSourcesKey && contents.target !== null,
+    [contents.target, loadedSourcesKey, previewSourcesKey],
   );
 
   useEffect(() => {
@@ -578,10 +631,10 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
           )}
           {previewError && <div className="text-sm text-github-danger mb-3">{previewError}</div>}
-          {!isPreviewLoading && !previewError && fullContent !== null && (
-            <MarkdownFullPreview content={fullContent} syntaxTheme={syntaxTheme} />
+          {!isPreviewLoading && !previewError && contents.target !== null && (
+            <MarkdownFullPreview content={contents.target} syntaxTheme={syntaxTheme} />
           )}
-          {!isPreviewLoading && !previewError && fullContent === null && (
+          {!isPreviewLoading && !previewError && contents.target === null && (
             <div className="text-sm text-github-text-muted">Preview unavailable.</div>
           )}
         </div>

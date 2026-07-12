@@ -193,7 +193,7 @@ describe('MarkdownDiffViewer', () => {
     renderViewer();
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
     });
 
     expect(screen.queryByRole('button', { name: 'Full Preview' })).not.toBeInTheDocument();
@@ -213,7 +213,7 @@ describe('MarkdownDiffViewer', () => {
     fireEvent.click(fullPreviewButton);
 
     expect(await screen.findByText('Prefetched title')).toBeInTheDocument();
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('renders Mermaid diagrams in Diff Preview', async () => {
@@ -340,6 +340,66 @@ describe('MarkdownDiffViewer', () => {
       });
       expect(vi.mocked(mermaid.render)).toHaveBeenCalledTimes(2);
     });
+  });
+});
+
+describe('MarkdownDiffViewer two-side fetch', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    setMatchMedia(true);
+  });
+
+  it('fetches both base and target blobs for a modified file', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: true, text: async () => 'old content' })
+      .mockResolvedValueOnce({ ok: true, text: async () => 'new content' });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/blob/docs%2Fguide.md?ref=HEAD~1');
+    expect(global.fetch).toHaveBeenCalledWith('/api/blob/docs%2Fguide.md?ref=HEAD');
+  });
+
+  it('fetches only the target blob for an added file', async () => {
+    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => 'new content' });
+
+    renderViewer({ file: createFile({ status: 'added', additions: 5, deletions: 0 }) });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/blob/docs%2Fguide.md?ref=HEAD');
+  });
+
+  it('fetches only the base blob for a deleted file', async () => {
+    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => 'old content' });
+
+    renderViewer({
+      file: createFile({ status: 'deleted', additions: 0, deletions: 5, oldPath: 'old.md' }),
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/blob/old.md?ref=HEAD~1');
+  });
+
+  it('does not fetch when both refs are stdin', async () => {
+    renderViewer({ baseCommitish: 'stdin', targetCommitish: 'stdin' });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Full Preview' })).not.toBeInTheDocument();
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(0);
   });
 });
 
