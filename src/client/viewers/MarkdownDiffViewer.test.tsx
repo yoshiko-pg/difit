@@ -342,3 +342,62 @@ describe('MarkdownDiffViewer', () => {
     });
   });
 });
+
+describe('MarkdownFullPreview integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    setMatchMedia(true);
+  });
+
+  it('renders content without a frontmatter table when there is no frontmatter', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '# Hello\n\nBody paragraph.\n',
+    });
+
+    renderViewer();
+
+    const fullPreviewButton = await screen.findByRole('button', { name: 'Full Preview' });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText('Body paragraph.')).toBeInTheDocument();
+    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+  });
+
+  it('renders a frontmatter table above the body when frontmatter is present', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '---\ntitle: Hello\npublished: true\n---\n\n# Body\n\nText.\n',
+    });
+
+    renderViewer();
+
+    const fullPreviewButton = await screen.findByRole('button', { name: 'Full Preview' });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('title')).toBeInTheDocument();
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText('published')).toBeInTheDocument();
+    expect(screen.getByText('true')).toBeInTheDocument();
+    expect(screen.getByText('Body')).toBeInTheDocument();
+    expect(screen.queryByText('---')).not.toBeInTheDocument();
+  });
+
+  it('falls back to rendering the raw body when frontmatter YAML is invalid', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '---\n[unclosed\n---\n\n# Body\n\nText.\n',
+    });
+
+    renderViewer();
+
+    const fullPreviewButton = await screen.findByRole('button', { name: 'Full Preview' });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('Body')).toBeInTheDocument();
+    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+  });
+});

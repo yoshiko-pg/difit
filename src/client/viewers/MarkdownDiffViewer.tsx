@@ -3,9 +3,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import type { DiffLine } from '../../types/diff';
+import { FrontmatterTable } from '../components/FrontmatterTable';
 import { MermaidDiagram } from '../components/MermaidDiagram';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
+import { extractFrontmatter } from '../utils/frontmatter';
 import { extractMarkdownText, isElementWithCodeProps, isSafeUrl } from '../utils/markdownUtils';
 
 import { PreviewModeTabs, type PreviewMode } from './PreviewModeTabs';
@@ -443,15 +445,20 @@ const MarkdownFullPreview = ({
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
+  const { data: frontmatter, content: body } = useMemo(
+    () => extractFrontmatter(content),
+    [content],
+  );
 
   return (
     <div className="space-y-4">
+      <FrontmatterTable mode="snapshot" data={frontmatter} />
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         urlTransform={(url) => (isSafeUrl(url) ? url : '')}
         components={components}
       >
-        {content}
+        {body}
       </ReactMarkdown>
     </div>
   );
