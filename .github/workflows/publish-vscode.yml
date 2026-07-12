@@ -1,0 +1,79 @@
+name: Publish VS Code Extension
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to VS Code Marketplace
+    runs-on: ubuntu-latest
+    # Must match the federated credential subject configured on the Entra ID
+    # identity (repo:yoshiko-pg/difit:environment:release).
+    environment: release
+    permissions:
+      # Attach the .vsix to the GitHub release.
+      contents: write
+      # Issue the OIDC token for Entra ID workload identity federation.
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 11.6.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The extension bundles difit, so its Marketplace version tracks the
+      # difit version being released. The repository keeps a placeholder
+      # version; it is only rewritten here at publish time.
+      - name: Sync extension version with difit
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          (cd packages/vscode && npm pkg set version="$VERSION")
+          echo "Publishing yoshiko-pg.difit $VERSION"
+
+      - name: Package VS Code extension
+        run: pnpm run package:vscode
+
+      # Secure automated publishing: no PAT. The workflow exchanges its OIDC
+      # token for an Entra ID session, and vsce publishes with that credential.
+      # https://code.visualstudio.com/api/working-with-extensions/publishing-extension
+      - name: Azure login (workload identity federation)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Publish to VS Code Marketplace
+        working-directory: packages/vscode
+        run: pnpm exec vsce publish --no-dependencies --azure-credential --packagePath difit-*.vsix
+
+      - name: Publish to Open VSX
+        if: ${{ secrets.OVSX_PAT != '' }}
+        working-directory: packages/vscode
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: pnpm dlx ovsx publish difit-*.vsix -p "$OVSX_PAT"
+
+      - name: Attach VSIX to GitHub release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" packages/vscode/difit-*.vsix --clobber
