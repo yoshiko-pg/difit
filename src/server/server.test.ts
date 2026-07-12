@@ -1,3 +1,7 @@
+import { promises as fs } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Set environment variable to skip fetch mocking
@@ -1034,6 +1038,83 @@ describe('Server Integration Tests', () => {
       const data = (await response.json()) as any;
       expect(data).toHaveProperty('error');
       expect(data.error).toContain('does-not-exist');
+    });
+
+    describe('user settings API', () => {
+      const originalConfigDir = process.env.DIFIT_CONFIG_DIR;
+      let configDir: string;
+
+      beforeEach(async () => {
+        configDir = await fs.mkdtemp(join(tmpdir(), 'difit-user-settings-'));
+        process.env.DIFIT_CONFIG_DIR = configDir;
+      });
+
+      afterEach(async () => {
+        if (originalConfigDir === undefined) {
+          delete process.env.DIFIT_CONFIG_DIR;
+        } else {
+          process.env.DIFIT_CONFIG_DIR = originalConfigDir;
+        }
+        await fs.rm(configDir, { recursive: true, force: true });
+      });
+
+      it('GET /api/user-settings returns defaults when no config exists', async () => {
+        const response = await fetch(`http://localhost:${port}/api/user-settings`);
+
+        expect(response.ok).toBe(true);
+        const data = (await response.json()) as any;
+        expect(data).toEqual({ version: 1, client: {} });
+      });
+
+      it('PUT /api/user-settings merges and persists client settings', async () => {
+        const first = await fetch(`http://localhost:${port}/api/user-settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client: { diffViewMode: 'split', sidebarWidth: 320 },
+          }),
+        });
+        expect(first.ok).toBe(true);
+
+        const second = await fetch(`http://localhost:${port}/api/user-settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client: { sidebarWidth: 400 } }),
+        });
+        expect(second.ok).toBe(true);
+        const merged = (await second.json()) as any;
+        expect(merged.client).toEqual({
+          diffViewMode: 'split',
+          sidebarWidth: 400,
+        });
+
+        const getResponse = await fetch(`http://localhost:${port}/api/user-settings`);
+        const data = (await getResponse.json()) as any;
+        expect(data.client).toEqual({
+          diffViewMode: 'split',
+          sidebarWidth: 400,
+        });
+
+        const stored = JSON.parse(
+          await fs.readFile(join(configDir, 'config.json'), 'utf-8'),
+        ) as any;
+        expect(stored.client).toEqual({
+          diffViewMode: 'split',
+          sidebarWidth: 400,
+        });
+      });
+
+      it('PUT /api/user-settings rejects invalid payloads', async () => {
+        const response = await fetch(`http://localhost:${port}/api/user-settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client: 'dark' }),
+        });
+
+        expect(response.status).toBe(400);
+        const data = (await response.json()) as any;
+        expect(data).toHaveProperty('error');
+      });
     });
 
     it('isolates comment sessions between different diff selections', async () => {
