@@ -1,14 +1,22 @@
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
-export type FrontmatterSnapshotProps = {
+import type { FrontmatterDiffEntry } from '../utils/frontmatterDiff';
+
+type FrontmatterSnapshotProps = {
   mode: 'snapshot';
   data: Record<string, unknown> | null;
   label?: string;
 };
 
-export type FrontmatterTableProps = FrontmatterSnapshotProps;
+type FrontmatterDiffProps = {
+  mode: 'diff';
+  entries: FrontmatterDiffEntry[];
+  label?: string;
+};
 
-export function renderValue(value: unknown, depth: number): ReactNode {
+export type FrontmatterTableProps = FrontmatterSnapshotProps | FrontmatterDiffProps;
+
+function renderValue(value: unknown, depth: number): ReactNode {
   if (value === null) {
     return <span className="text-github-text-muted italic">null</span>;
   }
@@ -64,9 +72,26 @@ function KeyValueRow({ keyName, value }: { keyName: string; value: unknown }) {
   );
 }
 
-export function FrontmatterTable(props: FrontmatterTableProps): React.JSX.Element | null {
-  const { data, label } = props;
+function KeyDiffRow({ entry }: { entry: FrontmatterDiffEntry }) {
+  const beforeCellClass =
+    entry.status === 'removed' || entry.status === 'modified' ? 'bg-diff-deletion-bg' : '';
+  const afterCellClass =
+    entry.status === 'added' || entry.status === 'modified' ? 'bg-diff-addition-bg' : '';
 
+  return (
+    <tr className="border-b border-github-border">
+      <td className="px-3 py-2 border border-github-border font-mono align-top">{entry.key}</td>
+      <td className={`px-3 py-2 border border-github-border align-top ${beforeCellClass}`}>
+        {entry.status !== 'added' ? renderValue(entry.oldValue, 0) : null}
+      </td>
+      <td className={`px-3 py-2 border border-github-border align-top ${afterCellClass}`}>
+        {entry.status !== 'removed' ? renderValue(entry.newValue, 0) : null}
+      </td>
+    </tr>
+  );
+}
+
+function SnapshotView({ data, label }: { data: Record<string, unknown> | null; label?: string }) {
   if (data === null) {
     return null;
   }
@@ -96,4 +121,41 @@ export function FrontmatterTable(props: FrontmatterTableProps): React.JSX.Elemen
       </table>
     </div>
   );
+}
+
+function DiffView({ entries, label }: { entries: FrontmatterDiffEntry[]; label?: string }) {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="overflow-x-auto mb-4">
+      {label && <div className="text-sm text-github-text-muted mb-1">{label}</div>}
+      <table className="w-full border-collapse text-sm border border-github-border">
+        <thead className="bg-github-bg-secondary">
+          <tr className="border-b border-github-border">
+            <th className="px-3 py-2 text-left font-semibold border border-github-border w-1/5">
+              Key
+            </th>
+            <th className="px-3 py-2 text-left font-semibold border border-github-border">
+              Before
+            </th>
+            <th className="px-3 py-2 text-left font-semibold border border-github-border">After</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry) => (
+            <KeyDiffRow key={entry.key} entry={entry} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function FrontmatterTable(props: FrontmatterTableProps): React.JSX.Element | null {
+  if (props.mode === 'snapshot') {
+    return <SnapshotView data={props.data} label={props.label} />;
+  }
+  return <DiffView entries={props.entries} label={props.label} />;
 }
