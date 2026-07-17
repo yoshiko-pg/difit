@@ -392,6 +392,23 @@ describe('MarkdownDiffViewer two-side fetch', () => {
     expect(global.fetch).toHaveBeenCalledWith('/api/blob/old.md?ref=HEAD~1');
   });
 
+  it('shows the Full Preview tab and renders base content for a deleted file', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '# Deleted doc\n\nBase body content.\n',
+    });
+
+    renderViewer({
+      file: createFile({ status: 'deleted', additions: 0, deletions: 5, oldPath: 'old.md' }),
+    });
+
+    const fullPreviewButton = await screen.findByRole('button', { name: 'Full Preview' });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('Deleted doc')).toBeInTheDocument();
+    expect(screen.getByText('Base body content.')).toBeInTheDocument();
+  });
+
   it('does not fetch when both refs are stdin', async () => {
     renderViewer({ baseCommitish: 'stdin', targetCommitish: 'stdin' });
 

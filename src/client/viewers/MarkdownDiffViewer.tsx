@@ -648,7 +648,9 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
       setIsPreviewLoading(false);
     };
 
-    if (previewSourcesKey !== loadedSourcesKey || contents.target === null) {
+    const relevantContent = file.status === 'deleted' ? contents.base : contents.target;
+
+    if (previewSourcesKey !== loadedSourcesKey || relevantContent === null) {
       void run();
     } else {
       setIsPreviewLoading(false);
@@ -657,11 +659,23 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
     return () => {
       isCanceled = true;
     };
-  }, [contents.target, loadedSourcesKey, previewSources, previewSourcesKey]);
+  }, [
+    contents.base,
+    contents.target,
+    file.status,
+    loadedSourcesKey,
+    previewSources,
+    previewSourcesKey,
+  ]);
+
+  const fullPreviewContent = useMemo(
+    () => (file.status === 'deleted' ? contents.base : contents.target),
+    [contents.base, contents.target, file.status],
+  );
 
   const hasFullPreview = useMemo(
-    () => previewSourcesKey === loadedSourcesKey && contents.target !== null,
-    [contents.target, loadedSourcesKey, previewSourcesKey],
+    () => previewSourcesKey === loadedSourcesKey && fullPreviewContent !== null,
+    [fullPreviewContent, loadedSourcesKey, previewSourcesKey],
   );
 
   useEffect(() => {
@@ -696,10 +710,10 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
           )}
           {previewError && <div className="text-sm text-github-danger mb-3">{previewError}</div>}
-          {!isPreviewLoading && !previewError && contents.target !== null && (
-            <MarkdownFullPreview content={contents.target} syntaxTheme={syntaxTheme} />
+          {!isPreviewLoading && !previewError && fullPreviewContent !== null && (
+            <MarkdownFullPreview content={fullPreviewContent} syntaxTheme={syntaxTheme} />
           )}
-          {!isPreviewLoading && !previewError && contents.target === null && (
+          {!isPreviewLoading && !previewError && fullPreviewContent === null && (
             <div className="text-sm text-github-text-muted">Preview unavailable.</div>
           )}
         </div>
