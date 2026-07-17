@@ -1,6 +1,5 @@
 {
   "ignoreBinaries": ["gh"],
-  "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {},
     "packages/vscode": {

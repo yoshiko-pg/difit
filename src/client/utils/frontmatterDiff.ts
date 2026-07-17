@@ -1,4 +1,4 @@
-export type FrontmatterDiffStatus = 'added' | 'removed' | 'modified' | 'unchanged';
+type FrontmatterDiffStatus = 'added' | 'removed' | 'modified' | 'unchanged';
 
 export type FrontmatterDiffEntry = {
   key: string;
