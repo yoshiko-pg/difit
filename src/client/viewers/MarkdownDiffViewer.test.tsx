@@ -409,6 +409,24 @@ describe('MarkdownDiffViewer two-side fetch', () => {
     expect(screen.getByText('Base body content.')).toBeInTheDocument();
   });
 
+  it('shows a partial preview label in Diff Preview when only one side fails to fetch', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false, statusText: 'Not Found', text: async () => '' })
+      .mockResolvedValueOnce({ ok: true, text: async () => '# Just body\n' });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+
+    expect(
+      await screen.findByText('Base content unavailable — showing partial preview.'),
+    ).toBeInTheDocument();
+  });
+
   it('does not fetch when both refs are stdin', async () => {
     renderViewer({ baseCommitish: 'stdin', targetCommitish: 'stdin' });
 

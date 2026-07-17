@@ -541,6 +541,7 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   const [contents, setContents] = useState<PreviewContents>({ base: null, target: null });
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [partialFailureLabel, setPartialFailureLabel] = useState<string | null>(null);
   const [loadedSourcesKey, setLoadedSourcesKey] = useState<string | null>(null);
   const previewBlocks = useMemo(() => buildPreviewBlocks(mergedChunks), [mergedChunks]);
 
@@ -585,6 +586,7 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
       setContents({ base: null, target: null });
       setLoadedSourcesKey(null);
       setPreviewError(null);
+      setPartialFailureLabel(null);
       setIsPreviewLoading(false);
       return;
     }
@@ -645,6 +647,17 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
         failures.length > 0;
 
       setPreviewError(allFailed ? failures.join('; ') : null);
+
+      if (allFailed) {
+        setPartialFailureLabel(null);
+      } else if (baseFailed) {
+        setPartialFailureLabel('Base content unavailable — showing partial preview.');
+      } else if (targetFailed) {
+        setPartialFailureLabel('Target content unavailable — showing partial preview.');
+      } else {
+        setPartialFailureLabel(null);
+      }
+
       setIsPreviewLoading(false);
     };
 
@@ -694,6 +707,9 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
 
       {mode === 'diff-preview' && (
         <div className="p-4">
+          {partialFailureLabel && (
+            <div className="text-sm text-github-text-muted mb-3">{partialFailureLabel}</div>
+          )}
           <MarkdownDiffPreview
             blocks={previewBlocks}
             syntaxTheme={syntaxTheme}
@@ -710,6 +726,9 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
           )}
           {previewError && <div className="text-sm text-github-danger mb-3">{previewError}</div>}
+          {partialFailureLabel && (
+            <div className="text-sm text-github-text-muted mb-3">{partialFailureLabel}</div>
+          )}
           {!isPreviewLoading && !previewError && fullPreviewContent !== null && (
             <MarkdownFullPreview content={fullPreviewContent} syntaxTheme={syntaxTheme} />
           )}
