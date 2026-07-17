@@ -1,6 +1,5 @@
 {
   "ignoreBinaries": ["gh"],
-  "ignoreDependencies": ["remark-frontmatter", "@types/js-yaml"],
   "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {},
