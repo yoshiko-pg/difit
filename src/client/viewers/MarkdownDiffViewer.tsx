@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import type { DiffLine } from '../../types/diff';
+import type { DiffFile, DiffLine } from '../../types/diff';
 import { FrontmatterTable } from '../components/FrontmatterTable';
 import { MermaidDiagram } from '../components/MermaidDiagram';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 import { extractFrontmatter } from '../utils/frontmatter';
+import { computeFrontmatterDiff } from '../utils/frontmatterDiff';
 import { extractMarkdownText, isElementWithCodeProps, isSafeUrl } from '../utils/markdownUtils';
 
 import { PreviewModeTabs, type PreviewMode } from './PreviewModeTabs';
@@ -396,15 +397,73 @@ const getCodeLineClass = (type: PreviewBlockType) => {
 const MarkdownDiffPreview = ({
   blocks,
   syntaxTheme,
+  baseContent,
+  targetContent,
+  fileStatus,
 }: {
   blocks: PreviewBlock[];
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
+  baseContent: string | null;
+  targetContent: string | null;
+  fileStatus: DiffFile['status'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
   const renderBlocks = useMemo(() => buildRenderBlocks(blocks), [blocks]);
 
+  const frontmatterView = useMemo(() => {
+    const baseData = baseContent !== null ? extractFrontmatter(baseContent).data : null;
+    const targetData = targetContent !== null ? extractFrontmatter(targetContent).data : null;
+
+    const baseAvailable = baseContent !== null;
+    const targetAvailable = targetContent !== null;
+
+    if (fileStatus === 'added') {
+      if (!targetAvailable) return null;
+      const entries = computeFrontmatterDiff(null, targetData);
+      if (entries.length === 0) return null;
+      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
+    }
+
+    if (fileStatus === 'deleted') {
+      if (!baseAvailable) return null;
+      const entries = computeFrontmatterDiff(baseData, null);
+      if (entries.length === 0) return null;
+      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
+    }
+
+    // modified / renamed
+    if (baseAvailable && targetAvailable) {
+      const entries = computeFrontmatterDiff(baseData, targetData);
+      if (entries.length === 0) return null;
+      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
+    }
+
+    // partial fetch failure or stdin — snapshot fallback with explanatory label
+    if (targetAvailable && targetData !== null) {
+      return (
+        <FrontmatterTable
+          mode="snapshot"
+          data={targetData}
+          label="Frontmatter (target only — base unavailable)"
+        />
+      );
+    }
+    if (baseAvailable && baseData !== null) {
+      return (
+        <FrontmatterTable
+          mode="snapshot"
+          data={baseData}
+          label="Frontmatter (base only — target unavailable)"
+        />
+      );
+    }
+
+    return null;
+  }, [baseContent, targetContent, fileStatus]);
+
   return (
     <div className="space-y-4">
+      {frontmatterView}
       {renderBlocks.map((block, index) => {
         if (block.kind === 'fenced-code') {
           return (
@@ -621,7 +680,13 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
 
       {mode === 'diff-preview' && (
         <div className="p-4">
-          <MarkdownDiffPreview blocks={previewBlocks} syntaxTheme={syntaxTheme} />
+          <MarkdownDiffPreview
+            blocks={previewBlocks}
+            syntaxTheme={syntaxTheme}
+            baseContent={contents.base}
+            targetContent={contents.target}
+            fileStatus={file.status}
+          />
         </div>
       )}
 

@@ -461,3 +461,136 @@ describe('MarkdownFullPreview integration', () => {
     expect(screen.queryByText('Key')).not.toBeInTheDocument();
   });
 });
+
+describe('MarkdownDiffPreview frontmatter diff', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    setMatchMedia(true);
+  });
+
+  const goToDiffPreview = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+  };
+
+  it('renders a frontmatter diff table for a modified file when both sides have frontmatter', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: Old\npublished: false\n---\n\n# Body\n',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: New\npublished: true\n---\n\n# Body\n',
+      });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    expect(await screen.findAllByText('title')).toHaveLength(1); // modified → single Before/After row
+    expect(screen.getByText('Old')).toBeInTheDocument();
+    expect(screen.getByText('New')).toBeInTheDocument();
+    expect(screen.getAllByText('published')).toHaveLength(1);
+    expect(screen.getByText('false')).toBeInTheDocument();
+    expect(screen.getByText('true')).toBeInTheDocument();
+  });
+
+  it('renders no frontmatter table when neither side has frontmatter', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: true, text: async () => '# Just body\n' })
+      .mockResolvedValueOnce({ ok: true, text: async () => '# Just body updated\n' });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+  });
+
+  it('shows all frontmatter keys as additions for an added file', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '---\ntitle: Hello\n---\n\n# Body\n',
+    });
+
+    const { container } = renderViewer({
+      file: createFile({ status: 'added', additions: 5, deletions: 0 }),
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    goToDiffPreview();
+
+    expect(await screen.findByText('title')).toBeInTheDocument();
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(container.querySelector('td.bg-diff-addition-bg')).not.toBeNull();
+  });
+
+  it('shows all frontmatter keys as removals for a deleted file', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '---\ntitle: Bye\n---\n\n# Body\n',
+    });
+
+    const { container } = renderViewer({
+      file: createFile({ status: 'deleted', additions: 0, deletions: 5, oldPath: 'old.md' }),
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    goToDiffPreview();
+
+    expect(await screen.findByText('title')).toBeInTheDocument();
+    expect(screen.getByText('Bye')).toBeInTheDocument();
+    expect(container.querySelector('td.bg-diff-deletion-bg')).not.toBeNull();
+  });
+
+  it('falls back to a snapshot label when the base fetch fails on a modified file', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false, statusText: 'Not Found', text: async () => '' })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: OnlyTarget\n---\n\n# Body\n',
+      });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    expect(await screen.findByText(/target only/i)).toBeInTheDocument();
+    expect(screen.getByText('title')).toBeInTheDocument();
+    expect(screen.getByText('OnlyTarget')).toBeInTheDocument();
+  });
+
+  it('renders no frontmatter table for stdin (no fetch performed)', async () => {
+    renderViewer({ baseCommitish: 'stdin', targetCommitish: 'stdin' });
+
+    // wait a tick so any pending state settles
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(0);
+    });
+
+    goToDiffPreview();
+
+    expect(screen.queryByText('title')).not.toBeInTheDocument();
+    expect(screen.queryByText(/frontmatter/i)).not.toBeInTheDocument();
+  });
+});
