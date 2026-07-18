@@ -2,10 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import type { DiffLine } from '../../types/diff';
+import type { DiffFile, DiffLine } from '../../types/diff';
+import { FrontmatterTable } from '../components/FrontmatterTable';
 import { MermaidDiagram } from '../components/MermaidDiagram';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
+import { extractFrontmatter } from '../utils/frontmatter';
+import { computeFrontmatterDiff } from '../utils/frontmatterDiff';
 import { extractMarkdownText, isElementWithCodeProps, isSafeUrl } from '../utils/markdownUtils';
 
 import { PreviewModeTabs, type PreviewMode } from './PreviewModeTabs';
@@ -44,6 +47,18 @@ type FenceInfo = {
 };
 
 const isFetchableRef = (ref?: string) => Boolean(ref && ref !== 'stdin');
+
+type PreviewSource = { path: string; ref: string } | null;
+
+type PreviewSourcePair = {
+  base: PreviewSource;
+  target: PreviewSource;
+};
+
+type PreviewContents = {
+  base: string | null;
+  target: string | null;
+};
 
 const headingStyles = [
   'text-[26px] font-semibold',
@@ -382,15 +397,73 @@ const getCodeLineClass = (type: PreviewBlockType) => {
 const MarkdownDiffPreview = ({
   blocks,
   syntaxTheme,
+  baseContent,
+  targetContent,
+  fileStatus,
 }: {
   blocks: PreviewBlock[];
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
+  baseContent: string | null;
+  targetContent: string | null;
+  fileStatus: DiffFile['status'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
   const renderBlocks = useMemo(() => buildRenderBlocks(blocks), [blocks]);
 
+  const frontmatterView = useMemo(() => {
+    const baseData = baseContent !== null ? extractFrontmatter(baseContent).data : null;
+    const targetData = targetContent !== null ? extractFrontmatter(targetContent).data : null;
+
+    const baseAvailable = baseContent !== null;
+    const targetAvailable = targetContent !== null;
+
+    if (fileStatus === 'added') {
+      if (!targetAvailable) return null;
+      const entries = computeFrontmatterDiff(null, targetData);
+      if (entries.length === 0) return null;
+      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
+    }
+
+    if (fileStatus === 'deleted') {
+      if (!baseAvailable) return null;
+      const entries = computeFrontmatterDiff(baseData, null);
+      if (entries.length === 0) return null;
+      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
+    }
+
+    // modified / renamed
+    if (baseAvailable && targetAvailable) {
+      const entries = computeFrontmatterDiff(baseData, targetData);
+      if (entries.length === 0) return null;
+      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
+    }
+
+    // partial fetch failure or stdin — snapshot fallback with explanatory label
+    if (targetAvailable && targetData !== null) {
+      return (
+        <FrontmatterTable
+          mode="snapshot"
+          data={targetData}
+          label="Frontmatter (target only — base unavailable)"
+        />
+      );
+    }
+    if (baseAvailable && baseData !== null) {
+      return (
+        <FrontmatterTable
+          mode="snapshot"
+          data={baseData}
+          label="Frontmatter (base only — target unavailable)"
+        />
+      );
+    }
+
+    return null;
+  }, [baseContent, targetContent, fileStatus]);
+
   return (
     <div className="space-y-4">
+      {frontmatterView}
       {renderBlocks.map((block, index) => {
         if (block.kind === 'fenced-code') {
           return (
@@ -443,15 +516,20 @@ const MarkdownFullPreview = ({
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
+  const { data: frontmatter, content: body } = useMemo(
+    () => extractFrontmatter(content),
+    [content],
+  );
 
   return (
     <div className="space-y-4">
+      <FrontmatterTable mode="snapshot" data={frontmatter} />
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         urlTransform={(url) => (isSafeUrl(url) ? url : '')}
         components={components}
       >
-        {content}
+        {body}
       </ReactMarkdown>
     </div>
   );
@@ -460,89 +538,157 @@ const MarkdownFullPreview = ({
 export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   const { file, baseCommitish, targetCommitish, mergedChunks, syntaxTheme } = props;
   const [mode, setMode] = useState<PreviewMode>('diff');
-  const [fullContent, setFullContent] = useState<string | null>(null);
+  const [contents, setContents] = useState<PreviewContents>({ base: null, target: null });
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [loadedSourceKey, setLoadedSourceKey] = useState<string | null>(null);
+  const [partialFailureLabel, setPartialFailureLabel] = useState<string | null>(null);
+  const [loadedSourcesKey, setLoadedSourcesKey] = useState<string | null>(null);
   const previewBlocks = useMemo(() => buildPreviewBlocks(mergedChunks), [mergedChunks]);
-  const previewSource = useMemo(() => {
-    if (!baseCommitish && !targetCommitish) return null;
 
-    if (file.status === 'added') {
-      return targetCommitish ? { path: file.path, ref: targetCommitish } : null;
-    }
+  const previewSources = useMemo<PreviewSourcePair>(() => {
+    const target: PreviewSource =
+      file.status === 'deleted'
+        ? null
+        : targetCommitish
+          ? { path: file.path, ref: targetCommitish }
+          : null;
 
-    if (file.status === 'deleted') {
-      return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
-    }
+    const base: PreviewSource =
+      file.status === 'added'
+        ? null
+        : baseCommitish
+          ? { path: file.oldPath || file.path, ref: baseCommitish }
+          : null;
 
-    if (targetCommitish) {
-      return { path: file.path, ref: targetCommitish };
-    }
-
-    return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
+    return { base, target };
   }, [baseCommitish, targetCommitish, file.path, file.oldPath, file.status]);
 
-  const previewSourceKey = useMemo(
-    () => (previewSource ? `${previewSource.ref}:${previewSource.path}` : null),
-    [previewSource],
-  );
+  const previewSourcesKey = useMemo(() => {
+    const baseKey = previewSources.base
+      ? `${previewSources.base.ref}:${previewSources.base.path}`
+      : '';
+    const targetKey = previewSources.target
+      ? `${previewSources.target.ref}:${previewSources.target.path}`
+      : '';
+    if (!baseKey && !targetKey) return null;
+    return `${baseKey}|${targetKey}`;
+  }, [previewSources]);
 
   useEffect(() => {
-    if (!previewSource || !previewSourceKey || !isFetchableRef(previewSource.ref)) {
-      setFullContent(null);
-      setLoadedSourceKey(null);
+    const baseSource =
+      previewSources.base && isFetchableRef(previewSources.base.ref) ? previewSources.base : null;
+    const targetSource =
+      previewSources.target && isFetchableRef(previewSources.target.ref)
+        ? previewSources.target
+        : null;
+
+    if (!previewSourcesKey || (!baseSource && !targetSource)) {
+      setContents({ base: null, target: null });
+      setLoadedSourcesKey(null);
       setPreviewError(null);
+      setPartialFailureLabel(null);
       setIsPreviewLoading(false);
       return;
     }
 
     let isCanceled = false;
 
-    const fetchContent = async () => {
-      if (previewSourceKey !== loadedSourceKey) {
-        setFullContent(null);
+    const fetchBlob = async (source: PreviewSource): Promise<string | null> => {
+      if (!source) return null;
+      const encodedPath = encodeURIComponent(source.path);
+      const response = await fetch(
+        `/api/blob/${encodedPath}?ref=${encodeURIComponent(source.ref)}`,
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch preview: ${response.statusText}`);
+      }
+      return response.text();
+    };
+
+    const run = async () => {
+      if (previewSourcesKey !== loadedSourcesKey) {
+        setContents({ base: null, target: null });
       }
       setIsPreviewLoading(true);
       setPreviewError(null);
-      try {
-        const encodedPath = encodeURIComponent(previewSource.path);
-        const response = await fetch(
-          `/api/blob/${encodedPath}?ref=${encodeURIComponent(previewSource.ref)}`,
+
+      const [baseResult, targetResult] = await Promise.allSettled([
+        fetchBlob(baseSource),
+        fetchBlob(targetSource),
+      ]);
+
+      if (isCanceled) return;
+
+      const nextBase = baseResult.status === 'fulfilled' ? baseResult.value : null;
+      const nextTarget = targetResult.status === 'fulfilled' ? targetResult.value : null;
+
+      const failures: string[] = [];
+      if (baseSource && baseResult.status === 'rejected') {
+        failures.push(
+          baseResult.reason instanceof Error ? baseResult.reason.message : 'base fetch failed',
         );
-        if (!response.ok) {
-          throw new Error(`Failed to fetch preview: ${response.statusText}`);
-        }
-        const text = await response.text();
-        if (!isCanceled) {
-          setFullContent(text);
-          setLoadedSourceKey(previewSourceKey);
-        }
-      } catch (error) {
-        if (!isCanceled) {
-          setFullContent(null);
-          setLoadedSourceKey(null);
-          setPreviewError(error instanceof Error ? error.message : 'Failed to load preview');
-        }
-      } finally {
-        if (!isCanceled) {
-          setIsPreviewLoading(false);
-        }
       }
+      if (targetSource && targetResult.status === 'rejected') {
+        failures.push(
+          targetResult.reason instanceof Error
+            ? targetResult.reason.message
+            : 'target fetch failed',
+        );
+      }
+
+      setContents({ base: nextBase, target: nextTarget });
+      setLoadedSourcesKey(previewSourcesKey);
+
+      const baseFailed = baseSource !== null && baseResult.status === 'rejected';
+      const targetFailed = targetSource !== null && targetResult.status === 'rejected';
+      const allFailed =
+        (baseSource ? baseFailed : true) &&
+        (targetSource ? targetFailed : true) &&
+        failures.length > 0;
+
+      setPreviewError(allFailed ? failures.join('; ') : null);
+
+      if (allFailed) {
+        setPartialFailureLabel(null);
+      } else if (baseFailed) {
+        setPartialFailureLabel('Base content unavailable — showing partial preview.');
+      } else if (targetFailed) {
+        setPartialFailureLabel('Target content unavailable — showing partial preview.');
+      } else {
+        setPartialFailureLabel(null);
+      }
+
+      setIsPreviewLoading(false);
     };
 
-    if (previewSourceKey !== loadedSourceKey || fullContent === null) {
-      void fetchContent();
+    const relevantContent = file.status === 'deleted' ? contents.base : contents.target;
+
+    if (previewSourcesKey !== loadedSourcesKey || relevantContent === null) {
+      void run();
+    } else {
+      setIsPreviewLoading(false);
     }
 
     return () => {
       isCanceled = true;
     };
-  }, [fullContent, loadedSourceKey, previewSource, previewSourceKey]);
+  }, [
+    contents.base,
+    contents.target,
+    file.status,
+    loadedSourcesKey,
+    previewSources,
+    previewSourcesKey,
+  ]);
+
+  const fullPreviewContent = useMemo(
+    () => (file.status === 'deleted' ? contents.base : contents.target),
+    [contents.base, contents.target, file.status],
+  );
 
   const hasFullPreview = useMemo(
-    () => previewSourceKey === loadedSourceKey && fullContent !== null,
-    [fullContent, loadedSourceKey, previewSourceKey],
+    () => previewSourcesKey === loadedSourcesKey && fullPreviewContent !== null,
+    [fullPreviewContent, loadedSourcesKey, previewSourcesKey],
   );
 
   useEffect(() => {
@@ -561,7 +707,16 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
 
       {mode === 'diff-preview' && (
         <div className="p-4">
-          <MarkdownDiffPreview blocks={previewBlocks} syntaxTheme={syntaxTheme} />
+          {partialFailureLabel && (
+            <div className="text-sm text-github-text-muted mb-3">{partialFailureLabel}</div>
+          )}
+          <MarkdownDiffPreview
+            blocks={previewBlocks}
+            syntaxTheme={syntaxTheme}
+            baseContent={contents.base}
+            targetContent={contents.target}
+            fileStatus={file.status}
+          />
         </div>
       )}
 
@@ -571,10 +726,13 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
           )}
           {previewError && <div className="text-sm text-github-danger mb-3">{previewError}</div>}
-          {!isPreviewLoading && !previewError && fullContent !== null && (
-            <MarkdownFullPreview content={fullContent} syntaxTheme={syntaxTheme} />
+          {partialFailureLabel && (
+            <div className="text-sm text-github-text-muted mb-3">{partialFailureLabel}</div>
           )}
-          {!isPreviewLoading && !previewError && fullContent === null && (
+          {!isPreviewLoading && !previewError && fullPreviewContent !== null && (
+            <MarkdownFullPreview content={fullPreviewContent} syntaxTheme={syntaxTheme} />
+          )}
+          {!isPreviewLoading && !previewError && fullPreviewContent === null && (
             <div className="text-sm text-github-text-muted">Preview unavailable.</div>
           )}
         </div>

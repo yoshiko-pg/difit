@@ -193,7 +193,7 @@ describe('MarkdownDiffViewer', () => {
     renderViewer();
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
     });
 
     expect(screen.queryByRole('button', { name: 'Full Preview' })).not.toBeInTheDocument();
@@ -213,7 +213,7 @@ describe('MarkdownDiffViewer', () => {
     fireEvent.click(fullPreviewButton);
 
     expect(await screen.findByText('Prefetched title')).toBeInTheDocument();
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('renders Mermaid diagrams in Diff Preview', async () => {
@@ -340,5 +340,292 @@ describe('MarkdownDiffViewer', () => {
       });
       expect(vi.mocked(mermaid.render)).toHaveBeenCalledTimes(2);
     });
+  });
+});
+
+describe('MarkdownDiffViewer two-side fetch', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    setMatchMedia(true);
+  });
+
+  it('fetches both base and target blobs for a modified file', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: true, text: async () => 'old content' })
+      .mockResolvedValueOnce({ ok: true, text: async () => 'new content' });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/blob/docs%2Fguide.md?ref=HEAD~1');
+    expect(global.fetch).toHaveBeenCalledWith('/api/blob/docs%2Fguide.md?ref=HEAD');
+  });
+
+  it('fetches only the target blob for an added file', async () => {
+    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => 'new content' });
+
+    renderViewer({ file: createFile({ status: 'added', additions: 5, deletions: 0 }) });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/blob/docs%2Fguide.md?ref=HEAD');
+  });
+
+  it('fetches only the base blob for a deleted file', async () => {
+    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => 'old content' });
+
+    renderViewer({
+      file: createFile({ status: 'deleted', additions: 0, deletions: 5, oldPath: 'old.md' }),
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/blob/old.md?ref=HEAD~1');
+  });
+
+  it('shows the Full Preview tab and renders base content for a deleted file', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '# Deleted doc\n\nBase body content.\n',
+    });
+
+    renderViewer({
+      file: createFile({ status: 'deleted', additions: 0, deletions: 5, oldPath: 'old.md' }),
+    });
+
+    const fullPreviewButton = await screen.findByRole('button', { name: 'Full Preview' });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('Deleted doc')).toBeInTheDocument();
+    expect(screen.getByText('Base body content.')).toBeInTheDocument();
+  });
+
+  it('shows a partial preview label in Diff Preview when only one side fails to fetch', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false, statusText: 'Not Found', text: async () => '' })
+      .mockResolvedValueOnce({ ok: true, text: async () => '# Just body\n' });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+
+    expect(
+      await screen.findByText('Base content unavailable — showing partial preview.'),
+    ).toBeInTheDocument();
+  });
+
+  it('does not fetch when both refs are stdin', async () => {
+    renderViewer({ baseCommitish: 'stdin', targetCommitish: 'stdin' });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Full Preview' })).not.toBeInTheDocument();
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(0);
+  });
+});
+
+describe('MarkdownFullPreview integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    setMatchMedia(true);
+  });
+
+  it('renders content without a frontmatter table when there is no frontmatter', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '# Hello\n\nBody paragraph.\n',
+    });
+
+    renderViewer();
+
+    const fullPreviewButton = await screen.findByRole('button', { name: 'Full Preview' });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText('Body paragraph.')).toBeInTheDocument();
+    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+  });
+
+  it('renders a frontmatter table above the body when frontmatter is present', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '---\ntitle: Hello\npublished: true\n---\n\n# Body\n\nText.\n',
+    });
+
+    renderViewer();
+
+    const fullPreviewButton = await screen.findByRole('button', { name: 'Full Preview' });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('title')).toBeInTheDocument();
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText('published')).toBeInTheDocument();
+    expect(screen.getByText('true')).toBeInTheDocument();
+    expect(screen.getByText('Body')).toBeInTheDocument();
+    expect(screen.queryByText('---')).not.toBeInTheDocument();
+  });
+
+  it('falls back to rendering the raw body when frontmatter YAML is invalid', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '---\n[unclosed\n---\n\n# Body\n\nText.\n',
+    });
+
+    renderViewer();
+
+    const fullPreviewButton = await screen.findByRole('button', { name: 'Full Preview' });
+    fireEvent.click(fullPreviewButton);
+
+    expect(await screen.findByText('Body')).toBeInTheDocument();
+    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+  });
+});
+
+describe('MarkdownDiffPreview frontmatter diff', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    setMatchMedia(true);
+  });
+
+  const goToDiffPreview = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
+  };
+
+  it('renders a frontmatter diff table for a modified file when both sides have frontmatter', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: Old\npublished: false\n---\n\n# Body\n',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: New\npublished: true\n---\n\n# Body\n',
+      });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    expect(await screen.findAllByText('title')).toHaveLength(1); // modified → single Before/After row
+    expect(screen.getByText('Old')).toBeInTheDocument();
+    expect(screen.getByText('New')).toBeInTheDocument();
+    expect(screen.getAllByText('published')).toHaveLength(1);
+    expect(screen.getByText('false')).toBeInTheDocument();
+    expect(screen.getByText('true')).toBeInTheDocument();
+  });
+
+  it('renders no frontmatter table when neither side has frontmatter', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: true, text: async () => '# Just body\n' })
+      .mockResolvedValueOnce({ ok: true, text: async () => '# Just body updated\n' });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+  });
+
+  it('shows all frontmatter keys as additions for an added file', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '---\ntitle: Hello\n---\n\n# Body\n',
+    });
+
+    const { container } = renderViewer({
+      file: createFile({ status: 'added', additions: 5, deletions: 0 }),
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    goToDiffPreview();
+
+    expect(await screen.findByText('title')).toBeInTheDocument();
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(container.querySelector('td.bg-diff-addition-bg')).not.toBeNull();
+  });
+
+  it('shows all frontmatter keys as removals for a deleted file', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      text: async () => '---\ntitle: Bye\n---\n\n# Body\n',
+    });
+
+    const { container } = renderViewer({
+      file: createFile({ status: 'deleted', additions: 0, deletions: 5, oldPath: 'old.md' }),
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    goToDiffPreview();
+
+    expect(await screen.findByText('title')).toBeInTheDocument();
+    expect(screen.getByText('Bye')).toBeInTheDocument();
+    expect(container.querySelector('td.bg-diff-deletion-bg')).not.toBeNull();
+  });
+
+  it('falls back to a snapshot label when the base fetch fails on a modified file', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false, statusText: 'Not Found', text: async () => '' })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: OnlyTarget\n---\n\n# Body\n',
+      });
+
+    renderViewer();
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    expect(await screen.findByText(/target only/i)).toBeInTheDocument();
+    expect(screen.getByText('title')).toBeInTheDocument();
+    expect(screen.getByText('OnlyTarget')).toBeInTheDocument();
+  });
+
+  it('renders no frontmatter table for stdin (no fetch performed)', async () => {
+    renderViewer({ baseCommitish: 'stdin', targetCommitish: 'stdin' });
+
+    // wait a tick so any pending state settles
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(0);
+    });
+
+    goToDiffPreview();
+
+    expect(screen.queryByText('title')).not.toBeInTheDocument();
+    expect(screen.queryByText(/frontmatter/i)).not.toBeInTheDocument();
   });
 });
