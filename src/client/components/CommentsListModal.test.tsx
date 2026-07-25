@@ -190,7 +190,7 @@ describe('CommentsListModal', () => {
       { wrapper },
     );
 
-    await user.click(screen.getAllByRole('button', { name: 'Reply' })[0]!);
+    await user.click(screen.getAllByRole('button', { name: 'Write a reply...' })[0]!);
     await user.click(screen.getByPlaceholderText('Write a reply...'));
 
     expect(screen.getByText('Reply to thread')).toBeInTheDocument();
