@@ -27,6 +27,7 @@ import { getFileExtension } from '../utils/fileUtils.js';
 
 import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
+import { parseUserSettingsPatch, readUserConfig, updateUserClientSettings } from './user-config.js';
 
 import {
   type BaseMode,
@@ -814,6 +815,34 @@ export async function startServer(
       res.send(output);
     } else {
       res.send('');
+    }
+  });
+
+  app.get('/api/user-settings', async (_req, res) => {
+    const config = await readUserConfig();
+    res.json(config);
+  });
+
+  app.put('/api/user-settings', async (req, res) => {
+    let patch: Record<string, unknown> | null;
+    try {
+      const body: unknown = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      patch = parseUserSettingsPatch(body);
+    } catch {
+      patch = null;
+    }
+
+    if (!patch) {
+      res.status(400).json({ error: 'Invalid user settings payload' });
+      return;
+    }
+
+    try {
+      const config = await updateUserClientSettings(patch);
+      res.json(config);
+    } catch (error) {
+      console.error('Error saving user settings:', error);
+      res.status(500).json({ error: 'Failed to save user settings' });
     }
   });
 
