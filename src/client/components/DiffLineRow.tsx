@@ -21,7 +21,7 @@ interface DiffLineRowProps {
   onCommentButtonMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenInEditor?: () => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLTableRowElement>) => void;
   filename?: string;
   diffSegments?: DiffSegment[];
 }
@@ -67,6 +67,7 @@ export const DiffLineRow: React.FC<DiffLineRowProps> = React.memo(
     return (
       <tr
         id={lineId}
+        data-diff-line-row="true"
         className={`group ${getLineClass(line)} relative ${selectedLineStyle} ${highlightClass} cursor-pointer`}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}

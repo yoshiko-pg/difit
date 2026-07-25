@@ -200,7 +200,7 @@ npx skills add yoshiko-pg/difit
 - **시스템 언어**: C, C++, C#, Rust, Go
 - **모바일 언어**: Swift, Kotlin, Dart
 - **인프라 코드**: Terraform (HCL), Nix
-- **기타**: Python, Protobuf, YAML, Solidity, Vim 스크립트
+- **기타**: Python, Protobuf, YAML, Solidity, Vim 스크립트, GDScript
 
 ## 🔍 자동 접힘 파일
 

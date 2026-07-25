@@ -139,6 +139,7 @@ export function CommentForm({
       <div className="flex gap-2 justify-end">
         <button
           type="button"
+          data-comment-cancel="true"
           onClick={onCancel}
           className="text-xs px-3 py-1.5 bg-github-bg-tertiary text-github-text-primary border border-github-border rounded hover:opacity-80 transition-all disabled:opacity-50"
           disabled={isSubmitting}

@@ -59,6 +59,7 @@ export function useFileLevelTokens({
   reloadKey,
 }: UseFileLevelTokensParams): FileLevelTokens {
   const language = useMemo(() => getPrismLanguageFromFilename(file.path), [file.path]);
+  const isStdinDiff = baseCommitish === 'stdin' || targetCommitish === 'stdin';
 
   const [oldContent, setOldContent] = useState<string | null>(null);
   const [newContent, setNewContent] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export function useFileLevelTokens({
   }, [enabled, language]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || isStdinDiff) {
       setOldContent(null);
       setNewContent(null);
       return;
@@ -111,7 +112,16 @@ export function useFileLevelTokens({
     return () => {
       cancelled = true;
     };
-  }, [enabled, file.path, file.oldPath, file.status, baseCommitish, targetCommitish, reloadKey]);
+  }, [
+    enabled,
+    file.path,
+    file.oldPath,
+    file.status,
+    baseCommitish,
+    targetCommitish,
+    reloadKey,
+    isStdinDiff,
+  ]);
 
   const oldTokens = useMemo<Token[][] | null>(() => {
     if (!enabled || !grammarReady || oldContent == null) return null;

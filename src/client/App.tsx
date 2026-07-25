@@ -1140,9 +1140,10 @@ function App() {
     const target = e.target as HTMLElement;
     const isCommentButton = target.closest('[data-comment-button="true"]');
     const isOpenInEditorButton = target.closest('[data-open-in-editor-button="true"]');
+    const isShiftRangeClick = e.shiftKey && target.closest('[data-diff-line-row="true"]');
 
     // Close empty comment forms (unless clicking on a comment button)
-    if (!isCommentButton && !isOpenInEditorButton) {
+    if (!isCommentButton && !isOpenInEditorButton && !isShiftRangeClick) {
       closeEmptyCommentForms(e);
     }
   };
@@ -1152,7 +1153,7 @@ function App() {
     emptyForms.forEach((form) => {
       // Don't close if clicking inside the form itself
       if (!form.contains(e.target as Node)) {
-        const cancelButton = form.querySelector('button[type="button"]') as HTMLButtonElement;
+        const cancelButton = form.querySelector<HTMLButtonElement>('[data-comment-cancel="true"]');
         cancelButton?.click();
       }
     });

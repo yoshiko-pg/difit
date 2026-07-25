@@ -250,6 +250,70 @@ describe('CommentThreadCard', () => {
     expect(screen.queryByLabelText('Outdated comment')).not.toBeInTheDocument();
   });
 
+  it('always shows an inline reply trigger below the last message', () => {
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Write a reply...' })).toBeInTheDocument();
+  });
+
+  it('expands the reply trigger into a reply form and submits a reply', async () => {
+    const user = userEvent.setup();
+    const onReplyToThread = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={onReplyToThread}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Write a reply...' }));
+
+    const textarea = screen.getByPlaceholderText('Write a reply...');
+    expect(textarea).toHaveFocus();
+
+    await user.type(textarea, 'A new reply');
+    await user.click(screen.getByRole('button', { name: 'Reply' }));
+
+    expect(onReplyToThread).toHaveBeenCalledWith('thread-1', 'A new reply');
+    // Collapses back to the trigger after submitting
+    expect(screen.getByRole('button', { name: 'Write a reply...' })).toBeInTheDocument();
+  });
+
+  it('collapses the reply form back to the trigger on cancel', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Write a reply...' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByPlaceholderText('Write a reply...')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Write a reply...' })).toBeInTheDocument();
+  });
+
   it('shows an inline confirmation before deleting a user-authored reply', async () => {
     const user = userEvent.setup();
     const onRemoveMessage = vi.fn();

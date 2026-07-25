@@ -10,6 +10,7 @@ export const CommentButton: React.FC<CommentButtonProps> = React.memo(
   ({ onMouseDown, title = 'Add a comment' }) => {
     return (
       <button
+        type="button"
         className="absolute -right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded transition-all duration-150 hover:scale-110 z-10"
         data-comment-button="true"
         style={{
@@ -26,6 +27,7 @@ export const CommentButton: React.FC<CommentButtonProps> = React.memo(
           e.currentTarget.style.borderColor = 'var(--color-yellow-btn-border)';
         }}
         onMouseDown={onMouseDown}
+        onClick={(e) => e.stopPropagation()}
         title={title}
       >
         <MessageSquare className="w-4 h-4" />

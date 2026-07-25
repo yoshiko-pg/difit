@@ -200,7 +200,7 @@ npx skills add yoshiko-pg/difit
 - **システム言語**：C, C++, C#, Rust, Go
 - **モバイル言語**：Swift, Kotlin, Dart
 - **IaC**：Terraform (HCL), Nix
-- **その他**：Python, Protobuf, YAML, Solidity, Vim Script
+- **その他**：Python, Protobuf, YAML, Solidity, Vim Script, GDScript
 
 ## 🔍 自動折りたたみファイル
 

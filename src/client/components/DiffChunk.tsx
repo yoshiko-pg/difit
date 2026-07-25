@@ -7,6 +7,7 @@ import {
   type CommentThread,
   type LineNumber,
   type DiffViewMode,
+  type LineSelection,
 } from '../../types/diff';
 import { DEFAULT_DIFF_VIEW_MODE } from '../../utils/diffMode';
 import { type CursorPosition } from '../hooks/keyboardNavigation';
@@ -87,6 +88,10 @@ export const DiffChunk = memo(function DiffChunk({
     side: DiffSide;
     lineNumber: LineNumber;
   } | null>(null);
+  const [selectionAnchor, setSelectionAnchor] = useState<{
+    side: DiffSide;
+    lineNumber: number;
+  } | null>(null);
   const [hoveredLine, setHoveredLine] = useState<number | null>(null);
 
   // Handle comment trigger from keyboard navigation
@@ -114,6 +119,71 @@ export const DiffChunk = memo(function DiffChunk({
     },
     [commentingLine],
   );
+
+  const getCommentLineFromAnchor = (selection: LineSelection): LineNumber => {
+    if (!selectionAnchor || selectionAnchor.side !== selection.side) {
+      return selection.lineNumber;
+    }
+
+    const min = Math.min(selectionAnchor.lineNumber, selection.lineNumber);
+    const max = Math.max(selectionAnchor.lineNumber, selection.lineNumber);
+    return min === max ? selection.lineNumber : [min, max];
+  };
+
+  const openShiftClickComment = (selection: LineSelection) => {
+    handleAddComment(selection.side, getCommentLineFromAnchor(selection));
+    setSelectionAnchor(selection);
+  };
+
+  const startCommentDrag = (selection: LineSelection) => {
+    setSelectionAnchor(selection);
+    setStartLine(selection.lineNumber);
+    setEndLine(selection.lineNumber);
+    setDragSide(selection.side);
+    setIsDragging(true);
+  };
+
+  const handleCommentButtonMouseDown = ({
+    isShiftClick,
+    selection,
+  }: {
+    isShiftClick: boolean;
+    selection: LineSelection | null;
+  }) => {
+    if (!selection) return;
+
+    if (isShiftClick) {
+      openShiftClickComment(selection);
+      return;
+    }
+
+    startCommentDrag(selection);
+  };
+
+  const handleRowClick = ({
+    isShiftClick,
+    lineIndex,
+    navigationSide,
+    selection,
+  }: {
+    isShiftClick: boolean;
+    lineIndex: number;
+    navigationSide: 'left' | 'right';
+    selection: LineSelection | null;
+  }) => {
+    if (!selection) {
+      onLineClick?.(fileIndex, chunkIndex, lineIndex, navigationSide);
+      return;
+    }
+
+    if (isShiftClick) {
+      openShiftClickComment(selection);
+      return;
+    }
+
+    setSelectionAnchor(selection);
+    onLineClick?.(fileIndex, chunkIndex, lineIndex, navigationSide);
+  };
 
   // Global mouse up handler for drag selection: commit the selection wherever
   // the mouse is released, not only on the comment button itself
@@ -367,6 +437,9 @@ export const DiffChunk = memo(function DiffChunk({
             const lineId = `file-${fileIndex}-chunk-${chunkIndex}-line-${index}`;
             const isCurrentLine =
               cursor && cursor.chunkIndex === chunkIndex && cursor.lineIndex === index;
+            const selection = commentLineNumber
+              ? { side: commentSide, lineNumber: commentLineNumber }
+              : null;
 
             return (
               <React.Fragment key={index}>
@@ -394,13 +467,13 @@ export const DiffChunk = memo(function DiffChunk({
                   }}
                   onCommentButtonMouseDown={(e) => {
                     e.stopPropagation();
-                    const lineNumber = line.newLineNumber || line.oldLineNumber;
-                    if (lineNumber) {
-                      setStartLine(lineNumber);
-                      setEndLine(lineNumber);
-                      setDragSide(line.type === 'delete' ? 'old' : 'new');
-                      setIsDragging(true);
+                    if (e.shiftKey) {
+                      e.preventDefault();
                     }
+                    handleCommentButtonMouseDown({
+                      isShiftClick: e.shiftKey,
+                      selection,
+                    });
                   }}
                   onOpenInEditor={
                     onOpenInEditor &&
@@ -418,10 +491,18 @@ export const DiffChunk = memo(function DiffChunk({
                   syntaxTheme={syntaxTheme}
                   filename={filename}
                   diffSegments={wordLevelDiffMap.get(index)}
-                  onClick={() => {
+                  onClick={(e) => {
                     // Determine the side based on line type for unified mode
                     const side = line.type === 'delete' ? 'left' : 'right';
-                    onLineClick?.(fileIndex, chunkIndex, index, side);
+                    if (e.shiftKey) {
+                      e.preventDefault();
+                    }
+                    handleRowClick({
+                      isShiftClick: e.shiftKey,
+                      lineIndex: index,
+                      navigationSide: side,
+                      selection,
+                    });
                   }}
                 />
 

@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.8] - 2026-07-11
+
+### Added
+
+- Add GDScript syntax highlighting (#434)
+- Add Shift-click range comments in unified and side-by-side diff views (#435)
+
+### Changed
+
+- Update dependencies (#433)
+
+### Fixed
+
+- Correct comment form click handling
+- Support plain unified diffs from stdin (#436)
+
+### Thanks
+
+- [@ihalilacalm](https://github.com/ihalilacalm) for adding GDScript syntax highlighting (#434)
+- [@ramram1048](https://github.com/ramram1048) for adding Shift-click range comments (#435)
+
 ## [5.0.7] - 2026-07-07
 
 ### Added
@@ -1316,7 +1337,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.7...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.8...HEAD
+[5.0.8]: https://github.com/yoshiko-pg/difit/compare/v5.0.7...v5.0.8
 [5.0.7]: https://github.com/yoshiko-pg/difit/compare/v5.0.6...v5.0.7
 [5.0.6]: https://github.com/yoshiko-pg/difit/compare/v5.0.5...v5.0.6
 [5.0.5]: https://github.com/yoshiko-pg/difit/compare/v5.0.4...v5.0.5

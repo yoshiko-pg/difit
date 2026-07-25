@@ -214,7 +214,8 @@ export const DiffViewer = memo(function DiffViewer({
   const [isVisible, setIsVisible] = useState(false);
 
   const viewer = getViewerForFile(file);
-  const canExpandHiddenLines = viewer.canExpandHiddenLines?.(file) ?? false;
+  const hasBlobContent = baseCommitish !== 'stdin' && targetCommitish !== 'stdin';
+  const canExpandHiddenLines = hasBlobContent && (viewer.canExpandHiddenLines?.(file) ?? false);
   // Tokenize the whole file so embedded blocks (e.g. <script>/<style>) are
   // highlighted by their own language instead of line-by-line, which can't see
   // the surrounding context.

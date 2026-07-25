@@ -69,6 +69,12 @@ interface SideBySideLine {
   wordLevelDiff?: WordLevelDiffResult;
 }
 
+interface ClickedLineTarget {
+  selection: LineSelection;
+  lineIndex: number;
+  navigationSide: 'left' | 'right';
+}
+
 // Type guard to check if a line is an expanded line (#6)
 const isExpandedLine = (line: DiffLine | undefined): boolean => {
   return line !== undefined && 'isExpanded' in line && line.isExpanded === true;
@@ -89,6 +95,49 @@ const getSideBySideLineClass = (line: DiffLine | undefined, isExpanded: boolean)
     return 'bg-transparent';
   }
   return 'bg-github-bg-secondary';
+};
+
+const getClickedLineTarget = (
+  target: HTMLElement,
+  sideLine: SideBySideLine,
+): ClickedLineTarget | null => {
+  const isInOldSide = target.closest('td:nth-child(1)') || target.closest('td:nth-child(2)');
+  if (isInOldSide) {
+    if (
+      !sideLine.oldLineNumber ||
+      sideLine.oldLineOriginalIndex === undefined ||
+      sideLine.oldLineOriginalIndex < 0
+    ) {
+      return null;
+    }
+    return {
+      selection: {
+        side: 'old',
+        lineNumber: sideLine.oldLineNumber,
+      },
+      lineIndex: sideLine.oldLineOriginalIndex,
+      navigationSide: 'left',
+    };
+  }
+
+  const isInNewSide = target.closest('td:nth-child(3)') || target.closest('td:nth-child(4)');
+  if (!isInNewSide) return null;
+
+  if (
+    !sideLine.newLineNumber ||
+    sideLine.newLineOriginalIndex === undefined ||
+    sideLine.newLineOriginalIndex < 0
+  ) {
+    return null;
+  }
+  return {
+    selection: {
+      side: 'new',
+      lineNumber: sideLine.newLineNumber,
+    },
+    lineIndex: sideLine.newLineOriginalIndex,
+    navigationSide: 'right',
+  };
 };
 
 export function SideBySideDiffChunk({
@@ -119,6 +168,7 @@ export function SideBySideDiffChunk({
     side: DiffSide;
     lineNumber: LineNumber;
   } | null>(null);
+  const [selectionAnchor, setSelectionAnchor] = useState<LineSelection | null>(null);
   const [hoveredLine, setHoveredLine] = useState<LineSelection | null>(null);
 
   // Handle comment trigger from keyboard navigation
@@ -145,6 +195,68 @@ export function SideBySideDiffChunk({
     },
     [commentingLine],
   );
+
+  const getCommentLineFromAnchor = (selection: LineSelection): LineNumber => {
+    if (!selectionAnchor || selectionAnchor.side !== selection.side) {
+      return selection.lineNumber;
+    }
+
+    const min = Math.min(selectionAnchor.lineNumber, selection.lineNumber);
+    const max = Math.max(selectionAnchor.lineNumber, selection.lineNumber);
+    return min === max ? selection.lineNumber : [min, max];
+  };
+
+  const openShiftClickComment = (selection: LineSelection) => {
+    handleAddComment(selection.side, getCommentLineFromAnchor(selection));
+    setSelectionAnchor(selection);
+  };
+
+  const startCommentDrag = (selection: LineSelection) => {
+    setSelectionAnchor(selection);
+    setStartLine(selection);
+    setEndLine(selection);
+    setIsDragging(true);
+  };
+
+  const handleCommentButtonMouseDown = ({
+    isShiftClick,
+    selection,
+  }: {
+    isShiftClick: boolean;
+    selection: LineSelection | null;
+  }) => {
+    if (!selection) return;
+
+    if (isShiftClick) {
+      openShiftClickComment(selection);
+      return;
+    }
+
+    startCommentDrag(selection);
+  };
+
+  const handleRowClick = ({
+    isShiftClick,
+    target,
+    sideLine,
+  }: {
+    isShiftClick: boolean;
+    target: HTMLElement;
+    sideLine: SideBySideLine;
+  }) => {
+    if (isDragging) return;
+
+    const clickedLine = getClickedLineTarget(target, sideLine);
+    if (!clickedLine) return;
+
+    if (isShiftClick) {
+      openShiftClickComment(clickedLine.selection);
+      return;
+    }
+
+    setSelectionAnchor(clickedLine.selection);
+    onLineClick?.(fileIndex, chunkIndex, clickedLine.lineIndex, clickedLine.navigationSide);
+  };
 
   // Global mouse up handler for drag selection: commit the selection wherever
   // the mouse is released, not only on the comment button itself
@@ -445,26 +557,35 @@ export function SideBySideDiffChunk({
             const highlightNewCell = isHighlighted && cursor?.side === 'right';
 
             const cellHighlightClass = 'keyboard-cursor';
+            const oldSelection = sideLine.oldLineNumber
+              ? {
+                  side: 'old' as const,
+                  lineNumber: sideLine.oldLineNumber,
+                }
+              : null;
+            const newSelection = sideLine.newLineNumber
+              ? {
+                  side: 'new' as const,
+                  lineNumber: sideLine.newLineNumber,
+                }
+              : null;
 
             return (
               <React.Fragment key={index}>
                 <tr
+                  data-diff-line-row="true"
                   className="group cursor-pointer"
                   onClick={(e) => {
-                    if (!isDragging) {
-                      const target = e.target;
-                      if (!(target instanceof HTMLElement)) return;
-                      const isInOldSide =
-                        target.closest('td:nth-child(1)') || target.closest('td:nth-child(2)');
-                      const isInNewSide =
-                        target.closest('td:nth-child(3)') || target.closest('td:nth-child(4)');
-
-                      if (isInOldSide && oldLineOriginalIndex >= 0) {
-                        onLineClick?.(fileIndex, chunkIndex, oldLineOriginalIndex, 'left');
-                      } else if (isInNewSide && newLineOriginalIndex >= 0) {
-                        onLineClick?.(fileIndex, chunkIndex, newLineOriginalIndex, 'right');
-                      }
+                    const target = e.target;
+                    if (!(target instanceof HTMLElement)) return;
+                    if (e.shiftKey) {
+                      e.preventDefault();
                     }
+                    handleRowClick({
+                      isShiftClick: e.shiftKey,
+                      target,
+                      sideLine,
+                    });
                   }}
                   onMouseEnter={(e) => {
                     const target = e.target;
@@ -558,17 +679,13 @@ export function SideBySideDiffChunk({
                           <CommentButton
                             onMouseDown={(e) => {
                               e.stopPropagation();
-                              if (sideLine.oldLineNumber) {
-                                setStartLine({
-                                  side: 'old',
-                                  lineNumber: sideLine.oldLineNumber,
-                                });
-                                setEndLine({
-                                  side: 'old',
-                                  lineNumber: sideLine.oldLineNumber,
-                                });
-                                setIsDragging(true);
+                              if (e.shiftKey) {
+                                e.preventDefault();
                               }
+                              handleCommentButtonMouseDown({
+                                isShiftClick: e.shiftKey,
+                                selection: oldSelection,
+                              });
                             }}
                           />
                         </>
@@ -621,17 +738,13 @@ export function SideBySideDiffChunk({
                           <CommentButton
                             onMouseDown={(e) => {
                               e.stopPropagation();
-                              if (sideLine.newLineNumber) {
-                                setStartLine({
-                                  side: 'new',
-                                  lineNumber: sideLine.newLineNumber,
-                                });
-                                setEndLine({
-                                  side: 'new',
-                                  lineNumber: sideLine.newLineNumber,
-                                });
-                                setIsDragging(true);
+                              if (e.shiftKey) {
+                                e.preventDefault();
                               }
+                              handleCommentButtonMouseDown({
+                                isShiftClick: e.shiftKey,
+                                selection: newSelection,
+                              });
                             }}
                           />
                         </>
