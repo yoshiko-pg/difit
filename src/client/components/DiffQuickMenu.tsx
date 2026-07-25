@@ -12,8 +12,8 @@ import {
   FloatingPortal,
   safePolygon,
 } from '@floating-ui/react';
-import { ChevronDown, ChevronLeft, GitBranch } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronLeft, GitBranch, Search } from 'lucide-react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 
 import { type CommitInfo, type DiffSelection, type RevisionsResponse } from '../../types/diff';
 import {
@@ -113,6 +113,7 @@ export function DiffQuickMenu({
 }: DiffQuickMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCommitMenuOpen, setIsCommitMenuOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const isCompact = compact;
 
   const { refs, floatingStyles, context } = useFloating({
@@ -120,6 +121,7 @@ export function DiffQuickMenu({
     onOpenChange: (open) => {
       if (!open && isCommitMenuOpen) return;
       setIsOpen(open);
+      if (!open) setQuery('');
     },
     placement: 'bottom-end',
     middleware: [offset(6), flip(), shift({ padding: 8 })],
@@ -221,12 +223,99 @@ export function DiffQuickMenu({
     onSelectDiff(nextSelection);
     setIsCommitMenuOpen(false);
     setIsOpen(false);
+    setQuery('');
   };
 
   const handleOpenAdvanced = () => {
     setIsCommitMenuOpen(false);
     setIsOpen(false);
+    setQuery('');
     onOpenAdvanced();
+  };
+
+  const presetItems = useMemo(() => {
+    const items: Array<{
+      key: string;
+      label: string;
+      selection: DiffSelection;
+    }> = [
+      { key: 'head', label: 'HEAD', selection: headPreset },
+      {
+        key: 'head-uncommitted',
+        label: 'HEAD...Uncommitted (merge-base)',
+        selection: headUncommittedPreset,
+      },
+    ];
+    if (mainBranch && mainUncommittedPreset) {
+      items.push({
+        key: 'main-uncommitted',
+        label: `${mainBranch.name}...Uncommitted (merge-base)`,
+        selection: mainUncommittedPreset,
+      });
+    }
+    if (originDefaultBranch && originUncommittedPreset) {
+      items.push({
+        key: 'origin-uncommitted',
+        label: `${originDefaultBranch}...Uncommitted (merge-base)`,
+        selection: originUncommittedPreset,
+      });
+    }
+    items.push({
+      key: 'previous',
+      label: 'Previous commit',
+      selection: previousCommitPreset,
+    });
+    return items;
+  }, [
+    headPreset,
+    headUncommittedPreset,
+    mainBranch,
+    mainUncommittedPreset,
+    originDefaultBranch,
+    originUncommittedPreset,
+    previousCommitPreset,
+  ]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const isFiltering = normalizedQuery.length > 0;
+  const matchesQuery = (...texts: string[]) =>
+    texts.some((text) => text.toLowerCase().includes(normalizedQuery));
+
+  const filteredPresets = isFiltering
+    ? presetItems.filter((item) => matchesQuery(item.label))
+    : presetItems;
+  const filteredCommits = isFiltering
+    ? options.commits.filter((commit) =>
+        matchesQuery(commit.shortHash, commit.hash, commit.message),
+      )
+    : [];
+  const filteredBranches = isFiltering
+    ? options.branches.filter((branch) => matchesQuery(branch.name))
+    : [];
+
+  const hasNoMatches =
+    isFiltering &&
+    filteredPresets.length === 0 &&
+    filteredCommits.length === 0 &&
+    filteredBranches.length === 0;
+
+  const branchSelection = (branchName: string) =>
+    createDiffSelection(branchName, '.', 'merge-base');
+
+  // Select the first match when pressing Enter in the search box
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter' || !isFiltering) return;
+    event.preventDefault();
+
+    const firstMatch =
+      filteredPresets[0]?.selection ??
+      (filteredCommits[0]
+        ? createDiffSelection(`${filteredCommits[0].shortHash}^`, filteredCommits[0].shortHash)
+        : undefined) ??
+      (filteredBranches[0] ? branchSelection(filteredBranches[0].name) : undefined);
+    if (firstMatch) {
+      handleSelect(firstMatch);
+    }
   };
 
   const getItemClasses = (highlighted: boolean, disabled: boolean) => {
@@ -294,79 +383,163 @@ export function DiffQuickMenu({
           <div
             ref={refs.setFloating}
             style={floatingStyles}
-            className="bg-github-bg-secondary border border-github-border rounded shadow-lg z-50 w-[260px] max-h-[360px] overflow-y-auto"
+            className="bg-github-bg-secondary border border-github-border rounded shadow-lg z-50 w-[320px] max-h-[400px] overflow-y-auto"
             {...getFloatingProps()}
           >
-            <div className="border-b border-github-border">
-              <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
-                Quick Diffs
+            {/* Search box */}
+            <div className="sticky top-0 z-10 border-b border-github-border bg-github-bg-secondary p-2">
+              <div className="flex items-center gap-2 rounded border border-github-border bg-github-bg-primary px-2 py-1.5 focus-within:border-blue-600">
+                <Search size={12} className="shrink-0 text-github-text-secondary" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Filter branches and commits..."
+                  aria-label="Filter branches and commits"
+                  className="w-full bg-transparent text-xs text-github-text-primary placeholder:text-github-text-muted focus:outline-none"
+                />
               </div>
-              <button
-                onClick={() => handleSelect(headPreset)}
-                className={getItemClasses(isPresetActive(headPreset), false)}
-              >
-                HEAD
-              </button>
-              <button
-                onClick={() => handleSelect(headUncommittedPreset)}
-                className={getItemClasses(isPresetActive(headUncommittedPreset), false)}
-              >
-                HEAD...Uncommitted (merge-base)
-              </button>
-              {mainBranch && mainUncommittedPreset && (
-                <>
-                  <button
-                    onClick={() => handleSelect(mainUncommittedPreset)}
-                    className={getItemClasses(isPresetActive(mainUncommittedPreset), false)}
-                  >
-                    {mainBranch.name}...Uncommitted (merge-base)
-                  </button>
-                </>
-              )}
-              {originDefaultBranch && originUncommittedPreset && (
-                <button
-                  onClick={() => handleSelect(originUncommittedPreset)}
-                  className={getItemClasses(isPresetActive(originUncommittedPreset), false)}
-                >
-                  {originDefaultBranch}...Uncommitted (merge-base)
-                </button>
-              )}
             </div>
 
-            <div className="border-b border-github-border">
-              <button
-                onClick={() => handleSelect(previousCommitPreset)}
-                className={getItemClasses(isPresetActive(previousCommitPreset), false)}
-                type="button"
-              >
-                Previous commit
-              </button>
-            </div>
+            {isFiltering ? (
+              <>
+                {filteredPresets.length > 0 && (
+                  <div className="border-b border-github-border">
+                    <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
+                      Quick Diffs
+                    </div>
+                    {filteredPresets.map((item) => (
+                      <button
+                        key={item.key}
+                        onClick={() => handleSelect(item.selection)}
+                        className={getItemClasses(isPresetActive(item.selection), false)}
+                        type="button"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-            <div className="border-b border-github-border">
-              <button
-                ref={options.commits.length > 0 ? commitRefs.setReference : undefined}
-                className={getItemClasses(false, options.commits.length === 0)}
-                {...(options.commits.length > 0 ? getCommitReferenceProps() : {})}
-                disabled={options.commits.length === 0}
-                type="button"
-              >
-                <div className="flex items-center gap-2">
-                  <ChevronLeft size={12} className="text-github-text-secondary" />
-                  <span>Pick Commit...</span>
+                {filteredCommits.length > 0 && (
+                  <div className="border-b border-github-border">
+                    <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
+                      Commits
+                    </div>
+                    {filteredCommits.map((commit) => (
+                      <button
+                        key={commit.hash}
+                        onClick={() =>
+                          handleSelect(
+                            createDiffSelection(`${commit.shortHash}^`, commit.shortHash),
+                          )
+                        }
+                        className={getItemClasses(isCommitActive(commit), false)}
+                        type="button"
+                      >
+                        <div className="flex items-start gap-2">
+                          <code className="text-xs text-github-text-primary font-mono whitespace-nowrap">
+                            {commit.shortHash}
+                          </code>
+                          <span className="text-xs text-github-text-secondary flex-1 break-words">
+                            {commit.message}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {filteredBranches.length > 0 && (
+                  <div className="border-b border-github-border">
+                    <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
+                      Branches
+                    </div>
+                    {filteredBranches.map((branch) => (
+                      <button
+                        key={branch.name}
+                        onClick={() => handleSelect(branchSelection(branch.name))}
+                        className={getItemClasses(
+                          isPresetActive(branchSelection(branch.name)),
+                          false,
+                        )}
+                        type="button"
+                        title={`${branch.name}...Uncommitted (merge-base)`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-github-text-primary">{branch.name}</span>
+                          {branch.current && (
+                            <span className="text-xs text-github-text-muted">(current)</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {hasNoMatches && (
+                  <div className="px-3 py-4 text-center text-xs text-github-text-muted">
+                    No matching branches or commits
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="border-b border-github-border">
+                  <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
+                    Quick Diffs
+                  </div>
+                  {presetItems
+                    .filter((item) => item.key !== 'previous')
+                    .map((item) => (
+                      <button
+                        key={item.key}
+                        onClick={() => handleSelect(item.selection)}
+                        className={getItemClasses(isPresetActive(item.selection), false)}
+                        type="button"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                 </div>
-              </button>
-            </div>
 
-            <div>
-              <button
-                onClick={handleOpenAdvanced}
-                className={getItemClasses(false, false)}
-                type="button"
-              >
-                Detailed...
-              </button>
-            </div>
+                <div className="border-b border-github-border">
+                  <button
+                    onClick={() => handleSelect(previousCommitPreset)}
+                    className={getItemClasses(isPresetActive(previousCommitPreset), false)}
+                    type="button"
+                  >
+                    Previous commit
+                  </button>
+                </div>
+
+                <div className="border-b border-github-border">
+                  <button
+                    ref={options.commits.length > 0 ? commitRefs.setReference : undefined}
+                    className={getItemClasses(false, options.commits.length === 0)}
+                    {...(options.commits.length > 0 ? getCommitReferenceProps() : {})}
+                    disabled={options.commits.length === 0}
+                    type="button"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronLeft size={12} className="text-github-text-secondary" />
+                      <span>Pick Commit...</span>
+                    </div>
+                  </button>
+                </div>
+
+                <div>
+                  <button
+                    onClick={handleOpenAdvanced}
+                    className={getItemClasses(false, false)}
+                    type="button"
+                  >
+                    Detailed...
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </FloatingPortal>
       )}
