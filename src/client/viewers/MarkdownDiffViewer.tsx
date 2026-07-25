@@ -7,7 +7,7 @@ import { FrontmatterTable } from '../components/FrontmatterTable';
 import { MermaidDiagram } from '../components/MermaidDiagram';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
-import { extractFrontmatter } from '../utils/frontmatter';
+import { extractFrontmatter, getFrontmatterLines } from '../utils/frontmatter';
 import { computeFrontmatterDiff } from '../utils/frontmatterDiff';
 import { extractMarkdownText, isElementWithCodeProps, isSafeUrl } from '../utils/markdownUtils';
 
@@ -122,6 +122,87 @@ const buildPreviewBlocks = (chunks: MergedChunk[]): PreviewBlock[] => {
   });
 
   return blocks;
+};
+
+const stripCarriageReturn = (line: string) => line.replace(/\r$/, '');
+
+/**
+ * Removes the leading YAML frontmatter lines from the diff preview blocks so the
+ * `---` delimiters and raw YAML are not rendered as markdown below the dedicated
+ * frontmatter table. Deleted lines are matched against the base frontmatter,
+ * added/changed lines against the target frontmatter, and context lines against
+ * both. Matching is content-verified: as soon as a line no longer matches the
+ * expected frontmatter (e.g. the diff starts below the frontmatter, so the first
+ * lines are body content), stripping stops and the remaining blocks are kept
+ * untouched.
+ */
+const stripFrontmatterBlocks = (
+  blocks: PreviewBlock[],
+  baseLines: string[],
+  targetLines: string[],
+): PreviewBlock[] => {
+  if (baseLines.length === 0 && targetLines.length === 0) {
+    return blocks;
+  }
+
+  let baseIndex = 0;
+  let targetIndex = 0;
+  let stripping = true;
+  const result: PreviewBlock[] = [];
+
+  for (const block of blocks) {
+    if (!stripping) {
+      result.push(block);
+      continue;
+    }
+
+    const keptLines: string[] = [];
+
+    for (const rawLine of block.lines) {
+      if (!stripping) {
+        keptLines.push(rawLine);
+        continue;
+      }
+
+      const line = stripCarriageReturn(rawLine);
+      const baseMatches = baseIndex < baseLines.length && baseLines[baseIndex] === line;
+      const targetMatches = targetIndex < targetLines.length && targetLines[targetIndex] === line;
+
+      let matched = false;
+      if (block.type === 'delete') {
+        matched = baseMatches;
+        if (matched) baseIndex += 1;
+      } else if (block.type === 'add' || block.type === 'change') {
+        matched = targetMatches;
+        if (matched) targetIndex += 1;
+      } else {
+        // context: the line is unchanged, so it must sit within the frontmatter
+        // on every side that actually has frontmatter.
+        matched =
+          (baseLines.length === 0 || baseMatches) && (targetLines.length === 0 || targetMatches);
+        if (matched) {
+          if (baseMatches) baseIndex += 1;
+          if (targetMatches) targetIndex += 1;
+        }
+      }
+
+      if (!matched) {
+        stripping = false;
+        keptLines.push(rawLine);
+        continue;
+      }
+
+      if (baseIndex >= baseLines.length && targetIndex >= targetLines.length) {
+        stripping = false;
+      }
+    }
+
+    if (keptLines.length > 0) {
+      result.push({ type: block.type, lines: keptLines });
+    }
+  }
+
+  return result;
 };
 
 const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme']) => ({
@@ -408,62 +489,83 @@ const MarkdownDiffPreview = ({
   fileStatus: DiffFile['status'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
-  const renderBlocks = useMemo(() => buildRenderBlocks(blocks), [blocks]);
 
   const frontmatterView = useMemo(() => {
-    const baseData = baseContent !== null ? extractFrontmatter(baseContent).data : null;
-    const targetData = targetContent !== null ? extractFrontmatter(targetContent).data : null;
-
     const baseAvailable = baseContent !== null;
     const targetAvailable = targetContent !== null;
+    const baseData = baseAvailable ? extractFrontmatter(baseContent).data : null;
+    const targetData = targetAvailable ? extractFrontmatter(targetContent).data : null;
 
-    if (fileStatus === 'added') {
-      if (!targetAvailable) return null;
-      const entries = computeFrontmatterDiff(null, targetData);
-      if (entries.length === 0) return null;
-      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
+    // When both sides needed for the diff are available we render a structured
+    // table and strip the raw frontmatter lines from the preview blocks below.
+    const canDiff =
+      fileStatus === 'added'
+        ? targetAvailable
+        : fileStatus === 'deleted'
+          ? baseAvailable
+          : baseAvailable && targetAvailable;
+
+    if (canDiff) {
+      const stripBaseLines = fileStatus === 'added' ? [] : getFrontmatterLines(baseContent ?? '');
+      const stripTargetLines =
+        fileStatus === 'deleted' ? [] : getFrontmatterLines(targetContent ?? '');
+      const baseInput = fileStatus === 'added' ? null : baseData;
+      const targetInput = fileStatus === 'deleted' ? null : targetData;
+      const entries = computeFrontmatterDiff(baseInput, targetInput);
+      const view =
+        entries.length > 0 ? (
+          <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />
+        ) : null;
+      return { view, stripBaseLines, stripTargetLines };
     }
 
-    if (fileStatus === 'deleted') {
-      if (!baseAvailable) return null;
-      const entries = computeFrontmatterDiff(baseData, null);
-      if (entries.length === 0) return null;
-      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
-    }
-
-    // modified / renamed
-    if (baseAvailable && targetAvailable) {
-      const entries = computeFrontmatterDiff(baseData, targetData);
-      if (entries.length === 0) return null;
-      return <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />;
-    }
-
-    // partial fetch failure or stdin — snapshot fallback with explanatory label
+    // partial fetch failure or stdin — snapshot fallback with explanatory label.
+    // The raw frontmatter lines are retained in the preview blocks.
     if (targetAvailable && targetData !== null) {
-      return (
-        <FrontmatterTable
-          mode="snapshot"
-          data={targetData}
-          label="Frontmatter (target only — base unavailable)"
-        />
-      );
+      return {
+        view: (
+          <FrontmatterTable
+            mode="snapshot"
+            data={targetData}
+            label="Frontmatter (target only — base unavailable)"
+          />
+        ),
+        stripBaseLines: [] as string[],
+        stripTargetLines: [] as string[],
+      };
     }
     if (baseAvailable && baseData !== null) {
-      return (
-        <FrontmatterTable
-          mode="snapshot"
-          data={baseData}
-          label="Frontmatter (base only — target unavailable)"
-        />
-      );
+      return {
+        view: (
+          <FrontmatterTable
+            mode="snapshot"
+            data={baseData}
+            label="Frontmatter (base only — target unavailable)"
+          />
+        ),
+        stripBaseLines: [] as string[],
+        stripTargetLines: [] as string[],
+      };
     }
 
-    return null;
+    return { view: null, stripBaseLines: [] as string[], stripTargetLines: [] as string[] };
   }, [baseContent, targetContent, fileStatus]);
+
+  const renderBlocks = useMemo(
+    () =>
+      buildRenderBlocks(
+        stripFrontmatterBlocks(
+          blocks,
+          frontmatterView.stripBaseLines,
+          frontmatterView.stripTargetLines,
+        ),
+      ),
+    [blocks, frontmatterView.stripBaseLines, frontmatterView.stripTargetLines],
+  );
 
   return (
     <div className="space-y-4">
-      {frontmatterView}
+      {frontmatterView.view}
       {renderBlocks.map((block, index) => {
         if (block.kind === 'fenced-code') {
           return (

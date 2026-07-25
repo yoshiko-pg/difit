@@ -146,6 +146,47 @@ const codeFenceDiffChunks: MergedChunk[] = [
   },
 ];
 
+const frontmatterChangedChunks: MergedChunk[] = [
+  {
+    header: '@@ -1,5 +1,5 @@',
+    oldStart: 1,
+    oldLines: 5,
+    newStart: 1,
+    newLines: 5,
+    lines: [
+      { type: 'context', content: '---', oldLineNumber: 1, newLineNumber: 1 },
+      { type: 'delete', content: 'title: Old', oldLineNumber: 2, newLineNumber: undefined },
+      { type: 'add', content: 'title: New', oldLineNumber: undefined, newLineNumber: 2 },
+      { type: 'context', content: '---', oldLineNumber: 3, newLineNumber: 3 },
+      { type: 'context', content: '', oldLineNumber: 4, newLineNumber: 4 },
+      { type: 'context', content: '# Heading', oldLineNumber: 5, newLineNumber: 5 },
+      { type: 'context', content: 'Body text here.', oldLineNumber: 6, newLineNumber: 6 },
+    ],
+    originalIndices: [0, 1, 2, 3, 4, 5, 6],
+    hiddenLinesBefore: 0,
+    hiddenLinesAfter: 0,
+  },
+];
+
+const bodyOnlyChangeChunks: MergedChunk[] = [
+  {
+    header: '@@ -5,4 +5,4 @@',
+    oldStart: 5,
+    oldLines: 4,
+    newStart: 5,
+    newLines: 4,
+    lines: [
+      { type: 'context', content: '# Heading', oldLineNumber: 5, newLineNumber: 5 },
+      { type: 'context', content: '', oldLineNumber: 6, newLineNumber: 6 },
+      { type: 'delete', content: 'Old body text.', oldLineNumber: 7, newLineNumber: undefined },
+      { type: 'add', content: 'New body text.', oldLineNumber: undefined, newLineNumber: 7 },
+    ],
+    originalIndices: [0, 1, 2, 3],
+    hiddenLinesBefore: 4,
+    hiddenLinesAfter: 0,
+  },
+];
+
 const setMatchMedia = (matches: boolean) => {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -534,6 +575,65 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
     expect(screen.getAllByText('published')).toHaveLength(1);
     expect(screen.getByText('false')).toBeInTheDocument();
     expect(screen.getByText('true')).toBeInTheDocument();
+  });
+
+  it('does not render the changed frontmatter lines as markdown below the table', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: Old\n---\n\n# Heading\nBody text here.\n',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: New\n---\n\n# Heading\nBody text here.\n',
+      });
+
+    const { container } = renderViewer({ mergedChunks: frontmatterChangedChunks });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    // Frontmatter change is shown in the structured table…
+    expect(await screen.findByText('Old')).toBeInTheDocument();
+    expect(screen.getByText('New')).toBeInTheDocument();
+    expect(screen.getByText('title')).toBeInTheDocument();
+
+    // …and the raw frontmatter delimiters are stripped from the preview blocks,
+    // so no stray <hr> is rendered from the `---` lines.
+    expect(container.querySelector('hr')).toBeNull();
+
+    // Body content following the frontmatter is still rendered.
+    expect(screen.getByText('Heading')).toBeInTheDocument();
+    expect(screen.getByText('Body text here.')).toBeInTheDocument();
+  });
+
+  it('keeps body content when the diff starts below unchanged frontmatter', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: Same\n---\n\n# Heading\n\nOld body text.\n',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: Same\n---\n\n# Heading\n\nNew body text.\n',
+      });
+
+    renderViewer({ mergedChunks: bodyOnlyChangeChunks });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    // Unchanged frontmatter yields no diff table, and the leading body lines of
+    // the hunk must not be mistaken for frontmatter and stripped away.
+    expect(await screen.findByText('Heading')).toBeInTheDocument();
+    expect(screen.getByText('Old body text.')).toBeInTheDocument();
+    expect(screen.getByText('New body text.')).toBeInTheDocument();
   });
 
   it('renders no frontmatter table when neither side has frontmatter', async () => {

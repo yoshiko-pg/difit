@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { extractFrontmatter } from './frontmatter';
+import { extractFrontmatter, getFrontmatterLines } from './frontmatter';
 
 describe('extractFrontmatter', () => {
   it('returns null data when there is no frontmatter', () => {
@@ -35,5 +35,29 @@ describe('extractFrontmatter', () => {
   it('returns empty content when the body is empty', () => {
     const text = '---\ntitle: X\n---\n';
     expect(extractFrontmatter(text)).toEqual({ data: { title: 'X' }, content: '' });
+  });
+});
+
+describe('getFrontmatterLines', () => {
+  it('returns an empty array when there is no frontmatter', () => {
+    expect(getFrontmatterLines('# Hello\n\nBody.')).toEqual([]);
+  });
+
+  it('returns the delimiter and body lines of the frontmatter block', () => {
+    const text = '---\ntitle: Hello\npublished: true\n---\nBody text.';
+    expect(getFrontmatterLines(text)).toEqual(['---', 'title: Hello', 'published: true', '---']);
+  });
+
+  it('includes both delimiters for empty frontmatter', () => {
+    expect(getFrontmatterLines('---\n---\nBody.')).toEqual(['---', '---']);
+  });
+
+  it('handles frontmatter at end of file without a trailing newline', () => {
+    expect(getFrontmatterLines('---\ntitle: X\n---')).toEqual(['---', 'title: X', '---']);
+  });
+
+  it('strips carriage returns from CRLF frontmatter', () => {
+    const text = '---\r\ntitle: X\r\n---\r\nBody.';
+    expect(getFrontmatterLines(text)).toEqual(['---', 'title: X', '---']);
   });
 });
