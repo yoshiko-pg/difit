@@ -1,13 +1,4 @@
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Copy,
-  Edit2,
-  MessageSquare,
-  MessageSquareReply,
-  Trash2,
-} from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Copy, Edit2, MessageSquare, Trash2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { type CommentThread, type DiffCommentMessage } from '../../types/diff';
@@ -324,18 +315,6 @@ export function CommentThreadCard({
                 {isCopied ? 'Copied!' : 'Copy Prompt'}
               </span>
             </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsReplying((prev) => !prev);
-              }}
-              aria-label="Reply"
-              className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
-              title="Reply to thread"
-            >
-              <MessageSquareReply size={14} />
-            </button>
           </div>
         )}
       </div>
@@ -371,11 +350,11 @@ export function CommentThreadCard({
             </div>
           ))}
 
-          {isReplying && (
-            <div
-              className="ml-4 border-l border-github-border pl-3"
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div
+            className="ml-4 border-l border-github-border pl-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {isReplying ? (
               <CommentForm
                 onSubmit={async (body) => {
                   await onReplyToThread(thread.id, body);
@@ -390,8 +369,18 @@ export function CommentThreadCard({
                 submitLabel="Reply"
                 placeholder="Write a reply..."
               />
-            </div>
-          )}
+            ) : (
+              <button
+                type="button"
+                data-reply-trigger="true"
+                onFocus={() => setIsReplying(true)}
+                onClick={() => setIsReplying(true)}
+                className="w-full cursor-text rounded border border-github-border bg-github-bg-secondary px-3 py-1.5 text-left text-sm text-github-text-muted transition-colors hover:border-github-text-secondary"
+              >
+                Write a reply...
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
