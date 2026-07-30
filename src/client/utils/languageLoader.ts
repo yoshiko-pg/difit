@@ -37,6 +37,8 @@ export function loadPrismLanguage(lang: string): Promise<void> {
       clojure: () => import('prismjs/components/prism-clojure.js'),
       gdscript: () => import('prismjs/components/prism-gdscript.js'),
       groovy: () => import('prismjs/components/prism-groovy.js'),
+      // Svelte grammar ships as a third-party plugin (not in prismjs core);
+      // it extends markup and embeds js/css, all available by default.
       svelte: () => import('prism-svelte'),
     };
 
