@@ -39,6 +39,7 @@ export function loadPrismLanguage(lang: string): Promise<void> {
       // Svelte grammar ships as a third-party plugin (not in prismjs core);
       // it extends markup and embeds js/css, all available by default.
       svelte: () => import('prism-svelte'),
+      groovy: () => import('prismjs/components/prism-groovy.js'),
     };
 
     const importFn = languageImports[lang];

@@ -53,6 +53,11 @@ const DIFF_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   cljc: 'clojure',
   edn: 'clojure',
   gd: 'gdscript',
+  groovy: 'groovy',
+  gvy: 'groovy',
+  gy: 'groovy',
+  gsh: 'groovy',
+  gradle: 'groovy',
 };
 
 // Prism syntax highlighting: use Prism language IDs (e.g. tsx -> tsx, scss -> css).
@@ -122,6 +127,11 @@ const PRISM_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   cljc: 'clojure',
   edn: 'clojure',
   gd: 'gdscript',
+  groovy: 'groovy',
+  gvy: 'groovy',
+  gy: 'groovy',
+  gsh: 'groovy',
+  gradle: 'groovy',
 };
 
 const PRISM_FILENAME_LANGUAGE_MAP: Record<string, string> = {
