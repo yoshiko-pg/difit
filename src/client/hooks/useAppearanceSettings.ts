@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 import {
   DEFAULT_EDITOR_OPTION,
@@ -6,6 +6,7 @@ import {
   resolveEditorOption,
 } from '../../utils/editorOptions';
 import type { AppearanceSettings } from '../components/SettingsModal';
+import { fetchClientSettings, saveClientSettings } from '../services/userSettings';
 import { normalizeAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import {
   APPEARANCE_STORAGE_KEY,
@@ -69,6 +70,27 @@ const normalizeEditorSettings = (raw: unknown): AppearanceSettings['editor'] => 
   return DEFAULT_SETTINGS.editor;
 };
 
+// Key for appearance settings inside the server-persisted client settings object.
+const APPEARANCE_SETTINGS_KEY = 'appearance';
+
+const normalizeStoredSettings = (raw: unknown): AppearanceSettings | null => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+
+  const parsed = raw as Partial<AppearanceSettings> & {
+    autoViewedPatterns?: unknown;
+    editor?: unknown;
+  };
+
+  return {
+    ...DEFAULT_SETTINGS,
+    ...parsed,
+    editor: normalizeEditorSettings(parsed.editor),
+    autoViewedPatterns: normalizeAutoViewedPatterns(parsed.autoViewedPatterns),
+  };
+};
+
 interface UseAppearanceSettingsReturn {
   settings: AppearanceSettings;
   updateSettings: (newSettings: AppearanceSettings) => void;
@@ -79,23 +101,58 @@ export function useAppearanceSettings(): UseAppearanceSettingsReturn {
     try {
       const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as Partial<AppearanceSettings> & {
-          autoViewedPatterns?: unknown;
-          editor?: unknown;
-        };
-
-        return {
-          ...DEFAULT_SETTINGS,
-          ...parsed,
-          editor: normalizeEditorSettings(parsed.editor),
-          autoViewedPatterns: normalizeAutoViewedPatterns(parsed.autoViewedPatterns),
-        };
+        const normalized = normalizeStoredSettings(JSON.parse(stored));
+        if (normalized) {
+          return normalized;
+        }
       }
     } catch (error) {
       console.warn('Failed to load appearance settings from localStorage:', error);
     }
     return DEFAULT_SETTINGS;
   });
+
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  // Hydrate from the server-persisted settings (shared across ports); if the
+  // server has none yet but localStorage does, seed the server from it.
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchClientSettings().then((client) => {
+      if (cancelled || !client) {
+        return;
+      }
+
+      const remote = normalizeStoredSettings(client[APPEARANCE_SETTINGS_KEY]);
+      if (remote) {
+        setSettings(remote);
+        try {
+          localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(remote));
+        } catch {
+          // localStorage is only a cache here; ignore write failures.
+        }
+        return;
+      }
+
+      let hasLocalSettings = false;
+      try {
+        hasLocalSettings = localStorage.getItem(APPEARANCE_STORAGE_KEY) !== null;
+      } catch {
+        // Treat unreadable localStorage as empty.
+      }
+      if (hasLocalSettings) {
+        saveClientSettings({ [APPEARANCE_SETTINGS_KEY]: settingsRef.current });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const applyTheme = useCallback(
     (theme: 'light' | 'dark', colorVision: ColorVisionMode = 'normal') => {
@@ -110,6 +167,7 @@ export function useAppearanceSettings(): UseAppearanceSettingsReturn {
     } catch (error) {
       console.warn('Failed to save appearance settings to localStorage:', error);
     }
+    saveClientSettings({ [APPEARANCE_SETTINGS_KEY]: newSettings });
   }, []);
 
   const getSettingsForResolvedTheme = useCallback(

@@ -1,3 +1,7 @@
+import { promises as fs } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Set environment variable to skip fetch mocking
@@ -460,6 +464,31 @@ describe('Server Integration Tests', () => {
       expect(data).toHaveProperty('openInEditorAvailable', true);
       expect(data).toHaveProperty('requestedBaseCommitish', 'HEAD^');
       expect(data).toHaveProperty('requestedTargetCommitish', 'HEAD');
+    });
+
+    it('GET /api/diff returns a JSON 500 on parse failure and does not poison subsequent requests', async () => {
+      const parser = parserInstances.at(-1);
+      parser?.parseDiff.mockClear();
+      parser?.parseDiff.mockRejectedValueOnce(
+        new Error('Failed to parse diff for nonexistent vs HEAD: unknown revision'),
+      );
+
+      const errorResponse = await fetch(`http://localhost:${port}/api/diff?target=nonexistent`);
+      expect(errorResponse.status).toBe(500);
+      expect(errorResponse.headers.get('content-type')).toContain('application/json');
+      const errorBody = (await errorResponse.json()) as any;
+      expect(typeof errorBody.error).toBe('string');
+
+      const recoveredResponse = await fetch(
+        `http://localhost:${port}/api/diff?ignoreWhitespace=true`,
+      );
+      expect(recoveredResponse.status).toBe(200);
+
+      expect(parser?.parseDiff).toHaveBeenLastCalledWith(
+        { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
+        true,
+        undefined,
+      );
     });
 
     it('GET /api/diff?ignoreWhitespace=true handles whitespace ignore', async () => {
@@ -1036,6 +1065,83 @@ describe('Server Integration Tests', () => {
       expect(data.error).toContain('does-not-exist');
     });
 
+    describe('user settings API', () => {
+      const originalConfigDir = process.env.DIFIT_CONFIG_DIR;
+      let configDir: string;
+
+      beforeEach(async () => {
+        configDir = await fs.mkdtemp(join(tmpdir(), 'difit-user-settings-'));
+        process.env.DIFIT_CONFIG_DIR = configDir;
+      });
+
+      afterEach(async () => {
+        if (originalConfigDir === undefined) {
+          delete process.env.DIFIT_CONFIG_DIR;
+        } else {
+          process.env.DIFIT_CONFIG_DIR = originalConfigDir;
+        }
+        await fs.rm(configDir, { recursive: true, force: true });
+      });
+
+      it('GET /api/user-settings returns defaults when no config exists', async () => {
+        const response = await fetch(`http://localhost:${port}/api/user-settings`);
+
+        expect(response.ok).toBe(true);
+        const data = (await response.json()) as any;
+        expect(data).toEqual({ version: 1, client: {} });
+      });
+
+      it('PUT /api/user-settings merges and persists client settings', async () => {
+        const first = await fetch(`http://localhost:${port}/api/user-settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client: { diffViewMode: 'split', sidebarWidth: 320 },
+          }),
+        });
+        expect(first.ok).toBe(true);
+
+        const second = await fetch(`http://localhost:${port}/api/user-settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client: { sidebarWidth: 400 } }),
+        });
+        expect(second.ok).toBe(true);
+        const merged = (await second.json()) as any;
+        expect(merged.client).toEqual({
+          diffViewMode: 'split',
+          sidebarWidth: 400,
+        });
+
+        const getResponse = await fetch(`http://localhost:${port}/api/user-settings`);
+        const data = (await getResponse.json()) as any;
+        expect(data.client).toEqual({
+          diffViewMode: 'split',
+          sidebarWidth: 400,
+        });
+
+        const stored = JSON.parse(
+          await fs.readFile(join(configDir, 'config.json'), 'utf-8'),
+        ) as any;
+        expect(stored.client).toEqual({
+          diffViewMode: 'split',
+          sidebarWidth: 400,
+        });
+      });
+
+      it('PUT /api/user-settings rejects invalid payloads', async () => {
+        const response = await fetch(`http://localhost:${port}/api/user-settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client: 'dark' }),
+        });
+
+        expect(response.status).toBe(400);
+        const data = (await response.json()) as any;
+        expect(data).toHaveProperty('error');
+      });
+    });
+
     it('isolates comment sessions between different diff selections', async () => {
       const importServer = await startServer({
         selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
@@ -1258,12 +1364,6 @@ describe('Server Integration Tests', () => {
   });
 
   describe('Error handling', () => {
-    it.skip('handles invalid commit gracefully', async () => {
-      // This test is skipped due to mocking complexity
-      // The validation happens during server startup and is hard to mock properly
-      expect(true).toBe(true);
-    });
-
     it('handles malformed comment data', async () => {
       const result = await startServer({
         selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },

@@ -27,6 +27,7 @@ import { getFileExtension } from '../utils/fileUtils.js';
 
 import { FileWatcherService } from './file-watcher.js';
 import { GitDiffParser } from './git-diff.js';
+import { parseUserSettingsPatch, readUserConfig, updateUserClientSettings } from './user-config.js';
 
 import {
   type BaseMode,
@@ -306,7 +307,6 @@ export async function startServer(
     const shouldIncludeCommentImports =
       initialCommentImports.length > 0 &&
       (Boolean(options.stdinDiff) || diffSelectionsEqual(requestedSelection, initialSelection));
-    currentSelection = requestedSelection;
 
     let responseDiffData = initialDiffData;
     if (!options.stdinDiff) {
@@ -315,15 +315,25 @@ export async function startServer(
       if (cached) {
         responseDiffData = cached;
       } else {
-        responseDiffData = await parser.parseDiff(
-          requestedSelection,
-          ignoreWhitespace,
-          options.contextLines,
-        );
+        try {
+          responseDiffData = await parser.parseDiff(
+            requestedSelection,
+            ignoreWhitespace,
+            options.contextLines,
+          );
+        } catch (error) {
+          console.error('Error fetching diff:', error);
+          res.status(500).json({
+            error: error instanceof Error ? error.message : 'Failed to fetch diff',
+          });
+          return;
+        }
         setCachedDiffResponse(diffDataCache, cacheKey, responseDiffData);
         generatedStatusCache.clear();
       }
     }
+
+    currentSelection = requestedSelection;
 
     currentCommentSelection = createResolvedCommentSelection(
       responseDiffData,
@@ -814,6 +824,34 @@ export async function startServer(
       res.send(output);
     } else {
       res.send('');
+    }
+  });
+
+  app.get('/api/user-settings', async (_req, res) => {
+    const config = await readUserConfig();
+    res.json(config);
+  });
+
+  app.put('/api/user-settings', async (req, res) => {
+    let patch: Record<string, unknown> | null;
+    try {
+      const body: unknown = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      patch = parseUserSettingsPatch(body);
+    } catch {
+      patch = null;
+    }
+
+    if (!patch) {
+      res.status(400).json({ error: 'Invalid user settings payload' });
+      return;
+    }
+
+    try {
+      const config = await updateUserClientSettings(patch);
+      res.json(config);
+    } catch (error) {
+      console.error('Error saving user settings:', error);
+      res.status(500).json({ error: 'Failed to save user settings' });
     }
   });
 

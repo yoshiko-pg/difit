@@ -42,6 +42,7 @@ import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { useLazyDiffRendering } from './hooks/useLazyDiffRendering';
 import { useViewedFiles } from './hooks/useViewedFiles';
 import { useViewport } from './hooks/useViewport';
+import { fetchClientSettings, saveClientSettings } from './services/userSettings';
 import { hasMultipleCommentAuthors } from './utils/commentAuthors';
 import { copyTextToClipboard } from './utils/clipboard';
 import { getFileElementId } from './utils/domUtils';
@@ -63,25 +64,25 @@ const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
 const SIDEBAR_DEFAULT_WIDTH = 280;
 
+const parseDiffViewMode = (value: unknown): DiffViewMode | null => {
+  switch (value) {
+    case 'split':
+    case 'side-by-side':
+    case 'unified':
+    case 'inline':
+      return normalizeDiffViewMode(value);
+    default:
+      return null;
+  }
+};
+
 const getStoredDiffViewMode = (): DiffViewMode | null => {
   if (typeof window === 'undefined') {
     return null;
   }
 
   try {
-    const stored = window.localStorage.getItem(DIFF_VIEW_MODE_STORAGE_KEY);
-    if (stored === null) {
-      return null;
-    }
-    switch (stored) {
-      case 'split':
-      case 'side-by-side':
-      case 'unified':
-      case 'inline':
-        return normalizeDiffViewMode(stored);
-      default:
-        return null;
-    }
+    return parseDiffViewMode(window.localStorage.getItem(DIFF_VIEW_MODE_STORAGE_KEY));
   } catch {
     return null;
   }
@@ -89,37 +90,41 @@ const getStoredDiffViewMode = (): DiffViewMode | null => {
 
 const getInitialDiffViewMode = () => getStoredDiffViewMode() ?? DEFAULT_DIFF_VIEW_MODE;
 
-const getInitialSidebarWidth = () => {
+const clampSidebarWidth = (width: number) =>
+  Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
+
+const getStoredSidebarWidth = (): number | null => {
   if (typeof window === 'undefined') {
-    return SIDEBAR_DEFAULT_WIDTH;
+    return null;
   }
   const stored = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
   if (!stored) {
-    return SIDEBAR_DEFAULT_WIDTH;
+    return null;
   }
   const parsed = Number.parseInt(stored, 10);
   if (!Number.isFinite(parsed)) {
-    return SIDEBAR_DEFAULT_WIDTH;
+    return null;
   }
-  return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, parsed));
+  return clampSidebarWidth(parsed);
 };
 
-const getInitialFileTreeOpen = () => {
+const getInitialSidebarWidth = () => getStoredSidebarWidth() ?? SIDEBAR_DEFAULT_WIDTH;
+
+const getStoredSidebarOpen = (): boolean | null => {
   if (typeof window === 'undefined') {
-    return true;
+    return null;
   }
   const stored = window.localStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY);
-  if (stored === null) {
-    return true;
-  }
   if (stored === 'true') {
     return true;
   }
   if (stored === 'false') {
     return false;
   }
-  return true;
+  return null;
 };
+
+const getInitialFileTreeOpen = () => getStoredSidebarOpen() ?? true;
 
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
@@ -443,6 +448,7 @@ function App() {
     } catch {
       // Ignore localStorage errors (e.g. disabled storage).
     }
+    saveClientSettings({ diffViewMode: mode });
   }, []);
 
   // Lift expand state to App level so navigation and rendering share the same merged chunks
@@ -766,20 +772,84 @@ function App() {
     }
   }, [diffMode, isMobile]);
 
+  // Hydrate UI settings from the server-persisted config so they survive
+  // across ports (localStorage is origin-scoped and resets on a new port).
+  // Settings the server doesn't know yet are seeded from localStorage.
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchClientSettings().then((client) => {
+      if (cancelled || !client) {
+        return;
+      }
+
+      const seed: Record<string, unknown> = {};
+
+      const remoteDiffViewMode = parseDiffViewMode(client.diffViewMode);
+      if (remoteDiffViewMode) {
+        setDiffMode(remoteDiffViewMode);
+      } else {
+        const localDiffViewMode = getStoredDiffViewMode();
+        if (localDiffViewMode) {
+          seed.diffViewMode = localDiffViewMode;
+        }
+      }
+
+      if (typeof client.sidebarWidth === 'number' && Number.isFinite(client.sidebarWidth)) {
+        setSidebarWidth(clampSidebarWidth(client.sidebarWidth));
+      } else {
+        const localSidebarWidth = getStoredSidebarWidth();
+        if (localSidebarWidth !== null) {
+          seed.sidebarWidth = localSidebarWidth;
+        }
+      }
+
+      if (typeof client.sidebarOpen === 'boolean') {
+        setIsFileTreeOpen(client.sidebarOpen);
+      } else {
+        const localSidebarOpen = getStoredSidebarOpen();
+        if (localSidebarOpen !== null) {
+          seed.sidebarOpen = localSidebarOpen;
+        }
+      }
+
+      if (Object.keys(seed).length > 0) {
+        saveClientSettings(seed);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const skipInitialSidebarWidthSaveRef = useRef(true);
   useEffect(() => {
     try {
       window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth));
     } catch {
       // Ignore localStorage errors (e.g. disabled storage).
     }
+    // Skip the mount run so simply opening difit doesn't write the config file.
+    if (skipInitialSidebarWidthSaveRef.current) {
+      skipInitialSidebarWidthSaveRef.current = false;
+      return;
+    }
+    saveClientSettings({ sidebarWidth });
   }, [sidebarWidth]);
 
+  const skipInitialSidebarOpenSaveRef = useRef(true);
   useEffect(() => {
     try {
       window.localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, String(isFileTreeOpen));
     } catch {
       // Ignore localStorage errors (e.g. disabled storage).
     }
+    if (skipInitialSidebarOpenSaveRef.current) {
+      skipInitialSidebarOpenSaveRef.current = false;
+      return;
+    }
+    saveClientSettings({ sidebarOpen: isFileTreeOpen });
   }, [isFileTreeOpen]);
 
   // Fetch revision options on mount

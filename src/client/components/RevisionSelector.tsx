@@ -4,6 +4,7 @@ import {
   offset,
   flip,
   shift,
+  size,
   useHover,
   useClick,
   useFocus,
@@ -14,8 +15,8 @@ import {
   FloatingPortal,
   safePolygon,
 } from '@floating-ui/react';
-import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, Search } from 'lucide-react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 
 import { type RevisionsResponse } from '../../types/diff';
 
@@ -40,11 +41,28 @@ export function RevisionSelector({
   disabledValues = EMPTY_DISABLED_VALUES,
 }: RevisionSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
-    onOpenChange: setIsOpen,
-    middleware: [offset(4), flip(), shift({ padding: 8 })],
+    onOpenChange: (open) => {
+      setIsOpen(open);
+      if (!open) setQuery('');
+    },
+    middleware: [
+      offset(4),
+      flip(),
+      shift({ padding: 8 }),
+      // Cap the dropdown height to the space actually available so the sticky
+      // search box is never pushed out of the viewport.
+      size({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          elements.floating.style.maxHeight = `${Math.min(400, availableHeight)}px`;
+        },
+      }),
+    ],
     whileElementsMounted: autoUpdate,
   });
 
@@ -92,6 +110,43 @@ export function RevisionSelector({
   const handleSelect = (newValue: string) => {
     onChange(newValue);
     setIsOpen(false);
+    setQuery('');
+  };
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const matchesQuery = (...texts: string[]) =>
+    normalizedQuery.length === 0 ||
+    texts.some((text) => text.toLowerCase().includes(normalizedQuery));
+
+  const filteredSpecialOptions = visibleSpecialOptions.filter((opt) =>
+    matchesQuery(opt.label, opt.value),
+  );
+  const filteredCommits = isWorkingStagedMode
+    ? []
+    : options.commits.filter((commit) =>
+        matchesQuery(commit.shortHash, commit.hash, commit.message),
+      );
+  const filteredBranches = isWorkingStagedMode
+    ? []
+    : options.branches.filter((branch) => matchesQuery(branch.name));
+
+  const hasNoMatches =
+    filteredSpecialOptions.length === 0 &&
+    filteredCommits.length === 0 &&
+    filteredBranches.length === 0;
+
+  // Select the first enabled match when pressing Enter in the search box
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+
+    const firstMatch =
+      filteredSpecialOptions.find((opt) => !isDisabled(opt.value))?.value ??
+      filteredCommits.find((commit) => !isDisabled(commit.shortHash))?.shortHash ??
+      filteredBranches.find((branch) => !isDisabled(branch.name))?.name;
+    if (firstMatch !== undefined) {
+      handleSelect(firstMatch);
+    }
   };
 
   // Check if a value is disabled
@@ -122,35 +177,6 @@ export function RevisionSelector({
     return shortHash === resolvedValue || hash === resolvedValue;
   };
 
-  // Calculate initial focus index for the current value
-  const getInitialFocusIndex = (): number => {
-    let index = 0;
-
-    // Check special options
-    const specialIndex = visibleSpecialOptions.findIndex((opt) => opt.value === value);
-    if (specialIndex !== -1) {
-      return specialIndex;
-    }
-    index += visibleSpecialOptions.length;
-
-    // Check commits (only if not in working/staged mode)
-    if (!isWorkingStagedMode) {
-      const commitIndex = options.commits.findIndex((c) => c.shortHash === value);
-      if (commitIndex !== -1) {
-        return index + commitIndex;
-      }
-      index += options.commits.length;
-
-      // Check branches
-      const branchIndex = options.branches.findIndex((b) => b.name === value);
-      if (branchIndex !== -1) {
-        return index + branchIndex;
-      }
-    }
-
-    return 0; // Default to first item
-  };
-
   return (
     <>
       <button
@@ -175,24 +201,37 @@ export function RevisionSelector({
 
       {isOpen && (
         <FloatingPortal>
-          <FloatingFocusManager
-            context={context}
-            modal={false}
-            initialFocus={getInitialFocusIndex()}
-          >
+          <FloatingFocusManager context={context} modal={false} initialFocus={searchInputRef}>
             <div
               ref={refs.setFloating}
               style={floatingStyles}
-              className="bg-github-bg-secondary border border-github-border rounded shadow-lg z-50 w-[360px] max-h-[400px] overflow-y-auto"
+              className="bg-github-bg-secondary border border-github-border rounded shadow-lg z-50 w-[360px] overflow-y-auto"
               {...getFloatingProps()}
             >
+              {/* Search box */}
+              <div className="sticky top-0 z-10 border-b border-github-border bg-github-bg-secondary p-2">
+                <div className="flex items-center gap-2 rounded border border-github-border bg-github-bg-primary px-2 py-1.5 focus-within:border-blue-600">
+                  <Search size={12} className="shrink-0 text-github-text-secondary" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    placeholder="Filter branches and commits..."
+                    aria-label="Filter branches and commits"
+                    className="w-full bg-transparent text-xs text-github-text-primary placeholder:text-github-text-muted focus:outline-none"
+                  />
+                </div>
+              </div>
+
               {/* Special Options */}
-              {visibleSpecialOptions.length > 0 && (
+              {filteredSpecialOptions.length > 0 && (
                 <div className="border-b border-github-border">
                   <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
                     Special
                   </div>
-                  {visibleSpecialOptions.map((opt) => (
+                  {filteredSpecialOptions.map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => handleSelect(opt.value)}
@@ -206,12 +245,12 @@ export function RevisionSelector({
               )}
 
               {/* Recent Commits - hide in working/staged mode */}
-              {!isWorkingStagedMode && options.commits.length > 0 && (
+              {filteredCommits.length > 0 && (
                 <div className="border-b border-github-border">
                   <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
                     Recent Commits
                   </div>
-                  {options.commits.map((commit) => (
+                  {filteredCommits.map((commit) => (
                     <button
                       key={commit.hash}
                       onClick={() => handleSelect(commit.shortHash)}
@@ -235,12 +274,12 @@ export function RevisionSelector({
               )}
 
               {/* Branches - hide in working/staged mode */}
-              {!isWorkingStagedMode && options.branches.length > 0 && (
+              {filteredBranches.length > 0 && (
                 <div>
                   <div className="px-3 py-2 text-xs font-semibold text-github-text-secondary bg-github-bg-tertiary">
                     Branches
                   </div>
-                  {options.branches.map((branch) => (
+                  {filteredBranches.map((branch) => (
                     <button
                       key={branch.name}
                       onClick={() => handleSelect(branch.name)}
@@ -255,6 +294,13 @@ export function RevisionSelector({
                       </div>
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* Empty state when the query matches nothing */}
+              {hasNoMatches && (
+                <div className="px-3 py-4 text-center text-xs text-github-text-muted">
+                  No matching branches or commits
                 </div>
               )}
             </div>
