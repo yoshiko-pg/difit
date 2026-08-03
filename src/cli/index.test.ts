@@ -1424,4 +1424,48 @@ describe('CLI index.ts', () => {
       );
     });
   });
+
+  describe('configuration file defaults', () => {
+    it('applies file config defaults to startServer when CLI flags are omitted', async () => {
+      const { createProgram } = await import('./index.js');
+      mockFindUntrackedFiles.mockResolvedValue([]);
+
+      const program = createProgram({
+        port: 4999,
+        open: false,
+        keepAlive: true,
+        context: 7,
+      });
+
+      await program.parseAsync(['HEAD'], { from: 'user' });
+
+      expect(mockStartServer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          preferredPort: 4999,
+          openBrowser: false,
+          keepAlive: true,
+          contextLines: 7,
+        }),
+      );
+    });
+
+    it('lets CLI flags override file config defaults', async () => {
+      const { createProgram } = await import('./index.js');
+      mockFindUntrackedFiles.mockResolvedValue([]);
+
+      const program = createProgram({
+        port: 4999,
+        open: false,
+      });
+
+      await program.parseAsync(['--port', '5001', '--open', 'HEAD'], { from: 'user' });
+
+      expect(mockStartServer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          preferredPort: 5001,
+          openBrowser: true,
+        }),
+      );
+    });
+  });
 });

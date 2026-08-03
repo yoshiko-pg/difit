@@ -3,6 +3,21 @@ import { describe, expect, it, vi } from 'vitest';
 import { createCliStdoutProxy } from './dev-stdout.js';
 
 describe('createCliStdoutProxy', () => {
+  it('detects the CLI server URL from background JSON output', () => {
+    const onServerUrl = vi.fn();
+    const output: string[] = [];
+    const proxy = createCliStdoutProxy({
+      onServerUrl,
+      onOutput: (text: string) => output.push(text),
+    });
+
+    proxy.push('{"port":4966,"url":"http://localhost:4966","pid":12345}\n📋 Reviewing: HEAD\n');
+    proxy.flush();
+
+    expect(onServerUrl).toHaveBeenCalledWith('http://localhost:4966');
+    expect(output).toEqual(['📋 Reviewing: HEAD\n']);
+  });
+
   it('detects the CLI server URL across chunks and hides only that line', () => {
     const onServerUrl = vi.fn();
     const output: string[] = [];

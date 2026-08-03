@@ -1088,7 +1088,7 @@ describe('Server Integration Tests', () => {
 
         expect(response.ok).toBe(true);
         const data = (await response.json()) as any;
-        expect(data).toEqual({ version: 1, client: {} });
+        expect(data).toEqual({ version: 1, client: {}, server: {} });
       });
 
       it('PUT /api/user-settings merges and persists client settings', async () => {

@@ -40,6 +40,7 @@ function startCliProcess() {
     env: {
       ...process.env,
       NODE_ENV: 'development',
+      DIFIT_DEV: '1',
     },
   });
 

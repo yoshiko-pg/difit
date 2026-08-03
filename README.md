@@ -141,21 +141,59 @@ Stdin mode is selected with intent-first rules:
 
 ## ⚙️ CLI Options
 
-| Flag                  | Default         | Description                                                                                             |
-| --------------------- | --------------- | ------------------------------------------------------------------------------------------------------- |
-| `<target>`            | HEAD            | Commit hash, tag, HEAD~n, branch, or special arguments                                                  |
-| `[compare-with]`      | -               | Optional second commit to compare with (shows diff between the two)                                     |
-| `--merge-base`        | false           | Resolve the base revision with `git merge-base` before diffing (Git revision mode only)                 |
-| `--pr <url>`          | -               | GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)                                  |
-| `--comment <json>`    | -               | Inject initial comments (repeatable; accepts a JSON object or array)                                    |
-| `--port`              | 4966            | Preferred port; falls back to +1 if occupied                                                            |
-| `--host`              | 127.0.0.1       | Host address to bind server to (use 0.0.0.0 for external access)                                        |
-| `--no-open`           | false           | Don't automatically open browser                                                                        |
-| `--clean`             | false           | Clear all existing comments and viewed files on startup                                                 |
-| `--include-untracked` | false           | Automatically include untracked files in diff (only with `.` or `working`)                              |
-| `--keep-alive`        | false           | Keep server running after browser disconnects (stop manually with Ctrl+C)                               |
-| `--background`        | false           | Keep the server running in the background and output JSON connection info                               |
-| `--context <lines>`   | git default (3) | Limit surrounding context lines per change (`0` shows changes only; not available with `--pr` or stdin) |
+| Flag                  | Config key         | Default         | Description                                                                                             |
+| --------------------- | ------------------ | --------------- | ------------------------------------------------------------------------------------------------------- |
+| `<target>`            | —                  | HEAD            | Commit hash, tag, HEAD~n, branch, or special arguments                                                  |
+| `[compare-with]`      | —                  | -               | Optional second commit to compare with (shows diff between the two)                                     |
+| `--merge-base`        | `mergeBase`        | false           | Resolve the base revision with `git merge-base` before diffing (Git revision mode only)                 |
+| `--pr <url>`          | —                  | -               | GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)                                  |
+| `--comment <json>`    | `comment`          | -               | Inject initial comments (repeatable; accepts a JSON object or array)                                    |
+| `--port`              | `port`             | 4966            | Preferred port; falls back to +1 if occupied                                                            |
+| `--host`              | `host`             | 127.0.0.1       | Host address to bind server to (use 0.0.0.0 for external access)                                        |
+| `--no-open`           | `open`             | false           | Don't automatically open browser (use `--open` to override a config default)                            |
+| `--clean`             | `clean`            | false           | Clear all existing comments and viewed files on startup                                                 |
+| `--include-untracked` | `includeUntracked` | false           | Automatically include untracked files in diff (only with `.` or `working`)                              |
+| `--keep-alive`        | `keepAlive`        | false           | Keep server running after browser disconnects (stop manually with Ctrl+C)                               |
+| `--background`        | `background`       | false           | Keep the server running in the background and output JSON connection info                               |
+| `--context <lines>`   | `context`          | git default (3) | Limit surrounding context lines per change (`0` shows changes only; not available with `--pr` or stdin) |
+
+### Configuration file
+
+You can set CLI defaults in JSON config files using the **Config key** values above (`—` means not supported). Values from the command line always override config files. Put CLI defaults under a `server` object.
+
+| Scope  | Path                              |
+| ------ | --------------------------------- |
+| Global | `~/.difit/config.json`            |
+| Local  | `.difitrc` (nearest ancestor dir) |
+
+Precedence: global config → local `.difitrc` → CLI flags.
+
+Example global config (`~/.difit/config.json`):
+
+```json
+{
+  "version": 1,
+  "client": {},
+  "server": {
+    "port": 4966,
+    "open": false,
+    "context": 5
+  }
+}
+```
+
+Example local config (`.difitrc` in your repo):
+
+```json
+{
+  "server": {
+    "includeUntracked": true,
+    "keepAlive": true
+  }
+}
+```
+
+`pnpm run dev` ignores `background` from config files so the local development workflow can start Vite against a foreground CLI server.
 
 ## 💬 Comment System
 

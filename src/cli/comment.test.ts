@@ -19,10 +19,10 @@ describe('createCommentCommand', () => {
   describe('add subcommand', () => {
     const addCommand = command.commands.find((c) => c.name() === 'add')!;
 
-    it('requires --port option', () => {
+    it('has --port option', () => {
       const portOption = addCommand.options.find((o) => o.long === '--port');
       expect(portOption).toBeDefined();
-      expect(portOption?.mandatory).toBe(true);
+      expect(portOption?.mandatory).toBe(false);
     });
 
     it('accepts optional json argument', () => {
@@ -36,10 +36,10 @@ describe('createCommentCommand', () => {
   describe('get subcommand', () => {
     const getCommand = command.commands.find((c) => c.name() === 'get')!;
 
-    it('requires --port option', () => {
+    it('has --port option', () => {
       const portOption = getCommand.options.find((o) => o.long === '--port');
       expect(portOption).toBeDefined();
-      expect(portOption?.mandatory).toBe(true);
+      expect(portOption?.mandatory).toBe(false);
     });
 
     it('has --format option with choices', () => {
@@ -57,10 +57,10 @@ describe('createCommentCommand', () => {
       expect(resolveCommand.aliases()).toContain('remove');
     });
 
-    it('requires --port option', () => {
+    it('has --port option', () => {
       const portOption = resolveCommand.options.find((o) => o.long === '--port');
       expect(portOption).toBeDefined();
-      expect(portOption?.mandatory).toBe(true);
+      expect(portOption?.mandatory).toBe(false);
     });
 
     it('accepts variadic threadIds argument', () => {
@@ -118,6 +118,39 @@ describe('comment subcommand integration', () => {
   });
 
   describe('add', () => {
+    it('uses the configured default port when --port is omitted', async () => {
+      mockFetch.mockResolvedValue(jsonResponse({ success: true, importId: 'abc123', count: 1 }));
+
+      const command = createCommentCommand({ port: 4966 });
+      await command.parseAsync([
+        'node',
+        'difit',
+        'add',
+        '{"type":"thread","filePath":"test.ts","position":{"side":"new","line":1},"body":"Test"}',
+      ]);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:4966/api/comment-imports',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('errors when port is missing from both CLI and config', async () => {
+      const command = createCommentCommand();
+      await expect(
+        command.parseAsync([
+          'node',
+          'difit',
+          'add',
+          '{"type":"thread","filePath":"test.ts","position":{"side":"new","line":1},"body":"Test"}',
+        ]),
+      ).rejects.toThrow('--port is required');
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(consoleErrors[0]).toContain('--port is required');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
     it('sends comment imports to the server', async () => {
       mockFetch.mockResolvedValue(jsonResponse({ success: true, importId: 'abc123', count: 1 }));
 

@@ -2,6 +2,7 @@ import { Command, Option } from 'commander';
 
 import { parseCommentImportValue } from '../utils/commentImports.js';
 
+import type { CliConfig } from './cli-config.js';
 import { detectStdinSource, readStdin } from './utils.js';
 
 interface CommentImportResponse {
@@ -11,6 +12,9 @@ interface CommentImportResponse {
   warnings?: string[];
 }
 
+const MISSING_PORT_ERROR =
+  'Error: --port is required (or set "port" in ~/.difit/config.json under "server" or in .difitrc)';
+
 function handleCommandError(error: unknown, port: number): never {
   if (error instanceof TypeError && error.message.includes('fetch failed')) {
     console.error(`Error: Cannot connect to difit server on port ${port}. Is the server running?`);
@@ -18,6 +22,15 @@ function handleCommandError(error: unknown, port: number): never {
     console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
   process.exit(1);
+}
+
+function resolvePort(port: number | undefined): number {
+  if (port === undefined || Number.isNaN(port)) {
+    console.error(MISSING_PORT_ERROR);
+    process.exit(1);
+    throw new Error(MISSING_PORT_ERROR);
+  }
+  return port;
 }
 
 async function parseCommentAddInput(json?: string): Promise<string> {
@@ -37,7 +50,21 @@ async function parseCommentAddInput(json?: string): Promise<string> {
   return stdin;
 }
 
-export function createCommentCommand(): Command {
+function parsePort(value: string): number {
+  return Number.parseInt(value, 10);
+}
+
+function createPortOption(fileConfig: Partial<CliConfig>): Option {
+  const option = new Option('--port <port>', 'port of the running difit server').argParser(
+    parsePort,
+  );
+  if (fileConfig.port !== undefined) {
+    option.default(fileConfig.port);
+  }
+  return option;
+}
+
+export function createCommentCommand(fileConfig: Partial<CliConfig> = {}): Command {
   const comment = new Command('comment').description(
     'Add, retrieve, or resolve comments on a running difit server',
   );
@@ -46,13 +73,14 @@ export function createCommentCommand(): Command {
     .command('add')
     .description('Add comments to a running difit server')
     .argument('[json]', 'comment import JSON (object or array)')
-    .requiredOption('--port <port>', 'port of the running difit server', parseInt)
-    .action(async (json: string | undefined, opts: { port: number }) => {
+    .addOption(createPortOption(fileConfig))
+    .action(async (json: string | undefined, opts: { port?: number }) => {
+      const port = resolvePort(opts.port);
       try {
         const input = await parseCommentAddInput(json);
         const imports = parseCommentImportValue(input);
 
-        const response = await fetch(`http://localhost:${opts.port}/api/comment-imports`, {
+        const response = await fetch(`http://localhost:${port}/api/comment-imports`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(imports),
@@ -76,21 +104,22 @@ export function createCommentCommand(): Command {
           }),
         );
       } catch (error) {
-        handleCommandError(error, opts.port);
+        handleCommandError(error, port);
       }
     });
 
   comment
     .command('get')
     .description('Retrieve comments from a running difit server')
-    .requiredOption('--port <port>', 'port of the running difit server', parseInt)
+    .addOption(createPortOption(fileConfig))
     .addOption(
       new Option('--format <format>', 'output format').choices(['text', 'json']).default('text'),
     )
-    .action(async (opts: { port: number; format: string }) => {
+    .action(async (opts: { port?: number; format: string }) => {
+      const port = resolvePort(opts.port);
       try {
         const endpoint = opts.format === 'json' ? '/api/comments-json' : '/api/comments-output';
-        const response = await fetch(`http://localhost:${opts.port}${endpoint}`);
+        const response = await fetch(`http://localhost:${port}${endpoint}`);
 
         if (!response.ok) {
           console.error('Error: Failed to retrieve comments');
@@ -107,7 +136,7 @@ export function createCommentCommand(): Command {
           }
         }
       } catch (error) {
-        handleCommandError(error, opts.port);
+        handleCommandError(error, port);
       }
     });
 
@@ -116,8 +145,9 @@ export function createCommentCommand(): Command {
     .alias('remove')
     .description('Resolve (remove) comment threads on a running difit server')
     .argument('<threadIds...>', 'thread IDs to resolve')
-    .requiredOption('--port <port>', 'port of the running difit server', parseInt)
-    .action(async (threadIds: string[], opts: { port: number }) => {
+    .addOption(createPortOption(fileConfig))
+    .action(async (threadIds: string[], opts: { port?: number }) => {
+      const port = resolvePort(opts.port);
       try {
         const results = await Promise.all(
           threadIds.map(
@@ -129,7 +159,7 @@ export function createCommentCommand(): Command {
               error?: string;
             }> => {
               const response = await fetch(
-                `http://localhost:${opts.port}/api/comments/${encodeURIComponent(threadId)}`,
+                `http://localhost:${port}/api/comments/${encodeURIComponent(threadId)}`,
                 { method: 'DELETE' },
               );
 
@@ -174,7 +204,7 @@ export function createCommentCommand(): Command {
           process.exit(1);
         }
       } catch (error) {
-        handleCommandError(error, opts.port);
+        handleCommandError(error, port);
       }
     });
 
