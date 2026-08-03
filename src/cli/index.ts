@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import { Command } from 'commander';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
@@ -73,6 +73,47 @@ function determineDiffMode(selection: DiffSelection, compareWith?: string): Diff
   return DiffMode.DEFAULT;
 }
 
+interface BackgroundServerInfo {
+  port: number;
+  url: string;
+  pid: number;
+}
+
+const BACKGROUND_CHILD_ENV = 'DIFIT_BACKGROUND_CHILD';
+
+function parseBackgroundHandshakeMessage(message: unknown): BackgroundServerInfo | null {
+  if (!message || typeof message !== 'object') {
+    return null;
+  }
+
+  const parsed = message as Partial<BackgroundServerInfo>;
+  if (
+    typeof parsed.port === 'number' &&
+    typeof parsed.url === 'string' &&
+    typeof parsed.pid === 'number'
+  ) {
+    return { port: parsed.port, url: parsed.url, pid: parsed.pid };
+  }
+
+  return null;
+}
+
+function emitBackgroundHandshake(info: BackgroundServerInfo): void {
+  process.send?.(info);
+  process.disconnect?.();
+}
+
+function releaseBackgroundChild(child: ChildProcess): void {
+  child.removeAllListeners();
+  child.disconnect();
+  child.unref();
+}
+
+function ignoreStdioErrorsForBackgroundDaemon(): void {
+  process.stdout?.on?.('error', () => {});
+  process.stderr?.on?.('error', () => {});
+}
+
 async function startBackgroundProcess(): Promise<void> {
   const scriptPath = process.argv[1];
   if (!scriptPath) {
@@ -89,21 +130,20 @@ async function startBackgroundProcess(): Promise<void> {
 
   const child = spawn(process.execPath, [scriptPath, ...childArgs], {
     detached: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
     env: {
       ...process.env,
       [BACKGROUND_CHILD_ENV]: '1',
     },
   });
 
-  child.stdout.setEncoding('utf8');
-  child.stderr.setEncoding('utf8');
-
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      reject(new Error('Timed out while starting background difit server'));
+      finish(() => {
+        releaseBackgroundChild(child);
+        reject(new Error('Timed out while starting background difit server'));
+      });
     }, 10_000);
-    let stderr = '';
     let settled = false;
 
     const finish = (callback: () => void) => {
@@ -115,41 +155,30 @@ async function startBackgroundProcess(): Promise<void> {
       callback();
     };
 
-    child.stdout.on('data', (chunk: string) => {
-      const line = chunk
-        .split(/\r?\n/u)
-        .map((value) => value.trim())
-        .find((value) => value.length > 0);
-
-      if (!line) {
+    child.on('message', (message: unknown) => {
+      const handshake = parseBackgroundHandshakeMessage(message);
+      if (!handshake) {
         return;
       }
 
       finish(() => {
-        console.log(line);
-        child.unref();
+        console.log(JSON.stringify(handshake));
+        releaseBackgroundChild(child);
         resolve();
       });
     });
 
-    child.stderr.on('data', (chunk: string) => {
-      stderr += chunk;
-    });
-
     child.once('error', (error) => {
       finish(() => {
+        releaseBackgroundChild(child);
         reject(error);
       });
     });
 
     child.once('exit', (code) => {
       finish(() => {
-        const trimmedStderr = stderr.trim();
-        reject(
-          new Error(
-            trimmedStderr || `Background difit server exited early (code ${code ?? 'unknown'})`,
-          ),
-        );
+        releaseBackgroundChild(child);
+        reject(new Error(`Background difit server exited early (code ${code ?? 'unknown'})`));
       });
     });
   });
@@ -168,8 +197,6 @@ interface CliOptions {
   context?: number;
   mergeBase?: boolean;
 }
-
-const BACKGROUND_CHILD_ENV = 'DIFIT_BACKGROUND_CHILD';
 
 const program = new Command();
 
@@ -317,7 +344,10 @@ program
         });
 
         if (backgroundMode) {
-          console.log(JSON.stringify({ port, url, pid: process.pid }));
+          emitBackgroundHandshake({ port, url, pid: process.pid });
+          if (isBackgroundChild) {
+            ignoreStdioErrorsForBackgroundDaemon();
+          }
           return;
         }
 
@@ -377,7 +407,10 @@ program
       });
 
       if (backgroundMode) {
-        console.log(JSON.stringify({ port, url, pid: process.pid }));
+        emitBackgroundHandshake({ port, url, pid: process.pid });
+        if (isBackgroundChild) {
+          ignoreStdioErrorsForBackgroundDaemon();
+        }
         return;
       }
 
