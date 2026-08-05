@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.9] - 2026-08-05
+
+### Added
+
+- Persist UI settings (appearance, diff view mode, sidebar state) to `~/.difit/config.json` so they survive across ports (#431)
+- Show an always-visible inline reply box on comment threads, GitHub-style (#437)
+- Add a search box to the revision selector and quick menu dropdowns (#438)
+- Allow collapsing comment threads into a single line (#439)
+- Render YAML frontmatter as a key/value table in markdown Full Preview and as a Before/After diff table in Diff Preview (#442)
+- Add Groovy language support (.groovy, .gvy, .gy, .gsh, .gradle) (#449)
+
+### Fixed
+
+- Keep `/api/diff` selection state intact when diff parsing fails, so one invalid ref no longer breaks subsequent requests until restart (#440)
+
+### Thanks
+
+- [@kiakiraki](https://github.com/kiakiraki) for fixing the /api/diff selection state bug (#440)
+- [@woo-cie](https://github.com/woo-cie) for the YAML frontmatter preview (#442)
+- [@ngng628](https://github.com/ngng628) for adding Groovy language support (#449)
+
 ## [5.0.8] - 2026-07-11
 
 ### Added
@@ -1337,7 +1358,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.8...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.9...HEAD
+[5.0.9]: https://github.com/yoshiko-pg/difit/compare/v5.0.8...v5.0.9
 [5.0.8]: https://github.com/yoshiko-pg/difit/compare/v5.0.7...v5.0.8
 [5.0.7]: https://github.com/yoshiko-pg/difit/compare/v5.0.6...v5.0.7
 [5.0.6]: https://github.com/yoshiko-pg/difit/compare/v5.0.5...v5.0.6
