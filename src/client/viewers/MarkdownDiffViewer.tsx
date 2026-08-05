@@ -2,10 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import type { DiffLine } from '../../types/diff';
+import type { DiffFile, DiffLine } from '../../types/diff';
+import { FrontmatterTable } from '../components/FrontmatterTable';
 import { MermaidDiagram } from '../components/MermaidDiagram';
 import { PrismSyntaxHighlighter } from '../components/PrismSyntaxHighlighter';
 import type { MergedChunk } from '../hooks/useExpandedLines';
+import { extractFrontmatter, getFrontmatterLines } from '../utils/frontmatter';
+import { computeFrontmatterDiff } from '../utils/frontmatterDiff';
 import { extractMarkdownText, isElementWithCodeProps, isSafeUrl } from '../utils/markdownUtils';
 
 import { PreviewModeTabs, type PreviewMode } from './PreviewModeTabs';
@@ -44,6 +47,18 @@ type FenceInfo = {
 };
 
 const isFetchableRef = (ref?: string) => Boolean(ref && ref !== 'stdin');
+
+type PreviewSource = { path: string; ref: string } | null;
+
+type PreviewSourcePair = {
+  base: PreviewSource;
+  target: PreviewSource;
+};
+
+type PreviewContents = {
+  base: string | null;
+  target: string | null;
+};
 
 const headingStyles = [
   'text-[26px] font-semibold',
@@ -107,6 +122,87 @@ const buildPreviewBlocks = (chunks: MergedChunk[]): PreviewBlock[] => {
   });
 
   return blocks;
+};
+
+const stripCarriageReturn = (line: string) => line.replace(/\r$/, '');
+
+/**
+ * Removes the leading YAML frontmatter lines from the diff preview blocks so the
+ * `---` delimiters and raw YAML are not rendered as markdown below the dedicated
+ * frontmatter table. Deleted lines are matched against the base frontmatter,
+ * added/changed lines against the target frontmatter, and context lines against
+ * both. Matching is content-verified: as soon as a line no longer matches the
+ * expected frontmatter (e.g. the diff starts below the frontmatter, so the first
+ * lines are body content), stripping stops and the remaining blocks are kept
+ * untouched.
+ */
+const stripFrontmatterBlocks = (
+  blocks: PreviewBlock[],
+  baseLines: string[],
+  targetLines: string[],
+): PreviewBlock[] => {
+  if (baseLines.length === 0 && targetLines.length === 0) {
+    return blocks;
+  }
+
+  let baseIndex = 0;
+  let targetIndex = 0;
+  let stripping = true;
+  const result: PreviewBlock[] = [];
+
+  for (const block of blocks) {
+    if (!stripping) {
+      result.push(block);
+      continue;
+    }
+
+    const keptLines: string[] = [];
+
+    for (const rawLine of block.lines) {
+      if (!stripping) {
+        keptLines.push(rawLine);
+        continue;
+      }
+
+      const line = stripCarriageReturn(rawLine);
+      const baseMatches = baseIndex < baseLines.length && baseLines[baseIndex] === line;
+      const targetMatches = targetIndex < targetLines.length && targetLines[targetIndex] === line;
+
+      let matched = false;
+      if (block.type === 'delete') {
+        matched = baseMatches;
+        if (matched) baseIndex += 1;
+      } else if (block.type === 'add' || block.type === 'change') {
+        matched = targetMatches;
+        if (matched) targetIndex += 1;
+      } else {
+        // context: the line is unchanged, so it must sit within the frontmatter
+        // on every side that actually has frontmatter.
+        matched =
+          (baseLines.length === 0 || baseMatches) && (targetLines.length === 0 || targetMatches);
+        if (matched) {
+          if (baseMatches) baseIndex += 1;
+          if (targetMatches) targetIndex += 1;
+        }
+      }
+
+      if (!matched) {
+        stripping = false;
+        keptLines.push(rawLine);
+        continue;
+      }
+
+      if (baseIndex >= baseLines.length && targetIndex >= targetLines.length) {
+        stripping = false;
+      }
+    }
+
+    if (keptLines.length > 0) {
+      result.push({ type: block.type, lines: keptLines });
+    }
+  }
+
+  return result;
 };
 
 const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme']) => ({
@@ -382,15 +478,94 @@ const getCodeLineClass = (type: PreviewBlockType) => {
 const MarkdownDiffPreview = ({
   blocks,
   syntaxTheme,
+  baseContent,
+  targetContent,
+  fileStatus,
 }: {
   blocks: PreviewBlock[];
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
+  baseContent: string | null;
+  targetContent: string | null;
+  fileStatus: DiffFile['status'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
-  const renderBlocks = useMemo(() => buildRenderBlocks(blocks), [blocks]);
+
+  const frontmatterView = useMemo(() => {
+    const baseAvailable = baseContent !== null;
+    const targetAvailable = targetContent !== null;
+    const baseData = baseAvailable ? extractFrontmatter(baseContent).data : null;
+    const targetData = targetAvailable ? extractFrontmatter(targetContent).data : null;
+
+    // When both sides needed for the diff are available we render a structured
+    // table and strip the raw frontmatter lines from the preview blocks below.
+    const canDiff =
+      fileStatus === 'added'
+        ? targetAvailable
+        : fileStatus === 'deleted'
+          ? baseAvailable
+          : baseAvailable && targetAvailable;
+
+    if (canDiff) {
+      const stripBaseLines = fileStatus === 'added' ? [] : getFrontmatterLines(baseContent ?? '');
+      const stripTargetLines =
+        fileStatus === 'deleted' ? [] : getFrontmatterLines(targetContent ?? '');
+      const baseInput = fileStatus === 'added' ? null : baseData;
+      const targetInput = fileStatus === 'deleted' ? null : targetData;
+      const entries = computeFrontmatterDiff(baseInput, targetInput);
+      const view =
+        entries.length > 0 ? (
+          <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />
+        ) : null;
+      return { view, stripBaseLines, stripTargetLines };
+    }
+
+    // partial fetch failure or stdin — snapshot fallback with explanatory label.
+    // The raw frontmatter lines are retained in the preview blocks.
+    if (targetAvailable && targetData !== null) {
+      return {
+        view: (
+          <FrontmatterTable
+            mode="snapshot"
+            data={targetData}
+            label="Frontmatter (target only — base unavailable)"
+          />
+        ),
+        stripBaseLines: [] as string[],
+        stripTargetLines: [] as string[],
+      };
+    }
+    if (baseAvailable && baseData !== null) {
+      return {
+        view: (
+          <FrontmatterTable
+            mode="snapshot"
+            data={baseData}
+            label="Frontmatter (base only — target unavailable)"
+          />
+        ),
+        stripBaseLines: [] as string[],
+        stripTargetLines: [] as string[],
+      };
+    }
+
+    return { view: null, stripBaseLines: [] as string[], stripTargetLines: [] as string[] };
+  }, [baseContent, targetContent, fileStatus]);
+
+  const renderBlocks = useMemo(
+    () =>
+      buildRenderBlocks(
+        stripFrontmatterBlocks(
+          blocks,
+          frontmatterView.stripBaseLines,
+          frontmatterView.stripTargetLines,
+        ),
+      ),
+    [blocks, frontmatterView.stripBaseLines, frontmatterView.stripTargetLines],
+  );
 
   return (
     <div className="space-y-4">
+      {frontmatterView.view}
       {renderBlocks.map((block, index) => {
         if (block.kind === 'fenced-code') {
           return (
@@ -443,15 +618,20 @@ const MarkdownFullPreview = ({
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
+  const { data: frontmatter, content: body } = useMemo(
+    () => extractFrontmatter(content),
+    [content],
+  );
 
   return (
     <div className="space-y-4">
+      <FrontmatterTable mode="snapshot" data={frontmatter} />
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         urlTransform={(url) => (isSafeUrl(url) ? url : '')}
         components={components}
       >
-        {content}
+        {body}
       </ReactMarkdown>
     </div>
   );
@@ -460,89 +640,157 @@ const MarkdownFullPreview = ({
 export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   const { file, baseCommitish, targetCommitish, mergedChunks, syntaxTheme } = props;
   const [mode, setMode] = useState<PreviewMode>('diff');
-  const [fullContent, setFullContent] = useState<string | null>(null);
+  const [contents, setContents] = useState<PreviewContents>({ base: null, target: null });
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [loadedSourceKey, setLoadedSourceKey] = useState<string | null>(null);
+  const [partialFailureLabel, setPartialFailureLabel] = useState<string | null>(null);
+  const [loadedSourcesKey, setLoadedSourcesKey] = useState<string | null>(null);
   const previewBlocks = useMemo(() => buildPreviewBlocks(mergedChunks), [mergedChunks]);
-  const previewSource = useMemo(() => {
-    if (!baseCommitish && !targetCommitish) return null;
 
-    if (file.status === 'added') {
-      return targetCommitish ? { path: file.path, ref: targetCommitish } : null;
-    }
+  const previewSources = useMemo<PreviewSourcePair>(() => {
+    const target: PreviewSource =
+      file.status === 'deleted'
+        ? null
+        : targetCommitish
+          ? { path: file.path, ref: targetCommitish }
+          : null;
 
-    if (file.status === 'deleted') {
-      return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
-    }
+    const base: PreviewSource =
+      file.status === 'added'
+        ? null
+        : baseCommitish
+          ? { path: file.oldPath || file.path, ref: baseCommitish }
+          : null;
 
-    if (targetCommitish) {
-      return { path: file.path, ref: targetCommitish };
-    }
-
-    return baseCommitish ? { path: file.oldPath || file.path, ref: baseCommitish } : null;
+    return { base, target };
   }, [baseCommitish, targetCommitish, file.path, file.oldPath, file.status]);
 
-  const previewSourceKey = useMemo(
-    () => (previewSource ? `${previewSource.ref}:${previewSource.path}` : null),
-    [previewSource],
-  );
+  const previewSourcesKey = useMemo(() => {
+    const baseKey = previewSources.base
+      ? `${previewSources.base.ref}:${previewSources.base.path}`
+      : '';
+    const targetKey = previewSources.target
+      ? `${previewSources.target.ref}:${previewSources.target.path}`
+      : '';
+    if (!baseKey && !targetKey) return null;
+    return `${baseKey}|${targetKey}`;
+  }, [previewSources]);
 
   useEffect(() => {
-    if (!previewSource || !previewSourceKey || !isFetchableRef(previewSource.ref)) {
-      setFullContent(null);
-      setLoadedSourceKey(null);
+    const baseSource =
+      previewSources.base && isFetchableRef(previewSources.base.ref) ? previewSources.base : null;
+    const targetSource =
+      previewSources.target && isFetchableRef(previewSources.target.ref)
+        ? previewSources.target
+        : null;
+
+    if (!previewSourcesKey || (!baseSource && !targetSource)) {
+      setContents({ base: null, target: null });
+      setLoadedSourcesKey(null);
       setPreviewError(null);
+      setPartialFailureLabel(null);
       setIsPreviewLoading(false);
       return;
     }
 
     let isCanceled = false;
 
-    const fetchContent = async () => {
-      if (previewSourceKey !== loadedSourceKey) {
-        setFullContent(null);
+    const fetchBlob = async (source: PreviewSource): Promise<string | null> => {
+      if (!source) return null;
+      const encodedPath = encodeURIComponent(source.path);
+      const response = await fetch(
+        `/api/blob/${encodedPath}?ref=${encodeURIComponent(source.ref)}`,
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch preview: ${response.statusText}`);
+      }
+      return response.text();
+    };
+
+    const run = async () => {
+      if (previewSourcesKey !== loadedSourcesKey) {
+        setContents({ base: null, target: null });
       }
       setIsPreviewLoading(true);
       setPreviewError(null);
-      try {
-        const encodedPath = encodeURIComponent(previewSource.path);
-        const response = await fetch(
-          `/api/blob/${encodedPath}?ref=${encodeURIComponent(previewSource.ref)}`,
+
+      const [baseResult, targetResult] = await Promise.allSettled([
+        fetchBlob(baseSource),
+        fetchBlob(targetSource),
+      ]);
+
+      if (isCanceled) return;
+
+      const nextBase = baseResult.status === 'fulfilled' ? baseResult.value : null;
+      const nextTarget = targetResult.status === 'fulfilled' ? targetResult.value : null;
+
+      const failures: string[] = [];
+      if (baseSource && baseResult.status === 'rejected') {
+        failures.push(
+          baseResult.reason instanceof Error ? baseResult.reason.message : 'base fetch failed',
         );
-        if (!response.ok) {
-          throw new Error(`Failed to fetch preview: ${response.statusText}`);
-        }
-        const text = await response.text();
-        if (!isCanceled) {
-          setFullContent(text);
-          setLoadedSourceKey(previewSourceKey);
-        }
-      } catch (error) {
-        if (!isCanceled) {
-          setFullContent(null);
-          setLoadedSourceKey(null);
-          setPreviewError(error instanceof Error ? error.message : 'Failed to load preview');
-        }
-      } finally {
-        if (!isCanceled) {
-          setIsPreviewLoading(false);
-        }
       }
+      if (targetSource && targetResult.status === 'rejected') {
+        failures.push(
+          targetResult.reason instanceof Error
+            ? targetResult.reason.message
+            : 'target fetch failed',
+        );
+      }
+
+      setContents({ base: nextBase, target: nextTarget });
+      setLoadedSourcesKey(previewSourcesKey);
+
+      const baseFailed = baseSource !== null && baseResult.status === 'rejected';
+      const targetFailed = targetSource !== null && targetResult.status === 'rejected';
+      const allFailed =
+        (baseSource ? baseFailed : true) &&
+        (targetSource ? targetFailed : true) &&
+        failures.length > 0;
+
+      setPreviewError(allFailed ? failures.join('; ') : null);
+
+      if (allFailed) {
+        setPartialFailureLabel(null);
+      } else if (baseFailed) {
+        setPartialFailureLabel('Base content unavailable — showing partial preview.');
+      } else if (targetFailed) {
+        setPartialFailureLabel('Target content unavailable — showing partial preview.');
+      } else {
+        setPartialFailureLabel(null);
+      }
+
+      setIsPreviewLoading(false);
     };
 
-    if (previewSourceKey !== loadedSourceKey || fullContent === null) {
-      void fetchContent();
+    const relevantContent = file.status === 'deleted' ? contents.base : contents.target;
+
+    if (previewSourcesKey !== loadedSourcesKey || relevantContent === null) {
+      void run();
+    } else {
+      setIsPreviewLoading(false);
     }
 
     return () => {
       isCanceled = true;
     };
-  }, [fullContent, loadedSourceKey, previewSource, previewSourceKey]);
+  }, [
+    contents.base,
+    contents.target,
+    file.status,
+    loadedSourcesKey,
+    previewSources,
+    previewSourcesKey,
+  ]);
+
+  const fullPreviewContent = useMemo(
+    () => (file.status === 'deleted' ? contents.base : contents.target),
+    [contents.base, contents.target, file.status],
+  );
 
   const hasFullPreview = useMemo(
-    () => previewSourceKey === loadedSourceKey && fullContent !== null,
-    [fullContent, loadedSourceKey, previewSourceKey],
+    () => previewSourcesKey === loadedSourcesKey && fullPreviewContent !== null,
+    [fullPreviewContent, loadedSourcesKey, previewSourcesKey],
   );
 
   useEffect(() => {
@@ -561,7 +809,16 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
 
       {mode === 'diff-preview' && (
         <div className="p-4">
-          <MarkdownDiffPreview blocks={previewBlocks} syntaxTheme={syntaxTheme} />
+          {partialFailureLabel && (
+            <div className="text-sm text-github-text-muted mb-3">{partialFailureLabel}</div>
+          )}
+          <MarkdownDiffPreview
+            blocks={previewBlocks}
+            syntaxTheme={syntaxTheme}
+            baseContent={contents.base}
+            targetContent={contents.target}
+            fileStatus={file.status}
+          />
         </div>
       )}
 
@@ -571,10 +828,13 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             <div className="text-sm text-github-text-muted mb-3">Loading preview...</div>
           )}
           {previewError && <div className="text-sm text-github-danger mb-3">{previewError}</div>}
-          {!isPreviewLoading && !previewError && fullContent !== null && (
-            <MarkdownFullPreview content={fullContent} syntaxTheme={syntaxTheme} />
+          {partialFailureLabel && (
+            <div className="text-sm text-github-text-muted mb-3">{partialFailureLabel}</div>
           )}
-          {!isPreviewLoading && !previewError && fullContent === null && (
+          {!isPreviewLoading && !previewError && fullPreviewContent !== null && (
+            <MarkdownFullPreview content={fullPreviewContent} syntaxTheme={syntaxTheme} />
+          )}
+          {!isPreviewLoading && !previewError && fullPreviewContent === null && (
             <div className="text-sm text-github-text-muted">Preview unavailable.</div>
           )}
         </div>
