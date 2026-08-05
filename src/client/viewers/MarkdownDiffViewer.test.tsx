@@ -187,6 +187,46 @@ const bodyOnlyChangeChunks: MergedChunk[] = [
   },
 ];
 
+const midFileHrChunks: MergedChunk[] = [
+  {
+    header: '@@ -60,4 +60,4 @@',
+    oldStart: 60,
+    oldLines: 4,
+    newStart: 60,
+    newLines: 4,
+    lines: [
+      { type: 'context', content: '---', oldLineNumber: 60, newLineNumber: 60 },
+      { type: 'context', content: 'Some closing text.', oldLineNumber: 61, newLineNumber: 61 },
+      { type: 'delete', content: 'Original ending line.', oldLineNumber: 62 },
+      { type: 'add', content: 'Changed ending line.', newLineNumber: 62 },
+    ],
+    originalIndices: [0, 1, 2, 3],
+    hiddenLinesBefore: 59,
+    hiddenLinesAfter: 0,
+  },
+];
+
+const unchangedFrontmatterTopChunks: MergedChunk[] = [
+  {
+    header: '@@ -1,6 +1,6 @@',
+    oldStart: 1,
+    oldLines: 6,
+    newStart: 1,
+    newLines: 6,
+    lines: [
+      { type: 'context', content: '---', oldLineNumber: 1, newLineNumber: 1 },
+      { type: 'context', content: 'title: Same', oldLineNumber: 2, newLineNumber: 2 },
+      { type: 'context', content: '---', oldLineNumber: 3, newLineNumber: 3 },
+      { type: 'context', content: '', oldLineNumber: 4, newLineNumber: 4 },
+      { type: 'delete', content: 'Old body text.', oldLineNumber: 5 },
+      { type: 'add', content: 'New body text.', newLineNumber: 5 },
+    ],
+    originalIndices: [0, 1, 2, 3, 4, 5],
+    hiddenLinesBefore: 0,
+    hiddenLinesAfter: 0,
+  },
+];
+
 const setMatchMedia = (matches: boolean) => {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -634,6 +674,64 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
     expect(await screen.findByText('Heading')).toBeInTheDocument();
     expect(screen.getByText('Old body text.')).toBeInTheDocument();
     expect(screen.getByText('New body text.')).toBeInTheDocument();
+  });
+
+  it('keeps a body horizontal rule at the start of a mid-file chunk', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () =>
+          '---\ntitle: Same\n---\n\nIntro.\n\n---\nSome closing text.\nOriginal ending line.\n',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () =>
+          '---\ntitle: Same\n---\n\nIntro.\n\n---\nSome closing text.\nChanged ending line.\n',
+      });
+
+    const { container } = renderViewer({ mergedChunks: midFileHrChunks });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    // The chunk starts mid-file, so its leading `---` is a horizontal rule,
+    // not the frontmatter delimiter; it must survive as an <hr>.
+    expect(await screen.findByText('Some closing text.')).toBeInTheDocument();
+    expect(container.querySelector('hr')).not.toBeNull();
+    expect(screen.getByText('Original ending line.')).toBeInTheDocument();
+    expect(screen.getByText('Changed ending line.')).toBeInTheDocument();
+    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+  });
+
+  it('strips unchanged frontmatter context without rendering a table', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: Same\n---\n\nOld body text.\n',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '---\ntitle: Same\n---\n\nNew body text.\n',
+      });
+
+    const { container } = renderViewer({ mergedChunks: unchangedFrontmatterTopChunks });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    goToDiffPreview();
+
+    // No table for an unchanged frontmatter, and the raw frontmatter context
+    // lines are stripped instead of rendering as an <hr> plus stray text.
+    expect(await screen.findByText('Old body text.')).toBeInTheDocument();
+    expect(screen.getByText('New body text.')).toBeInTheDocument();
+    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+    expect(screen.queryByText('title: Same')).not.toBeInTheDocument();
+    expect(container.querySelector('hr')).toBeNull();
   });
 
   it('renders no frontmatter table when neither side has frontmatter', async () => {

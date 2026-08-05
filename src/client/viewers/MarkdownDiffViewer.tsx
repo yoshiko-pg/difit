@@ -481,12 +481,14 @@ const MarkdownDiffPreview = ({
   baseContent,
   targetContent,
   fileStatus,
+  diffStartsAtFileTop,
 }: {
   blocks: PreviewBlock[];
   syntaxTheme?: DiffViewerBodyProps['syntaxTheme'];
   baseContent: string | null;
   targetContent: string | null;
   fileStatus: DiffFile['status'];
+  diffStartsAtFileTop: boolean;
 }) => {
   const components = useMemo(() => getMarkdownComponents(syntaxTheme), [syntaxTheme]);
 
@@ -506,16 +508,24 @@ const MarkdownDiffPreview = ({
           : baseAvailable && targetAvailable;
 
     if (canDiff) {
-      const stripBaseLines = fileStatus === 'added' ? [] : getFrontmatterLines(baseContent ?? '');
+      // Stripping only applies when the diff actually reaches the top of the
+      // file; otherwise leading body lines that merely look like frontmatter
+      // (e.g. a `---` horizontal rule) would be stripped by mistake.
+      const stripBaseLines =
+        !diffStartsAtFileTop || fileStatus === 'added'
+          ? []
+          : getFrontmatterLines(baseContent ?? '');
       const stripTargetLines =
-        fileStatus === 'deleted' ? [] : getFrontmatterLines(targetContent ?? '');
+        !diffStartsAtFileTop || fileStatus === 'deleted'
+          ? []
+          : getFrontmatterLines(targetContent ?? '');
       const baseInput = fileStatus === 'added' ? null : baseData;
       const targetInput = fileStatus === 'deleted' ? null : targetData;
       const entries = computeFrontmatterDiff(baseInput, targetInput);
-      const view =
-        entries.length > 0 ? (
-          <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />
-        ) : null;
+      const hasFrontmatterChanges = entries.some((entry) => entry.status !== 'unchanged');
+      const view = hasFrontmatterChanges ? (
+        <FrontmatterTable mode="diff" entries={entries} label="Frontmatter" />
+      ) : null;
       return { view, stripBaseLines, stripTargetLines };
     }
 
@@ -549,7 +559,7 @@ const MarkdownDiffPreview = ({
     }
 
     return { view: null, stripBaseLines: [] as string[], stripTargetLines: [] as string[] };
-  }, [baseContent, targetContent, fileStatus]);
+  }, [baseContent, targetContent, fileStatus, diffStartsAtFileTop]);
 
   const renderBlocks = useMemo(
     () =>
@@ -646,6 +656,13 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
   const [partialFailureLabel, setPartialFailureLabel] = useState<string | null>(null);
   const [loadedSourcesKey, setLoadedSourcesKey] = useState<string | null>(null);
   const previewBlocks = useMemo(() => buildPreviewBlocks(mergedChunks), [mergedChunks]);
+  // Frontmatter can only appear in the diff when the first chunk starts at the
+  // top of the file; a chunk starting mid-file must be body content even if its
+  // leading lines happen to match the frontmatter (e.g. a `---` horizontal rule).
+  const diffStartsAtFileTop = useMemo(() => {
+    const firstChunk = mergedChunks[0];
+    return firstChunk !== undefined && (firstChunk.oldStart <= 1 || firstChunk.newStart <= 1);
+  }, [mergedChunks]);
 
   const previewSources = useMemo<PreviewSourcePair>(() => {
     const target: PreviewSource =
@@ -818,6 +835,7 @@ export function MarkdownDiffViewer(props: DiffViewerBodyProps) {
             baseContent={contents.base}
             targetContent={contents.target}
             fileStatus={file.status}
+            diffStartsAtFileTop={diffStartsAtFileTop}
           />
         </div>
       )}
