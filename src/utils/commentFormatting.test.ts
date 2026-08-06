@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
-import type { Comment } from '../types/diff';
+import type { Comment, CommentThread } from '../types/diff';
 
 import {
   formatCommentPrompt,
+  formatCommentThreadPrompt,
   formatAllCommentsPrompt,
+  formatAllCommentThreadsPrompt,
   formatCommentsOutput,
 } from './commentFormatting';
 
@@ -40,6 +42,11 @@ describe('commentFormatting', () => {
       expect(result).toBe('<unknown file>:L10\nComment body');
     });
 
+    it('should include the diff side when available', () => {
+      const result = formatCommentPrompt('src/removed.ts', 10, 'Why?', undefined, 'old');
+      expect(result).toBe('src/removed.ts:L10 side=old\nWhy?');
+    });
+
     it('should format suggestion block with ORIGINAL/SUGGESTED structure', () => {
       const body = `\`\`\`suggestion
 const newCode = 42;
@@ -71,6 +78,90 @@ const newCode = 42;
       expect(result).not.toContain('ORIGINAL:');
       expect(result).toContain('SUGGESTED:');
       expect(result).toContain('const newCode = 42;');
+    });
+  });
+
+  describe('formatAllCommentThreadsPrompt', () => {
+    const timestamp = '2024-01-01T00:00:00Z';
+    const threads: CommentThread[] = [
+      {
+        id: 'old-thread',
+        file: 'docs/SUMMARY.md',
+        line: 85,
+        side: 'old',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        messages: [
+          {
+            id: 'old-message',
+            body: 'Explain why this was removed.',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      },
+      {
+        id: 'new-thread',
+        file: 'docs/SUMMARY.md',
+        line: [242, 244],
+        side: 'new',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        messages: [
+          {
+            id: 'new-message',
+            body: 'Should this remain grouped?',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          {
+            id: 'reply-message',
+            body: 'Related entries are below.',
+            author: 'Reviewer',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      },
+    ];
+
+    it('should include one diff header and compact separators', () => {
+      const result = formatAllCommentThreadsPrompt(threads, {
+        requestedBaseCommitish: 'main',
+        requestedTargetCommitish: 'feature/docs-update',
+        baseMode: 'merge-base',
+        resolvedBaseCommitish: 'abcdef1',
+        resolvedTargetCommitish: '1234567',
+      });
+
+      expect(result)
+        .toBe(`diff base=main target=feature/docs-update mode=merge-base resolved-base=abcdef1 resolved-target=1234567
+=====
+docs/SUMMARY.md:L85 side=old
+Explain why this was removed.
+=====
+docs/SUMMARY.md:L242-L244 side=new
+Should this remain grouped?
+Reply 1 (Reviewer)
+Related entries are below.`);
+    });
+
+    it('should omit unavailable and redundant diff metadata', () => {
+      const result = formatAllCommentThreadsPrompt([threads[0]!], {
+        requestedTargetCommitish: 'working',
+        baseMode: 'direct',
+        resolvedTargetCommitish: 'working',
+      });
+
+      expect(result).toBe(`diff target=working mode=direct
+=====
+docs/SUMMARY.md:L85 side=old
+Explain why this was removed.`);
+    });
+
+    it('should keep individual thread prompts free of the diff header', () => {
+      const result = formatCommentThreadPrompt(threads[0]!);
+      expect(result).toBe('docs/SUMMARY.md:L85 side=old\nExplain why this was removed.');
     });
   });
 

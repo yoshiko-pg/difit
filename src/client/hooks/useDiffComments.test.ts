@@ -71,7 +71,7 @@ describe('useDiffComments', () => {
       expect(comment).toBeDefined();
       const prompt = result.current.generatePrompt(comment!.id);
 
-      expect(prompt).toBe('src/client/components/CommentForm.tsx:L42\nコメント内容');
+      expect(prompt).toBe('src/client/components/CommentForm.tsx:L42 side=new\nコメント内容');
     });
 
     it('should format multi-line comment correctly', () => {
@@ -90,7 +90,7 @@ describe('useDiffComments', () => {
       expect(comment).toBeDefined();
       const prompt = result.current.generatePrompt(comment!.id);
 
-      expect(prompt).toBe('src/client/components/CommentForm.tsx:L36-L39\n複数行');
+      expect(prompt).toBe('src/client/components/CommentForm.tsx:L36-L39 side=new\n複数行');
     });
 
     it('should return empty string for non-existent comment', () => {
@@ -130,17 +130,25 @@ describe('useDiffComments', () => {
         });
       });
 
-      const prompt = result.current.generateAllCommentsPrompt();
+      const prompt = result.current.generateAllCommentsPrompt({
+        requestedBaseCommitish: 'main',
+        requestedTargetCommitish: 'feature-branch',
+        baseMode: 'merge-base',
+        resolvedBaseCommitish: 'abc1234',
+        resolvedTargetCommitish: 'def5678',
+      });
 
       // Check if comments are in the correct order
       expect(result.current.comments).toHaveLength(2);
       expect(result.current.comments[0]?.position.line).toEqual({ start: 36, end: 39 });
       expect(result.current.comments[1]?.position.line).toBe(42);
 
-      const expected = `src/client/components/CommentForm.tsx:L36-L39
+      const expected = `diff base=main target=feature-branch mode=merge-base resolved-base=abc1234 resolved-target=def5678
+=====
+src/client/components/CommentForm.tsx:L36-L39 side=new
 複数行
 =====
-src/client/components/CommentForm.tsx:L42
+src/client/components/CommentForm.tsx:L42 side=new
 コメント内容`;
 
       expect(prompt).toBe(expected);
@@ -174,10 +182,10 @@ src/client/components/CommentForm.tsx:L42
       expect(result.current.comments[0]?.filePath).toBe('src/client/App.tsx');
       expect(result.current.comments[1]?.filePath).toBe('src/server/server.ts');
 
-      const expected = `src/client/App.tsx:L10
+      const expected = `src/client/App.tsx:L10 side=new
 App comment
 =====
-src/server/server.ts:L20-L25
+src/server/server.ts:L20-L25 side=new
 Server comment`;
 
       expect(prompt).toBe(expected);

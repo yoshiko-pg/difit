@@ -1,9 +1,42 @@
-import type { Comment, CommentThread } from '../types/diff';
+import type { BaseMode, Comment, CommentThread, DiffSide } from '../types/diff';
 
 import { hasSuggestionBlock, parseSuggestionBlocks } from './suggestionUtils.js';
 
 function getLineInfo(line: number | number[]): string {
   return typeof line === 'number' ? `L${line}` : `L${line[0]}-L${line[1]}`;
+}
+
+export interface CommentPromptDiffContext {
+  requestedBaseCommitish?: string;
+  requestedTargetCommitish?: string;
+  baseMode?: BaseMode;
+  resolvedBaseCommitish?: string;
+  resolvedTargetCommitish?: string;
+}
+
+function formatCommentLocation(file: string, line: number | number[], side?: DiffSide): string {
+  const filePath = file || '<unknown file>';
+  return `${filePath}:${getLineInfo(line)}${side ? ` side=${side}` : ''}`;
+}
+
+function formatDiffContextHeader(context: CommentPromptDiffContext): string {
+  const resolvedBaseCommitish =
+    context.resolvedBaseCommitish !== context.requestedBaseCommitish
+      ? context.resolvedBaseCommitish
+      : undefined;
+  const resolvedTargetCommitish =
+    context.resolvedTargetCommitish !== context.requestedTargetCommitish
+      ? context.resolvedTargetCommitish
+      : undefined;
+  const fields = [
+    context.requestedBaseCommitish ? `base=${context.requestedBaseCommitish}` : '',
+    context.requestedTargetCommitish ? `target=${context.requestedTargetCommitish}` : '',
+    context.baseMode ? `mode=${context.baseMode}` : '',
+    resolvedBaseCommitish ? `resolved-base=${resolvedBaseCommitish}` : '',
+    resolvedTargetCommitish ? `resolved-target=${resolvedTargetCommitish}` : '',
+  ].filter(Boolean);
+
+  return ['diff', ...fields].join(' ');
 }
 
 function formatCommentContent(body: string, codeContent?: string): string {
@@ -64,23 +97,29 @@ export function formatCommentPrompt(
   line: number | number[],
   body: string,
   codeContent?: string,
+  side?: DiffSide,
 ): string {
-  const filePath = file || '<unknown file>';
-  return `${filePath}:${getLineInfo(line)}\n${formatCommentContent(body, codeContent)}`;
+  return `${formatCommentLocation(file, line, side)}\n${formatCommentContent(body, codeContent)}`;
 }
 
 export function formatAllCommentsPrompt(comments: Comment[]): string {
   if (comments.length === 0) return '';
 
   const prompts = comments.map((comment) =>
-    formatCommentPrompt(comment.file, comment.line, comment.body, comment.codeContent),
+    formatCommentPrompt(
+      comment.file,
+      comment.line,
+      comment.body,
+      comment.codeContent,
+      comment.side,
+    ),
   );
 
   return prompts.join('\n=====\n');
 }
 
 export function formatCommentThreadPrompt(thread: CommentThread): string {
-  const sections: string[] = [`${thread.file || '<unknown file>'}:${getLineInfo(thread.line)}`];
+  const sections: string[] = [formatCommentLocation(thread.file, thread.line, thread.side)];
 
   thread.messages.forEach((message, index) => {
     if (index === 0) {
@@ -97,10 +136,18 @@ export function formatCommentThreadPrompt(thread: CommentThread): string {
   return sections.filter(Boolean).join('\n');
 }
 
-export function formatAllCommentThreadsPrompt(threads: CommentThread[]): string {
+export function formatAllCommentThreadsPrompt(
+  threads: CommentThread[],
+  context?: CommentPromptDiffContext,
+): string {
   if (threads.length === 0) return '';
 
-  return threads.map((thread) => formatCommentThreadPrompt(thread)).join('\n=====\n');
+  const sections = threads.map((thread) => formatCommentThreadPrompt(thread));
+  if (context) {
+    sections.unshift(formatDiffContextHeader(context));
+  }
+
+  return sections.join('\n=====\n');
 }
 
 export function formatCommentsOutput(input: Comment[] | CommentThread[]): string {

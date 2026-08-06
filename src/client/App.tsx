@@ -1073,7 +1073,13 @@ function App() {
 
   const handleCopyAllComments = async () => {
     try {
-      const prompt = generateAllCommentsPrompt();
+      const prompt = generateAllCommentsPrompt({
+        requestedBaseCommitish: diffData?.requestedBaseCommitish,
+        requestedTargetCommitish: diffData?.requestedTargetCommitish,
+        baseMode: normalizeBaseMode(diffData?.requestedBaseMode),
+        resolvedBaseCommitish: diffData?.baseCommitish,
+        resolvedTargetCommitish: diffData?.targetCommitish,
+      });
       await copyTextToClipboard(prompt);
       setIsCopiedAll(true);
       setTimeout(() => setIsCopiedAll(false), 2000);
