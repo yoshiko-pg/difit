@@ -115,6 +115,36 @@ describe('FileList', () => {
     expect(onToggleFolderReviewed).toHaveBeenCalledWith('src', true);
   });
 
+  it('renders both a file row and directory children when a path is both a file and a directory prefix', () => {
+    const onScrollToFile = vi.fn();
+    render(
+      <FileList
+        files={[
+          { ...createFile('vendor'), status: 'deleted' },
+          createFile('vendor/lib.ts'),
+          createFile('vendor/utils.ts'),
+        ]}
+        onScrollToFile={onScrollToFile}
+        comments={[]}
+        reviewedFiles={new Set()}
+        onToggleReviewed={vi.fn()}
+        onToggleFolderReviewed={vi.fn()}
+        selectedFileIndex={null}
+      />,
+    );
+
+    expect(screen.getByTitle('vendor/lib.ts')).toBeInTheDocument();
+    expect(screen.getByTitle('vendor/utils.ts')).toBeInTheDocument();
+
+    const vendorElements = screen.getAllByTitle('vendor');
+    const vendorFileRow = vendorElements
+      .map((el) => el.closest('[data-file-row="true"]'))
+      .find(Boolean);
+    expect(vendorFileRow).toBeDefined();
+    fireEvent.click(vendorFileRow!);
+    expect(onScrollToFile).toHaveBeenCalledWith('vendor');
+  });
+
   it('unmarks all files in a fully reviewed folder via the directory checkbox', () => {
     const onToggleFolderReviewed = vi.fn();
     render(
