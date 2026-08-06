@@ -795,8 +795,8 @@ describe('Server Integration Tests', () => {
     it('GET /api/comments-output returns formatted comments', async () => {
       // First post some comments
       const comments = [
-        { file: 'test.js', line: 10, body: 'First comment' },
-        { file: 'test.js', line: 20, body: 'Second comment' },
+        { file: 'test.js', line: 10, side: 'old', body: 'First comment' },
+        { file: 'test.js', line: 20, side: 'new', body: 'Second comment' },
       ];
 
       await fetch(`http://localhost:${port}/api/comments`, {
@@ -812,9 +812,9 @@ describe('Server Integration Tests', () => {
       expect(response.ok).toBe(true);
       expect(response.headers.get('Content-Type')).toContain('text/plain');
       expect(output).toContain('Comments from review session');
-      expect(output).toContain('test.js:L10');
+      expect(output).toContain('test.js:L10 side=old');
       expect(output).toContain('First comment');
-      expect(output).toContain('test.js:L20');
+      expect(output).toContain('test.js:L20 side=new');
       expect(output).toContain('Second comment');
       expect(output).toContain('Total comments: 2');
     });
