@@ -104,7 +104,7 @@ function buildFileTree(files: DiffFile[]): TreeNode {
         current.children = [];
       }
 
-      let child = current.children.find((c) => c.name === part);
+      let child = current.children.find((c) => c.name === part && c.isDirectory === !isLast);
 
       if (!child) {
         child = {
@@ -404,7 +404,7 @@ export const FileList = memo(function FileList({
 
       return (
         <div
-          key={file.path}
+          key={`file:${file.path}`}
           className={`flex items-center gap-2 px-4 py-2 hover:bg-github-bg-tertiary cursor-pointer transition-colors ${
             isReviewed ? 'opacity-70' : ''
           } ${isSelected ? 'bg-github-bg-tertiary' : ''}`}
