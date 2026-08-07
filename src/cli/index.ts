@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { spawn, type ChildProcess } from 'child_process';
 import { Command } from 'commander';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
@@ -22,6 +21,12 @@ import {
 } from './utils.js';
 import { createCommentCommand } from './comment.js';
 import { getPrPatch, getPrCommentImports } from './github.js';
+import {
+  BACKGROUND_CHILD_ENV,
+  emitBackgroundHandshake,
+  ignoreStdioErrorsForBackgroundDaemon,
+  startBackgroundProcess,
+} from './background.js';
 
 type SpecialArg = 'working' | 'staged' | '.';
 
@@ -71,117 +76,6 @@ function determineDiffMode(selection: DiffSelection, compareWith?: string): Diff
   }
   // Default mode: HEAD^ vs HEAD or HEAD vs other commits (watch for HEAD changes)
   return DiffMode.DEFAULT;
-}
-
-interface BackgroundServerInfo {
-  port: number;
-  url: string;
-  pid: number;
-}
-
-const BACKGROUND_CHILD_ENV = 'DIFIT_BACKGROUND_CHILD';
-
-function parseBackgroundHandshakeMessage(message: unknown): BackgroundServerInfo | null {
-  if (!message || typeof message !== 'object') {
-    return null;
-  }
-
-  const parsed = message as Partial<BackgroundServerInfo>;
-  if (
-    typeof parsed.port === 'number' &&
-    typeof parsed.url === 'string' &&
-    typeof parsed.pid === 'number'
-  ) {
-    return { port: parsed.port, url: parsed.url, pid: parsed.pid };
-  }
-
-  return null;
-}
-
-function emitBackgroundHandshake(info: BackgroundServerInfo): void {
-  process.send?.(info);
-  process.disconnect?.();
-}
-
-function releaseBackgroundChild(child: ChildProcess): void {
-  child.removeAllListeners();
-  child.disconnect();
-  child.unref();
-}
-
-function ignoreStdioErrorsForBackgroundDaemon(): void {
-  process.stdout?.on?.('error', () => {});
-  process.stderr?.on?.('error', () => {});
-}
-
-async function startBackgroundProcess(): Promise<void> {
-  const scriptPath = process.argv[1];
-  if (!scriptPath) {
-    throw new Error('Unable to determine difit entrypoint for background process');
-  }
-
-  const childArgs = process.argv.slice(2).filter((arg) => arg !== '--background');
-  if (!childArgs.includes('--keep-alive')) {
-    childArgs.push('--keep-alive');
-  }
-  if (!childArgs.includes('--no-open')) {
-    childArgs.push('--no-open');
-  }
-
-  const child = spawn(process.execPath, [scriptPath, ...childArgs], {
-    detached: true,
-    stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-    env: {
-      ...process.env,
-      [BACKGROUND_CHILD_ENV]: '1',
-    },
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      finish(() => {
-        releaseBackgroundChild(child);
-        reject(new Error('Timed out while starting background difit server'));
-      });
-    }, 10_000);
-    let settled = false;
-
-    const finish = (callback: () => void) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timeout);
-      callback();
-    };
-
-    child.on('message', (message: unknown) => {
-      const handshake = parseBackgroundHandshakeMessage(message);
-      if (!handshake) {
-        return;
-      }
-
-      finish(() => {
-        console.log(JSON.stringify(handshake));
-        releaseBackgroundChild(child);
-        resolve();
-      });
-    });
-
-    child.once('error', (error) => {
-      finish(() => {
-        releaseBackgroundChild(child);
-        reject(error);
-      });
-    });
-
-    child.once('exit', (code) => {
-      finish(() => {
-        releaseBackgroundChild(child);
-        reject(new Error(`Background difit server exited early (code ${code ?? 'unknown'})`));
-      });
-    });
-  });
 }
 
 interface CliOptions {
