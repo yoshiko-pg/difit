@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
 import { Command } from 'commander';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
@@ -22,6 +21,12 @@ import {
 } from './utils.js';
 import { createCommentCommand } from './comment.js';
 import { getPrPatch, getPrCommentImports } from './github.js';
+import {
+  BACKGROUND_CHILD_ENV,
+  emitBackgroundHandshake,
+  ignoreStdioErrorsForBackgroundDaemon,
+  startBackgroundProcess,
+} from './background.js';
 
 type SpecialArg = 'working' | 'staged' | '.';
 
@@ -73,88 +78,6 @@ function determineDiffMode(selection: DiffSelection, compareWith?: string): Diff
   return DiffMode.DEFAULT;
 }
 
-async function startBackgroundProcess(): Promise<void> {
-  const scriptPath = process.argv[1];
-  if (!scriptPath) {
-    throw new Error('Unable to determine difit entrypoint for background process');
-  }
-
-  const childArgs = process.argv.slice(2).filter((arg) => arg !== '--background');
-  if (!childArgs.includes('--keep-alive')) {
-    childArgs.push('--keep-alive');
-  }
-  if (!childArgs.includes('--no-open')) {
-    childArgs.push('--no-open');
-  }
-
-  const child = spawn(process.execPath, [scriptPath, ...childArgs], {
-    detached: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: {
-      ...process.env,
-      [BACKGROUND_CHILD_ENV]: '1',
-    },
-  });
-
-  child.stdout.setEncoding('utf8');
-  child.stderr.setEncoding('utf8');
-
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error('Timed out while starting background difit server'));
-    }, 10_000);
-    let stderr = '';
-    let settled = false;
-
-    const finish = (callback: () => void) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timeout);
-      callback();
-    };
-
-    child.stdout.on('data', (chunk: string) => {
-      const line = chunk
-        .split(/\r?\n/u)
-        .map((value) => value.trim())
-        .find((value) => value.length > 0);
-
-      if (!line) {
-        return;
-      }
-
-      finish(() => {
-        console.log(line);
-        child.unref();
-        resolve();
-      });
-    });
-
-    child.stderr.on('data', (chunk: string) => {
-      stderr += chunk;
-    });
-
-    child.once('error', (error) => {
-      finish(() => {
-        reject(error);
-      });
-    });
-
-    child.once('exit', (code) => {
-      finish(() => {
-        const trimmedStderr = stderr.trim();
-        reject(
-          new Error(
-            trimmedStderr || `Background difit server exited early (code ${code ?? 'unknown'})`,
-          ),
-        );
-      });
-    });
-  });
-}
-
 interface CliOptions {
   port?: number;
   host?: string;
@@ -168,8 +91,6 @@ interface CliOptions {
   context?: number;
   mergeBase?: boolean;
 }
-
-const BACKGROUND_CHILD_ENV = 'DIFIT_BACKGROUND_CHILD';
 
 const program = new Command();
 
@@ -317,7 +238,10 @@ program
         });
 
         if (backgroundMode) {
-          console.log(JSON.stringify({ port, url, pid: process.pid }));
+          emitBackgroundHandshake({ port, url, pid: process.pid });
+          if (isBackgroundChild) {
+            ignoreStdioErrorsForBackgroundDaemon();
+          }
           return;
         }
 
@@ -377,7 +301,10 @@ program
       });
 
       if (backgroundMode) {
-        console.log(JSON.stringify({ port, url, pid: process.pid }));
+        emitBackgroundHandshake({ port, url, pid: process.pid });
+        if (isBackgroundChild) {
+          ignoreStdioErrorsForBackgroundDaemon();
+        }
         return;
       }
 
