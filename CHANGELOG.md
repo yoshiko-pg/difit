@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.10] - 2026-08-08
+
+### Fixed
+
+- Ensure the `--background` parent process exits while the detached server stays alive (#451)
+- Show child paths when a diff path is both a file and a directory prefix (#453)
+
+### Thanks
+
+- [@rafaelsteil](https://github.com/rafaelsteil) for fixing detached background server startup (#451)
+- [@shimpeiws](https://github.com/shimpeiws) for fixing hidden child paths in the file tree (#453)
+
 ## [5.0.9] - 2026-08-05
 
 ### Added
@@ -1358,7 +1370,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.9...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.10...HEAD
+[5.0.10]: https://github.com/yoshiko-pg/difit/compare/v5.0.9...v5.0.10
 [5.0.9]: https://github.com/yoshiko-pg/difit/compare/v5.0.8...v5.0.9
 [5.0.8]: https://github.com/yoshiko-pg/difit/compare/v5.0.7...v5.0.8
 [5.0.7]: https://github.com/yoshiko-pg/difit/compare/v5.0.6...v5.0.7
