@@ -37,7 +37,7 @@ vi.mock('./hooks/useDiffComments', () => ({
     applyCommentImports: mockApplyCommentImports,
     generatePrompt: vi.fn(),
     generateThreadPrompt: vi.fn(),
-    generateAllCommentsPrompt: vi.fn(),
+    generateAllCommentsPrompt: mockGenerateAllCommentsPrompt,
   })),
 }));
 
@@ -124,6 +124,7 @@ let mockComments: DiffCommentThread[] = [];
 const mockReplaceThreads = vi.fn();
 const mockClearAllComments = vi.fn();
 const mockApplyCommentImports = vi.fn(() => []);
+const mockGenerateAllCommentsPrompt = vi.fn(() => 'formatted prompt');
 
 function createMockThread({
   id,
@@ -173,6 +174,7 @@ beforeEach(() => {
   mockViewedFiles = new Set<string>();
   mockHasLoadedInitialViewedFiles = true;
   mockReplaceThreads.mockReset();
+  mockGenerateAllCommentsPrompt.mockClear();
 });
 
 const mockDiffResponse: DiffResponse = {
@@ -202,6 +204,36 @@ describe('App Component - Clear Comments Functionality', () => {
     mockApplyCommentImports.mockReturnValue([]);
     mockConfirm.mockReturnValue(false);
     mockFetch(mockDiffResponse);
+  });
+
+  describe('Copy All Prompt Button', () => {
+    it('should generate Copy All Prompt with requested and resolved diff context', async () => {
+      mockComments = [
+        createMockThread({ id: 'test-1', filePath: 'test.ts', line: 10, body: 'Test comment' }),
+      ];
+      mockFetch({
+        ...mockDiffResponse,
+        baseCommitish: 'abcdef1',
+        targetCommitish: '1234567',
+        requestedBaseCommitish: 'main',
+        requestedTargetCommitish: 'feature/docs-update',
+        requestedBaseMode: 'merge-base',
+      });
+
+      renderApp();
+
+      fireEvent.click(await screen.findByText(/Copy All Prompt/));
+
+      await waitFor(() => {
+        expect(mockGenerateAllCommentsPrompt).toHaveBeenCalledWith({
+          requestedBaseCommitish: 'main',
+          requestedTargetCommitish: 'feature/docs-update',
+          baseMode: 'merge-base',
+          resolvedBaseCommitish: 'abcdef1',
+          resolvedTargetCommitish: '1234567',
+        });
+      });
+    });
   });
 
   describe('Cleanup All Prompt Button', () => {

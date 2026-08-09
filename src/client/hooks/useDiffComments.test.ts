@@ -130,14 +130,22 @@ describe('useDiffComments', () => {
         });
       });
 
-      const prompt = result.current.generateAllCommentsPrompt();
+      const prompt = result.current.generateAllCommentsPrompt({
+        requestedBaseCommitish: 'main',
+        requestedTargetCommitish: 'feature-branch',
+        baseMode: 'merge-base',
+        resolvedBaseCommitish: 'abc1234',
+        resolvedTargetCommitish: 'def5678',
+      });
 
       // Check if comments are in the correct order
       expect(result.current.comments).toHaveLength(2);
       expect(result.current.comments[0]?.position.line).toEqual({ start: 36, end: 39 });
       expect(result.current.comments[1]?.position.line).toBe(42);
 
-      const expected = `src/client/components/CommentForm.tsx:L36-L39
+      const expected = `diff main...feature-branch (abc1234...def5678)
+=====
+src/client/components/CommentForm.tsx:L36-L39
 複数行
 =====
 src/client/components/CommentForm.tsx:L42
