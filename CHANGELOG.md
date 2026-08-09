@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.11] - 2026-08-09
+
+### Added
+
+- Include diff context in comment text output when copying prompts (#455)
+
+### Thanks
+
+- [@l0stplains](https://github.com/l0stplains) for including diff context in comment text output (#455)
+
 ## [5.0.10] - 2026-08-08
 
 ### Fixed
@@ -1370,7 +1380,8 @@ All notable changes to this project will be documented in this file.
 
 - First stable release 🌱
 
-[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.10...HEAD
+[Unreleased]: https://github.com/yoshiko-pg/difit/compare/v5.0.11...HEAD
+[5.0.11]: https://github.com/yoshiko-pg/difit/compare/v5.0.10...v5.0.11
 [5.0.10]: https://github.com/yoshiko-pg/difit/compare/v5.0.9...v5.0.10
 [5.0.9]: https://github.com/yoshiko-pg/difit/compare/v5.0.8...v5.0.9
 [5.0.8]: https://github.com/yoshiko-pg/difit/compare/v5.0.7...v5.0.8
