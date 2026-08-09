@@ -16,27 +16,38 @@ export interface CommentPromptDiffContext {
 
 function formatCommentLocation(file: string, line: number | number[], side?: DiffSide): string {
   const filePath = file || '<unknown file>';
-  return `${filePath}:${getLineInfo(line)}${side ? ` side=${side}` : ''}`;
+  return `${filePath}:${getLineInfo(line)}${side === 'old' ? ' (old)' : ''}`;
 }
 
-function formatDiffContextHeader(context: CommentPromptDiffContext): string {
-  const resolvedBaseCommitish =
-    context.resolvedBaseCommitish !== context.requestedBaseCommitish
-      ? context.resolvedBaseCommitish
-      : undefined;
-  const resolvedTargetCommitish =
-    context.resolvedTargetCommitish !== context.requestedTargetCommitish
-      ? context.resolvedTargetCommitish
-      : undefined;
-  const fields = [
-    context.requestedBaseCommitish ? `base=${context.requestedBaseCommitish}` : '',
-    context.requestedTargetCommitish ? `target=${context.requestedTargetCommitish}` : '',
-    context.baseMode ? `mode=${context.baseMode}` : '',
-    resolvedBaseCommitish ? `resolved-base=${resolvedBaseCommitish}` : '',
-    resolvedTargetCommitish ? `resolved-target=${resolvedTargetCommitish}` : '',
-  ].filter(Boolean);
+function isNonRangeCommitish(commitish: string): boolean {
+  return (
+    commitish === 'working' || commitish === 'staged' || commitish === '.' || commitish === 'stdin'
+  );
+}
 
-  return ['diff', ...fields].join(' ');
+function formatDiffContextHeader(context: CommentPromptDiffContext): string | null {
+  const { requestedBaseCommitish, requestedTargetCommitish } = context;
+  if (
+    !requestedBaseCommitish ||
+    !requestedTargetCommitish ||
+    isNonRangeCommitish(requestedBaseCommitish) ||
+    isNonRangeCommitish(requestedTargetCommitish)
+  ) {
+    return null;
+  }
+
+  const separator = context.baseMode === 'merge-base' ? '...' : '..';
+  const requestedRange = `${requestedBaseCommitish}${separator}${requestedTargetCommitish}`;
+  const { resolvedBaseCommitish, resolvedTargetCommitish } = context;
+  const resolvedRange =
+    resolvedBaseCommitish &&
+    resolvedTargetCommitish &&
+    (resolvedBaseCommitish !== requestedBaseCommitish ||
+      resolvedTargetCommitish !== requestedTargetCommitish)
+      ? ` (${resolvedBaseCommitish}${separator}${resolvedTargetCommitish})`
+      : '';
+
+  return `diff ${requestedRange}${resolvedRange}`;
 }
 
 function formatCommentContent(body: string, codeContent?: string): string {
@@ -144,7 +155,10 @@ export function formatAllCommentThreadsPrompt(
 
   const sections = threads.map((thread) => formatCommentThreadPrompt(thread));
   if (context) {
-    sections.unshift(formatDiffContextHeader(context));
+    const header = formatDiffContextHeader(context);
+    if (header) {
+      sections.unshift(header);
+    }
   }
 
   return sections.join('\n=====\n');

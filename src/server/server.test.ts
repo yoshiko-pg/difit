@@ -812,9 +812,9 @@ describe('Server Integration Tests', () => {
       expect(response.ok).toBe(true);
       expect(response.headers.get('Content-Type')).toContain('text/plain');
       expect(output).toContain('Comments from review session');
-      expect(output).toContain('test.js:L10 side=old');
+      expect(output).toContain('test.js:L10 (old)');
       expect(output).toContain('First comment');
-      expect(output).toContain('test.js:L20 side=new');
+      expect(output).toContain('test.js:L20\nSecond comment');
       expect(output).toContain('Second comment');
       expect(output).toContain('Total comments: 2');
     });
