@@ -787,12 +787,8 @@ export class GitDiffParser {
 
       for (const defaultName of commonDefaults) {
         try {
-          await this.git.raw([
-            'show-ref',
-            '--verify',
-            '--quiet',
-            `refs/remotes/origin/${defaultName}`,
-          ]);
+          // No --quiet as simple-git success depends on stderr and that resolves wrong remotes
+          await this.git.raw(['show-ref', '--verify', `refs/remotes/origin/${defaultName}`]);
           return `origin/${defaultName}`;
         } catch {
           // Ignore missing refs and continue checking common defaults.

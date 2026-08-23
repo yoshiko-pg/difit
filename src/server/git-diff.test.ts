@@ -1425,6 +1425,35 @@ index abc123..def456 100644
     });
   });
 
+  describe('getOriginDefaultBranch', () => {
+    // simple-git reads success off stderr, so --quiet makes a missing ref resolve
+    const remote = (refs: string[]): void => {
+      (parser as any).git.raw.mockImplementation((args: string[]) =>
+        args[0] === 'show-ref' && (args.includes('--quiet') || refs.includes(args.at(-1) ?? ''))
+          ? Promise.resolve('')
+          : Promise.reject(new Error('no ref')),
+      );
+    };
+
+    it('returns null when the repository has no remote', async () => {
+      remote([]);
+
+      await expect(parser.getOriginDefaultBranch()).resolves.toBeNull();
+    });
+
+    it('returns the branch origin/HEAD points at', async () => {
+      (parser as any).git.raw.mockResolvedValue('refs/remotes/origin/develop\n');
+
+      await expect(parser.getOriginDefaultBranch()).resolves.toBe('origin/develop');
+    });
+
+    it('falls back to a common default branch on the remote', async () => {
+      remote(['refs/remotes/origin/master']);
+
+      await expect(parser.getOriginDefaultBranch()).resolves.toBe('origin/master');
+    });
+  });
+
   describe('parseDiff', () => {
     it('marks files with .gitattributes linguist-generated=true as generated', async () => {
       const file = 'apps/app/web/src/api/index.tsx';
