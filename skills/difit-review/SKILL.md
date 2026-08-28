@@ -1,9 +1,17 @@
 ---
 name: difit-review
-description: A skill for reviewing a specific diff and showing the findings as comments inside difit (the diff viewer). Use it to review branch diffs, commit diffs, or GitHub PRs, then preload findings or code explanations into difit with `--comment` before launching it for the user.
+description: Review a specific diff (branch, commit, or GitHub PR) and show the findings as comments inside difit, the local diff viewer. Explicit opt-in only — use when the user explicitly names difit, asks to open or annotate the review in the difit viewer, or invokes this skill by name. For ordinary requests to review code, diffs, commits, branches, or pull requests, review normally and respond in the conversation without launching difit.
 ---
 
 # Difit Review
+
+## When to Use This Skill
+
+difit opens an external browser UI and starts a long-running local server, so launching it must be explicit opt-in:
+
+- Use this skill only when the user explicitly names difit, asks to open, show, or annotate the review in the difit viewer, or invokes this skill by name.
+- Do NOT use it for ordinary review requests such as "review these changes", "use the reviewer agent", "find problems in this diff", or "review this PR/commit/branch". Perform those reviews normally and report the findings in your response.
+- When a request is ambiguous, prefer the non-difit review path.
 
 ## Overview
 
@@ -33,8 +41,11 @@ The detailed procedure is as follows.
 - Understand the diff normally, inspect surrounding code when needed, and think through the response required by the user's request, whether that is review findings, explanations, or something else.
 - For PR reviews, inspect the PR locally and keep the review result limited to difit output. Do not post comments back to remote GitHub.
 
-2. Attach the prepared comments and launch difit.
+2. Attach the prepared comments and launch difit — or reuse a running server.
 
+- **Reuse before launch**
+  - Keep at most one live difit server per Git root and review target. If a difit server you started earlier is still running for the same target, do not launch another or reopen its URL; add the new findings to it with `<difit-command> comment add --port <port> '<json>'` (same JSON shape as `--comment`) and let the open page pick them up.
+  - If review rounds are expected to repeat, launch with `--keep-alive` or `--background` (a detached keep-alive server that prints JSON connection info such as `{"port":4966,"url":"http://localhost:4966","pid":123}` without auto-opening a browser), then use `comment add` / `comment get --port <port>` for later rounds.
 - **difit launch options**
   - Use `<difit-command> <target> [compare-with]` to specify the target diff.
   - For uncommitted changes use `<difit-command> .`, for working tree changes use `<difit-command> working`, and for staged changes use `<difit-command> staged`.

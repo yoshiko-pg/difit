@@ -38,8 +38,8 @@ npx skills add yoshiko-pg/difit # Add the Skills to your agent
 
 Installed skills include:
 
-- `difit`: ask the user for a review through difit after code changes
-- `difit-review`: review a specific diff or PR and launch difit with findings or explanations preloaded as comments
+- `difit`: ask the user for a review in the difit viewer when the user explicitly opts in to difit
+- `difit-review`: review a specific diff or PR and show the findings inside the difit viewer, when the user explicitly asks for difit
 
 ## 🚀 Usage
 
@@ -191,8 +191,8 @@ npx skills add yoshiko-pg/difit
 
 Installed skills include:
 
-- `difit`: ask the user for a review through difit after code changes
-- `difit-review`: review a specific diff or PR and launch difit with findings or explanations preloaded as comments
+- `difit`: ask the user for a review in the difit viewer when the user explicitly opts in to difit
+- `difit-review`: review a specific diff or PR and show the findings inside the difit viewer, when the user explicitly asks for difit
 
 After code edits or automated review, the agent can start the difit server with the appropriate skill.
 

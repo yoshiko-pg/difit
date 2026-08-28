@@ -1,9 +1,17 @@
 ---
 name: difit
-description: Ask the user for a code review through difit after code changes.
+description: Ask the user for a code review by opening the changes in difit, a local diff viewer. Explicit opt-in only — use when the user names difit, asks to open or show the diff in the viewer, or has a standing instruction to request reviews through difit after changes. Do not use it for ordinary requests to review code, diffs, commits, branches, or pull requests.
 ---
 
 # Difit
+
+## When to Use This Skill
+
+difit opens an external browser UI and starts a long-running local server, so launching it must be explicit opt-in:
+
+- Use this skill only when the user explicitly names difit, asks to open or show the diff in a viewer, or has a standing instruction (for example in project docs or agent configuration) to request reviews through difit after code changes.
+- Do NOT use it for ordinary review requests such as "review these changes", "use the reviewer agent", "find problems in this diff", or "review this PR/commit/branch". Answer those through your normal response channel.
+- When a request is ambiguous, prefer the non-difit path.
 
 ## Overview
 
@@ -58,6 +66,19 @@ For uncommitted changes, if files not yet added to git should also appear in the
 ```bash
 <difit-command> . --include-untracked
 ```
+
+## Reusing a Running Server
+
+Keep at most one live difit server per Git root and review target. When you edit again after starting a review, reuse the running server instead of launching another one — repeated launches create duplicate ports and browser tabs.
+
+- Before starting difit, check whether a difit server you started earlier is still running for the same Git root (for example, the background process you launched is still alive).
+- If one is running for the same target, do not start another and do not reopen its URL. For working-tree targets (`.`, `working`, `staged`, and the HEAD default) difit watches the repository, and the open page prompts the user to reload when the diff changes.
+- If review rounds are expected to repeat, start the server with `--keep-alive` (the server survives browser disconnects) or `--background` (a detached keep-alive server; prints JSON like `{"port":4966,"url":"http://localhost:4966","pid":123}` and does not auto-open a browser, so share the URL with the user once).
+- While the server stays alive, exchange feedback without restarting it:
+  - `<difit-command> comment get --port <port>` — read the user's review comments (`--format json` for structured output).
+  - `<difit-command> comment add --port <port> '<json>'` — add new comments to the running server (same JSON shape as `--comment`).
+  - `<difit-command> comment resolve <threadId...> --port <port>` — resolve threads you have addressed.
+- If the review target changes (for example, a different commit range), stop the existing server and start a new one rather than leaving two servers for the same repository.
 
 ## Constraints
 
