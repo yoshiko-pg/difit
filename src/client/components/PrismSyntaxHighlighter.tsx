@@ -51,20 +51,29 @@ export const PrismSyntaxHighlighter = React.memo(function PrismSyntaxHighlighter
       return (
         <span
           className={className}
-          style={{ ...style, background: 'transparent', backgroundColor: 'transparent' }}
+          style={{
+            ...style,
+            background: 'transparent',
+            backgroundColor: 'transparent',
+          }}
           onMouseOver={onMouseOver}
           onMouseOut={onMouseOut}
         >
           {lines.map((line, i) => (
-            <span key={i} {...getLineProps({ line })}>
-              {line.map((token, key) =>
-                renderToken ? (
-                  renderToken(token, key, getTokenProps)
-                ) : (
-                  <span key={key} {...getTokenProps({ token })} />
-                ),
-              )}
-            </span>
+            <React.Fragment key={i}>
+              {/* prism-react-renderer strips the trailing newline from each line and
+                  the line spans are inline, so the separator must be re-inserted here */}
+              {i > 0 ? '\n' : null}
+              <span {...getLineProps({ line })}>
+                {line.map((token, key) =>
+                  renderToken ? (
+                    renderToken(token, key, getTokenProps)
+                  ) : (
+                    <span key={key} {...getTokenProps({ token })} />
+                  ),
+                )}
+              </span>
+            </React.Fragment>
           ))}
         </span>
       );

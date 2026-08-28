@@ -674,7 +674,7 @@ const getMarkdownComponents = (syntaxTheme?: DiffViewerBodyProps['syntaxTheme'])
           code={codeText.replace(/\n$/, '')}
           language={language}
           syntaxTheme={syntaxTheme}
-          className="font-mono text-github-text-primary [&_.token-line]:block [&_.token-line]:whitespace-pre"
+          className="font-mono text-github-text-primary"
         />
       </pre>
     );
@@ -776,7 +776,7 @@ const renderCellContent = (
         code={content.replace(/\n$/, '')}
         language={language || 'python'}
         syntaxTheme={syntaxTheme}
-        className="font-mono text-github-text-primary [&_.token-line]:block [&_.token-line]:whitespace-pre"
+        className="font-mono text-github-text-primary"
       />
     </pre>
   );

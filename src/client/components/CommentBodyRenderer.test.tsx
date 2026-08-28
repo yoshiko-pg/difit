@@ -71,6 +71,15 @@ describe('CommentBodyRenderer', () => {
     expect(pre).toHaveTextContent('const x = 1;');
   });
 
+  it('keeps each line of a multi-line fenced code block on its own line', () => {
+    const { container } = render(
+      <CommentBodyRenderer body={'```js\nconsole.log(1);\n// comment\nconsole.log(2);\n```'} />,
+    );
+
+    const pre = container.querySelector('pre');
+    expect(pre?.textContent).toBe('console.log(1);\n// comment\nconsole.log(2);');
+  });
+
   it('renders fenced diff blocks with addition/deletion backgrounds', () => {
     const { container } = render(
       <CommentBodyRenderer body={'```diff\n- const x = 1;\n+ const x = 2;\n  unchanged\n```'} />,
