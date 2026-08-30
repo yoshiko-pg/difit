@@ -466,6 +466,21 @@ describe('Server Integration Tests', () => {
       expect(data).toHaveProperty('requestedTargetCommitish', 'HEAD');
     });
 
+    it('GET /api/diff includes the custom title when --title is set', async () => {
+      const result = await startServer({
+        selection: { targetCommitish: 'HEAD', baseCommitish: 'HEAD^' },
+        preferredPort: 9035,
+        title: 'DEV-1234 review',
+      });
+      servers.push(result.server);
+
+      const response = await fetch(`http://localhost:${result.port}/api/diff`);
+      const data = (await response.json()) as any;
+
+      expect(response.ok).toBe(true);
+      expect(data).toHaveProperty('title', 'DEV-1234 review');
+    });
+
     it('GET /api/diff returns a JSON 500 on parse failure and does not poison subsequent requests', async () => {
       const parser = parserInstances.at(-1);
       parser?.parseDiff.mockClear();
