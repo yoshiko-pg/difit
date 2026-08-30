@@ -717,6 +717,7 @@ function App() {
         }
         setDiffData(data);
         setDiffDataVersion((prev) => prev + 1);
+        if (data.title) document.title = data.title;
 
         // Update resolved revision state from server response
         setResolvedBaseRevision(

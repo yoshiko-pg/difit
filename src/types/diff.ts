@@ -61,6 +61,7 @@ export interface DiffResponse {
   repositoryId?: string;
   commentImports?: CommentImport[];
   commentImportId?: string;
+  title?: string;
 }
 
 export interface GeneratedStatusResponse {

@@ -90,6 +90,7 @@ interface CliOptions {
   background?: boolean;
   context?: number;
   mergeBase?: boolean;
+  title?: string;
 }
 
 const program = new Command();
@@ -128,6 +129,7 @@ program
     '--merge-base',
     'resolve the base revision with git merge-base before diffing (Git revision mode only)',
   )
+  .option('--title <title>', 'custom browser tab title for this review session')
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
       const isBackgroundChild = process.env[BACKGROUND_CHILD_ENV] === '1';
@@ -234,6 +236,7 @@ program
           openBrowser: options.open,
           clearComments: options.clean,
           keepAlive: options.keepAlive,
+          title: options.title,
           ...(commentImports.length > 0 ? { commentImports } : {}),
         });
 
@@ -297,6 +300,7 @@ program
         contextLines: options.context,
         diffMode: determineDiffMode(selection, compareWith),
         repoPath,
+        title: options.title,
         ...(commentImports.length > 0 ? { commentImports } : {}),
       });
 
