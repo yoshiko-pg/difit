@@ -317,6 +317,14 @@ function App() {
     resolvedSelection?.baseMode,
   );
 
+  // Storage keeps a viewed record for a path even after it leaves the diff
+  // (renamed away, or the change reverted), so review progress counts only the
+  // files the current diff still has.
+  const viewedFilesInDiffCount = useMemo(
+    () => (diffData?.files ?? []).filter((file) => viewedFiles.has(file.path)).length,
+    [diffData, viewedFiles],
+  );
+
   // Reset initialization flag when diff context changes
   useEffect(() => {
     collapsedInitializedRef.current = false;
@@ -975,11 +983,11 @@ function App() {
   useEffect(() => {
     if (diffData) {
       // Reset the trigger flag when not all files are viewed
-      if (viewedFiles.size < diffData.files.length) {
+      if (viewedFilesInDiffCount < diffData.files.length) {
         setHasTriggeredSparkles(false);
       }
       // Show sparkles when all files are viewed and not already triggered
-      else if (viewedFiles.size === diffData.files.length && !hasTriggeredSparkles) {
+      else if (viewedFilesInDiffCount === diffData.files.length && !hasTriggeredSparkles) {
         setShowSparkles(true);
         setHasTriggeredSparkles(true);
         // Hide sparkles after animation completes
@@ -988,7 +996,7 @@ function App() {
         }, 1000);
       }
     }
-  }, [viewedFiles.size, diffData, hasTriggeredSparkles]);
+  }, [viewedFilesInDiffCount, diffData, hasTriggeredSparkles]);
 
   // Send comments to server whenever they change and before page unload
   useEffect(() => {
@@ -1317,9 +1325,9 @@ function App() {
               )}
               <div className="flex flex-col gap-1 items-center">
                 <div className="text-xs relative">
-                  {viewedFiles.size === diffData.files.length
+                  {viewedFilesInDiffCount === diffData.files.length
                     ? 'All diffs difit-ed!'
-                    : `${viewedFiles.size} / ${diffData.files.length} files viewed`}
+                    : `${viewedFilesInDiffCount} / ${diffData.files.length} files viewed`}
                   <SparkleAnimation isActive={showSparkles} />
                 </div>
                 <div
@@ -1332,10 +1340,11 @@ function App() {
                   <div
                     className="absolute top-0 right-0 h-full transition-all duration-300 ease-out"
                     style={{
-                      width: `${((diffData.files.length - viewedFiles.size) / diffData.files.length) * 100}%`,
+                      width: `${((diffData.files.length - viewedFilesInDiffCount) / diffData.files.length) * 100}%`,
                       backgroundColor: (() => {
                         const remainingPercent =
-                          ((diffData.files.length - viewedFiles.size) / diffData.files.length) *
+                          ((diffData.files.length - viewedFilesInDiffCount) /
+                            diffData.files.length) *
                           100;
                         if (remainingPercent > 50) return 'var(--color-github-accent)'; // green
                         if (remainingPercent > 20) return 'var(--color-github-warning)'; // yellow

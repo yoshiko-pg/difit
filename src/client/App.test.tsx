@@ -550,6 +550,35 @@ describe('App Component - Initial file collapsing', () => {
   });
 });
 
+describe('App Component - Review progress', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockConfirm.mockReturnValue(false);
+  });
+
+  it('counts only the viewed files the current diff still has', async () => {
+    mockFetch({
+      ...mockDiffResponse,
+      files: [
+        ...mockDiffResponse.files,
+        {
+          path: 'other.ts',
+          status: 'modified',
+          additions: 1,
+          deletions: 1,
+          chunks: [],
+        },
+      ],
+    });
+    mockViewedFiles = new Set(['test.ts', 'renamed-away.ts']);
+
+    renderApp();
+
+    expect(await screen.findByText('1 / 2 files viewed')).toBeInTheDocument();
+  });
+});
+
 describe('App Component - Comment sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
