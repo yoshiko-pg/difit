@@ -69,6 +69,14 @@ function createMockDiffFile(
   };
 }
 
+// The mock generateDiffHash returns `hash-${path-status}.slice(0,10)`. For a
+// file `src/foo.ts` with status `modified`, getDiffContentForHashing yields
+// `src/foo.ts-modified` and the hash is `hash-src/foo.t`.
+function hashFor(path: string, status: string): string {
+  const content = `${path}-${status}`;
+  return `hash-${content.slice(0, 10)}`;
+}
+
 describe('useViewedFiles', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -196,7 +204,7 @@ describe('useViewedFiles', () => {
         {
           filePath: 'package-lock.json',
           viewedAt: '2024-01-01T00:00:00Z',
-          diffContentHash: 'existing-hash',
+          diffContentHash: hashFor('package-lock.json', 'modified'),
         },
       ];
       mockGetViewedFiles.mockReturnValue(storedRecords);
@@ -221,7 +229,7 @@ describe('useViewedFiles', () => {
 
       // The existing record should keep its original hash
       const existingRecord = savedRecords?.find((r) => r.filePath === 'package-lock.json');
-      expect(existingRecord?.diffContentHash).toBe('existing-hash');
+      expect(existingRecord?.diffContentHash).toBe(hashFor('package-lock.json', 'modified'));
     });
   });
 
@@ -289,7 +297,7 @@ describe('useViewedFiles', () => {
         {
           filePath: 'src/dir/a.ts',
           viewedAt: '2024-01-01T00:00:00Z',
-          diffContentHash: 'existing-hash',
+          diffContentHash: hashFor('src/dir/a.ts', 'modified'),
         },
       ]);
       const { result } = renderHook(() =>
@@ -311,7 +319,7 @@ describe('useViewedFiles', () => {
       expect(entries[0]!.filePath).toBe('src/dir/b.ts');
       // The already viewed file keeps its original record
       expect(result.current.getViewedFileRecord('src/dir/a.ts')?.diffContentHash).toBe(
-        'existing-hash',
+        hashFor('src/dir/a.ts', 'modified'),
       );
     });
 
@@ -321,12 +329,12 @@ describe('useViewedFiles', () => {
         {
           filePath: 'src/dir/a.ts',
           viewedAt: '2024-01-01T00:00:00Z',
-          diffContentHash: 'hash-a',
+          diffContentHash: hashFor('src/dir/a.ts', 'modified'),
         },
         {
           filePath: 'src/dir/b.ts',
           viewedAt: '2024-01-01T00:00:00Z',
-          diffContentHash: 'hash-b',
+          diffContentHash: hashFor('src/dir/b.ts', 'modified'),
         },
       ]);
       const { result } = renderHook(() =>
@@ -343,8 +351,8 @@ describe('useViewedFiles', () => {
 
       expect(result.current.viewedFiles.size).toBe(0);
       expect(mockRemoveViewedHashes).toHaveBeenCalledWith('repo-1', [
-        { filePath: 'src/dir/a.ts', diffContentHash: 'hash-a' },
-        { filePath: 'src/dir/b.ts', diffContentHash: 'hash-b' },
+        { filePath: 'src/dir/a.ts', diffContentHash: hashFor('src/dir/a.ts', 'modified') },
+        { filePath: 'src/dir/b.ts', diffContentHash: hashFor('src/dir/b.ts', 'modified') },
       ]);
     });
 
@@ -484,14 +492,6 @@ describe('useViewedFiles', () => {
   });
 
   describe('cross-comparison viewed-state carryover', () => {
-    // The mock generateDiffHash returns `hash-${path-status}.slice(0,10)`. For a
-    // file `src/foo.ts` with status `modified`, getDiffContentForHashing yields
-    // `src/foo.ts-modified` and the hash is `hash-src/foo.t`.
-    const hashFor = (path: string, status: string) => {
-      const content = `${path}-${status}`;
-      return `hash-${content.slice(0, 10)}`;
-    };
-
     it('restores files as viewed when their diff hash matches the per-repo index', async () => {
       const initialFiles: DiffFile[] = [
         createMockDiffFile('src/unchanged.ts', 'modified', false),
@@ -715,6 +715,51 @@ describe('useViewedFiles', () => {
       });
 
       expect(mockClearViewedHashIndex).toHaveBeenCalledWith('repo-1');
+    });
+  });
+
+  describe('changed since viewed within one comparison', () => {
+    it('flags a stored file whose current diff no longer matches the recorded hash', async () => {
+      const file = createMockDiffFile('src/edited.ts', 'modified', false);
+      mockGetViewedFiles.mockReturnValue([
+        {
+          filePath: 'src/edited.ts',
+          viewedAt: '2026-01-01T00:00:00Z',
+          diffContentHash: 'hash recorded before the edit',
+        },
+      ]);
+
+      const { result } = renderHook(() =>
+        useViewedFiles('main', 'HEAD', 'abc', undefined, [file], 'repo-1', [], undefined),
+      );
+
+      await waitFor(() => {
+        expect(result.current.changedSinceViewedFiles.has('src/edited.ts')).toBe(true);
+      });
+
+      expect(result.current.viewedFiles.has('src/edited.ts')).toBe(false);
+      expect(mockRemoveViewedHashes).not.toHaveBeenCalled();
+    });
+
+    it('keeps a stored file viewed when its current diff still matches the recorded hash', async () => {
+      const file = createMockDiffFile('src/untouched.ts', 'modified', false);
+      mockGetViewedFiles.mockReturnValue([
+        {
+          filePath: 'src/untouched.ts',
+          viewedAt: '2026-01-01T00:00:00Z',
+          diffContentHash: hashFor('src/untouched.ts', 'modified'),
+        },
+      ]);
+
+      const { result } = renderHook(() =>
+        useViewedFiles('main', 'HEAD', 'abc', undefined, [file], 'repo-1', [], undefined),
+      );
+
+      await waitFor(() => {
+        expect(result.current.viewedFiles.has('src/untouched.ts')).toBe(true);
+      });
+
+      expect(result.current.changedSinceViewedFiles.has('src/untouched.ts')).toBe(false);
     });
   });
 });
