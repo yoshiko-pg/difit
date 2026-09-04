@@ -14,10 +14,10 @@ import { generateDiffHash, getDiffContentForHashing } from '../utils/diffUtils';
 interface UseViewedFilesReturn {
   viewedFiles: Set<string>; // Set of file paths
   /**
-   * Set of file paths that were marked viewed in some prior comparison range
-   * (per the per-repo hash index) but whose current diff hash does not match
-   * any of those prior views. Used to surface a "changed since you viewed"
-   * indicator for incremental code reviews.
+   * Set of file paths that were marked viewed before — in this comparison range
+   * or, per the per-repo hash index, in a prior one — but whose current diff
+   * hash matches none of those views. Used to surface a "changed since you
+   * viewed" indicator for incremental code reviews.
    */
   changedSinceViewedFiles: Set<string>;
   hasLoadedInitialViewedFiles: boolean;
@@ -73,10 +73,9 @@ export function useViewedFiles(
     // so editing the textarea does not immediately re-mark the current diff.
     const processAutoCollapsedFiles = async () => {
       const additions: ViewedFileRecord[] = [];
+      let activeRecords: ViewedFileRecord[] = loadedFiles;
 
       if (initialFiles && initialFiles.length > 0) {
-        const knownPaths = new Set(loadedFiles.map((f) => f.filePath));
-
         // Hash every displayed file once so we can both auto-mark and
         // hydrate-from-index without recomputing.
         const hashByPath = new Map<string, string>();
@@ -90,6 +89,20 @@ export function useViewedFiles(
             }
           }),
         );
+
+        // A stored record whose file no longer hashes to the recorded value was
+        // viewed and then edited inside this same comparison range. Un-view it,
+        // so its diff is expanded again, and flag it as changed below.
+        const stalePaths = new Set(
+          loadedFiles
+            .filter((record) => {
+              const currentHash = hashByPath.get(record.filePath);
+              return currentHash !== undefined && currentHash !== record.diffContentHash;
+            })
+            .map((record) => record.filePath),
+        );
+        activeRecords = loadedFiles.filter((record) => !stalePaths.has(record.filePath));
+        const knownPaths = new Set(activeRecords.map((f) => f.filePath));
 
         // Auto-mark generated / deleted / pattern-matched files.
         for (const file of initialFiles) {
@@ -139,12 +152,12 @@ export function useViewedFiles(
           knownPaths.add(file.path);
         }
 
-        // Flag files that were viewed in some prior comparison but whose
-        // current diff differs from every recorded hash for that path.
+        // Flag files that were viewed before but whose current diff differs
+        // from every recorded hash for that path.
         const changed = new Set<string>();
         for (const file of initialFiles) {
-          if (!indexedPaths.has(file.path)) continue;
-          if (knownPaths.has(file.path)) continue; // already viewed (loaded or just hydrated)
+          if (!stalePaths.has(file.path) && !indexedPaths.has(file.path)) continue;
+          if (knownPaths.has(file.path)) continue; // already viewed (loaded, auto-marked or hydrated)
           const currentHash = hashByPath.get(file.path);
           if (!currentHash) continue;
           if (indexedByKey.has(`${file.path} ${currentHash}`)) continue;
@@ -155,8 +168,8 @@ export function useViewedFiles(
         if (!cancelled) setChangedSinceViewedFiles(new Set());
       }
 
-      if (additions.length > 0) {
-        const updatedRecords = [...loadedFiles, ...additions];
+      const updatedRecords = [...activeRecords, ...additions];
+      if (additions.length > 0 || activeRecords.length < loadedFiles.length) {
         storageService.saveViewedFiles(
           baseCommitish,
           targetCommitish,
@@ -166,15 +179,10 @@ export function useViewedFiles(
           repositoryId,
           baseMode,
         );
-        if (!cancelled) {
-          setViewedFileRecords(updatedRecords);
-          setLoadedViewedFilesKey(viewedFilesKey);
-        }
-        return;
       }
 
       if (!cancelled) {
-        setViewedFileRecords(loadedFiles);
+        setViewedFileRecords(updatedRecords);
         setLoadedViewedFilesKey(viewedFilesKey);
       }
     };
