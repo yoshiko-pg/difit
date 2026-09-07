@@ -20,7 +20,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 const baseSettings = {
   fontSize: 14,
   fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   theme: 'dark' as const,
   syntaxTheme: 'vsDark',
   editor: {

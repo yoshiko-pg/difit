@@ -5,7 +5,7 @@ import {
   type EditorOptionId,
   resolveEditorOption,
 } from '../../utils/editorOptions';
-import type { AppearanceSettings } from '../components/SettingsModal';
+import { FONT_FAMILIES, type AppearanceSettings } from '../components/SettingsModal';
 import { fetchClientSettings, saveClientSettings } from '../services/userSettings';
 import { normalizeAutoViewedPatterns } from '../utils/autoViewedPatterns';
 import {
@@ -20,7 +20,7 @@ import { getFallbackSyntaxTheme, isSyntaxThemeForResolvedTheme } from '../utils/
 const DEFAULT_SETTINGS: AppearanceSettings = {
   fontSize: 14,
   fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   theme: 'dark',
   syntaxTheme: 'vsDark',
   editor: {
@@ -83,9 +83,16 @@ const normalizeStoredSettings = (raw: unknown): AppearanceSettings | null => {
     editor?: unknown;
   };
 
+  const fontFamilyPrefix =
+    typeof parsed.fontFamily === 'string' ? (parsed.fontFamily.split(',').at(0) ?? '') + ',' : '';
+  const fontFamily =
+    FONT_FAMILIES.find((font) => font.value.startsWith(fontFamilyPrefix))?.value ??
+    DEFAULT_SETTINGS.fontFamily;
+
   return {
     ...DEFAULT_SETTINGS,
     ...parsed,
+    fontFamily,
     editor: normalizeEditorSettings(parsed.editor),
     autoViewedPatterns: normalizeAutoViewedPatterns(parsed.autoViewedPatterns),
   };
@@ -197,7 +204,7 @@ export function useAppearanceSettings(): UseAppearanceSettingsReturn {
     root.style.setProperty('--app-font-size', `${settings.fontSize}px`);
 
     // Apply font family
-    root.style.setProperty('--app-font-family', settings.fontFamily);
+    root.style.setProperty('--mono-font-family', settings.fontFamily);
 
     // Apply theme
     const colorVision = settings.colorVision ?? 'normal';

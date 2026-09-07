@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+  --font-mono: var(--mono-font-family);
+
   --color-github-bg-primary: #0d1117;
   --color-github-bg-secondary: #161b22;
   --color-github-bg-tertiary: #21262d;
@@ -28,8 +30,9 @@
 /* CSS Custom Properties for dynamic theming */
 :root {
   --app-font-size: 14px;
-  --app-font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --mono-font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
 }
 
 /* Global styles */
@@ -37,7 +40,8 @@ html,
 body {
   background-color: var(--color-github-bg-primary);
   color: var(--color-github-text-primary);
-  font-family: var(--app-font-family);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-size: var(--app-font-size);
 }

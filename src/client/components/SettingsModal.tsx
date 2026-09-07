@@ -46,7 +46,7 @@ type SettingsSection = 'appearance' | 'system';
 const DEFAULT_SETTINGS: AppearanceSettings = {
   fontSize: 14,
   fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   theme: 'dark',
   syntaxTheme: 'vsDark',
   editor: {
@@ -58,11 +58,11 @@ const DEFAULT_SETTINGS: AppearanceSettings = {
   autoViewedPatterns: [],
 };
 
-const FONT_FAMILIES = [
+export const FONT_FAMILIES = [
   {
     name: 'System Font',
     value:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
+      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   },
   { name: 'Menlo', value: 'Menlo, Monaco, "Courier New", monospace' },
   { name: 'SF Mono', value: 'SF Mono, Consolas, "Liberation Mono", monospace' },
