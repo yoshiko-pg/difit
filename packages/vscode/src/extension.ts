@@ -1,4 +1,4 @@
-import { type ChildProcess, type ForkOptions, fork, spawn } from 'node:child_process';
+import { type ChildProcess, fork, spawn } from 'node:child_process';
 
 import * as vscode from 'vscode';
 
@@ -198,8 +198,10 @@ function forkBundled(repoRoot: string, target: ReviewTarget): ChildProcess {
     env: { ...process.env, NODE_ENV: 'production' },
     // Node forwards windowsHide to spawn, but @types/node omits it from
     // ForkOptions; without it the extension host pops a console window.
-    windowsHide: true,
-  } as ForkOptions);
+    // Spread so the assertion covers this property alone and the rest of the
+    // literal stays type-checked.
+    ...({ windowsHide: true } as { windowsHide: boolean }),
+  });
 }
 
 function spawnExternal(
