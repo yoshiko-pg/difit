@@ -331,6 +331,7 @@ export function getPrPatch(prArg: string): string {
     const patch = execFileSync('gh', ['pr', 'diff', prArg], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
     });
 
     if (!patch.trim()) {
@@ -407,6 +408,7 @@ export function getPrCommentImports(prArg: string): Promise<CommentImport[]> {
       const stdout = execFileSync('gh', args, {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
+        windowsHide: true,
       });
       const parsed = JSON.parse(stdout) as GitHubReviewThreadsGraphqlResponse;
       const page = parsePrCommentImportsResponse(parsed);

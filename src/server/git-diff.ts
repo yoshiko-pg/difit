@@ -647,6 +647,7 @@ export class GitDiffParser {
         // Using execFileSync to prevent command injection
         const buffer = execFileSync('git', ['show', `:${normalizedFilepath}`], {
           maxBuffer: 10 * 1024 * 1024, // 10MB limit
+          windowsHide: true,
         });
         return buffer;
       }
@@ -656,12 +657,14 @@ export class GitDiffParser {
       const blobHash = execFileSync('git', ['rev-parse', `${ref}:${normalizedFilepath}`], {
         encoding: 'utf8',
         maxBuffer: 10 * 1024 * 1024,
+        windowsHide: true,
       }).trim();
 
       // Then use git cat-file to get the raw binary content
       // Increase maxBuffer to handle large files (default is 1024*1024 = 1MB)
       const buffer = execFileSync('git', ['cat-file', 'blob', blobHash], {
         maxBuffer: 10 * 1024 * 1024, // 10MB limit
+        windowsHide: true,
       });
 
       return buffer;

@@ -52,6 +52,7 @@ export function getGitRoot(): string {
     const result = execSync('git rev-parse --show-toplevel', {
       encoding: 'utf8',
       stdio: 'pipe',
+      windowsHide: true,
     });
     return result.trim();
   } catch {
