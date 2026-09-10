@@ -196,6 +196,11 @@ function forkBundled(repoRoot: string, target: ReviewTarget): ChildProcess {
     // would make the child fight over the debug port.
     execArgv: [],
     env: { ...process.env, NODE_ENV: 'production' },
+    // Node forwards windowsHide to spawn, but @types/node omits it from
+    // ForkOptions; without it the extension host pops a console window.
+    // Spread so the assertion covers this property alone and the rest of the
+    // literal stays type-checked.
+    ...({ windowsHide: true } as { windowsHide: boolean }),
   });
 }
 
@@ -212,6 +217,7 @@ function spawnExternal(
   return spawn(executablePath, args, {
     cwd: repoRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
   });
 }
 
@@ -334,6 +340,7 @@ async function runGit(cwd: string, args: readonly string[]): Promise<string> {
     const child = spawn('git', [...args], {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
     });
 
     let stdout = '';

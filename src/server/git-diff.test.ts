@@ -88,6 +88,7 @@ describe('GitDiffParser', () => {
 
       expect(mockExecFileSync).toHaveBeenCalledWith('git', ['show', ':test.txt'], {
         maxBuffer: 10 * 1024 * 1024,
+        windowsHide: true,
       });
       expect(result).toBe(mockBuffer);
     });
@@ -105,9 +106,11 @@ describe('GitDiffParser', () => {
       expect(mockExecFileSync).toHaveBeenCalledWith('git', ['rev-parse', 'HEAD:test.txt'], {
         encoding: 'utf8',
         maxBuffer: 10 * 1024 * 1024,
+        windowsHide: true,
       });
       expect(mockExecFileSync).toHaveBeenCalledWith('git', ['cat-file', 'blob', blobHash], {
         maxBuffer: 10 * 1024 * 1024,
+        windowsHide: true,
       });
       expect(result).toBe(mockBuffer);
     });
