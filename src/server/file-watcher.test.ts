@@ -18,10 +18,26 @@ const TEST_REPO_PATH = resolve('/test/path');
 interface GitState {
   head: string;
   ref: string;
-  status: string;
-  /** Milliseconds `git status` appears to take, to trigger the slow hint. */
-  statusDelayMs?: number;
+  /** Patch of the working tree against HEAD, what `git diff HEAD` prints. */
+  worktreeDiff: string;
+  /** Patch of the index against HEAD, what `git diff --cached` prints. */
+  stagedDiff: string;
+  /** Untracked paths, what `git ls-files --others` prints. */
+  untracked: string;
+  /** Milliseconds the working tree scan appears to take, for the slow hint. */
+  scanDelayMs?: number;
   config?: Record<string, string>;
+}
+
+function newGitState(overrides: Partial<GitState> = {}): GitState {
+  return {
+    head: 'abc1234',
+    ref: 'refs/heads/main',
+    worktreeDiff: '',
+    stagedDiff: '',
+    untracked: '',
+    ...overrides,
+  };
 }
 
 function mockGitWith(state: GitState) {
@@ -30,13 +46,17 @@ function mockGitWith(state: GitState) {
     if (args[0] === 'symbolic-ref') {
       return state.ref;
     }
-    if (args[0] === 'status') {
-      if (state.statusDelayMs) {
+    if (args[0] === 'diff') {
+      const staged = args.includes('--cached');
+      if (!staged && state.scanDelayMs) {
         // A real delay, so the service measures a real duration. Tests that
         // use this run on real timers.
-        await new Promise((done) => setTimeout(done, state.statusDelayMs));
+        await new Promise((done) => setTimeout(done, state.scanDelayMs));
       }
-      return state.status;
+      return staged ? state.stagedDiff : state.worktreeDiff;
+    }
+    if (args[0] === 'ls-files') {
+      return state.untracked;
     }
     if (args[0] === 'config') {
       const key = args[2] ?? '';
@@ -52,6 +72,11 @@ function mockGitWith(state: GitState) {
   const mockGit = { revparse, raw };
   vi.mocked(simpleGit).mockReturnValue(mockGit as never);
   return mockGit;
+}
+
+/** A minimal patch that edits `path`, with `body` as the new content. */
+function patchFor(path: string, body: string): string {
+  return `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -1 +1 @@\n+${body}\n`;
 }
 
 /** Run every pending timer so the poll and the debounce both fire. */
@@ -74,7 +99,7 @@ describe('FileWatcherService', () => {
     vi.useFakeTimers();
     fileWatcher = new FileWatcherService();
 
-    state = { head: 'abc1234', ref: 'refs/heads/main', status: '' };
+    state = newGitState();
     mockGitWith(state);
 
     // Mock Express Response
@@ -171,7 +196,7 @@ describe('FileWatcherService', () => {
       await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
 
-      state.status = ' M src/app.ts\n';
+      state.worktreeDiff = patchFor('src/app.ts', 'edited');
       await advanceToBroadcast();
 
       expect(reloadCalls()).toHaveLength(0);
@@ -181,7 +206,7 @@ describe('FileWatcherService', () => {
       await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
 
-      state.status = ' M src/app.ts\n';
+      state.worktreeDiff = patchFor('src/app.ts', 'edited');
       await advanceToBroadcast();
 
       expect(reloadCalls()).toHaveLength(1);
@@ -191,7 +216,7 @@ describe('FileWatcherService', () => {
       await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
 
-      state.status = '?? src/new.ts\n';
+      state.untracked = 'src/new.ts\n';
       await advanceToBroadcast();
 
       expect(reloadCalls()).toHaveLength(1);
@@ -201,7 +226,7 @@ describe('FileWatcherService', () => {
       await fileWatcher.start(DiffMode.STAGED, TEST_REPO_PATH, DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
 
-      state.status = 'M  src/app.ts\n';
+      state.stagedDiff = patchFor('src/app.ts', 'staged');
       await advanceToBroadcast();
 
       expect(reloadCalls()).toHaveLength(1);
@@ -211,17 +236,45 @@ describe('FileWatcherService', () => {
       await fileWatcher.start(DiffMode.STAGED, TEST_REPO_PATH, DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
 
-      state.status = ' M src/app.ts\n';
+      state.worktreeDiff = patchFor('src/app.ts', 'edited');
       await advanceToBroadcast();
 
       expect(reloadCalls()).toHaveLength(0);
+    });
+
+    // A file that git already reports as changed keeps the same status letters
+    // after every later edit. A signal built from `git status` therefore goes
+    // quiet once a file is dirty, which is the bug this test guards.
+    it('should broadcast on a second edit to an already changed file', async () => {
+      state.worktreeDiff = patchFor('src/app.ts', 'first');
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.worktreeDiff = patchFor('src/app.ts', 'second');
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
+    });
+
+    // The same blind spot, on a file that is staged and then edited again in
+    // the working tree. `git status` reports `AM` before and after the edit.
+    it('should broadcast on an edit to a staged file in DOT mode', async () => {
+      state.stagedDiff = patchFor('src/new.ts', 'added');
+      state.worktreeDiff = patchFor('src/new.ts', 'added');
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.worktreeDiff = patchFor('src/new.ts', 'added and then edited');
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
     });
 
     it('should ignore an untracked file in STAGED mode', async () => {
       await fileWatcher.start(DiffMode.STAGED, TEST_REPO_PATH, DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
 
-      state.status = '?? src/new.ts\n';
+      state.untracked = 'src/new.ts\n';
       await advanceToBroadcast();
 
       expect(reloadCalls()).toHaveLength(0);
@@ -351,12 +404,12 @@ describe('FileWatcherService', () => {
       await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, LONG_DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
 
-      // Each poll sees a different status, but they all land in one window.
-      state.status = ' M a.ts\n';
+      // Each poll sees a different patch, but they all land in one window.
+      state.worktreeDiff = patchFor('a.ts', 'one');
       await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
-      state.status = ' M a.ts\n M b.ts\n';
+      state.worktreeDiff = patchFor('a.ts', 'two');
       await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
-      state.status = ' M a.ts\n M b.ts\n M c.ts\n';
+      state.worktreeDiff = patchFor('a.ts', 'three');
       await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
       await vi.advanceTimersByTimeAsync(LONG_DEBOUNCE_MS);
 
@@ -367,16 +420,16 @@ describe('FileWatcherService', () => {
       await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
 
-      state.status = ' M a.ts\n';
+      state.worktreeDiff = patchFor('a.ts', 'one');
       await advanceToBroadcast();
-      state.status = ' M a.ts\n M b.ts\n';
+      state.worktreeDiff = patchFor('a.ts', 'two');
       await advanceToBroadcast();
 
       expect(reloadCalls()).toHaveLength(2);
     });
   });
 
-  describe('slow git status hint', () => {
+  describe('slow working tree scan hint', () => {
     const SLOW_MS = 200;
     let logSpy: MockInstance<typeof console.log>;
 
@@ -395,11 +448,11 @@ describe('FileWatcherService', () => {
     }
 
     it('should suggest both settings when neither is enabled', async () => {
-      mockGitWith({ ...state, statusDelayMs: SLOW_MS, config: {} });
+      mockGitWith({ ...state, scanDelayMs: SLOW_MS, config: {} });
       await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
 
       const lines = hintLines();
-      expect(lines.some((line) => line.includes('git status takes'))).toBe(true);
+      expect(lines.some((line) => line.includes('working tree scan takes'))).toBe(true);
       expect(lines.some((line) => line.includes('core.untrackedCache'))).toBe(true);
       expect(lines.some((line) => line.includes('core.fsmonitor'))).toBe(true);
     });
@@ -407,7 +460,7 @@ describe('FileWatcherService', () => {
     it('should suggest only the setting that is not enabled', async () => {
       mockGitWith({
         ...state,
-        statusDelayMs: SLOW_MS,
+        scanDelayMs: SLOW_MS,
         config: { 'core.untrackedCache': 'true' },
       });
       await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
@@ -420,26 +473,26 @@ describe('FileWatcherService', () => {
     it('should stay silent when both settings are enabled', async () => {
       mockGitWith({
         ...state,
-        statusDelayMs: SLOW_MS,
+        scanDelayMs: SLOW_MS,
         config: { 'core.untrackedCache': 'true', 'core.fsmonitor': 'true' },
       });
       await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
 
-      expect(hintLines().some((line) => line.includes('git status takes'))).toBe(false);
+      expect(hintLines().some((line) => line.includes('working tree scan takes'))).toBe(false);
     });
 
-    it('should stay silent when git status is fast', async () => {
+    it('should stay silent when the working tree scan is fast', async () => {
       mockGitWith({ ...state, config: {} });
       await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
 
-      expect(hintLines().some((line) => line.includes('git status takes'))).toBe(false);
+      expect(hintLines().some((line) => line.includes('working tree scan takes'))).toBe(false);
     });
 
     it('should stay silent in a mode that never reads the working tree', async () => {
-      mockGitWith({ ...state, statusDelayMs: SLOW_MS, config: {} });
+      mockGitWith({ ...state, scanDelayMs: SLOW_MS, config: {} });
       await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
 
-      expect(hintLines().some((line) => line.includes('git status takes'))).toBe(false);
+      expect(hintLines().some((line) => line.includes('working tree scan takes'))).toBe(false);
     });
   });
 
@@ -453,7 +506,7 @@ describe('FileWatcherService', () => {
       ];
 
       for (const { mode, expectedType } of modes) {
-        const modeState: GitState = { head: 'abc1234', ref: 'refs/heads/main', status: '' };
+        const modeState: GitState = newGitState();
         mockGitWith(modeState);
 
         const watcher = new FileWatcherService();

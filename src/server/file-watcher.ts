@@ -16,7 +16,7 @@ interface FileWatcherConfig {
  * How much of the git state each mode must inspect.
  *
  * `head` is enough when the diff only moves when a commit does. The working
- * tree report costs far more on a large repository, so modes that cannot show
+ * tree patch costs far more on a large repository, so modes that cannot show
  * an uncommitted change never ask for it.
  */
 type SignalScope = 'head' | 'index' | 'worktree';
@@ -31,7 +31,7 @@ const MODE_SIGNAL_SCOPE: Record<DiffMode, SignalScope | null> = {
 
 /**
  * Fraction of one core the poller is allowed to consume. The next delay comes
- * from how long the previous sample took, so a repository where `git status`
+ * from how long the previous sample took, so a repository where the scan
  * costs 200ms is polled about every 2s, and a small one is polled at
  * MIN_POLL_INTERVAL_MS.
  */
@@ -40,13 +40,22 @@ const MIN_POLL_INTERVAL_MS = 1_000;
 const MAX_POLL_INTERVAL_MS = 10_000;
 
 /**
- * Above this cost, a `git status` scan is slow enough that git's own caches
+ * Above this cost, a working tree scan is slow enough that git's own caches
  * are worth mentioning. Below it, the poll is cheap and the advice is noise.
  */
-const SLOW_STATUS_HINT_MS = 150;
+const SLOW_SCAN_HINT_MS = 150;
 
-// A separator that cannot appear inside a ref name or a porcelain line.
+// A separator that cannot appear inside a ref name or a patch line.
 const SIGNAL_SEPARATOR = '\n--difit--\n';
+
+/**
+ * Flags that keep the signal patch small without losing a real change.
+ *
+ * The poller compares the patch to itself, so it needs no context lines. It
+ * also does not need rename detection, which costs time and only relabels a
+ * change that the patch already shows.
+ */
+const DIFF_SIGNAL_FLAGS = ['--unified=0', '--no-renames', '--no-color', '--no-ext-diff'];
 
 export class FileWatcherService {
   private clients: Response[] = [];
@@ -86,7 +95,7 @@ export class FileWatcherService {
     // A failure here is not fatal. The next poll makes the baseline instead.
     const baselineStartedAt = performance.now();
     this.lastSignal = await this.readSignal();
-    await this.warnIfStatusIsSlow(performance.now() - baselineStartedAt);
+    await this.warnIfScanIsSlow(performance.now() - baselineStartedAt);
   }
 
   /**
@@ -95,9 +104,9 @@ export class FileWatcherService {
    * difit does not enable them. Both settings change how every other git
    * command behaves in the repository, so the choice belongs to the user.
    */
-  private async warnIfStatusIsSlow(baselineMs: number): Promise<void> {
+  private async warnIfScanIsSlow(baselineMs: number): Promise<void> {
     const git = this.git;
-    if (!git || this.signalScope !== 'worktree' || baselineMs < SLOW_STATUS_HINT_MS) {
+    if (!git || this.signalScope !== 'worktree' || baselineMs < SLOW_SCAN_HINT_MS) {
       return;
     }
 
@@ -119,7 +128,7 @@ export class FileWatcherService {
     }
 
     console.log(
-      `i  git status takes ${Math.round(baselineMs)}ms here, which sets the live reload interval.`,
+      `i  the git working tree scan takes ${Math.round(baselineMs)}ms here, which sets the live reload interval.`,
     );
     console.log('   These git settings make it faster:');
     for (const suggestion of suggestions) {
@@ -152,9 +161,21 @@ export class FileWatcherService {
       ]);
       parts.push(head.trim(), ref.trim());
 
-      if (scope !== 'head') {
-        const status = await git.raw(['status', '--porcelain']);
-        parts.push(scope === 'index' ? stagedColumnOnly(status) : status);
+      // The patch itself is the signal. A status report only names the files
+      // and their state letters, so a file that is already dirty keeps the
+      // same report after every later edit, and the poller never fires. The
+      // patch changes whenever the rendered diff changes, which is the exact
+      // condition the client must learn about.
+      if (scope === 'index') {
+        parts.push(await git.raw(['diff', '--cached', ...DIFF_SIGNAL_FLAGS]));
+      } else if (scope === 'worktree') {
+        // `git diff HEAD` covers tracked files, staged and unstaged alike, but
+        // it never reports an untracked file. The file list closes that gap.
+        const [patch, untracked] = await Promise.all([
+          git.raw(['diff', 'HEAD', ...DIFF_SIGNAL_FLAGS]),
+          git.raw(['ls-files', '--others', '--exclude-standard']),
+        ]);
+        parts.push(patch, untracked);
       }
 
       return createHash('sha1').update(parts.join(SIGNAL_SEPARATOR)).digest('hex');
@@ -342,15 +363,4 @@ async function readGitBool(git: SimpleGit, key: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/**
- * Keep only the staged column of a porcelain report, so an unstaged edit does
- * not look like a change to the staged diff.
- */
-function stagedColumnOnly(status: string): string {
-  return status
-    .split('\n')
-    .filter((line) => line.length > 0 && line[0] !== ' ' && line[0] !== '?')
-    .join('\n');
 }
