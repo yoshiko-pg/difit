@@ -1,120 +1,359 @@
-import type { Event } from '@parcel/watcher';
 import { type Response } from 'express';
 import { resolve } from 'path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 
 import { DiffMode } from '../types/watch.js';
 
 import { FileWatcherService } from './file-watcher.js';
 
-// Mock @parcel/watcher
-vi.mock('@parcel/watcher', () => ({
-  subscribe: vi.fn(),
-}));
-
 // Mock simple-git
 vi.mock('simple-git', () => ({
-  simpleGit: vi.fn(() => ({
-    checkIgnore: vi.fn(),
-    revparse: vi.fn().mockResolvedValue('.git'),
-  })),
+  simpleGit: vi.fn(),
 }));
 
-const { subscribe } = await import('@parcel/watcher');
 const { simpleGit } = await import('simple-git');
 const TEST_REPO_PATH = resolve('/test/path');
-const TEST_WORKTREE_PATH = resolve('/worktree/path');
-const TEST_REPOS_WORKTREE_PATH = resolve('/repos/worktree');
+
+/** Git state the fake repository reports, mutated per test to fake a change. */
+interface GitState {
+  head: string;
+  ref: string;
+  /** Patch of the working tree against HEAD, what `git diff HEAD` prints. */
+  worktreeDiff: string;
+  /** Patch of the index against HEAD, what `git diff --cached` prints. */
+  stagedDiff: string;
+  /** Untracked paths, what `git ls-files --others` prints. */
+  untracked: string;
+  /** Milliseconds the working tree scan appears to take, for the slow hint. */
+  scanDelayMs?: number;
+  config?: Record<string, string>;
+}
+
+function newGitState(overrides: Partial<GitState> = {}): GitState {
+  return {
+    head: 'abc1234',
+    ref: 'refs/heads/main',
+    worktreeDiff: '',
+    stagedDiff: '',
+    untracked: '',
+    ...overrides,
+  };
+}
+
+function mockGitWith(state: GitState) {
+  const revparse = vi.fn(() => Promise.resolve(state.head));
+  const raw = vi.fn(async (args: string[]) => {
+    if (args[0] === 'symbolic-ref') {
+      return state.ref;
+    }
+    if (args[0] === 'diff') {
+      const staged = args.includes('--cached');
+      if (!staged && state.scanDelayMs) {
+        // A real delay, so the service measures a real duration. Tests that
+        // use this run on real timers.
+        await new Promise((done) => setTimeout(done, state.scanDelayMs));
+      }
+      return staged ? state.stagedDiff : state.worktreeDiff;
+    }
+    if (args[0] === 'ls-files') {
+      return state.untracked;
+    }
+    if (args[0] === 'config') {
+      const key = args[2] ?? '';
+      const value = state.config?.[key];
+      if (value === undefined) {
+        throw new Error(`no config value for ${key}`);
+      }
+      return value;
+    }
+    return '';
+  });
+
+  const mockGit = { revparse, raw };
+  vi.mocked(simpleGit).mockReturnValue(mockGit as never);
+  return mockGit;
+}
+
+/** A minimal patch that edits `path`, with `body` as the new content. */
+function patchFor(path: string, body: string): string {
+  return `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -1 +1 @@\n+${body}\n`;
+}
+
+/** Run every pending timer so the poll and the debounce both fire. */
+async function advanceToBroadcast(): Promise<void> {
+  await vi.advanceTimersByTimeAsync(MAX_POLL_MS);
+  await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+}
+
+const MAX_POLL_MS = 10_000;
+const MIN_POLL_MS = 1_000;
+const DEBOUNCE_MS = 300;
 
 describe('FileWatcherService', () => {
   let fileWatcher: FileWatcherService;
   let mockResponse: Response;
-  let mockSubscription: { unsubscribe: () => Promise<void> };
+  let state: GitState;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
     fileWatcher = new FileWatcherService();
+
+    state = newGitState();
+    mockGitWith(state);
 
     // Mock Express Response
     mockResponse = {
       write: vi.fn(),
     } as unknown as Response;
-
-    // Mock subscription
-    mockSubscription = {
-      unsubscribe: vi.fn().mockResolvedValue(undefined),
-    };
-
-    vi.mocked(subscribe).mockResolvedValue(mockSubscription);
   });
 
+  afterEach(async () => {
+    await fileWatcher.stop();
+    vi.useRealTimers();
+  });
+
+  function reloadCalls(client: Response = mockResponse) {
+    return vi
+      .mocked(client.write)
+      .mock.calls.filter((call) => call[0].toString().includes('"type":"reload"'));
+  }
+
   describe('start', () => {
-    it('should start watching for DEFAULT mode', async () => {
-      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 300);
-
-      expect(subscribe).toHaveBeenCalledWith(
-        resolve(TEST_REPO_PATH, '.git'),
-        expect.any(Function),
-        {
-          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-        },
-      );
-    });
-
-    it('should start watching for WORKING mode', async () => {
-      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, 300);
-
-      expect(subscribe).toHaveBeenCalledTimes(2);
-      expect(subscribe).toHaveBeenCalledWith(TEST_REPO_PATH, expect.any(Function), {
-        ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-      });
-      expect(subscribe).toHaveBeenCalledWith(
-        resolve(TEST_REPO_PATH, '.git'),
-        expect.any(Function),
-        {
-          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-        },
-      );
-    });
-
-    it('should start watching for DOT mode', async () => {
-      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
-
-      expect(subscribe).toHaveBeenCalledTimes(2);
-      expect(subscribe).toHaveBeenCalledWith(TEST_REPO_PATH, expect.any(Function), {
-        ignore: [
-          '.git/objects/**',
-          '.git/refs/**',
-          '.git/FETCH_HEAD',
-          '.git/ORIG_HEAD',
-          '.git/logs/**',
-          'node_modules/**',
-        ],
-      });
-    });
-
-    it('should not start watching for SPECIFIC mode', async () => {
-      await fileWatcher.start(DiffMode.SPECIFIC, TEST_REPO_PATH, 300);
-
-      expect(subscribe).not.toHaveBeenCalled();
-    });
-
-    it('should initialize git instance for gitignore checking', async () => {
-      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
+    it('should create a git instance for the repository path', async () => {
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
 
       expect(simpleGit).toHaveBeenCalledWith(TEST_REPO_PATH);
+    });
+
+    it('should read the baseline signal on start', async () => {
+      const mockGit = mockGitWith(state);
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
+
+      expect(mockGit.revparse).toHaveBeenCalledWith(['HEAD']);
+    });
+
+    it('should not read git state for SPECIFIC mode', async () => {
+      const mockGit = mockGitWith(state);
+      await fileWatcher.start(DiffMode.SPECIFIC, TEST_REPO_PATH, DEBOUNCE_MS);
+
+      expect(mockGit.revparse).not.toHaveBeenCalled();
+    });
+
+    it('should not poll in SPECIFIC mode even with a client connected', async () => {
+      await fileWatcher.start(DiffMode.SPECIFIC, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.head = 'def5678';
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(0);
+    });
+
+    it('should tolerate a git failure while reading the baseline', async () => {
+      vi.mocked(simpleGit).mockReturnValue({
+        revparse: vi.fn().mockRejectedValue(new Error('not a repository')),
+        raw: vi.fn().mockRejectedValue(new Error('not a repository')),
+      } as never);
+
+      await expect(
+        fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS),
+      ).resolves.not.toThrow();
+    });
+  });
+
+  describe('change detection', () => {
+    it('should broadcast reload when HEAD moves in DEFAULT mode', async () => {
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.head = 'def5678';
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
+    });
+
+    it('should broadcast reload when the branch changes on the same commit', async () => {
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.ref = 'refs/heads/feature';
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
+    });
+
+    it('should not broadcast when git state is unchanged', async () => {
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(0);
+    });
+
+    it('should ignore working tree edits in DEFAULT mode', async () => {
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.worktreeDiff = patchFor('src/app.ts', 'edited');
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(0);
+    });
+
+    it('should broadcast on a working tree edit in WORKING mode', async () => {
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.worktreeDiff = patchFor('src/app.ts', 'edited');
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
+    });
+
+    it('should broadcast on a new untracked file in DOT mode', async () => {
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.untracked = 'src/new.ts\n';
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
+    });
+
+    it('should broadcast on a staged change in STAGED mode', async () => {
+      await fileWatcher.start(DiffMode.STAGED, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.stagedDiff = patchFor('src/app.ts', 'staged');
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
+    });
+
+    it('should ignore an unstaged edit in STAGED mode', async () => {
+      await fileWatcher.start(DiffMode.STAGED, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.worktreeDiff = patchFor('src/app.ts', 'edited');
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(0);
+    });
+
+    // A file that git already reports as changed keeps the same status letters
+    // after every later edit. A signal built from `git status` therefore goes
+    // quiet once a file is dirty, which is the bug this test guards.
+    it('should broadcast on a second edit to an already changed file', async () => {
+      state.worktreeDiff = patchFor('src/app.ts', 'first');
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.worktreeDiff = patchFor('src/app.ts', 'second');
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
+    });
+
+    // The same blind spot, on a file that is staged and then edited again in
+    // the working tree. `git status` reports `AM` before and after the edit.
+    it('should broadcast on an edit to a staged file in DOT mode', async () => {
+      state.stagedDiff = patchFor('src/new.ts', 'added');
+      state.worktreeDiff = patchFor('src/new.ts', 'added');
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.worktreeDiff = patchFor('src/new.ts', 'added and then edited');
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(1);
+    });
+
+    it('should ignore an untracked file in STAGED mode', async () => {
+      await fileWatcher.start(DiffMode.STAGED, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      state.untracked = 'src/new.ts\n';
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(0);
+    });
+
+    it('should not broadcast while git reads fail', async () => {
+      const mockGit = mockGitWith(state);
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      // The repository disappears after the baseline is recorded.
+      mockGit.revparse.mockRejectedValue(new Error('git gone') as never);
+      mockGit.raw.mockRejectedValue(new Error('git gone') as never);
+
+      await advanceToBroadcast();
+
+      expect(reloadCalls()).toHaveLength(0);
+    });
+  });
+
+  describe('polling lifecycle', () => {
+    it('should not poll before any client connects', async () => {
+      const mockGit = mockGitWith(state);
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      const callsAfterBaseline = mockGit.revparse.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(MAX_POLL_MS * 3);
+
+      expect(mockGit.revparse.mock.calls.length).toBe(callsAfterBaseline);
+    });
+
+    it('should stop polling after the last client disconnects', async () => {
+      const mockGit = mockGitWith(state);
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      await vi.advanceTimersByTimeAsync(MAX_POLL_MS);
+      fileWatcher.removeClient(mockResponse);
+      const callsAfterDisconnect = mockGit.revparse.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(MAX_POLL_MS * 3);
+
+      expect(mockGit.revparse.mock.calls.length).toBe(callsAfterDisconnect);
+    });
+
+    it('should keep polling while one of two clients stays connected', async () => {
+      const mockGit = mockGitWith(state);
+      const secondClient = { write: vi.fn() } as unknown as Response;
+
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+      fileWatcher.addClient(secondClient);
+
+      await vi.advanceTimersByTimeAsync(MAX_POLL_MS);
+      fileWatcher.removeClient(mockResponse);
+      const callsAfterDisconnect = mockGit.revparse.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(MAX_POLL_MS * 2);
+
+      expect(mockGit.revparse.mock.calls.length).toBeGreaterThan(callsAfterDisconnect);
+    });
+
+    it('should stop polling after stop()', async () => {
+      const mockGit = mockGitWith(state);
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
+
+      await fileWatcher.stop();
+      const callsAfterStop = mockGit.revparse.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(MAX_POLL_MS * 3);
+
+      expect(mockGit.revparse.mock.calls.length).toBe(callsAfterStop);
     });
   });
 
   describe('stop', () => {
-    it('should unsubscribe all watchers', async () => {
-      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, 300);
-      await fileWatcher.stop();
-
-      expect(mockSubscription.unsubscribe).toHaveBeenCalledTimes(2);
-    });
-
     it('should clear clients', async () => {
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
       await fileWatcher.stop();
 
@@ -141,133 +380,119 @@ describe('FileWatcherService', () => {
 
       fileWatcher.removeClient(mockResponse1);
 
-      // mockResponse1 should be removed, but this is tested indirectly
-      // by checking that only one client receives broadcasts
-    });
-  });
+      fileWatcher.broadcast({
+        type: 'commentsChanged',
+        version: 1,
+        timestamp: new Date().toISOString(),
+      });
 
-  describe('gitignore checking', () => {
-    it('should check gitignore correctly', async () => {
-      const mockGit = {
-        checkIgnore: vi.fn().mockResolvedValue(['ignored-file.txt']),
-      };
-      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
-
-      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
-
-      // Get the callback function passed to subscribe
-      const subscribeCall = vi.mocked(subscribe).mock.calls[0];
-      const callback = subscribeCall[1];
-
-      // Simulate file change event
-      const mockEvents: Event[] = [
-        { path: `${TEST_REPO_PATH}/ignored-file.txt`, type: 'update' },
-        { path: `${TEST_REPO_PATH}/normal-file.txt`, type: 'update' },
-      ];
-
-      await callback(null, mockEvents);
-
-      expect(mockGit.checkIgnore).toHaveBeenCalledWith(['ignored-file.txt']);
-      expect(mockGit.checkIgnore).toHaveBeenCalledWith(['normal-file.txt']);
-    });
-
-    it('should handle gitignore check errors gracefully', async () => {
-      const mockGit = {
-        checkIgnore: vi.fn().mockRejectedValue(new Error('No ignored files')),
-      };
-      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
-
-      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
-
-      const subscribeCall = vi.mocked(subscribe).mock.calls[0];
-      const callback = subscribeCall[1];
-
-      const mockEvents: Event[] = [{ path: `${TEST_REPO_PATH}/some-file.txt`, type: 'update' }];
-
-      // Should not throw when gitignore check fails
-      await expect(callback(null, mockEvents)).resolves.not.toThrow();
-    });
-  });
-
-  describe('file filtering', () => {
-    beforeEach(async () => {
-      const mockGit = {
-        checkIgnore: vi.fn().mockRejectedValue(new Error('No ignored files')),
-      };
-      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
-
-      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 300);
-      fileWatcher.addClient(mockResponse);
-    });
-
-    it('should filter relevant git files for DEFAULT mode', async () => {
-      const subscribeCall = vi.mocked(subscribe).mock.calls[0];
-      const callback = subscribeCall[1];
-
-      const mockEvents: Event[] = [
-        { path: `${TEST_REPO_PATH}/.git/HEAD`, type: 'update' },
-        { path: `${TEST_REPO_PATH}/.git/index`, type: 'update' },
-        { path: `${TEST_REPO_PATH}/.git/objects/abc123`, type: 'update' },
-      ];
-
-      await callback(null, mockEvents);
-
-      // Wait for debounce period
-      await new Promise((resolve) => setTimeout(resolve, 350));
-
-      // Should only broadcast for HEAD file in DEFAULT mode
-      expect(mockResponse.write).toHaveBeenCalledWith(expect.stringContaining('"type":"reload"'));
-    });
-
-    it('should filter out ignored patterns', async () => {
-      const subscribeCall = vi.mocked(subscribe).mock.calls[0];
-      const callback = subscribeCall[1];
-
-      const mockEvents: Event[] = [
-        { path: `${TEST_REPO_PATH}/.git/objects/abc123`, type: 'update' },
-        { path: `${TEST_REPO_PATH}/.git/refs/heads/main`, type: 'update' },
-        { path: `${TEST_REPO_PATH}/node_modules/package/file.js`, type: 'update' },
-      ];
-
-      await callback(null, mockEvents);
-
-      // Should not broadcast for ignored files
-      expect(mockResponse.write).not.toHaveBeenCalledWith(
-        expect.stringContaining('"type":"reload"'),
+      expect(mockResponse1.write).not.toHaveBeenCalledWith(
+        expect.stringContaining('"type":"commentsChanged"'),
+      );
+      expect(mockResponse2.write).toHaveBeenCalledWith(
+        expect.stringContaining('"type":"commentsChanged"'),
       );
     });
   });
 
   describe('debounce functionality', () => {
-    beforeEach(async () => {
-      const mockGit = {
-        checkIgnore: vi.fn().mockRejectedValue(new Error('No ignored files')),
-      };
-      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
+    // The poll interval is at least MIN_POLL_MS, so a debounce shorter than
+    // that never collapses two polls. Use a longer window to cover several.
+    const LONG_DEBOUNCE_MS = MIN_POLL_MS * 5;
 
-      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 100); // Short debounce for testing
+    it('should send one reload for several changes inside the debounce window', async () => {
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, LONG_DEBOUNCE_MS);
       fileWatcher.addClient(mockResponse);
+
+      // Each poll sees a different patch, but they all land in one window.
+      state.worktreeDiff = patchFor('a.ts', 'one');
+      await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
+      state.worktreeDiff = patchFor('a.ts', 'two');
+      await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
+      state.worktreeDiff = patchFor('a.ts', 'three');
+      await vi.advanceTimersByTimeAsync(MIN_POLL_MS);
+      await vi.advanceTimersByTimeAsync(LONG_DEBOUNCE_MS);
+
+      expect(reloadCalls()).toHaveLength(1);
     });
 
-    it('should debounce multiple file changes', async () => {
-      const subscribeCall = vi.mocked(subscribe).mock.calls[0];
-      const callback = subscribeCall[1];
+    it('should send a reload per change when polls are further apart than the debounce', async () => {
+      await fileWatcher.start(DiffMode.WORKING, TEST_REPO_PATH, DEBOUNCE_MS);
+      fileWatcher.addClient(mockResponse);
 
-      const mockEvents: Event[] = [{ path: `${TEST_REPO_PATH}/.git/HEAD`, type: 'update' }];
+      state.worktreeDiff = patchFor('a.ts', 'one');
+      await advanceToBroadcast();
+      state.worktreeDiff = patchFor('a.ts', 'two');
+      await advanceToBroadcast();
 
-      // Trigger multiple events quickly
-      await callback(null, mockEvents);
-      await callback(null, mockEvents);
-      await callback(null, mockEvents);
+      expect(reloadCalls()).toHaveLength(2);
+    });
+  });
 
-      // Wait for debounce period
-      await new Promise((resolve) => setTimeout(resolve, 150));
+  describe('slow working tree scan hint', () => {
+    const SLOW_MS = 200;
+    let logSpy: MockInstance<typeof console.log>;
 
-      // Should only send one reload event due to debouncing
-      const reloadCalls = vi
-        .mocked(mockResponse.write)
-        .mock.calls.filter((call) => call[0].toString().includes('"type":"reload"'));
-      expect(reloadCalls).toHaveLength(1);
+    beforeEach(() => {
+      // The hint measures a real duration, so these tests need real timers.
+      vi.useRealTimers();
+      logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logSpy.mockRestore();
+    });
+
+    function hintLines(): string[] {
+      return logSpy.mock.calls.map((call) => String(call[0]));
+    }
+
+    it('should suggest both settings when neither is enabled', async () => {
+      mockGitWith({ ...state, scanDelayMs: SLOW_MS, config: {} });
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
+
+      const lines = hintLines();
+      expect(lines.some((line) => line.includes('working tree scan takes'))).toBe(true);
+      expect(lines.some((line) => line.includes('core.untrackedCache'))).toBe(true);
+      expect(lines.some((line) => line.includes('core.fsmonitor'))).toBe(true);
+    });
+
+    it('should suggest only the setting that is not enabled', async () => {
+      mockGitWith({
+        ...state,
+        scanDelayMs: SLOW_MS,
+        config: { 'core.untrackedCache': 'true' },
+      });
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
+
+      const lines = hintLines();
+      expect(lines.some((line) => line.includes('core.untrackedCache'))).toBe(false);
+      expect(lines.some((line) => line.includes('core.fsmonitor'))).toBe(true);
+    });
+
+    it('should stay silent when both settings are enabled', async () => {
+      mockGitWith({
+        ...state,
+        scanDelayMs: SLOW_MS,
+        config: { 'core.untrackedCache': 'true', 'core.fsmonitor': 'true' },
+      });
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
+
+      expect(hintLines().some((line) => line.includes('working tree scan takes'))).toBe(false);
+    });
+
+    it('should stay silent when the working tree scan is fast', async () => {
+      mockGitWith({ ...state, config: {} });
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, DEBOUNCE_MS);
+
+      expect(hintLines().some((line) => line.includes('working tree scan takes'))).toBe(false);
+    });
+
+    it('should stay silent in a mode that never reads the working tree', async () => {
+      mockGitWith({ ...state, scanDelayMs: SLOW_MS, config: {} });
+      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, DEBOUNCE_MS);
+
+      expect(hintLines().some((line) => line.includes('working tree scan takes'))).toBe(false);
     });
   });
 
@@ -281,113 +506,24 @@ describe('FileWatcherService', () => {
       ];
 
       for (const { mode, expectedType } of modes) {
-        const mockGit = {
-          checkIgnore: vi.fn().mockRejectedValue(new Error('No ignored files')),
-          revparse: vi.fn().mockResolvedValue('.git'),
-        };
-        vi.mocked(simpleGit).mockReturnValue(mockGit as any);
+        const modeState: GitState = newGitState();
+        mockGitWith(modeState);
 
-        await fileWatcher.start(mode, TEST_REPO_PATH, 300);
+        const watcher = new FileWatcherService();
+        await watcher.start(mode, TEST_REPO_PATH, DEBOUNCE_MS);
         const mockClient = { write: vi.fn() } as unknown as Response;
-        fileWatcher.addClient(mockClient);
+        watcher.addClient(mockClient);
 
-        const subscribeCall = vi
-          .mocked(subscribe)
-          .mock.calls.find((call) => call[0].includes('.git'));
-        if (subscribeCall) {
-          const callback = subscribeCall[1];
-          const mockEvents: Event[] = [{ path: `${TEST_REPO_PATH}/.git/HEAD`, type: 'update' }];
+        // A new commit moves HEAD in every mode.
+        modeState.head = 'def5678';
+        await advanceToBroadcast();
 
-          await callback(null, mockEvents);
+        expect(mockClient.write).toHaveBeenCalledWith(
+          expect.stringContaining(`"changeType":"${expectedType}"`),
+        );
 
-          await new Promise((resolve) => setTimeout(resolve, 350)); // Wait for debounce
-
-          expect(mockClient.write).toHaveBeenCalledWith(
-            expect.stringContaining(`"changeType":"${expectedType}"`),
-          );
-        }
-
-        await fileWatcher.stop();
-        vi.clearAllMocks();
+        await watcher.stop();
       }
-    });
-  });
-
-  describe('git worktree support', () => {
-    it('should use resolved git directory for normal repository', async () => {
-      const mockGit = {
-        checkIgnore: vi.fn(),
-        revparse: vi.fn().mockResolvedValue('.git'),
-      };
-      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
-
-      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 300);
-
-      expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
-      expect(subscribe).toHaveBeenCalledWith(
-        resolve(TEST_REPO_PATH, '.git'),
-        expect.any(Function),
-        {
-          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-        },
-      );
-    });
-
-    it('should resolve worktree git directory path', async () => {
-      const mockGit = {
-        checkIgnore: vi.fn(),
-        revparse: vi.fn().mockResolvedValue('/main/repo/.git/worktrees/feature'),
-      };
-      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
-
-      await fileWatcher.start(DiffMode.DEFAULT, TEST_WORKTREE_PATH, 300);
-
-      expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
-      expect(subscribe).toHaveBeenCalledWith(
-        resolve('/main/repo/.git/worktrees/feature'),
-        expect.any(Function),
-        {
-          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-        },
-      );
-    });
-
-    it('should resolve relative git directory path', async () => {
-      const mockGit = {
-        checkIgnore: vi.fn(),
-        revparse: vi.fn().mockResolvedValue('../.git/worktrees/feature'),
-      };
-      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
-
-      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPOS_WORKTREE_PATH, 300);
-
-      expect(mockGit.revparse).toHaveBeenCalledWith(['--git-dir']);
-      // path.resolve(TEST_REPOS_WORKTREE_PATH, '../.git/worktrees/feature')
-      expect(subscribe).toHaveBeenCalledWith(
-        resolve(TEST_REPOS_WORKTREE_PATH, '../.git/worktrees/feature'),
-        expect.any(Function),
-        {
-          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-        },
-      );
-    });
-
-    it('should fallback to default .git path on error', async () => {
-      const mockGit = {
-        checkIgnore: vi.fn(),
-        revparse: vi.fn().mockRejectedValue(new Error('Not a git repository')),
-      };
-      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
-
-      await fileWatcher.start(DiffMode.DEFAULT, TEST_REPO_PATH, 300);
-
-      expect(subscribe).toHaveBeenCalledWith(
-        resolve(TEST_REPO_PATH, '.git'),
-        expect.any(Function),
-        {
-          ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-        },
-      );
     });
   });
 });

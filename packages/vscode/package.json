@@ -23,11 +23,9 @@
     "package": "pnpm --dir ../.. run build && node build.mjs && vsce package --no-dependencies"
   },
   "devDependencies": {
-    "@parcel/watcher": "^2.5.1",
     "@types/node": "^24.0.8",
     "@types/vscode": "^1.102.0",
     "@vscode/vsce": "^3.6.2",
-    "detect-libc": "^2.0.3",
     "esbuild": "^0.25.0",
     "typescript": "^6.0.0"
   },

@@ -1,4 +1,4 @@
-import { join, resolve } from 'path';
+import { createHash } from 'crypto';
 
 import { type Response } from 'express';
 import { simpleGit, type SimpleGit } from 'simple-git';
@@ -12,47 +12,61 @@ interface FileWatcherConfig {
   onCacheInvalidate?: () => void;
 }
 
-interface ModeWatchConfig {
-  watchPaths: string[];
-  ignore: string[];
-}
+/**
+ * How much of the git state each mode must inspect.
+ *
+ * `head` is enough when the diff only moves when a commit does. The working
+ * tree patch costs far more on a large repository, so modes that cannot show
+ * an uncommitted change never ask for it.
+ */
+type SignalScope = 'head' | 'index' | 'worktree';
 
-const MODE_WATCH_CONFIGS: Record<DiffMode, ModeWatchConfig> = {
-  [DiffMode.DEFAULT]: {
-    watchPaths: ['.git'],
-    ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-  },
-  [DiffMode.WORKING]: {
-    watchPaths: ['.', '.git'],
-    ignore: ['.git/objects/**', '.git/refs/**', 'node_modules/**'],
-  },
-  [DiffMode.STAGED]: {
-    watchPaths: ['.git'],
-    ignore: ['.git/objects/**', '.git/refs/**'],
-  },
-  [DiffMode.DOT]: {
-    watchPaths: ['.', '.git'],
-    ignore: [
-      '.git/objects/**',
-      '.git/refs/**',
-      '.git/FETCH_HEAD',
-      '.git/ORIG_HEAD',
-      '.git/logs/**',
-      'node_modules/**',
-    ],
-  },
-  [DiffMode.SPECIFIC]: {
-    watchPaths: [], // No watching for specific commits
-    ignore: [],
-  },
+const MODE_SIGNAL_SCOPE: Record<DiffMode, SignalScope | null> = {
+  [DiffMode.DEFAULT]: 'head',
+  [DiffMode.STAGED]: 'index',
+  [DiffMode.WORKING]: 'worktree',
+  [DiffMode.DOT]: 'worktree',
+  [DiffMode.SPECIFIC]: null, // No polling for specific commit comparisons
 };
 
+/**
+ * Fraction of one core the poller is allowed to consume. The next delay comes
+ * from how long the previous sample took, so a repository where the scan
+ * costs 200ms is polled about every 2s, and a small one is polled at
+ * MIN_POLL_INTERVAL_MS.
+ */
+const POLL_DUTY_CYCLE = 0.1;
+const MIN_POLL_INTERVAL_MS = 1_000;
+const MAX_POLL_INTERVAL_MS = 10_000;
+
+/**
+ * Above this cost, a working tree scan is slow enough that git's own caches
+ * are worth mentioning. Below it, the poll is cheap and the advice is noise.
+ */
+const SLOW_SCAN_HINT_MS = 150;
+
+// A separator that cannot appear inside a ref name or a patch line.
+const SIGNAL_SEPARATOR = '\n--difit--\n';
+
+/**
+ * Flags that keep the signal patch small without losing a real change.
+ *
+ * The poller compares the patch to itself, so it needs no context lines. It
+ * also does not need rename detection, which costs time and only relabels a
+ * change that the patch already shows.
+ */
+const DIFF_SIGNAL_FLAGS = ['--unified=0', '--no-renames', '--no-color', '--no-ext-diff'];
+
 export class FileWatcherService {
-  private subscriptions: Array<{ unsubscribe: () => Promise<void> }> = [];
   private clients: Response[] = [];
   private debounceTimer: NodeJS.Timeout | null = null;
+  private pollTimer: NodeJS.Timeout | null = null;
   private config: FileWatcherConfig | null = null;
   private git: SimpleGit | null = null;
+  private signalScope: SignalScope | null = null;
+  private lastSignal: string | null = null;
+  private polling = false;
+  private stopped = true;
 
   constructor() {}
 
@@ -62,138 +76,165 @@ export class FileWatcherService {
     debounceMs = 300,
     onCacheInvalidate?: () => void,
   ): Promise<void> {
-    this.config = { watchPath, diffMode, debounceMs, onCacheInvalidate };
-
-    // Stop existing watchers
+    // Stop existing poller
     await this.stop();
 
-    // No watching for specific commit comparisons
-    if (diffMode === DiffMode.SPECIFIC) {
+    this.config = { watchPath, diffMode, debounceMs, onCacheInvalidate };
+    this.stopped = false;
+    this.signalScope = MODE_SIGNAL_SCOPE[diffMode];
+
+    // No polling for specific commit comparisons
+    if (this.signalScope === null) {
       console.log('🔍 File watching disabled (specific commit comparison)');
       return;
     }
 
-    const modeConfig = MODE_WATCH_CONFIGS[diffMode];
-
-    // Initialize git instance for .gitignore checking
     this.git = simpleGit(watchPath);
 
-    try {
-      await this.setupWatchers(modeConfig, watchPath);
-    } catch (error) {
-      console.error('❌ Failed to start file watcher:', error);
-      throw error;
-    }
+    // Record the starting state, so the first poll reports only a real change.
+    // A failure here is not fatal. The next poll makes the baseline instead.
+    const baselineStartedAt = performance.now();
+    this.lastSignal = await this.readSignal();
+    await this.warnIfScanIsSlow(performance.now() - baselineStartedAt);
   }
 
-  private async setupWatchers(modeConfig: ModeWatchConfig, basePath: string): Promise<void> {
-    // Loaded lazily so environments without a native @parcel/watcher binding
-    // (e.g. an unsupported platform) degrade to no live reload instead of
-    // failing at module load time.
-    const { subscribe } = await import('@parcel/watcher');
+  /**
+   * Tell the user about git's own caches when the working tree scan is slow.
+   *
+   * difit does not enable them. Both settings change how every other git
+   * command behaves in the repository, so the choice belongs to the user.
+   */
+  private async warnIfScanIsSlow(baselineMs: number): Promise<void> {
+    const git = this.git;
+    if (!git || this.signalScope !== 'worktree' || baselineMs < SLOW_SCAN_HINT_MS) {
+      return;
+    }
 
-    for (const watchPath of modeConfig.watchPaths) {
-      let fullPath = join(basePath, watchPath);
+    const [untrackedCache, fsMonitor] = await Promise.all([
+      readGitBool(git, 'core.untrackedCache'),
+      readGitBool(git, 'core.fsmonitor'),
+    ]);
 
-      // Resolve git worktree path for .git directory
-      if (watchPath === '.git') {
-        fullPath = await this.resolveGitDir(basePath);
-      }
+    if (untrackedCache && fsMonitor) {
+      return;
+    }
 
-      try {
-        const subscription = (await subscribe(
-          fullPath,
-          async (err, events) => {
-            if (err) {
-              console.error(`Watch error for ${watchPath}:`, err);
-              return;
-            }
+    const suggestions: string[] = [];
+    if (!untrackedCache) {
+      suggestions.push('git config core.untrackedCache true');
+    }
+    if (!fsMonitor) {
+      suggestions.push('git config core.fsmonitor true');
+    }
 
-            // Filter out ignored files and check for relevant changes
-            const relevantEvents = [];
-            for (const event of events) {
-              if (this.shouldIgnoreEvent(event.path, modeConfig.ignore)) {
-                continue;
-              }
-
-              // For working directory watching, also apply .gitignore patterns
-              if (watchPath === '.' && (await this.isGitignored(event.path, basePath))) {
-                continue;
-              }
-
-              // For git directory watching, only care about specific files
-              if (watchPath === '.git') {
-                const fileName = event.path.replace(/.*[/\\]/, '');
-                const isRelevantGitFile = this.isRelevantGitFile(fileName, this.config?.diffMode);
-                if (!isRelevantGitFile) {
-                  continue;
-                }
-              }
-
-              relevantEvents.push(event);
-            }
-
-            if (relevantEvents.length > 0) {
-              this.debouncedBroadcast();
-            }
-          },
-          {
-            ignore: modeConfig.ignore,
-          },
-        )) as { unsubscribe: () => Promise<void> };
-
-        this.subscriptions.push(subscription);
-      } catch (error) {
-        console.warn(`⚠️  Could not watch ${fullPath}:`, error);
-        // Continue with other watchers even if one fails
-      }
+    console.log(
+      `i  the git working tree scan takes ${Math.round(baselineMs)}ms here, which sets the live reload interval.`,
+    );
+    console.log('   These git settings make it faster:');
+    for (const suggestion of suggestions) {
+      console.log(`     ${suggestion}`);
     }
   }
 
   /**
-   * Resolve the actual git directory path, handling git worktrees.
-   * Uses git rev-parse --git-dir which correctly handles both normal repos and worktrees.
+   * Collect the git state that decides if the rendered diff is stale.
+   *
+   * Returns null when git cannot be read. The caller treats null as "unknown",
+   * not as "changed", so a temporary failure does not cause a reload.
    */
-  private async resolveGitDir(basePath: string): Promise<string> {
+  private async readSignal(): Promise<string | null> {
+    const git = this.git;
+    const scope = this.signalScope;
+    if (!git || scope === null) {
+      return null;
+    }
+
     try {
-      const git = simpleGit(basePath);
-      const gitDir = await git.revparse(['--git-dir']);
-      return resolve(basePath, gitDir.trim());
+      const parts: string[] = [];
+
+      // The commit that HEAD points to, and the ref name. The ref name is
+      // necessary because a checkout of a different branch on the same commit
+      // changes what the user reviews, but it does not move the hash.
+      const [head, ref] = await Promise.all([
+        git.revparse(['HEAD']).catch(() => ''), // An empty repository has no HEAD
+        git.raw(['symbolic-ref', '-q', 'HEAD']).catch(() => ''), // A detached HEAD has no symbolic ref
+      ]);
+      parts.push(head.trim(), ref.trim());
+
+      // The patch itself is the signal. A status report only names the files
+      // and their state letters, so a file that is already dirty keeps the
+      // same report after every later edit, and the poller never fires. The
+      // patch changes whenever the rendered diff changes, which is the exact
+      // condition the client must learn about.
+      if (scope === 'index') {
+        parts.push(await git.raw(['diff', '--cached', ...DIFF_SIGNAL_FLAGS]));
+      } else if (scope === 'worktree') {
+        // `git diff HEAD` covers tracked files, staged and unstaged alike, but
+        // it never reports an untracked file. The file list closes that gap.
+        const [patch, untracked] = await Promise.all([
+          git.raw(['diff', 'HEAD', ...DIFF_SIGNAL_FLAGS]),
+          git.raw(['ls-files', '--others', '--exclude-standard']),
+        ]);
+        parts.push(patch, untracked);
+      }
+
+      return createHash('sha1').update(parts.join(SIGNAL_SEPARATOR)).digest('hex');
     } catch {
-      // Fallback to default .git path
-      return join(basePath, '.git');
+      return null;
     }
   }
 
-  private shouldIgnoreEvent(filePath: string, ignorePatterns: string[]): boolean {
-    return ignorePatterns.some((pattern) => {
-      // Handle negation patterns (e.g., "!.git/index")
-      if (pattern.startsWith('!')) {
-        const positivePattern = pattern.slice(1);
-        return !this.matchesPattern(filePath, positivePattern);
+  private scheduleNextPoll(lastDurationMs: number): void {
+    if (this.stopped || this.clients.length === 0) {
+      return;
+    }
+
+    const interval = Math.min(
+      MAX_POLL_INTERVAL_MS,
+      Math.max(MIN_POLL_INTERVAL_MS, lastDurationMs / POLL_DUTY_CYCLE),
+    );
+
+    this.pollTimer = setTimeout(() => {
+      void this.poll();
+    }, interval);
+    // Do not keep the process alive only to poll.
+    this.pollTimer.unref?.();
+  }
+
+  private async poll(): Promise<void> {
+    if (this.polling || this.stopped) {
+      return;
+    }
+    this.polling = true;
+    this.pollTimer = null;
+
+    const startedAt = performance.now();
+    try {
+      const signal = await this.readSignal();
+      if (signal !== null) {
+        if (this.lastSignal !== null && signal !== this.lastSignal) {
+          this.debouncedBroadcast();
+        }
+        this.lastSignal = signal;
       }
-      return this.matchesPattern(filePath, pattern);
-    });
+    } finally {
+      this.polling = false;
+      this.scheduleNextPoll(performance.now() - startedAt);
+    }
   }
 
-  private matchesPattern(filePath: string, pattern: string): boolean {
-    // Simple glob pattern matching
-    const regex = pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
-    return new RegExp(regex).test(filePath);
+  /** Start the poller, if it does not run already and this mode polls. */
+  private startPolling(): void {
+    if (this.stopped || this.pollTimer || this.polling || this.signalScope === null) {
+      return;
+    }
+    this.scheduleNextPoll(0);
   }
 
-  private isRelevantGitFile(fileName: string, diffMode?: DiffMode): boolean {
-    if (!diffMode) return false;
-
-    switch (diffMode) {
-      case DiffMode.DEFAULT:
-      case DiffMode.DOT:
-        return fileName === 'HEAD';
-      case DiffMode.WORKING:
-      case DiffMode.STAGED:
-        return fileName === 'index' || fileName === 'HEAD';
-      default:
-        return false;
+  private stopPolling(): void {
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
     }
   }
 
@@ -212,24 +253,20 @@ export class FileWatcherService {
     }, debounceMs);
   }
 
+  // Kept async because callers await it, and because a future teardown step
+  // may need to. There is nothing to await now that polling replaced watching.
+  // oxlint-disable-next-line typescript/require-await
   async stop(): Promise<void> {
+    this.stopped = true;
+
     // Clear debounce timer
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
 
-    // Unsubscribe from all watchers
-    await Promise.all(
-      this.subscriptions.map(async (subscription) => {
-        try {
-          await subscription.unsubscribe();
-        } catch (error) {
-          console.warn('Error unsubscribing from file watcher:', error);
-        }
-      }),
-    );
-    this.subscriptions = [];
+    this.stopPolling();
+    this.lastSignal = null;
 
     // Clear clients
     this.clients = [];
@@ -246,12 +283,20 @@ export class FileWatcherService {
       timestamp: new Date().toISOString(),
       message: `Connected to file watcher (${this.config?.diffMode} mode)`,
     });
+
+    // No client reads the reload events until one connects, so the poller runs
+    // only while at least one client is connected.
+    this.startPolling();
   }
 
   removeClient(res: Response): void {
     const index = this.clients.indexOf(res);
     if (index > -1) {
       this.clients.splice(index, 1);
+    }
+
+    if (this.clients.length === 0) {
+      this.stopPolling();
     }
   }
 
@@ -296,28 +341,26 @@ export class FileWatcherService {
     switch (this.config.diffMode) {
       case DiffMode.DEFAULT:
       case DiffMode.DOT:
-        return 'commit'; // .git/HEAD changes indicate new commits
+        return 'commit'; // HEAD changes indicate new commits
       case DiffMode.STAGED:
-        return 'staging'; // .git/index changes
+        return 'staging'; // index changes
       case DiffMode.WORKING:
         return 'file'; // Both file and staging changes, default to file
       default:
         return 'file';
     }
   }
+}
 
-  private async isGitignored(filePath: string, basePath: string): Promise<boolean> {
-    if (!this.git) return false;
-
-    // Get relative path from base directory
-    const relativePath = filePath.replace(basePath + '/', '');
-
-    try {
-      const result = await this.git.checkIgnore([relativePath]);
-      return result.length > 0;
-    } catch {
-      // checkIgnore throws an error when no files are ignored
-      return false;
-    }
+/**
+ * Read a boolean git config value. Treats an unset or unreadable value as
+ * false, so the hint appears rather than being silently skipped.
+ */
+async function readGitBool(git: SimpleGit, key: string): Promise<boolean> {
+  try {
+    const value = await git.raw(['config', '--get', key]);
+    return value.trim() === 'true';
+  } catch {
+    return false;
   }
 }

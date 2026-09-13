@@ -594,8 +594,10 @@ export class GitDiffParser {
   async validateCommit(commitish: string): Promise<boolean> {
     try {
       if (commitish === '.' || commitish === 'working' || commitish === 'staged') {
-        // For working directory or staging area, just check if we're in a git repo
-        await this.git.status();
+        // For working directory or staging area, just check if we're in a git repo.
+        // `status` would answer this too, but it scans the whole working tree,
+        // which costs hundreds of milliseconds on a large repository.
+        await this.git.revparse(['--git-dir']);
         return true;
       }
       await this.git.show([commitish, '--name-only']);
