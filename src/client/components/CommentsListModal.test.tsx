@@ -170,6 +170,45 @@ describe('CommentsListModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('keeps the modal open when the click finishes a text selection inside a thread', () => {
+    const onClose = vi.fn();
+    const onNavigate = vi.fn();
+
+    render(
+      <CommentsListModal
+        isOpen={true}
+        onClose={onClose}
+        onNavigate={onNavigate}
+        comments={mockThreads}
+        onRemoveThread={mockRemoveThread}
+        onGenerateThreadPrompt={mockGenerateThreadPrompt}
+        onReplyToThread={mockReplyToThread}
+        onRemoveMessage={mockRemoveMessage}
+        onUpdateMessage={mockUpdateMessage}
+      />,
+      { wrapper },
+    );
+
+    const commentText = screen.getByText('First root comment');
+    const range = document.createRange();
+    range.selectNodeContents(commentText);
+    const selection = document.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    expect(selection.toString()).toBe('First root comment');
+
+    fireEvent.click(commentText);
+
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    selection.removeAllRanges();
+    fireEvent.click(commentText);
+
+    expect(onNavigate).toHaveBeenCalledWith(mockThreads[0]);
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('keeps the modal open when clicking inside the reply form', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

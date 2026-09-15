@@ -16,3 +16,14 @@ export function getFileElementId(filePath: string): string {
   }
   return fileIdMap.get(filePath) ?? '';
 }
+
+/**
+ * Whether the user currently has a non-empty text selection.
+ * A mouse drag that selects text still fires `click` on the common ancestor,
+ * so click-to-navigate handlers use this to leave the selection alone.
+ */
+export function hasActiveTextSelection(): boolean {
+  const selection = document.getSelection();
+  if (!selection || selection.isCollapsed) return false;
+  return selection.toString().length > 0;
+}
