@@ -205,7 +205,7 @@ After code edits or automated review, the agent can start the difit server with 
 - **Systems Languages**: C, C++, C#, Rust, Go
 - **Mobile Languages**: Swift, Kotlin, Dart
 - **Infrastructure as Code**: Terraform (HCL), Nix
-- **Others**: Python, Protobuf, YAML, Solidity, Vim script, GDScript
+- **Others**: Python, Protobuf, GraphQL, YAML, Solidity, Vim script, GDScript
 
 ## 🔍 Auto-collapsed Files
 
