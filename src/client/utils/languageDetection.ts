@@ -58,6 +58,9 @@ const DIFF_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   gy: 'groovy',
   gsh: 'groovy',
   gradle: 'groovy',
+  graphql: 'graphql',
+  gql: 'graphql',
+  graphqls: 'graphql',
 };
 
 // Prism syntax highlighting: use Prism language IDs (e.g. tsx -> tsx, scss -> css).
@@ -132,6 +135,9 @@ const PRISM_EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   gy: 'groovy',
   gsh: 'groovy',
   gradle: 'groovy',
+  graphql: 'graphql',
+  gql: 'graphql',
+  graphqls: 'graphql',
 };
 
 const PRISM_FILENAME_LANGUAGE_MAP: Record<string, string> = {
