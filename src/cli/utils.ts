@@ -59,6 +59,23 @@ export function getGitRoot(): string {
   }
 }
 
+/**
+ * Resolve the git top-level directory that contains `cwd`. Used when hosting
+ * multiple repositories so each `--repos` path maps to its own repo root.
+ */
+export function getGitRootFor(cwd: string): string {
+  try {
+    const result = execSync('git rev-parse --show-toplevel', {
+      encoding: 'utf8',
+      stdio: 'pipe',
+      cwd,
+    });
+    return result.trim();
+  } catch {
+    throw new Error(`Not a git repository: ${cwd}`);
+  }
+}
+
 export function validateCommitish(commitish: string): boolean {
   if (!commitish || typeof commitish !== 'string') {
     return false;

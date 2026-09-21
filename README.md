@@ -112,6 +112,17 @@ difit --comment '{"type":"thread","filePath":"src/example.ts","position":{"side"
 
 If the same comment already exists, difit skips importing it.
 
+### Multiple Repositories
+
+difit can host several repositories in one server. Pass sibling repos with `--repos` (comma-separated); the current repository becomes the first tab.
+
+```bash
+# From inside the primary repo; repoB and repoC become extra tabs
+difit . --repos ../repoB,../repoC
+```
+
+A tab bar (repository name only) appears at the top when more than one repository is served, and switching a tab re-fetches that repository's diff. With a single repository the tab bar is hidden and behavior is unchanged. The review target (for example `.`, `staged`, or a commit range) applies to every hosted repository, and each `--repos` entry is resolved to its Git root with duplicates removed.
+
 ### Stdin
 
 By using a pipe to pass unified diffs via stdin, you can view diffs from any tool with difit.
@@ -146,6 +157,7 @@ Stdin mode is selected with intent-first rules:
 | `<target>`            | HEAD            | Commit hash, tag, HEAD~n, branch, or special arguments                                                  |
 | `[compare-with]`      | -               | Optional second commit to compare with (shows diff between the two)                                     |
 | `--merge-base`        | false           | Resolve the base revision with `git merge-base` before diffing (Git revision mode only)                 |
+| `--repos <paths>`     | -               | Also host these comma-separated repositories as extra tabs (current repo is the first tab)              |
 | `--pr <url>`          | -               | GitHub PR URL to review (e.g., https://github.com/owner/repo/pull/123)                                  |
 | `--comment <json>`    | -               | Inject initial comments (repeatable; accepts a JSON object or array)                                    |
 | `--port`              | 4966            | Preferred port; falls back to +1 if occupied                                                            |

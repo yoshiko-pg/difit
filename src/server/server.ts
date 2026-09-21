@@ -1,10 +1,10 @@
 import { spawn } from 'child_process';
 import { createHash } from 'crypto';
 import { type Server } from 'http';
-import { join, dirname, isAbsolute, resolve, sep } from 'path';
+import { basename, join, dirname, isAbsolute, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 
-import express, { type Express } from 'express';
+import express, { type Express, type Request } from 'express';
 import open from 'open';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -46,6 +46,11 @@ import {
   getDiffSelectionKey,
 } from '../utils/diffSelection.js';
 
+interface RepoInput {
+  path?: string;
+  name?: string;
+}
+
 interface ServerOptions {
   selection?: DiffSelection;
   stdinDiff?: string;
@@ -58,6 +63,7 @@ interface ServerOptions {
   keepAlive?: boolean;
   diffMode?: DiffMode;
   repoPath?: string;
+  repos?: RepoInput[];
   contextLines?: number;
 }
 
@@ -121,13 +127,38 @@ function createCommentSessionKey(selection: DiffSelection): string {
   return getDiffSelectionKey(selection);
 }
 
-export async function startServer(
+// Per-repository state. Every API endpoint resolves the target repo from the
+// `repo` query param and reads/writes state through this context so a single
+// server process can host several repositories side by side.
+interface RepoContext {
+  id: string;
+  name: string;
+  repositoryPath: string;
+  parser: GitDiffParser;
+  fileWatcher: FileWatcherService;
+  generatedStatusCache: Map<string, { value: GeneratedStatusResponse; expiresAt: number }>;
+  diffDataCache: Map<string, DiffResponse>;
+  initialSelection: DiffSelection;
+  initialDiffData: DiffResponse;
+  initialCommentImports: CommentImport[];
+  commentImportId: string | undefined;
+  currentSelection: DiffSelection;
+  currentCommentSelection: DiffSelection;
+  commentSessions: Map<string, CommentSessionState>;
+  diffMode?: DiffMode;
+  invalidateCache: () => void;
+}
+
+async function createRepoContext(
   options: ServerOptions,
-): Promise<{ port: number; url: string; isEmpty?: boolean; server?: Server }> {
-  const app = express();
-  const repositoryPath = resolve(options.repoPath ?? process.cwd());
+  repo: RepoInput,
+  isPrimary: boolean,
+): Promise<RepoContext> {
+  const repositoryPath = resolve(repo.path ?? process.cwd());
   const repositoryId = createHash('sha256').update(repositoryPath).digest('hex');
-  const initialCommentImports = options.commentImports || [];
+  const name = repo.name ?? (basename(repositoryPath) || repositoryPath);
+  // Comment imports (from --pr/--comment) only make sense for the primary repo.
+  const initialCommentImports = isPrimary ? options.commentImports || [] : [];
   const initialSelection = options.selection ?? createDiffSelection('', '');
   const commentImportId =
     initialCommentImports.length > 0
@@ -141,37 +172,20 @@ export async function startServer(
   >();
   const diffDataCache = new Map<string, DiffResponse>();
   const initialIgnoreWhitespace = options.ignoreWhitespace || false;
-  const parseBaseMode = (value: unknown): BaseMode | undefined => {
-    if (value === 'merge-base') {
-      return 'merge-base';
-    }
 
-    return undefined;
-  };
+  // stdin diff is handled by the primary repo only.
+  const useStdin = isPrimary && Boolean(options.stdinDiff);
 
-  app.use(express.json());
-  app.use(express.text()); // For sendBeacon text/plain requests
-
-  app.use((_req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    next();
-  });
-
-  // Skip validation if using stdin diff
-  if (!options.stdinDiff) {
+  if (!useStdin) {
     const isValidCommit = await parser.validateCommit(initialSelection.targetCommitish);
     if (!isValidCommit) {
       throw new Error(`Invalid or non-existent commit: ${initialSelection.targetCommitish}`);
     }
   }
 
-  // Generate initial diff data for isEmpty check
   let initialDiffData: DiffResponse;
-  if (options.stdinDiff) {
-    // Parse stdin diff directly
-    initialDiffData = parser.parseStdinDiff(options.stdinDiff);
+  if (useStdin) {
+    initialDiffData = parser.parseStdinDiff(options.stdinDiff as string);
   } else {
     initialDiffData = await parser.parseDiff(
       initialSelection,
@@ -185,22 +199,132 @@ export async function startServer(
     );
   }
 
-  // Function to invalidate cache when file changes are detected
   const invalidateCache = () => {
     diffDataCache.clear();
     generatedStatusCache.clear();
     parser.clearResolvedCommitCache();
   };
 
-  // Track current revisions for cache invalidation
-  let currentSelection = initialSelection;
-  let currentCommentSelection = createResolvedCommentSelection(
+  const currentSelection = initialSelection;
+  const currentCommentSelection = createResolvedCommentSelection(
     initialDiffData,
     initialSelection,
-    Boolean(options.stdinDiff),
+    useStdin,
   );
 
-  function parseRepositoryRelativePath(filepath: unknown):
+  const commentSessions = new Map<string, CommentSessionState>();
+  const initialCommentThreads = mergeCommentImports([], initialCommentImports).threads;
+  if (initialCommentThreads.length > 0) {
+    commentSessions.set(createCommentSessionKey(currentCommentSelection), {
+      threads: initialCommentThreads,
+      version: 1,
+    });
+  }
+
+  return {
+    id: repositoryId,
+    name,
+    repositoryPath,
+    parser,
+    fileWatcher,
+    generatedStatusCache,
+    diffDataCache,
+    initialSelection,
+    initialDiffData,
+    initialCommentImports,
+    commentImportId,
+    currentSelection,
+    currentCommentSelection,
+    commentSessions,
+    diffMode: options.diffMode,
+    invalidateCache,
+  };
+}
+
+// Give each repo a unique, human-friendly label. Basenames are preferred, but
+// when two repos share one we qualify with the parent directory segment.
+function assignDisplayNames(contexts: RepoContext[]): void {
+  const counts = new Map<string, number>();
+  for (const ctx of contexts) {
+    counts.set(ctx.name, (counts.get(ctx.name) ?? 0) + 1);
+  }
+  for (const ctx of contexts) {
+    if ((counts.get(ctx.name) ?? 0) > 1) {
+      const parent = basename(dirname(ctx.repositoryPath));
+      if (parent) {
+        ctx.name = `${parent}/${ctx.name}`;
+      }
+    }
+  }
+}
+
+export async function startServer(
+  options: ServerOptions,
+): Promise<{ port: number; url: string; isEmpty?: boolean; server?: Server }> {
+  const app = express();
+  const parseBaseMode = (value: unknown): BaseMode | undefined => {
+    if (value === 'merge-base') {
+      return 'merge-base';
+    }
+
+    return undefined;
+  };
+
+  // Build the list of repositories to host. `repos` takes precedence; otherwise
+  // fall back to the legacy single-repo `repoPath` (or cwd for stdin diffs).
+  const repoInputs: RepoInput[] =
+    options.repos && options.repos.length > 0 ? options.repos : [{ path: options.repoPath }];
+
+  const contexts: RepoContext[] = [];
+  let firstInitError: unknown;
+  for (let i = 0; i < repoInputs.length; i++) {
+    try {
+      contexts.push(await createRepoContext(options, repoInputs[i], contexts.length === 0));
+    } catch (error) {
+      if (contexts.length === 0 && !firstInitError) {
+        firstInitError = error;
+      }
+      const label = repoInputs[i].path ?? '(cwd)';
+      console.warn(
+        `⚠️  Skipping repository "${label}": ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  if (contexts.length === 0) {
+    throw firstInitError ?? new Error('No valid repositories to serve');
+  }
+
+  assignDisplayNames(contexts);
+
+  const contextsById = new Map(contexts.map((ctx) => [ctx.id, ctx]));
+  const primaryContext = contexts[0];
+
+  const resolveRepoContext = (req: Request): RepoContext => {
+    const requested = req.query.repo;
+    if (typeof requested === 'string') {
+      const match = contextsById.get(requested);
+      if (match) {
+        return match;
+      }
+    }
+    return primaryContext;
+  };
+
+  app.use(express.json());
+  app.use(express.text()); // For sendBeacon text/plain requests
+
+  app.use((_req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+  });
+
+  function parseRepositoryRelativePath(
+    ctx: RepoContext,
+    filepath: unknown,
+  ):
     | { ok: true; path: string }
     | {
         ok: false;
@@ -216,8 +340,11 @@ export async function startServer(
       return { ok: false, error: 'File path outside repository' };
     }
 
-    const resolvedPath = resolve(repositoryPath, normalizedFilepath);
-    if (resolvedPath !== repositoryPath && !resolvedPath.startsWith(`${repositoryPath}${sep}`)) {
+    const resolvedPath = resolve(ctx.repositoryPath, normalizedFilepath);
+    if (
+      resolvedPath !== ctx.repositoryPath &&
+      !resolvedPath.startsWith(`${ctx.repositoryPath}${sep}`)
+    ) {
       return { ok: false, error: 'File path outside repository' };
     }
 
@@ -246,38 +373,35 @@ export async function startServer(
     };
   }
 
-  const commentSessions = new Map<string, CommentSessionState>();
-  const initialCommentThreads = mergeCommentImports([], initialCommentImports).threads;
-  if (initialCommentThreads.length > 0) {
-    commentSessions.set(createCommentSessionKey(currentCommentSelection), {
-      threads: initialCommentThreads,
-      version: 1,
-    });
-  }
-
-  function getCommentSelectionFromQuery(query: Record<string, unknown>): DiffSelection {
+  function getCommentSelectionFromQuery(
+    ctx: RepoContext,
+    query: Record<string, unknown>,
+  ): DiffSelection {
     const hasBase = typeof query.base === 'string';
     const hasTarget = typeof query.target === 'string';
     const hasBaseMode = typeof query.baseMode === 'string';
 
     if (!hasBase && !hasTarget && !hasBaseMode) {
-      return currentCommentSelection;
+      return ctx.currentCommentSelection;
     }
 
     return createDiffSelection(
-      hasBase ? (query.base as string) : currentCommentSelection.baseCommitish,
-      hasTarget ? (query.target as string) : currentCommentSelection.targetCommitish,
+      hasBase ? (query.base as string) : ctx.currentCommentSelection.baseCommitish,
+      hasTarget ? (query.target as string) : ctx.currentCommentSelection.targetCommitish,
       hasBaseMode
         ? parseBaseMode(query.baseMode)
         : hasBase || hasTarget
           ? undefined
-          : currentCommentSelection.baseMode,
+          : ctx.currentCommentSelection.baseMode,
     );
   }
 
-  function getOrCreateCommentSession(selection: DiffSelection): CommentSessionState {
+  function getOrCreateCommentSession(
+    ctx: RepoContext,
+    selection: DiffSelection,
+  ): CommentSessionState {
     const key = createCommentSessionKey(selection);
-    const existing = commentSessions.get(key);
+    const existing = ctx.commentSessions.get(key);
     if (existing) {
       return existing;
     }
@@ -286,37 +410,69 @@ export async function startServer(
       threads: [],
       version: 0,
     };
-    commentSessions.set(key, nextSession);
+    ctx.commentSessions.set(key, nextSession);
     return nextSession;
   }
 
+  function updateCommentSession(
+    ctx: RepoContext,
+    selection: DiffSelection,
+    nextThreads: DiffCommentThread[],
+  ): boolean {
+    const session = getOrCreateCommentSession(ctx, selection);
+    const previous = JSON.stringify(session.threads);
+    const next = JSON.stringify(nextThreads);
+    session.threads = nextThreads;
+
+    if (previous === next) {
+      return false;
+    }
+
+    session.version += 1;
+    ctx.fileWatcher.broadcast({
+      type: 'commentsChanged',
+      version: session.version,
+      timestamp: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  // List of repositories the server is hosting, for the client tab bar.
+  app.get('/api/repos', (_req, res) => {
+    res.json({
+      repos: contexts.map((ctx) => ({ id: ctx.id, name: ctx.name })),
+    });
+  });
+
   app.get('/api/diff', async (req, res) => {
+    const ctx = resolveRepoContext(req);
+    const useStdin = ctx === primaryContext && Boolean(options.stdinDiff);
     const ignoreWhitespace = req.query.ignoreWhitespace === 'true';
     const hasBase = typeof req.query.base === 'string';
     const hasTarget = typeof req.query.target === 'string';
     const hasBaseMode = typeof req.query.baseMode === 'string';
     const requestedSelection = createDiffSelection(
-      hasBase ? (req.query.base as string) : currentSelection.baseCommitish,
-      hasTarget ? (req.query.target as string) : currentSelection.targetCommitish,
+      hasBase ? (req.query.base as string) : ctx.currentSelection.baseCommitish,
+      hasTarget ? (req.query.target as string) : ctx.currentSelection.targetCommitish,
       hasBaseMode
         ? parseBaseMode(req.query.baseMode)
         : hasBase || hasTarget
           ? undefined
-          : currentSelection.baseMode,
+          : ctx.currentSelection.baseMode,
     );
     const shouldIncludeCommentImports =
-      initialCommentImports.length > 0 &&
-      (Boolean(options.stdinDiff) || diffSelectionsEqual(requestedSelection, initialSelection));
+      ctx.initialCommentImports.length > 0 &&
+      (useStdin || diffSelectionsEqual(requestedSelection, ctx.initialSelection));
 
-    let responseDiffData = initialDiffData;
-    if (!options.stdinDiff) {
+    let responseDiffData = ctx.initialDiffData;
+    if (!useStdin) {
       const cacheKey = createDiffCacheKey(requestedSelection, ignoreWhitespace);
-      const cached = getCachedDiffResponse(diffDataCache, cacheKey);
+      const cached = getCachedDiffResponse(ctx.diffDataCache, cacheKey);
       if (cached) {
         responseDiffData = cached;
       } else {
         try {
-          responseDiffData = await parser.parseDiff(
+          responseDiffData = await ctx.parser.parseDiff(
             requestedSelection,
             ignoreWhitespace,
             options.contextLines,
@@ -328,77 +484,77 @@ export async function startServer(
           });
           return;
         }
-        setCachedDiffResponse(diffDataCache, cacheKey, responseDiffData);
-        generatedStatusCache.clear();
+        setCachedDiffResponse(ctx.diffDataCache, cacheKey, responseDiffData);
+        ctx.generatedStatusCache.clear();
       }
     }
 
-    currentSelection = requestedSelection;
+    ctx.currentSelection = requestedSelection;
 
-    currentCommentSelection = createResolvedCommentSelection(
+    ctx.currentCommentSelection = createResolvedCommentSelection(
       responseDiffData,
       requestedSelection,
-      Boolean(options.stdinDiff),
+      useStdin,
     );
 
-    const baseCommitish =
-      responseDiffData.baseCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
-    const targetCommitish =
-      responseDiffData.targetCommitish ?? (options.stdinDiff ? 'stdin' : undefined);
+    const baseCommitish = responseDiffData.baseCommitish ?? (useStdin ? 'stdin' : undefined);
+    const targetCommitish = responseDiffData.targetCommitish ?? (useStdin ? 'stdin' : undefined);
     const requestedBaseCommitish =
       responseDiffData.requestedBaseCommitish ??
-      (requestedSelection.baseCommitish || (options.stdinDiff ? 'stdin' : undefined));
+      (requestedSelection.baseCommitish || (useStdin ? 'stdin' : undefined));
     const requestedTargetCommitish =
       responseDiffData.requestedTargetCommitish ??
-      (requestedSelection.targetCommitish || (options.stdinDiff ? 'stdin' : undefined));
+      (requestedSelection.targetCommitish || (useStdin ? 'stdin' : undefined));
     const requestedBaseMode = responseDiffData.requestedBaseMode ?? requestedSelection.baseMode;
 
     res.json({
       ...responseDiffData,
       ignoreWhitespace,
-      openInEditorAvailable: !options.stdinDiff,
+      openInEditorAvailable: !useStdin,
       baseCommitish,
       targetCommitish,
       requestedBaseCommitish,
       requestedTargetCommitish,
       requestedBaseMode,
       clearComments: options.clearComments,
-      repositoryId,
-      commentImports: shouldIncludeCommentImports ? initialCommentImports : undefined,
-      commentImportId: shouldIncludeCommentImports ? commentImportId : undefined,
+      repositoryId: ctx.id,
+      commentImports: shouldIncludeCommentImports ? ctx.initialCommentImports : undefined,
+      commentImportId: shouldIncludeCommentImports ? ctx.commentImportId : undefined,
     });
   });
 
   app.get(/^\/api\/generated-status\/(.*)$/, async (req, res) => {
-    if (options.stdinDiff) {
+    const ctx = resolveRepoContext(req);
+    const useStdin = ctx === primaryContext && Boolean(options.stdinDiff);
+    if (useStdin) {
       res.status(400).json({ error: 'Generated status is not available for stdin diff' });
       return;
     }
 
     try {
-      const filepathResult = parseRepositoryRelativePath(req.params[0]);
+      const filepathResult = parseRepositoryRelativePath(ctx, req.params[0]);
       if (!filepathResult.ok) {
         res.status(400).json({ error: filepathResult.error });
         return;
       }
       const normalizedFilepath = filepathResult.path;
 
-      const ref = (req.query.ref as string) || currentSelection.targetCommitish || 'HEAD';
+      const ref = (req.query.ref as string) || ctx.currentSelection.targetCommitish || 'HEAD';
       const cacheKey = `${ref}:${normalizedFilepath}`;
       const now = Date.now();
-      const cached = generatedStatusCache.get(cacheKey);
+      const cached = ctx.generatedStatusCache.get(cacheKey);
       if (cached && cached.expiresAt > now) {
         res.json(cached.value);
         return;
       }
 
-      const status = await parser.getGeneratedStatus(normalizedFilepath, ref);
+      const status = await ctx.parser.getGeneratedStatus(normalizedFilepath, ref);
       const response: GeneratedStatusResponse = {
         path: normalizedFilepath,
         ref,
         ...status,
       };
-      generatedStatusCache.set(cacheKey, {
+      ctx.generatedStatusCache.set(cacheKey, {
         value: response,
         expiresAt: now + GENERATED_STATUS_CACHE_TTL_MS,
       });
@@ -411,17 +567,19 @@ export async function startServer(
   });
 
   // Get available revisions for revision selector
-  app.get('/api/revisions', async (_req, res) => {
-    if (options.stdinDiff) {
+  app.get('/api/revisions', async (req, res) => {
+    const ctx = resolveRepoContext(req);
+    const useStdin = ctx === primaryContext && Boolean(options.stdinDiff);
+    if (useStdin) {
       res.status(400).json({ error: 'Revision selection not available for stdin diff' });
       return;
     }
 
     try {
       const { branches, commits, originDefaultBranch, resolvedBase, resolvedTarget } =
-        await parser.getRevisionOptions(
-          currentSelection.baseCommitish,
-          currentSelection.targetCommitish,
+        await ctx.parser.getRevisionOptions(
+          ctx.currentSelection.baseCommitish,
+          ctx.currentSelection.targetCommitish,
         );
 
       const response: RevisionsResponse = {
@@ -445,13 +603,15 @@ export async function startServer(
   });
 
   app.get(/^\/api\/line-count\/(.*)$/, async (req, res) => {
+    const ctx = resolveRepoContext(req);
+    const useStdin = ctx === primaryContext && Boolean(options.stdinDiff);
     try {
-      if (options.stdinDiff) {
+      if (useStdin) {
         res.status(404).json({ error: 'Line count not available for stdin diff' });
         return;
       }
 
-      const filepathResult = parseRepositoryRelativePath(req.params[0]);
+      const filepathResult = parseRepositoryRelativePath(ctx, req.params[0]);
       if (!filepathResult.ok) {
         res.status(400).json({ error: filepathResult.error });
         return;
@@ -459,7 +619,7 @@ export async function startServer(
       const filepath = filepathResult.path;
       const oldRef = req.query.oldRef as string | undefined;
       const oldPathResult = req.query.oldPath
-        ? parseRepositoryRelativePath(req.query.oldPath)
+        ? parseRepositoryRelativePath(ctx, req.query.oldPath)
         : { ok: true as const, path: filepath };
       if (!oldPathResult.ok) {
         res.status(400).json({ error: oldPathResult.error });
@@ -472,14 +632,14 @@ export async function startServer(
 
       if (oldRef) {
         try {
-          result.oldLineCount = await parser.getLineCount(oldPath, oldRef);
+          result.oldLineCount = await ctx.parser.getLineCount(oldPath, oldRef);
         } catch {
           result.oldLineCount = 0;
         }
       }
       if (newRef) {
         try {
-          result.newLineCount = await parser.getLineCount(filepath, newRef);
+          result.newLineCount = await ctx.parser.getLineCount(filepath, newRef);
         } catch {
           result.newLineCount = 0;
         }
@@ -493,14 +653,16 @@ export async function startServer(
   });
 
   app.get(/^\/api\/blob\/(.*)$/, async (req, res) => {
+    const ctx = resolveRepoContext(req);
+    const useStdin = ctx === primaryContext && Boolean(options.stdinDiff);
     try {
       // If using stdin diff, blob content is not available
-      if (options.stdinDiff) {
+      if (useStdin) {
         res.status(404).json({ error: 'Blob content not available for stdin diff' });
         return;
       }
 
-      const filepathResult = parseRepositoryRelativePath(req.params[0]);
+      const filepathResult = parseRepositoryRelativePath(ctx, req.params[0]);
       if (!filepathResult.ok) {
         res.status(400).json({ error: filepathResult.error });
         return;
@@ -508,7 +670,7 @@ export async function startServer(
       const filepath = filepathResult.path;
       const ref = (req.query.ref as string) || 'HEAD';
 
-      const blob = await parser.getBlobContent(filepath, ref);
+      const blob = await ctx.parser.getBlobContent(filepath, ref);
 
       // Determine content type based on file extension
       const ext = getFileExtension(filepath);
@@ -709,36 +871,15 @@ export async function startServer(
     return normalizeCommentImports(body);
   }
 
-  function updateCommentSession(
-    selection: DiffSelection,
-    nextThreads: DiffCommentThread[],
-  ): boolean {
-    const session = getOrCreateCommentSession(selection);
-    const previous = JSON.stringify(session.threads);
-    const next = JSON.stringify(nextThreads);
-    session.threads = nextThreads;
-
-    if (previous === next) {
-      return false;
-    }
-
-    session.version += 1;
-    fileWatcher.broadcast({
-      type: 'commentsChanged',
-      version: session.version,
-      timestamp: new Date().toISOString(),
-    });
-    return true;
-  }
-
   app.post('/api/comments', (req, res) => {
     try {
-      const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
+      const ctx = resolveRepoContext(req);
+      const selection = getCommentSelectionFromQuery(ctx, req.query as Record<string, unknown>);
       const body: unknown =
         typeof req.body === 'string' ? (JSON.parse(req.body) as unknown) : req.body;
       const nextThreads = parseCommentsPayload(body);
       const baseVersion = parseBaseVersion(body);
-      const session = getOrCreateCommentSession(selection);
+      const session = getOrCreateCommentSession(ctx, selection);
 
       // Stale baseVersion means another writer (e.g. an agent) changed comments since the
       // client's last read, so merge rather than overwrite. A matching/absent version replaces.
@@ -747,7 +888,7 @@ export async function startServer(
         ? mergeCommentThreads(session.threads, nextThreads).threads
         : nextThreads;
 
-      updateCommentSession(selection, resolvedThreads);
+      updateCommentSession(ctx, selection, resolvedThreads);
 
       res.json({
         success: true,
@@ -763,14 +904,15 @@ export async function startServer(
 
   app.post('/api/comment-imports', (req, res) => {
     try {
-      const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-      const session = getOrCreateCommentSession(selection);
+      const ctx = resolveRepoContext(req);
+      const selection = getCommentSelectionFromQuery(ctx, req.query as Record<string, unknown>);
+      const session = getOrCreateCommentSession(ctx, selection);
       const commentImports = parseCommentImportsPayload(req.body);
       const importId = createHash('sha256')
         .update(serializeCommentImports(commentImports))
         .digest('hex');
       const merged = mergeCommentImports(session.threads, commentImports);
-      const changed = updateCommentSession(selection, merged.threads);
+      const changed = updateCommentSession(ctx, selection, merged.threads);
 
       res.json({
         success: true,
@@ -786,8 +928,9 @@ export async function startServer(
   });
 
   app.delete('/api/comments/:threadId', (req, res) => {
-    const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-    const session = getOrCreateCommentSession(selection);
+    const ctx = resolveRepoContext(req);
+    const selection = getCommentSelectionFromQuery(ctx, req.query as Record<string, unknown>);
+    const session = getOrCreateCommentSession(ctx, selection);
     const threadId = req.params.threadId;
     const nextThreads = session.threads.filter((thread) => thread.id !== threadId);
 
@@ -796,7 +939,7 @@ export async function startServer(
       return;
     }
 
-    updateCommentSession(selection, nextThreads);
+    updateCommentSession(ctx, selection, nextThreads);
 
     res.json({
       success: true,
@@ -806,8 +949,9 @@ export async function startServer(
   });
 
   app.get('/api/comments-json', (req, res) => {
-    const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-    const session = getOrCreateCommentSession(selection);
+    const ctx = resolveRepoContext(req);
+    const selection = getCommentSelectionFromQuery(ctx, req.query as Record<string, unknown>);
+    const session = getOrCreateCommentSession(ctx, selection);
     res.json({
       version: session.version,
       threads: session.threads,
@@ -815,8 +959,9 @@ export async function startServer(
   });
 
   app.get('/api/comments-output', (req, res) => {
-    const selection = getCommentSelectionFromQuery(req.query as Record<string, unknown>);
-    const session = getOrCreateCommentSession(selection);
+    const ctx = resolveRepoContext(req);
+    const selection = getCommentSelectionFromQuery(ctx, req.query as Record<string, unknown>);
+    const session = getOrCreateCommentSession(ctx, selection);
     res.type('text/plain');
 
     if (session.threads.length > 0) {
@@ -856,7 +1001,9 @@ export async function startServer(
   });
 
   app.post('/api/open-in-editor', async (req, res) => {
-    if (options.stdinDiff) {
+    const ctx = resolveRepoContext(req);
+    const useStdin = ctx === primaryContext && Boolean(options.stdinDiff);
+    if (useStdin) {
       res.status(400).json({ error: 'Open in editor is not available for stdin diff' });
       return;
     }
@@ -872,12 +1019,12 @@ export async function startServer(
       return;
     }
 
-    const filepathResult = parseRepositoryRelativePath(filePath);
+    const filepathResult = parseRepositoryRelativePath(ctx, filePath);
     if (!filepathResult.ok) {
       res.status(400).json({ error: filepathResult.error });
       return;
     }
-    const resolvedPath = resolve(repositoryPath, filepathResult.path);
+    const resolvedPath = resolve(ctx.repositoryPath, filepathResult.path);
 
     const editorRequest = parseEditorRequest(editor);
     const editorId =
@@ -959,14 +1106,21 @@ export async function startServer(
 
   // Function to output comments when server shuts down
   function outputFinalComments() {
-    const session = getOrCreateCommentSession(currentCommentSelection);
-    if (session.threads.length > 0) {
-      console.log(formatCommentsOutput(session.threads.map(toCommentThread)));
+    for (const ctx of contexts) {
+      const session = getOrCreateCommentSession(ctx, ctx.currentCommentSelection);
+      if (session.threads.length > 0) {
+        console.log(formatCommentsOutput(session.threads.map(toCommentThread)));
+      }
     }
   }
 
-  // SSE endpoint for file watching
+  async function stopAllWatchers() {
+    await Promise.all(contexts.map((ctx) => ctx.fileWatcher.stop()));
+  }
+
+  // SSE endpoint for file watching (scoped to the requested repo).
   app.get('/api/watch', (req, res) => {
+    const ctx = resolveRepoContext(req);
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -974,10 +1128,10 @@ export async function startServer(
       'Access-Control-Allow-Origin': '*',
     });
 
-    fileWatcher.addClient(res);
+    ctx.fileWatcher.addClient(res);
 
     req.on('close', () => {
-      fileWatcher.removeClient(res);
+      ctx.fileWatcher.removeClient(res);
     });
   });
 
@@ -1009,8 +1163,8 @@ export async function startServer(
         setTimeout(async () => {
           console.log('Client disconnected, shutting down server...');
 
-          // Stop file watcher
-          await fileWatcher.stop();
+          // Stop file watchers
+          await stopAllWatchers();
 
           outputFinalComments();
           process.exit(0);
@@ -1060,18 +1214,23 @@ export async function startServer(
     console.warn('   Make sure this is intended and your network is secure.\n');
   }
 
-  // Start file watcher
+  // Start a file watcher per repository.
   if (options.diffMode) {
-    try {
-      await fileWatcher.start(options.diffMode, repositoryPath, 300, invalidateCache);
-    } catch (error) {
-      console.warn('⚠️  File watcher failed to start:', error);
-      console.warn('   Continuing without file watching...');
+    for (const ctx of contexts) {
+      if (!ctx.diffMode) {
+        continue;
+      }
+      try {
+        await ctx.fileWatcher.start(ctx.diffMode, ctx.repositoryPath, 300, ctx.invalidateCache);
+      } catch (error) {
+        console.warn(`⚠️  File watcher failed to start for ${ctx.name}:`, error);
+        console.warn('   Continuing without file watching...');
+      }
     }
   }
 
-  // Check if diff is empty and skip browser opening
-  if (initialDiffData.isEmpty) {
+  // Check if diff is empty and skip browser opening (based on the primary repo).
+  if (primaryContext.initialDiffData.isEmpty) {
     // Don't open browser if no differences found
   } else if (options.openBrowser) {
     try {
@@ -1081,7 +1240,7 @@ export async function startServer(
     }
   }
 
-  return { port, url, isEmpty: initialDiffData.isEmpty || false, server };
+  return { port, url, isEmpty: primaryContext.initialDiffData.isEmpty || false, server };
 }
 
 async function startServerWithFallback(

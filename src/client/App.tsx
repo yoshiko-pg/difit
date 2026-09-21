@@ -30,6 +30,7 @@ import { GitHubIcon } from './components/GitHubIcon';
 import { HelpModal } from './components/HelpModal';
 import { Logo } from './components/Logo';
 import { ReloadButton } from './components/ReloadButton';
+import { RepoTabs } from './components/RepoTabs';
 import { RevisionDetailModal } from './components/RevisionDetailModal';
 import { SettingsModal } from './components/SettingsModal';
 import { SparkleAnimation } from './components/SparkleAnimation';
@@ -43,6 +44,7 @@ import { useLazyDiffRendering } from './hooks/useLazyDiffRendering';
 import { useViewedFiles } from './hooks/useViewedFiles';
 import { useViewport } from './hooks/useViewport';
 import { fetchClientSettings, saveClientSettings } from './services/userSettings';
+import { type RepoInfo, getActiveRepoId, setActiveRepoId } from './services/repoContext';
 import { hasMultipleCommentAuthors } from './utils/commentAuthors';
 import { copyTextToClipboard } from './utils/clipboard';
 import { getFileElementId } from './utils/domUtils';
@@ -135,6 +137,9 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [isCopiedAll, setIsCopiedAll] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(getInitialSidebarWidth);
+  // Multi-repo tab state (populated from /api/repos; empty/1 entry = single repo).
+  const [repos, setRepos] = useState<RepoInfo[]>([]);
+  const [activeRepoId, setActiveRepoIdState] = useState<string>(getActiveRepoId());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(getInitialFileTreeOpen);
   const [isDragging, setIsDragging] = useState(false);
@@ -852,9 +857,9 @@ function App() {
     saveClientSettings({ sidebarOpen: isFileTreeOpen });
   }, [isFileTreeOpen]);
 
-  // Fetch revision options on mount
-  useEffect(() => {
-    fetch('/api/revisions')
+  // Fetch revision options (also re-run when switching repositories).
+  const fetchRevisionOptions = useCallback(() => {
+    return fetch('/api/revisions')
       .then((res) => (res.ok ? res.json() : null))
       .then((data: RevisionsResponse | null) => {
         setRevisionOptions(data);
@@ -870,6 +875,54 @@ function App() {
       })
       .catch(() => setRevisionOptions(null));
   }, []);
+
+  useEffect(() => {
+    void fetchRevisionOptions();
+  }, [fetchRevisionOptions]);
+
+  // Discover the repositories this server hosts. More than one enables the
+  // top tab bar; the first one is the active repo the server already served.
+  useEffect(() => {
+    fetch('/api/repos')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { repos?: RepoInfo[] } | null) => {
+        const list = Array.isArray(data?.repos) ? data.repos : [];
+        setRepos(list);
+        const first = list[0];
+        if (first && !getActiveRepoId()) {
+          setActiveRepoId(first.id);
+          setActiveRepoIdState(first.id);
+        }
+      })
+      .catch(() => setRepos([]));
+  }, []);
+
+  // Switch the active repository: point the API layer at the new repo, reset
+  // per-repo revision state, then re-fetch that repo's diff and revisions.
+  const handleRepoSwitch = useCallback(
+    (repoId: string) => {
+      if (repoId === activeRepoId) {
+        return;
+      }
+      setActiveRepoId(repoId);
+      setActiveRepoIdState(repoId);
+
+      // Reset revision selection so the previous repo's choice doesn't leak.
+      hasUserSelectedRevisionRef.current = false;
+      const emptySelection = createDiffSelection('', '');
+      selectedRevisionRef.current = emptySelection;
+      setSelectedRevision(emptySelection);
+      setResolvedBaseRevision('');
+      setResolvedTargetRevision('');
+      setRevisionOptions(null);
+      setLoading(true);
+      setError(null);
+
+      void fetchDiffData(emptySelection);
+      void fetchRevisionOptions();
+    },
+    [activeRepoId, fetchDiffData, fetchRevisionOptions],
+  );
 
   // Handle revision change
   const handleRevisionChange = useCallback(
@@ -1200,6 +1253,7 @@ function App() {
   return (
     <WordHighlightProvider>
       <div className="h-screen flex flex-col" onClickCapture={handleGlobalClick}>
+        <RepoTabs repos={repos} activeRepoId={activeRepoId} onSelect={handleRepoSwitch} />
         <header
           className={`bg-github-bg-secondary border-b border-github-border flex ${
             isMobile ? 'flex-col' : 'flex-row items-center'

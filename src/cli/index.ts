@@ -17,6 +17,7 @@ import {
   parseCommentOptions,
   validateDiffArguments,
   getGitRoot,
+  getGitRootFor,
   readStdin,
 } from './utils.js';
 import { createCommentCommand } from './comment.js';
@@ -90,6 +91,7 @@ interface CliOptions {
   background?: boolean;
   context?: number;
   mergeBase?: boolean;
+  repos?: string[];
 }
 
 const program = new Command();
@@ -127,6 +129,18 @@ program
   .option(
     '--merge-base',
     'resolve the base revision with git merge-base before diffing (Git revision mode only)',
+  )
+  .option(
+    '--repos <paths>',
+    'view multiple repositories at once (comma-separated paths); a top tab bar switches between them',
+    (value: string, previous: string[]) => [
+      ...previous,
+      ...value
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0),
+    ],
+    [],
   )
   .action(async (commitish: string, compareWith: string | undefined, options: CliOptions) => {
     try {
@@ -263,6 +277,36 @@ program
         repoPath = undefined;
       }
 
+      // Resolve additional repositories requested via --repos. Each entry is a
+      // path whose git root is used; invalid entries are skipped with a warning.
+      let repos: Array<{ path: string }> | undefined;
+      if (options.repos && options.repos.length > 0) {
+        const resolvedRoots: string[] = [];
+        const seen = new Set<string>();
+        const addRoot = (root: string) => {
+          if (!seen.has(root)) {
+            seen.add(root);
+            resolvedRoots.push(root);
+          }
+        };
+        // Keep the current repo as the first tab, then the explicitly listed ones.
+        if (repoPath) {
+          addRoot(repoPath);
+        }
+        for (const entry of options.repos) {
+          try {
+            addRoot(getGitRootFor(entry));
+          } catch (error) {
+            console.warn(
+              `⚠️  Ignoring --repos entry "${entry}": ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        }
+        if (resolvedRoots.length > 0) {
+          repos = resolvedRoots.map((path) => ({ path }));
+        }
+      }
+
       const selection = resolveDiffSelection(commitish, compareWith, options.mergeBase);
 
       if (options.mergeBase && isSpecialArg(selection.baseCommitish)) {
@@ -297,6 +341,7 @@ program
         contextLines: options.context,
         diffMode: determineDiffMode(selection, compareWith),
         repoPath,
+        ...(repos ? { repos } : {}),
         ...(commentImports.length > 0 ? { commentImports } : {}),
       });
 
