@@ -43,7 +43,10 @@ export function ignoreStdioErrorsForBackgroundDaemon(): void {
   process.stderr?.on?.('error', () => {});
 }
 
-export async function startBackgroundProcess(spawnProcess: typeof spawn = spawn): Promise<void> {
+export async function startBackgroundProcess(
+  spawnProcess: typeof spawn = spawn,
+  stdinDiff?: string,
+): Promise<void> {
   const scriptPath = process.argv[1];
   if (!scriptPath) {
     throw new Error('Unable to determine difit entrypoint for background process');
@@ -59,12 +62,17 @@ export async function startBackgroundProcess(spawnProcess: typeof spawn = spawn)
 
   const child = spawnProcess(process.execPath, [scriptPath, ...childArgs], {
     detached: true,
-    stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
+    stdio: [stdinDiff === undefined ? 'ignore' : 'pipe', 'ignore', 'pipe', 'ipc'],
     env: {
       ...process.env,
       [BACKGROUND_CHILD_ENV]: '1',
     },
   });
+
+  if (stdinDiff !== undefined) {
+    child.stdin?.on('error', () => {});
+    child.stdin?.end(stdinDiff);
+  }
 
   child.stderr?.setEncoding('utf8');
 

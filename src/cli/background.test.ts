@@ -93,6 +93,27 @@ describe('background process lifecycle', () => {
     expect(child.listenerCount('close')).toBe(0);
   });
 
+  it('forwards a stdin diff to the detached child', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const stdin = new PassThrough();
+    const received: Buffer[] = [];
+    stdin.on('data', (chunk: Buffer) => received.push(chunk));
+    Object.assign(child, { stdin });
+    process.argv = [originalArgv[0], '/tmp/difit-entry.js', '-', '--background'];
+
+    const result = startBackgroundProcess(spawnProcess, 'diff --git a/x b/x\n');
+    child.emit('message', { port: 4968, url: 'http://localhost:4968', pid: 43 });
+    await result;
+
+    expect(spawnProcess).toHaveBeenCalledWith(
+      process.execPath,
+      ['/tmp/difit-entry.js', '-', '--keep-alive', '--no-open'],
+      expect.objectContaining({ stdio: ['pipe', 'ignore', 'pipe', 'ipc'] }),
+    );
+    expect(Buffer.concat(received).toString('utf8')).toBe('diff --git a/x b/x\n');
+    expect(stdin.writableEnded).toBe(true);
+  });
+
   it('preserves stderr when the child exits before the handshake', async () => {
     const result = startBackgroundProcess(spawnProcess);
     child.stderr.write('Error: Invalid or non-existent commit: bad-ref\n');

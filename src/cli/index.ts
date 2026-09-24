@@ -145,8 +145,33 @@ program
         process.exit(1);
       }
 
+      const readFromStdin =
+        !options.pr &&
+        shouldReadStdin({
+          commitish,
+          hasPositionalArgs: program.args.length > 0,
+          hasPrOption: false,
+        });
+
+      if (readFromStdin) {
+        if (options.context !== undefined) {
+          console.error('Error: --context option cannot be used with stdin diff');
+          process.exit(1);
+        }
+        if (options.mergeBase) {
+          console.error('Error: --merge-base option cannot be used with stdin diff');
+          process.exit(1);
+        }
+        // Read unified diff from stdin
+        stdinDiff = await readStdin();
+        if (!stdinDiff.trim()) {
+          console.error('Error: No diff content received from stdin');
+          process.exit(1);
+        }
+      }
+
       if (options.background && !isBackgroundChild) {
-        await startBackgroundProcess();
+        await startBackgroundProcess(undefined, stdinDiff);
         return;
       }
 
@@ -198,30 +223,6 @@ program
           console.warn(
             `Warning: Failed to load PR review comments: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
-        }
-      } else {
-        // Check if we should read from stdin
-        const readFromStdin = shouldReadStdin({
-          commitish,
-          hasPositionalArgs: program.args.length > 0,
-          hasPrOption: false,
-        });
-
-        if (readFromStdin) {
-          if (options.context !== undefined) {
-            console.error('Error: --context option cannot be used with stdin diff');
-            process.exit(1);
-          }
-          if (options.mergeBase) {
-            console.error('Error: --merge-base option cannot be used with stdin diff');
-            process.exit(1);
-          }
-          // Read unified diff from stdin
-          stdinDiff = await readStdin();
-          if (!stdinDiff.trim()) {
-            console.error('Error: No diff content received from stdin');
-            process.exit(1);
-          }
         }
       }
 
