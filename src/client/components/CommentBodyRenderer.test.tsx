@@ -1,9 +1,20 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import mermaid from 'mermaid';
+import { describe, expect, it, vi } from 'vitest';
 
 import { WordHighlightProvider } from '../contexts/WordHighlightContext';
 
 import { CommentBodyRenderer } from './CommentBodyRenderer';
+
+vi.mock('mermaid', () => ({
+  default: {
+    initialize: vi.fn(),
+    render: vi.fn().mockResolvedValue({
+      svg: '<svg><title>Mermaid</title></svg>',
+      bindFunctions: undefined,
+    }),
+  },
+}));
 
 describe('CommentBodyRenderer', () => {
   it('renders plain text', () => {
@@ -92,6 +103,28 @@ describe('CommentBodyRenderer', () => {
     expect(deletedLine).not.toBeNull();
     expect(deletedLine).toHaveTextContent('- const x = 1;');
     expect(container).toHaveTextContent('unchanged');
+  });
+
+  it('renders fenced mermaid blocks as diagrams', async () => {
+    render(<CommentBodyRenderer body={'See:\n\n```mermaid\ngraph TD\n  A --> B\n```'} />);
+
+    const diagram = await screen.findByLabelText('Mermaid diagram');
+    await vi.waitFor(() => {
+      expect(diagram.querySelector('svg')).not.toBeNull();
+    });
+    expect(vi.mocked(mermaid.render)).toHaveBeenCalledWith(
+      expect.stringContaining('mermaid-diagram-'),
+      'graph TD\n  A --> B',
+    );
+  });
+
+  it('falls back to source when mermaid rendering fails in a comment', async () => {
+    vi.mocked(mermaid.render).mockRejectedValueOnce(new Error('Parse error'));
+
+    render(<CommentBodyRenderer body={'```mermaid\ninvalid\n```'} />);
+
+    expect(await screen.findByText('Unable to render Mermaid diagram.')).toBeInTheDocument();
+    expect(screen.getByText('invalid')).toBeInTheDocument();
   });
 
   it('renders safe links as anchors', () => {
