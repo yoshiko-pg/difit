@@ -8,6 +8,7 @@ import { hasSuggestionBlock, parseSuggestionBlocks } from '../../utils/suggestio
 import { extractMarkdownText, isElementWithCodeProps, isSafeUrl } from '../utils/markdownUtils';
 
 import { DiffCodeLine } from './DiffCodeLine';
+import { MermaidDiagram } from './MermaidDiagram';
 import { PrismSyntaxHighlighter } from './PrismSyntaxHighlighter';
 import type { AppearanceSettings } from './SettingsModal';
 
@@ -166,6 +167,14 @@ const getCommentMarkdownComponents = (syntaxTheme?: AppearanceSettings['syntaxTh
 
     if (language === 'diff' && normalizedCodeText) {
       return <CommentDiffCodeBlock code={normalizedCodeText} />;
+    }
+
+    if (language === 'mermaid' && normalizedCodeText.trim()) {
+      return (
+        <div className="my-2">
+          <MermaidDiagram chart={normalizedCodeText} />
+        </div>
+      );
     }
 
     if (!codeText.trim()) {
