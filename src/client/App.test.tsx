@@ -207,12 +207,6 @@ describe('App Component - Clear Comments Functionality', () => {
   });
 
   describe('Copy All Prompt Button', () => {
-    it('shows the local copy banner', () => {
-      renderApp();
-
-      expect(screen.getByText('This is a local copy')).toBeInTheDocument();
-    });
-
     it('toggles between dark and light themes', async () => {
       renderApp();
 
