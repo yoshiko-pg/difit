@@ -207,6 +207,36 @@ describe('App Component - Clear Comments Functionality', () => {
   });
 
   describe('Copy All Prompt Button', () => {
+    it('shows the local copy banner', () => {
+      renderApp();
+
+      expect(screen.getByText('This is a local copy')).toBeInTheDocument();
+    });
+
+    it('toggles between dark and light themes', async () => {
+      renderApp();
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Switch to light theme',
+        }),
+      );
+
+      await waitFor(() => {
+        expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Switch to dark theme',
+        }),
+      );
+
+      await waitFor(() => {
+        expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+      });
+    });
+
     it('should generate Copy All Prompt with requested and resolved diff context', async () => {
       mockComments = [
         createMockThread({ id: 'test-1', filePath: 'test.ts', line: 10, body: 'Test comment' }),

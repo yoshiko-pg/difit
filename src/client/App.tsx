@@ -1,4 +1,13 @@
-import { Columns, AlignLeft, Settings, PanelLeftClose, PanelLeft, Keyboard } from 'lucide-react';
+import {
+  Columns,
+  AlignLeft,
+  Settings,
+  PanelLeftClose,
+  PanelLeft,
+  Keyboard,
+  Moon,
+  Sun,
+} from 'lucide-react';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import {
@@ -43,6 +52,7 @@ import { useLazyDiffRendering } from './hooks/useLazyDiffRendering';
 import { useViewedFiles } from './hooks/useViewedFiles';
 import { useViewport } from './hooks/useViewport';
 import { fetchClientSettings, saveClientSettings } from './services/userSettings';
+import { resolveThemePreference } from './utils/appearanceTheme';
 import { hasMultipleCommentAuthors } from './utils/commentAuthors';
 import { copyTextToClipboard } from './utils/clipboard';
 import { getFileElementId } from './utils/domUtils';
@@ -54,6 +64,7 @@ import {
   getMergedChunksForVersion,
 } from './utils/mergedChunks';
 import { buildFileLineIndex, isThreadOutdated } from './utils/outdatedComments';
+import { getFallbackSyntaxTheme } from './utils/themeLoader';
 
 const EMPTY_COMMENT_THREADS: CommentThread[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
@@ -63,6 +74,12 @@ const SIDEBAR_OPEN_STORAGE_KEY = 'difit.sidebarOpen';
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 600;
 const SIDEBAR_DEFAULT_WIDTH = 280;
+
+const LocalCopyBanner = () => (
+  <div className="h-[10px] shrink-0 bg-github-warning text-[8px] leading-[10px] font-bold text-center uppercase tracking-widest text-black">
+    This is a local copy
+  </div>
+);
 
 const parseDiffViewMode = (value: unknown): DiffViewMode | null => {
   switch (value) {
@@ -181,6 +198,17 @@ function App() {
 
   const { settings, updateSettings } = useAppearanceSettings();
   const { isMobile, isDesktop } = useViewport();
+  const resolvedTheme = resolveThemePreference(settings.theme);
+  const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+
+  const handleThemeToggle = useCallback(() => {
+    const fallbackSyntaxTheme = getFallbackSyntaxTheme(nextTheme);
+    updateSettings({
+      ...settings,
+      theme: nextTheme,
+      syntaxTheme: fallbackSyntaxTheme?.id ?? settings.syntaxTheme,
+    });
+  }, [nextTheme, settings, updateSettings]);
 
   // New diff-aware comment system
   const {
@@ -1167,26 +1195,35 @@ function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-github-bg-primary">
-        <div className="text-github-text-secondary text-base">Loading diff...</div>
+      <div className="h-screen flex flex-col bg-github-bg-primary">
+        <LocalCopyBanner />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-github-text-secondary text-base">Loading diff...</div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-github-bg-primary text-center gap-2">
-        <h2 className="text-github-danger text-2xl mb-2">Error</h2>
-        <p className="text-github-text-secondary text-base">{error}</p>
+      <div className="h-screen flex flex-col bg-github-bg-primary">
+        <LocalCopyBanner />
+        <div className="flex flex-1 flex-col items-center justify-center text-center gap-2">
+          <h2 className="text-github-danger text-2xl mb-2">Error</h2>
+          <p className="text-github-text-secondary text-base">{error}</p>
+        </div>
       </div>
     );
   }
 
   if (!diffData) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-github-bg-primary text-center gap-2">
-        <h2 className="text-github-danger text-2xl mb-2">No data</h2>
-        <p className="text-github-text-secondary text-base">No diff data available</p>
+      <div className="h-screen flex flex-col bg-github-bg-primary">
+        <LocalCopyBanner />
+        <div className="flex flex-1 flex-col items-center justify-center text-center gap-2">
+          <h2 className="text-github-danger text-2xl mb-2">No data</h2>
+          <p className="text-github-text-secondary text-base">No diff data available</p>
+        </div>
       </div>
     );
   }
@@ -1200,6 +1237,7 @@ function App() {
   return (
     <WordHighlightProvider>
       <div className="h-screen flex flex-col" onClickCapture={handleGlobalClick}>
+        <LocalCopyBanner />
         <header
           className={`bg-github-bg-secondary border-b border-github-border flex ${
             isMobile ? 'flex-col' : 'flex-row items-center'
@@ -1233,6 +1271,15 @@ function App() {
                 aria-label="Toggle file tree panel"
               >
                 {isFileTreeOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
+              </button>
+              <button
+                type="button"
+                onClick={handleThemeToggle}
+                className="p-2 text-github-text-secondary hover:text-github-text-primary hover:bg-github-bg-tertiary rounded transition-colors"
+                title={`Switch to ${nextTheme} theme`}
+                aria-label={`Switch to ${nextTheme} theme`}
+              >
+                {nextTheme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
               <button
                 onClick={() => setIsSettingsOpen(true)}
