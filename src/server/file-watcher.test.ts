@@ -390,4 +390,50 @@ describe('FileWatcherService', () => {
       );
     });
   });
+  describe('heavy write load', () => {
+    it('should exclude git-ignored directories when subscribing to the working tree', async () => {
+      const mockGit = {
+        checkIgnore: vi.fn(),
+        raw: vi.fn().mockResolvedValue('build/\ncoverage/\ndebug.log\n'),
+        revparse: vi.fn().mockResolvedValue('.git'),
+      };
+      vi.mocked(simpleGit).mockReturnValue(mockGit as any);
+
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 300);
+
+      expect(mockGit.raw).toHaveBeenCalledWith([
+        'ls-files',
+        '--others',
+        '--ignored',
+        '--exclude-standard',
+        '--directory',
+      ]);
+      expect(subscribe).toHaveBeenCalledWith(TEST_REPO_PATH, expect.any(Function), {
+        ignore: [
+          '.git/objects/**',
+          '.git/refs/**',
+          '.git/FETCH_HEAD',
+          '.git/ORIG_HEAD',
+          '.git/logs/**',
+          'node_modules/**',
+          'build',
+          'coverage',
+        ],
+      });
+    });
+
+    it('should broadcast a reload when the watcher reports dropped events', async () => {
+      await fileWatcher.start(DiffMode.DOT, TEST_REPO_PATH, 100);
+      fileWatcher.addClient(mockResponse);
+
+      const callback = vi.mocked(subscribe).mock.calls[0][1];
+      await callback(
+        new Error('Events were dropped by the FSEvents client. File system must be re-scanned.'),
+        [],
+      );
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(mockResponse.write).toHaveBeenCalledWith(expect.stringContaining('"type":"reload"'));
+    });
+  });
 });
