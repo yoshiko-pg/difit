@@ -1,13 +1,4 @@
-import {
-  Columns,
-  AlignLeft,
-  Settings,
-  PanelLeftClose,
-  PanelLeft,
-  Keyboard,
-  Moon,
-  Sun,
-} from 'lucide-react';
+import { Columns, AlignLeft, Settings, PanelLeftClose, PanelLeft, Keyboard, Sun, Moon } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 import {
