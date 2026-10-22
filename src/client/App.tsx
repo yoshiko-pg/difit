@@ -129,6 +129,8 @@ const getInitialFileTreeOpen = () => getStoredSidebarOpen() ?? true;
 function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
   const [diffDataVersion, setDiffDataVersion] = useState(0);
+  // Bumped only by an explicit reload, not by display toggles that refetch the diff
+  const [reloadVersion, setReloadVersion] = useState(0);
   const [diffMode, setDiffMode] = useState<DiffViewMode>(getInitialDiffViewMode);
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -315,7 +317,24 @@ function App() {
     diffData?.repositoryId, // Repository identifier for storage isolation
     settings.autoViewedPatterns,
     resolvedSelection?.baseMode,
+    reloadVersion,
   );
+
+  // Expand files un-viewed on reload because their diff changed since they were viewed
+  const previousViewedFilesRef = useRef(viewedFiles);
+  useEffect(() => {
+    const previousViewedFiles = previousViewedFilesRef.current;
+    previousViewedFilesRef.current = viewedFiles;
+    const unviewedChangedFiles = [...changedSinceViewedFiles].filter(
+      (filePath) => previousViewedFiles.has(filePath) && !viewedFiles.has(filePath),
+    );
+    if (unviewedChangedFiles.length === 0) return;
+    setCollapsedFiles((prev) => {
+      const newSet = new Set(prev);
+      unviewedChangedFiles.forEach((filePath) => newSet.delete(filePath));
+      return newSet;
+    });
+  }, [viewedFiles, changedSinceViewedFiles]);
 
   // Reset initialization flag when diff context changes
   useEffect(() => {
@@ -555,6 +574,7 @@ function App() {
   const fetchDiffDataRef = useRef<((selection?: DiffSelection) => Promise<void>) | null>(null);
   const handleWatchReload = useCallback(async () => {
     await fetchDiffDataRef.current?.();
+    setReloadVersion((prev) => prev + 1);
   }, []);
   const handleCommentsChanged = useCallback(async () => {
     try {

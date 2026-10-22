@@ -10,6 +10,7 @@ import { DiffMode } from '../types/watch';
 
 import App from './App';
 import { useDiffComments } from './hooks/useDiffComments';
+import { useFileWatch } from './hooks/useFileWatch';
 import { useViewedFiles } from './hooks/useViewedFiles';
 import { useViewport } from './hooks/useViewport';
 
@@ -45,11 +46,12 @@ vi.mock('./hooks/useDiffComments', () => ({
 const mockClearViewedFiles = vi.fn();
 const mockToggleFileViewed = vi.fn();
 let mockViewedFiles = new Set<string>();
+let mockChangedSinceViewedFiles = new Set<string>();
 let mockHasLoadedInitialViewedFiles = true;
 vi.mock('./hooks/useViewedFiles', () => ({
   useViewedFiles: vi.fn(() => ({
     viewedFiles: mockViewedFiles,
-    changedSinceViewedFiles: new Set<string>(),
+    changedSinceViewedFiles: mockChangedSinceViewedFiles,
     hasLoadedInitialViewedFiles: mockHasLoadedInitialViewedFiles,
     toggleFileViewed: mockToggleFileViewed,
     isFileContentChanged: vi.fn(),
@@ -172,6 +174,7 @@ beforeEach(() => {
   vi.unstubAllEnvs();
   MockEventSource.clearInstances();
   mockViewedFiles = new Set<string>();
+  mockChangedSinceViewedFiles = new Set<string>();
   mockHasLoadedInitialViewedFiles = true;
   mockReplaceThreads.mockReset();
   mockGenerateAllCommentsPrompt.mockClear();
@@ -548,6 +551,86 @@ describe('App Component - Initial file collapsing', () => {
       expect(screen.getByTitle('Expand file (Alt+Click to expand all)')).toBeInTheDocument();
     });
   });
+
+  it('expands a viewed file that is un-viewed because its diff changed', async () => {
+    mockViewedFiles = new Set(['test.ts']);
+    mockHasLoadedInitialViewedFiles = true;
+    const view = renderApp();
+
+    await waitFor(() => {
+      expect(screen.getByTitle('Expand file (Alt+Click to expand all)')).toBeInTheDocument();
+    });
+
+    act(() => {
+      mockViewedFiles = new Set();
+      mockChangedSinceViewedFiles = new Set(['test.ts']);
+      view.rerender(
+        <HotkeysProvider initiallyActiveScopes={['navigation']}>
+          <App />
+        </HotkeysProvider>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTitle('Collapse file (Alt+Click to collapse all)')).toBeInTheDocument();
+    });
+  });
+
+  it('does not re-expand an updated file the user collapsed', async () => {
+    mockChangedSinceViewedFiles = new Set(['test.ts']);
+    mockHasLoadedInitialViewedFiles = true;
+    const view = renderApp();
+
+    fireEvent.click(await screen.findByTitle('Collapse file (Alt+Click to collapse all)'));
+    expect(screen.getByTitle('Expand file (Alt+Click to expand all)')).toBeInTheDocument();
+
+    act(() => {
+      mockChangedSinceViewedFiles = new Set(['test.ts']);
+      view.rerender(
+        <HotkeysProvider initiallyActiveScopes={['navigation']}>
+          <App />
+        </HotkeysProvider>,
+      );
+    });
+
+    expect(screen.getByTitle('Expand file (Alt+Click to expand all)')).toBeInTheDocument();
+  });
+});
+
+describe('App Component - Viewed files reload', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockComments = [];
+    mockFetch(mockDiffResponse);
+  });
+
+  it('re-checks viewed files on reload but not when toggling whitespace', async () => {
+    const getDiffCallCount = () =>
+      vi
+        .mocked(global.fetch)
+        .mock.calls.filter(([url]) => typeof url === 'string' && url.startsWith('/api/diff'))
+        .length;
+    const getReloadVersion = () => vi.mocked(useViewedFiles).mock.lastCall?.[8];
+
+    renderApp();
+    await waitFor(() => {
+      expect(getDiffCallCount()).toBe(1);
+    });
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Ignore Whitespace' }));
+    await waitFor(() => {
+      expect(getDiffCallCount()).toBe(2);
+    });
+    expect(getReloadVersion()).toBe(0);
+
+    const onReload = vi.mocked(useFileWatch).mock.lastCall?.[0];
+    await act(async () => {
+      await onReload?.();
+    });
+
+    expect(getDiffCallCount()).toBe(3);
+    expect(getReloadVersion()).toBe(1);
+  });
 });
 
 describe('App Component - Comment sync', () => {
@@ -855,6 +938,7 @@ describe('App Component - Merge-base selection', () => {
       undefined,
       [],
       undefined,
+      expect.any(Number),
     );
   });
 
