@@ -1,4 +1,13 @@
-import { Check, ChevronDown, ChevronRight, Copy, Edit2, MessageSquare, Trash2 } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Edit2,
+  HelpCircle,
+  MessageSquare,
+  Trash2,
+} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { type CommentThread, type DiffCommentMessage } from '../../types/diff';
@@ -20,8 +29,11 @@ interface ThreadMessageItemProps {
   onResolveOrDelete: () => void;
   actionLabel: string;
   confirmPrompt?: string;
+  onDelete?: () => void;
   onClick?: (e: React.MouseEvent) => void;
 }
+
+type PendingAction = 'primary' | 'delete';
 
 function ThreadMessageItem({
   message,
@@ -34,16 +46,20 @@ function ThreadMessageItem({
   onResolveOrDelete,
   actionLabel,
   confirmPrompt,
+  onDelete,
   onClick,
 }: ThreadMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const isConfirming = pendingAction !== null;
+  const isConfirmingDelete =
+    pendingAction === 'delete' || (pendingAction === 'primary' && !isRootMessage);
   const confirmContainerRef = useRef<HTMLDivElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const showAuthorHeader = showAuthorBadge && Boolean(message.author);
   const isUserAuthoredMessage = message.author?.trim() === 'User';
 
-  useClickOutside(confirmContainerRef, () => setIsConfirming(false), isConfirming);
+  useClickOutside(confirmContainerRef, () => setPendingAction(null), isConfirming);
 
   useEffect(() => {
     if (!isConfirming) return;
@@ -56,7 +72,7 @@ function ThreadMessageItem({
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
-        setIsConfirming(false);
+        setPendingAction(null);
       }
     };
 
@@ -109,27 +125,34 @@ function ThreadMessageItem({
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="whitespace-nowrap text-xs text-github-text-secondary">
-                  {confirmPrompt}
+                  {pendingAction === 'delete' ? 'Delete?' : confirmPrompt}
                 </span>
                 <button
                   ref={confirmButtonRef}
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsConfirming(false);
-                    onResolveOrDelete();
+                    const action = pendingAction;
+                    setPendingAction(null);
+                    if (action === 'delete') {
+                      onDelete?.();
+                    } else {
+                      onResolveOrDelete();
+                    }
                   }}
                   className={`whitespace-nowrap rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs font-medium transition-all hover:bg-github-bg-primary ${
-                    isRootMessage ? 'text-green-700 hover:text-green-800' : 'text-github-danger'
+                    isConfirmingDelete
+                      ? 'text-github-danger'
+                      : 'text-green-700 hover:text-green-800'
                   }`}
                 >
-                  {isRootMessage ? 'Resolve' : 'Delete'}
+                  {isConfirmingDelete ? 'Delete' : 'Resolve'}
                 </button>
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsConfirming(false);
+                    setPendingAction(null);
                   }}
                   className="whitespace-nowrap rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs text-github-text-primary transition-all hover:bg-github-bg-primary"
                 >
@@ -153,7 +176,7 @@ function ThreadMessageItem({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (confirmPrompt) {
-                      setIsConfirming(true);
+                      setPendingAction('primary');
                       return;
                     }
                     onResolveOrDelete();
@@ -166,6 +189,20 @@ function ThreadMessageItem({
                 >
                   {isRootMessage ? <Check size={12} /> : <Trash2 size={12} />}
                 </button>
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingAction('delete');
+                    }}
+                    className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-danger transition-all hover:bg-github-bg-primary"
+                    title="Delete thread"
+                    aria-label="Delete thread"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
               </div>
             ))}
         </>
@@ -196,6 +233,7 @@ interface CommentThreadCardProps {
   onReplyToThread: (threadId: string, body: string) => Promise<void>;
   onRemoveMessage: (threadId: string, messageId: string) => void;
   onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
+  onSetThreadQuestion?: (threadId: string, isQuestion: boolean) => void;
   onClick?: (e: React.MouseEvent) => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
 }
@@ -209,6 +247,7 @@ export function CommentThreadCard({
   onReplyToThread,
   onRemoveMessage,
   onUpdateMessage,
+  onSetThreadQuestion,
   onClick,
   syntaxTheme,
 }: CommentThreadCardProps) {
@@ -268,6 +307,14 @@ export function CommentThreadCard({
           >
             {thread.file}:{lineLabel}
           </span>
+          {thread.isQuestion && (
+            <span
+              className="inline-flex h-5 shrink-0 items-center rounded-full border border-blue-500/60 px-2 text-[10px] font-medium text-blue-500"
+              title="The AI will be asked to answer this instead of changing code"
+            >
+              Question
+            </span>
+          )}
           {thread.isOutdated && (
             <span
               className="inline-flex h-5 shrink-0 items-center rounded-full border border-github-text-muted px-2 text-[10px] font-medium text-github-text-muted"
@@ -299,6 +346,29 @@ export function CommentThreadCard({
         </div>
         {!isCollapsed && (
           <div className="flex items-center gap-2">
+            {onSetThreadQuestion && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSetThreadQuestion(thread.id, !thread.isQuestion);
+                }}
+                aria-pressed={Boolean(thread.isQuestion)}
+                className={`rounded border p-1 transition-all hover:bg-github-bg-primary ${
+                  thread.isQuestion
+                    ? 'border-blue-500/60 text-blue-500'
+                    : 'border-github-border text-github-text-secondary'
+                }`}
+                title={
+                  thread.isQuestion ? 'Change to a normal comment' : 'Mark as a question for the AI'
+                }
+                aria-label={
+                  thread.isQuestion ? 'Change to a normal comment' : 'Mark as a question for the AI'
+                }
+              >
+                <HelpCircle size={14} />
+              </button>
+            )}
             <button
               type="button"
               onClick={handleCopyThread}
@@ -332,6 +402,7 @@ export function CommentThreadCard({
             onResolveOrDelete={() => onRemoveThread(thread.id)}
             actionLabel="Resolve thread"
             confirmPrompt={confirmRootAction ? 'Resolve?' : undefined}
+            onDelete={() => onRemoveThread(thread.id)}
           />
 
           {thread.messages.slice(1).map((message) => (

@@ -332,6 +332,7 @@ function cloneThread(thread: DiffCommentThread): DiffCommentThread {
     updatedAt: thread.updatedAt,
     position: clonePosition(thread.position),
     codeSnapshot: cloneCodeSnapshot(thread.codeSnapshot),
+    ...(thread.isQuestion ? { isQuestion: true } : {}),
     messages: thread.messages.map(cloneMessage),
   };
 }

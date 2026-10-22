@@ -18,6 +18,7 @@ interface CommentsListModalProps {
   onReplyToThread: (threadId: string, body: string) => Promise<void>;
   onRemoveMessage: (threadId: string, messageId: string) => void;
   onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
+  onSetThreadQuestion?: (threadId: string, isQuestion: boolean) => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
 }
 
@@ -32,6 +33,7 @@ export function CommentsListModal({
   onReplyToThread,
   onRemoveMessage,
   onUpdateMessage,
+  onSetThreadQuestion,
   syntaxTheme,
 }: CommentsListModalProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -182,6 +184,7 @@ export function CommentsListModal({
                         onReplyToThread={onReplyToThread}
                         onRemoveMessage={onRemoveMessage}
                         onUpdateMessage={onUpdateMessage}
+                        onSetThreadQuestion={onSetThreadQuestion}
                         syntaxTheme={syntaxTheme}
                         onClick={(e) => {
                           e.stopPropagation();

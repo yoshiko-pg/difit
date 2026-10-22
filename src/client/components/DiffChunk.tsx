@@ -17,7 +17,7 @@ import {
   type DiffSegment,
 } from '../utils/wordLevelDiff';
 
-import { CommentForm } from './CommentForm';
+import { CommentForm, type CommentSubmitOptions } from './CommentForm';
 import { CommentThreadCard } from './CommentThreadCard';
 import { DiffLineRow } from './DiffLineRow';
 import type { AppearanceSettings } from './SettingsModal';
@@ -33,12 +33,14 @@ interface DiffChunkProps {
     body: string,
     codeContent?: string,
     side?: DiffSide,
+    options?: CommentSubmitOptions,
   ) => Promise<void>;
   onGenerateThreadPrompt: (thread: CommentThread) => string;
   onRemoveThread: (threadId: string) => void;
   onReplyToThread: (threadId: string, body: string) => Promise<void>;
   onRemoveMessage: (threadId: string, messageId: string) => void;
   onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
+  onSetThreadQuestion?: (threadId: string, isQuestion: boolean) => void;
   mode?: DiffViewMode;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   cursor?: CursorPosition | null;
@@ -70,6 +72,7 @@ export const DiffChunk = memo(function DiffChunk({
   onReplyToThread,
   onRemoveMessage,
   onUpdateMessage,
+  onSetThreadQuestion,
   mode = DEFAULT_DIFF_VIEW_MODE,
   syntaxTheme,
   cursor = null,
@@ -248,10 +251,16 @@ export const DiffChunk = memo(function DiffChunk({
   }, [commentingLine, chunk.lines]);
 
   const handleSubmitComment = useCallback(
-    async (body: string) => {
+    async (body: string, options: CommentSubmitOptions) => {
       if (commentingLine !== null) {
         const codeContent = getSelectedCodeContent();
-        await onAddComment(commentingLine.lineNumber, body, codeContent, commentingLine.side);
+        await onAddComment(
+          commentingLine.lineNumber,
+          body,
+          codeContent,
+          commentingLine.side,
+          options,
+        );
         setCommentingLine(null);
       }
     },
@@ -399,6 +408,7 @@ export const DiffChunk = memo(function DiffChunk({
         onReplyToThread={onReplyToThread}
         onRemoveMessage={onRemoveMessage}
         onUpdateMessage={onUpdateMessage}
+        onSetThreadQuestion={onSetThreadQuestion}
         onOpenInEditor={onOpenInEditor}
         syntaxTheme={syntaxTheme}
         cursor={cursor}
@@ -529,6 +539,7 @@ export const DiffChunk = memo(function DiffChunk({
                               onReplyToThread={onReplyToThread}
                               onRemoveMessage={onRemoveMessage}
                               onUpdateMessage={onUpdateMessage}
+                              onSetThreadQuestion={onSetThreadQuestion}
                               syntaxTheme={syntaxTheme}
                             />
                           </div>
@@ -561,6 +572,7 @@ export const DiffChunk = memo(function DiffChunk({
                               selectedCode={getSelectedCodeContent()}
                               syntaxTheme={syntaxTheme}
                               filename={filename}
+                              showQuestionToggle={true}
                             />
                           </div>
                         </div>

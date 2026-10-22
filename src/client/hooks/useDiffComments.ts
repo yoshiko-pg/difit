@@ -25,6 +25,7 @@ interface AddThreadParams {
   side: DiffSide;
   line: number | { start: number; end: number };
   codeSnapshot?: DiffCommentThread['codeSnapshot'];
+  isQuestion?: boolean;
 }
 
 interface ReplyToThreadParams {
@@ -45,6 +46,7 @@ interface UseDiffCommentsReturn {
   updateComment: (commentId: string, newBody: string) => void;
   removeMessage: (threadId: string, messageId: string) => void;
   updateMessage: (threadId: string, messageId: string, newBody: string) => void;
+  setThreadQuestion: (threadId: string, isQuestion: boolean) => void;
   clearAllComments: (options?: { resetAppliedCommentImportIds?: boolean }) => void;
   applyCommentImports: (imports: CommentImport[], importId: string) => string[];
   generatePrompt: (commentId: string) => string;
@@ -64,6 +66,7 @@ function normalizeThread(thread: DiffCommentThread): CommentThread {
     createdAt: thread.createdAt,
     updatedAt: thread.updatedAt,
     codeContent: thread.codeSnapshot?.content,
+    isQuestion: thread.isQuestion,
     messages: thread.messages,
   };
 }
@@ -201,6 +204,7 @@ export function useDiffComments(
           content: '',
           language: getLanguageFromPath(params.filePath),
         },
+        ...(params.isQuestion ? { isQuestion: true } : {}),
         messages: [
           {
             id: threadId,
@@ -314,6 +318,19 @@ export function useDiffComments(
                 message.id === messageId ? { ...message, body: newBody, updatedAt: now } : message,
               ),
             }
+          : thread,
+      );
+      saveThreads(newThreads);
+    },
+    [saveThreads, threads],
+  );
+
+  const setThreadQuestion = useCallback(
+    (threadId: string, isQuestion: boolean) => {
+      const now = new Date().toISOString();
+      const newThreads = threads.map((thread) =>
+        thread.id === threadId
+          ? { ...thread, isQuestion: isQuestion || undefined, updatedAt: now }
           : thread,
       );
       saveThreads(newThreads);
@@ -462,6 +479,7 @@ export function useDiffComments(
     updateComment,
     removeMessage,
     updateMessage,
+    setThreadQuestion,
     clearAllComments: clearAllCommentsWithOptions,
     applyCommentImports,
     generatePrompt,

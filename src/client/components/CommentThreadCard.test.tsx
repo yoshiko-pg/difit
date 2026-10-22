@@ -417,4 +417,66 @@ describe('CommentThreadCard', () => {
 
     expect(onRemoveMessage).toHaveBeenCalledWith('thread-1', 'message-2');
   });
+
+  it('deletes the root thread after an inline delete confirmation', async () => {
+    const user = userEvent.setup();
+    const onRemoveThread = vi.fn();
+
+    render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={onRemoveThread}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTitle('Delete thread'));
+
+    expect(onRemoveThread).not.toHaveBeenCalled();
+    expect(screen.getByText('Delete?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onRemoveThread).toHaveBeenCalledWith('thread-1');
+  });
+
+  it('toggles a thread between a comment and a question', async () => {
+    const user = userEvent.setup();
+    const onSetThreadQuestion = vi.fn();
+
+    const { rerender } = render(
+      <CommentThreadCard
+        thread={mockThread}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+        onSetThreadQuestion={onSetThreadQuestion}
+      />,
+    );
+
+    expect(screen.queryByText('Question')).not.toBeInTheDocument();
+    await user.click(screen.getByTitle('Mark as a question for the AI'));
+    expect(onSetThreadQuestion).toHaveBeenCalledWith('thread-1', true);
+
+    rerender(
+      <CommentThreadCard
+        thread={{ ...mockThread, isQuestion: true }}
+        onGeneratePrompt={() => 'thread prompt'}
+        onRemoveThread={vi.fn()}
+        onReplyToThread={vi.fn().mockResolvedValue(undefined)}
+        onRemoveMessage={vi.fn()}
+        onUpdateMessage={vi.fn()}
+        onSetThreadQuestion={onSetThreadQuestion}
+      />,
+    );
+
+    expect(screen.getByText('Question')).toBeInTheDocument();
+    await user.click(screen.getByTitle('Change to a normal comment'));
+    expect(onSetThreadQuestion).toHaveBeenCalledWith('thread-1', false);
+  });
 });

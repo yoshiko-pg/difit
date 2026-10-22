@@ -21,6 +21,7 @@ import {
 } from '../utils/diffSelection';
 
 import { Checkbox } from './components/Checkbox';
+import type { CommentSubmitOptions } from './components/CommentForm';
 import { CommentsDropdown } from './components/CommentsDropdown';
 import { CommentsListModal } from './components/CommentsListModal';
 import { DiffQuickMenu } from './components/DiffQuickMenu';
@@ -192,6 +193,7 @@ function App() {
     removeThread,
     removeMessage,
     updateMessage,
+    setThreadQuestion,
     clearAllComments,
     generateThreadPrompt,
     generateAllCommentsPrompt,
@@ -525,6 +527,7 @@ function App() {
         updatedAt: thread.updatedAt,
         codeContent: thread.codeSnapshot?.content,
         isOutdated: isThreadOutdated(thread, fileLineIndexByPath.get(thread.filePath)),
+        isQuestion: thread.isQuestion,
         messages: thread.messages,
       })),
     [threads, fileLineIndexByPath],
@@ -1052,10 +1055,12 @@ function App() {
       body: string,
       codeContent?: string,
       side?: DiffSide,
+      options?: CommentSubmitOptions,
     ): Promise<void> => {
       addThread({
         filePath: file,
         body,
+        isQuestion: options?.isQuestion,
         side: side || 'new',
         line: typeof line === 'number' ? line : { start: line[0], end: line[1] },
         codeSnapshot:
@@ -1516,6 +1521,7 @@ function App() {
                       onReplyToThread={handleReplyToThread}
                       onRemoveMessage={removeMessage}
                       onUpdateMessage={updateMessage}
+                      onSetThreadQuestion={setThreadQuestion}
                       onOpenInEditor={canOpenInEditor ? handleOpenInEditor : undefined}
                       syntaxTheme={settings.syntaxTheme}
                       baseCommitish={diffData.baseCommitish}
@@ -1598,6 +1604,7 @@ function App() {
           onReplyToThread={handleReplyToThread}
           onRemoveMessage={removeMessage}
           onUpdateMessage={updateMessage}
+          onSetThreadQuestion={setThreadQuestion}
           syntaxTheme={settings.syntaxTheme}
         />
       </div>

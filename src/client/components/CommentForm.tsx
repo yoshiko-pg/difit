@@ -4,8 +4,12 @@ import { CommentBodyRenderer, hasSuggestionInBody } from './CommentBodyRenderer'
 import type { AppearanceSettings } from './SettingsModal';
 import { SuggestionTemplateButton } from './SuggestionTemplateButton';
 
+export interface CommentSubmitOptions {
+  isQuestion: boolean;
+}
+
 interface CommentFormProps {
-  onSubmit: (body: string) => Promise<void>;
+  onSubmit: (body: string, options: CommentSubmitOptions) => Promise<void>;
   onCancel: () => void;
   selectedCode?: string;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
@@ -15,6 +19,7 @@ interface CommentFormProps {
   title?: string;
   submitLabel?: string;
   placeholder?: string;
+  showQuestionToggle?: boolean;
 }
 
 type CommentFormMode = 'edit' | 'preview';
@@ -30,8 +35,10 @@ export function CommentForm({
   title = 'Add a comment',
   submitLabel = 'Submit',
   placeholder = 'Leave a comment...',
+  showQuestionToggle = false,
 }: CommentFormProps) {
   const [body, setBody] = useState(initialValue);
+  const [isQuestion, setIsQuestion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mode, setMode] = useState<CommentFormMode>('edit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -45,8 +52,9 @@ export function CommentForm({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(body.trim());
+      await onSubmit(body.trim(), { isQuestion: showQuestionToggle && isQuestion });
       setBody('');
+      setIsQuestion(false);
       setMode('edit');
     } catch (error) {
       console.error('Failed to submit comment:', error);
@@ -137,6 +145,20 @@ export function CommentForm({
       )}
 
       <div className="flex gap-2 justify-end">
+        {showQuestionToggle && (
+          <label
+            className="mr-auto flex cursor-pointer items-center gap-1.5 text-xs text-github-text-secondary"
+            title="Ask the AI to answer this instead of changing code"
+          >
+            <input
+              type="checkbox"
+              checked={isQuestion}
+              onChange={(e) => setIsQuestion(e.target.checked)}
+              disabled={isSubmitting}
+            />
+            Question
+          </label>
+        )}
         <button
           type="button"
           data-comment-cancel="true"

@@ -120,6 +120,9 @@ export interface DiffCommentThread {
 
   codeSnapshot?: DiffCommentCodeSnapshot;
 
+  // Marks the thread as a question the AI should answer rather than act on
+  isQuestion?: boolean;
+
   messages: DiffCommentMessage[];
 }
 
@@ -196,6 +199,7 @@ export interface CommentThread {
   updatedAt: string;
   codeContent?: string;
   isOutdated?: boolean;
+  isQuestion?: boolean;
   messages: DiffCommentMessage[];
 }
 

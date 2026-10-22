@@ -129,8 +129,13 @@ export function formatAllCommentsPrompt(comments: Comment[]): string {
   return prompts.join('\n=====\n');
 }
 
+const QUESTION_PROMPT_MARKER = "[QUESTION — answer, don't change code]";
+
 export function formatCommentThreadPrompt(thread: CommentThread): string {
   const sections: string[] = [formatCommentLocation(thread.file, thread.line, thread.side)];
+  if (thread.isQuestion) {
+    sections.push(QUESTION_PROMPT_MARKER);
+  }
 
   thread.messages.forEach((message, index) => {
     if (index === 0) {

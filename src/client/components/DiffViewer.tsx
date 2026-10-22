@@ -15,6 +15,7 @@ import { isWholeFileHighlightExtension } from '../utils/languageDetection';
 import { getViewerForFile } from '../viewers/registry';
 import type { DiffViewerBodyProps } from '../viewers/types';
 
+import type { CommentSubmitOptions } from './CommentForm';
 import { DiffViewerHeader } from './DiffViewerHeader';
 import type { AppearanceSettings } from './SettingsModal';
 
@@ -35,12 +36,14 @@ interface DiffViewerProps {
     body: string,
     codeContent?: string,
     side?: DiffSide,
+    options?: CommentSubmitOptions,
   ) => Promise<void>;
   onGenerateThreadPrompt: (thread: CommentThread) => string;
   onRemoveThread: (threadId: string) => void;
   onReplyToThread: (threadId: string, body: string) => Promise<void>;
   onRemoveMessage: (threadId: string, messageId: string) => void;
   onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
+  onSetThreadQuestion?: (threadId: string, isQuestion: boolean) => void;
   onOpenInEditor?: (filePath: string, lineNumber: number) => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   baseCommitish?: string;
@@ -192,6 +195,7 @@ export const DiffViewer = memo(function DiffViewer({
   onReplyToThread,
   onRemoveMessage,
   onUpdateMessage,
+  onSetThreadQuestion,
   onOpenInEditor,
   syntaxTheme,
   baseCommitish,
@@ -244,9 +248,15 @@ export const DiffViewer = memo(function DiffViewer({
   }, [isVisible, isCollapsed, canExpandHiddenLines, file, prefetchFileContent]);
 
   const handleAddComment = useCallback(
-    async (line: LineNumber, body: string, codeContent?: string, side?: DiffSide) => {
+    async (
+      line: LineNumber,
+      body: string,
+      codeContent?: string,
+      side?: DiffSide,
+      options?: CommentSubmitOptions,
+    ) => {
       try {
-        await onAddComment(file.path, line, body, codeContent, side);
+        await onAddComment(file.path, line, body, codeContent, side, options);
       } catch (error) {
         console.error('Failed to add comment:', error);
       }
@@ -354,6 +364,7 @@ export const DiffViewer = memo(function DiffViewer({
     onReplyToThread,
     onRemoveMessage,
     onUpdateMessage,
+    onSetThreadQuestion,
     onOpenInEditor,
     onLineClick,
     commentTrigger,

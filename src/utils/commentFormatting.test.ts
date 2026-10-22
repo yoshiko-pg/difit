@@ -210,6 +210,13 @@ Explain why this was removed.`);
       const result = formatCommentThreadPrompt(threads[0]!);
       expect(result).toBe('docs/SUMMARY.md:L85 (old)\nExplain why this was removed.');
     });
+
+    it('should mark question threads so the agent answers instead of editing', () => {
+      const result = formatCommentThreadPrompt({ ...threads[0]!, isQuestion: true });
+      expect(result).toBe(
+        "docs/SUMMARY.md:L85 (old)\n[QUESTION — answer, don't change code]\nExplain why this was removed.",
+      );
+    });
   });
 
   describe('formatAllCommentsPrompt', () => {

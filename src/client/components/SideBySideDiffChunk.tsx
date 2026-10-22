@@ -17,7 +17,7 @@ import {
 import { useFileLevelTokensLookup } from '../contexts/FileLevelTokensContext';
 
 import { CommentButton } from './CommentButton';
-import { CommentForm } from './CommentForm';
+import { CommentForm, type CommentSubmitOptions } from './CommentForm';
 import { CommentThreadCard } from './CommentThreadCard';
 import { EnhancedPrismSyntaxHighlighter } from './EnhancedPrismSyntaxHighlighter';
 import { OpenInEditorButton } from './OpenInEditorButton';
@@ -34,12 +34,14 @@ interface SideBySideDiffChunkProps {
     body: string,
     codeContent?: string,
     side?: DiffSide,
+    options?: CommentSubmitOptions,
   ) => Promise<void>;
   onGenerateThreadPrompt: (thread: CommentThread) => string;
   onRemoveThread: (threadId: string) => void;
   onReplyToThread: (threadId: string, body: string) => Promise<void>;
   onRemoveMessage: (threadId: string, messageId: string) => void;
   onUpdateMessage: (threadId: string, messageId: string, newBody: string) => void;
+  onSetThreadQuestion?: (threadId: string, isQuestion: boolean) => void;
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   cursor?: CursorPosition | null;
   fileIndex?: number;
@@ -151,6 +153,7 @@ export function SideBySideDiffChunk({
   onReplyToThread,
   onRemoveMessage,
   onUpdateMessage,
+  onSetThreadQuestion,
   syntaxTheme,
   cursor = null,
   fileIndex = 0,
@@ -321,10 +324,16 @@ export function SideBySideDiffChunk({
   }, [commentingLine, chunk.lines]);
 
   const handleSubmitComment = useCallback(
-    async (body: string) => {
+    async (body: string, options: CommentSubmitOptions) => {
       if (commentingLine !== null) {
         const codeContent = getSelectedCodeContent();
-        await onAddComment(commentingLine.lineNumber, body, codeContent, commentingLine.side);
+        await onAddComment(
+          commentingLine.lineNumber,
+          body,
+          codeContent,
+          commentingLine.side,
+          options,
+        );
         setCommentingLine(null);
       }
     },
@@ -814,6 +823,7 @@ export function SideBySideDiffChunk({
                                   onReplyToThread={onReplyToThread}
                                   onRemoveMessage={onRemoveMessage}
                                   onUpdateMessage={onUpdateMessage}
+                                  onSetThreadQuestion={onSetThreadQuestion}
                                   syntaxTheme={syntaxTheme}
                                 />
                               </div>
@@ -854,6 +864,7 @@ export function SideBySideDiffChunk({
                               selectedCode={getSelectedCodeContent()}
                               syntaxTheme={syntaxTheme}
                               filename={filename}
+                              showQuestionToggle={true}
                             />
                           </div>
                         </div>

@@ -614,6 +614,7 @@ export async function startServer(
       createdAt: thread.createdAt,
       updatedAt: thread.updatedAt,
       codeContent: thread.codeSnapshot?.content,
+      isQuestion: thread.isQuestion,
       messages: thread.messages,
     };
   }
