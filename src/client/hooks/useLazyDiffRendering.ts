@@ -8,6 +8,15 @@ const LAZY_RENDER_ROOT_MARGIN = '1200px 0px';
 const SIDEBAR_SCROLL_MAX_ATTEMPTS = 60;
 const SIDEBAR_SCROLL_CORRECTION_DELAY_MS = 180;
 
+// With scroll anchoring the browser keeps a jump target in place while the
+// files above it render lazily, so they can stay as placeholders. Without it
+// they would shift the target as they render, so render all of them first.
+function getFirstFileIndexToRender(targetIndex: number): number {
+  const supportsScrollAnchoring =
+    typeof CSS !== 'undefined' && CSS.supports('overflow-anchor', 'auto');
+  return supportsScrollAnchoring ? targetIndex : 0;
+}
+
 interface UseLazyDiffRenderingOptions {
   diffData: DiffResponse | null;
   diffScrollContainerRef: React.RefObject<HTMLElement | null>;
@@ -156,7 +165,7 @@ export function useLazyDiffRendering({
       setRenderedFilePaths((prev) => {
         let changed = false;
         const next = new Set(prev);
-        for (let i = 0; i <= targetIndex; i++) {
+        for (let i = getFirstFileIndexToRender(targetIndex); i <= targetIndex; i++) {
           const path = diffData.files[i]?.path;
           if (path && !next.has(path)) {
             next.add(path);
@@ -198,7 +207,9 @@ export function useLazyDiffRendering({
       const targetIndex = diffData?.files.findIndex((file) => file.path === filePath) ?? -1;
       const requiredSectionIds =
         diffData && targetIndex >= 0
-          ? diffData.files.slice(0, targetIndex + 1).map((file) => getFileElementId(file.path))
+          ? diffData.files
+              .slice(getFirstFileIndexToRender(targetIndex), targetIndex + 1)
+              .map((file) => getFileElementId(file.path))
           : [getFileElementId(filePath)];
       const requestId = scrollRequestIdRef.current + 1;
       scrollRequestIdRef.current = requestId;

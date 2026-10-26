@@ -1,6 +1,7 @@
-import { renderHook } from '@testing-library/react';
-import { describe, it, expect, afterEach } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
+import type { DiffResponse } from '../../types/diff';
 import { getFileElementId } from '../utils/domUtils';
 
 import { useLazyDiffRendering } from './useLazyDiffRendering';
@@ -77,6 +78,56 @@ describe('useLazyDiffRendering', () => {
 
       const { result } = renderLazyDiffRendering(container);
       expect(result.current.isFileScrolledPastContainerTop('missing/file.ts')).toBe(false);
+    });
+  });
+
+  describe('scrollFileIntoDiffContainer', () => {
+    const diffData: DiffResponse = {
+      commit: 'abc123',
+      baseCommitish: 'HEAD^',
+      targetCommitish: 'HEAD',
+      files: Array.from({ length: 20 }, (_, i) => ({
+        path: `file-${i}.ts`,
+        status: 'modified' as const,
+        additions: 1,
+        deletions: 0,
+        chunks: [],
+      })),
+      ignoreWhitespace: false,
+      isEmpty: false,
+    };
+
+    function jumpToLastFile() {
+      const { result } = renderHook(() =>
+        useLazyDiffRendering({
+          diffData,
+          diffScrollContainerRef: { current: document.createElement('div') },
+          setDiffData: () => {},
+        }),
+      );
+      act(() => {
+        result.current.scrollFileIntoDiffContainer('file-19.ts');
+      });
+      return result.current.renderedFilePaths;
+    }
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('renders only the target file when the browser supports scroll anchoring', () => {
+      vi.stubGlobal('CSS', { supports: () => true });
+
+      const renderedFilePaths = jumpToLastFile();
+      expect(renderedFilePaths.has('file-19.ts')).toBe(true);
+      expect(renderedFilePaths.has('file-10.ts')).toBe(false);
+    });
+
+    it('renders every file above the target when the browser lacks scroll anchoring', () => {
+      vi.stubGlobal('CSS', { supports: () => false });
+
+      const renderedFilePaths = jumpToLastFile();
+      expect(renderedFilePaths.size).toBe(20);
     });
   });
 });
