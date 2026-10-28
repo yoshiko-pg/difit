@@ -54,10 +54,16 @@ import {
   getMergedChunksForVersion,
 } from './utils/mergedChunks';
 import { buildFileLineIndex, isThreadOutdated } from './utils/outdatedComments';
+import {
+  DEFAULT_PREVIEW_MODE,
+  parsePreviewMode,
+  type PreviewMode,
+} from './viewers/PreviewModeTabs';
 
 const EMPTY_COMMENT_THREADS: CommentThread[] = [];
 const EMPTY_MERGED_CHUNKS: MergedChunk[] = [];
 const DIFF_VIEW_MODE_STORAGE_KEY = 'difit.diffViewMode';
+const MARKDOWN_PREVIEW_MODE_STORAGE_KEY = 'difit.markdownPreviewMode';
 const SIDEBAR_WIDTH_STORAGE_KEY = 'difit.sidebarWidth';
 const SIDEBAR_OPEN_STORAGE_KEY = 'difit.sidebarOpen';
 const SIDEBAR_MIN_WIDTH = 200;
@@ -89,6 +95,20 @@ const getStoredDiffViewMode = (): DiffViewMode | null => {
 };
 
 const getInitialDiffViewMode = () => getStoredDiffViewMode() ?? DEFAULT_DIFF_VIEW_MODE;
+
+const getStoredMarkdownPreviewMode = (): PreviewMode | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return parsePreviewMode(window.localStorage.getItem(MARKDOWN_PREVIEW_MODE_STORAGE_KEY));
+  } catch {
+    return null;
+  }
+};
+
+const getInitialMarkdownPreviewMode = () => getStoredMarkdownPreviewMode() ?? DEFAULT_PREVIEW_MODE;
 
 const clampSidebarWidth = (width: number) =>
   Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
@@ -130,6 +150,9 @@ function App() {
   const [diffData, setDiffData] = useState<DiffResponse | null>(null);
   const [diffDataVersion, setDiffDataVersion] = useState(0);
   const [diffMode, setDiffMode] = useState<DiffViewMode>(getInitialDiffViewMode);
+  const [markdownPreviewMode, setMarkdownPreviewMode] = useState<PreviewMode>(
+    getInitialMarkdownPreviewMode,
+  );
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -449,6 +472,16 @@ function App() {
       // Ignore localStorage errors (e.g. disabled storage).
     }
     saveClientSettings({ diffViewMode: mode });
+  }, []);
+
+  const handleMarkdownPreviewModeChange = useCallback((mode: PreviewMode) => {
+    setMarkdownPreviewMode(mode);
+    try {
+      window.localStorage.setItem(MARKDOWN_PREVIEW_MODE_STORAGE_KEY, mode);
+    } catch {
+      // Ignore localStorage errors (e.g. disabled storage).
+    }
+    saveClientSettings({ markdownPreviewMode: mode });
   }, []);
 
   // Lift expand state to App level so navigation and rendering share the same merged chunks
@@ -792,6 +825,16 @@ function App() {
         const localDiffViewMode = getStoredDiffViewMode();
         if (localDiffViewMode) {
           seed.diffViewMode = localDiffViewMode;
+        }
+      }
+
+      const remoteMarkdownPreviewMode = parsePreviewMode(client.markdownPreviewMode);
+      if (remoteMarkdownPreviewMode) {
+        setMarkdownPreviewMode(remoteMarkdownPreviewMode);
+      } else {
+        const localMarkdownPreviewMode = getStoredMarkdownPreviewMode();
+        if (localMarkdownPreviewMode) {
+          seed.markdownPreviewMode = localMarkdownPreviewMode;
         }
       }
 
@@ -1534,6 +1577,8 @@ function App() {
                       prefetchFileContent={prefetchFileContent}
                       isExpandLoading={isExpandLoading}
                       diffVersion={diffDataVersion}
+                      markdownPreviewMode={markdownPreviewMode}
+                      onMarkdownPreviewModeChange={handleMarkdownPreviewModeChange}
                     />
                   ) : (
                     <div className="bg-github-bg-secondary border border-github-border rounded-md px-4 py-3">

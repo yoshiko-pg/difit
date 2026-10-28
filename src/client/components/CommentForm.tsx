@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
 import { CommentBodyRenderer, hasSuggestionInBody } from './CommentBodyRenderer';
 import type { AppearanceSettings } from './SettingsModal';
@@ -37,6 +37,13 @@ export function CommentForm({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasSuggestion = hasSuggestionInBody(body);
   const effectiveMode: CommentFormMode = hasSuggestion ? mode : 'edit';
+
+  // Prefilled text (an edited message, a quoted selection) is continued, not overwritten,
+  // also when the textarea remounts after the suggestion preview.
+  const attachTextarea = useCallback((textarea: HTMLTextAreaElement | null) => {
+    textareaRef.current = textarea;
+    textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +131,7 @@ export function CommentForm({
         </div>
       ) : (
         <textarea
-          ref={textareaRef}
+          ref={attachTextarea}
           className="w-full min-h-[60px] mb-2 resize-y bg-github-bg-secondary border border-github-border rounded px-3 py-2 text-github-text-primary text-sm leading-6 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/30 focus:min-h-[80px] disabled:opacity-50"
           value={body}
           onChange={(e) => setBody(e.target.value)}

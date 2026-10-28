@@ -1,4 +1,20 @@
-import { diffWords, diffWordsWithSpace } from 'diff';
+import { diffWords, diffWordsWithSpace, type ChangeObject } from 'diff';
+
+/** Below this share of unchanged text, word highlights are noise rather than help. */
+export const MIN_WORD_DIFF_SIMILARITY = 0.2;
+
+/** Share of characters, over both sides, that a word diff left unchanged. */
+export function getUnchangedRatio(changes: ChangeObject<string>[]): number {
+  let unchangedLength = 0;
+  let totalLength = 0;
+  for (const change of changes) {
+    totalLength += change.value.length;
+    if (!change.added && !change.removed) {
+      unchangedLength += change.value.length;
+    }
+  }
+  return totalLength === 0 ? 1 : unchangedLength / totalLength;
+}
 
 export interface DiffSegment {
   value: string;
@@ -56,17 +72,5 @@ export function shouldComputeWordDiff(oldContent: string, newContent: string): b
   // If lines are too different, skip word-level diff
   const changes = diffWords(oldContent, newContent);
 
-  let unchangedLength = 0;
-  let totalLength = 0;
-
-  for (const change of changes) {
-    totalLength += change.value.length;
-    if (!change.added && !change.removed) {
-      unchangedLength += change.value.length;
-    }
-  }
-
-  // Require at least 20% similarity to show word-level diff
-  const similarityRatio = unchangedLength / totalLength;
-  return similarityRatio >= 0.2;
+  return getUnchangedRatio(changes) >= MIN_WORD_DIFF_SIMILARITY;
 }

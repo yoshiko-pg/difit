@@ -4,16 +4,25 @@ import React from 'react';
 interface CommentButtonProps {
   onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void;
   title?: string;
+  /** Replaces the default placement (vertically centered at the right edge of a code line). */
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export const CommentButton: React.FC<CommentButtonProps> = React.memo(
-  ({ onMouseDown, title = 'Add a comment' }) => {
+  ({
+    onMouseDown,
+    title = 'Add a comment',
+    className = 'absolute -right-2 top-1/2 -translate-y-1/2 w-7 h-7',
+    style,
+  }) => {
     return (
       <button
         type="button"
-        className="absolute -right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded transition-all duration-150 hover:scale-110 z-10"
+        className={`${className} flex items-center justify-center rounded transition-all duration-150 hover:scale-110 z-10`}
         data-comment-button="true"
         style={{
+          ...style,
           backgroundColor: 'var(--color-yellow-btn-bg)',
           color: 'var(--color-yellow-btn-text)',
           border: '1px solid var(--color-yellow-btn-border)',

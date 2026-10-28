@@ -5,6 +5,8 @@ import type { AppearanceSettings } from '../components/SettingsModal';
 import type { CursorPosition } from '../hooks/keyboardNavigation';
 import type { MergedChunk } from '../hooks/useExpandedLines';
 
+import type { PreviewMode } from './PreviewModeTabs';
+
 export type DiffViewerBodyProps = {
   file: DiffFile;
   threads: CommentThread[];
@@ -13,6 +15,11 @@ export type DiffViewerBodyProps = {
   syntaxTheme?: AppearanceSettings['syntaxTheme'];
   baseCommitish?: string;
   targetCommitish?: string;
+  /** Increments whenever the diff is refetched, so viewers can reload file contents. */
+  diffVersion?: number;
+  /** Markdown files: the remembered view (Diff, Split Preview, ...) shared by all files. */
+  markdownPreviewMode?: PreviewMode;
+  onMarkdownPreviewModeChange?: (mode: PreviewMode) => void;
   cursor?: CursorPosition | null;
   fileIndex?: number;
   mergedChunks: MergedChunk[];

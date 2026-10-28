@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import mermaid from 'mermaid';
 
@@ -187,46 +187,6 @@ const bodyOnlyChangeChunks: MergedChunk[] = [
   },
 ];
 
-const midFileHrChunks: MergedChunk[] = [
-  {
-    header: '@@ -60,4 +60,4 @@',
-    oldStart: 60,
-    oldLines: 4,
-    newStart: 60,
-    newLines: 4,
-    lines: [
-      { type: 'context', content: '---', oldLineNumber: 60, newLineNumber: 60 },
-      { type: 'context', content: 'Some closing text.', oldLineNumber: 61, newLineNumber: 61 },
-      { type: 'delete', content: 'Original ending line.', oldLineNumber: 62 },
-      { type: 'add', content: 'Changed ending line.', newLineNumber: 62 },
-    ],
-    originalIndices: [0, 1, 2, 3],
-    hiddenLinesBefore: 59,
-    hiddenLinesAfter: 0,
-  },
-];
-
-const unchangedFrontmatterTopChunks: MergedChunk[] = [
-  {
-    header: '@@ -1,6 +1,6 @@',
-    oldStart: 1,
-    oldLines: 6,
-    newStart: 1,
-    newLines: 6,
-    lines: [
-      { type: 'context', content: '---', oldLineNumber: 1, newLineNumber: 1 },
-      { type: 'context', content: 'title: Same', oldLineNumber: 2, newLineNumber: 2 },
-      { type: 'context', content: '---', oldLineNumber: 3, newLineNumber: 3 },
-      { type: 'context', content: '', oldLineNumber: 4, newLineNumber: 4 },
-      { type: 'delete', content: 'Old body text.', oldLineNumber: 5 },
-      { type: 'add', content: 'New body text.', newLineNumber: 5 },
-    ],
-    originalIndices: [0, 1, 2, 3, 4, 5],
-    hiddenLinesBefore: 0,
-    hiddenLinesAfter: 0,
-  },
-];
-
 const setMatchMedia = (matches: boolean) => {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -297,9 +257,13 @@ describe('MarkdownDiffViewer', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('renders Mermaid diagrams in Diff Preview', async () => {
+  it('renders Mermaid diagrams in the hunk Diff Preview', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
-    const { container } = renderViewer({ mergedChunks: mermaidChunks });
+    const { container } = renderViewer({
+      mergedChunks: mermaidChunks,
+      baseCommitish: 'stdin',
+      targetCommitish: 'stdin',
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
 
@@ -318,25 +282,27 @@ describe('MarkdownDiffViewer', () => {
     expect(container.querySelector('svg')).toBeInTheDocument();
   });
 
-  it('renders comment-only markdown lines as plain text in Diff Preview', () => {
+  it('renders comment-only markdown lines as plain text in the hunk Diff Preview', async () => {
+    (global.fetch as any).mockResolvedValue({ ok: false, statusText: 'Not Found' });
     renderViewer({ mergedChunks: htmlCommentChunks });
 
     fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         (_, element) =>
           element?.tagName === 'PRE' && element.textContent === '<!-- hidden note -->',
       ),
     ).toBeInTheDocument();
   });
 
-  it('renders changed fenced code blocks without dropping surrounding markdown in Diff Preview', () => {
+  it('renders changed fenced code blocks without dropping surrounding markdown in the hunk Diff Preview', async () => {
+    (global.fetch as any).mockResolvedValue({ ok: false, statusText: 'Not Found' });
     renderViewer({ mergedChunks: codeFenceDiffChunks });
 
     fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
 
-    const oldLine = screen.getByText(
+    const oldLine = await screen.findByText(
       'npx skills add yoshiko-pg/difit # エージェントにスキルを追加',
     );
     const newLine = screen.getByText(
@@ -381,7 +347,8 @@ describe('MarkdownDiffViewer', () => {
       text: async () => '```mermaid\ngraph TD\n  A --> B\n```',
     });
 
-    renderViewer();
+    // Start in the code diff so the one-time render failure is spent on Full Preview.
+    renderViewer({ markdownPreviewMode: 'diff' });
 
     const fullPreviewButton = await screen.findByRole('button', {
       name: 'Full Preview',
@@ -399,7 +366,7 @@ describe('MarkdownDiffViewer', () => {
   it('re-renders Mermaid diagrams when data-theme changes after mount', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
 
-    renderViewer({ mergedChunks: mermaidChunks });
+    renderViewer({ mergedChunks: mermaidChunks, baseCommitish: 'stdin', targetCommitish: 'stdin' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Diff Preview' }));
 
@@ -508,6 +475,20 @@ describe('MarkdownDiffViewer two-side fetch', () => {
     ).toBeInTheDocument();
   });
 
+  it('falls back to the hunk Diff Preview when Split Preview cannot load both sides', async () => {
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false, statusText: 'Not Found', text: async () => '' })
+      .mockResolvedValueOnce({ ok: true, text: async () => '# Title\n' });
+
+    renderViewer({ markdownPreviewMode: 'split-preview' });
+
+    expect(
+      await screen.findByText('Base content unavailable — showing partial preview.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Title' })).toBeInTheDocument();
+    expect(screen.queryByTestId('markdown-split-preview')).not.toBeInTheDocument();
+  });
+
   it('does not fetch when both refs are stdin', async () => {
     renderViewer({ baseCommitish: 'stdin', targetCommitish: 'stdin' });
 
@@ -516,6 +497,134 @@ describe('MarkdownDiffViewer two-side fetch', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(0);
+  });
+
+  it('opens in Split Preview with the before and after documents side by side', async () => {
+    (global.fetch as any).mockImplementation(async (url: string) => ({
+      ok: true,
+      text: async () => (url.endsWith('HEAD~1') ? 'Old paragraph' : 'New paragraph'),
+    }));
+
+    renderViewer();
+
+    const preview = await screen.findByTestId('markdown-split-preview');
+    expect(within(preview).getByText('Old paragraph')).toBeInTheDocument();
+    expect(within(preview).getByText('New paragraph')).toBeInTheDocument();
+  });
+
+  it('shows the mode the host passes and reports tab changes back to it', async () => {
+    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => '# Title' });
+    const onMarkdownPreviewModeChange = vi.fn();
+
+    renderViewer({ markdownPreviewMode: 'diff', onMarkdownPreviewModeChange });
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    expect(screen.queryByTestId('markdown-split-preview')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Split Preview' }));
+    expect(onMarkdownPreviewModeChange).toHaveBeenCalledWith('split-preview');
+  });
+
+  it('falls back to the code diff and hides Split Preview for stdin diffs', async () => {
+    renderViewer({ baseCommitish: 'stdin', targetCommitish: 'stdin' });
+
+    expect(screen.queryByRole('button', { name: 'Split Preview' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('markdown-split-preview')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Diff' })).toBeInTheDocument();
+  });
+
+  it('comments on an added file in the stdin Diff Preview at its source line', async () => {
+    const addedChunks: MergedChunk[] = [
+      {
+        header: '@@ -0,0 +1,3 @@',
+        oldStart: 0,
+        oldLines: 0,
+        newStart: 1,
+        newLines: 3,
+        lines: [
+          { type: 'add', content: '# Title', newLineNumber: 1 },
+          { type: 'add', content: '', newLineNumber: 2 },
+          { type: 'add', content: 'Some text.', newLineNumber: 3 },
+        ],
+        originalIndices: [0],
+        hiddenLinesBefore: 0,
+        hiddenLinesAfter: 0,
+      },
+    ];
+    const onAddComment = vi.fn().mockResolvedValue(undefined);
+
+    renderViewer({
+      file: createFile({ status: 'added', additions: 3, deletions: 0 }),
+      mergedChunks: addedChunks,
+      baseCommitish: 'stdin',
+      targetCommitish: 'stdin',
+      markdownPreviewMode: 'diff-preview',
+      onAddComment,
+    });
+
+    const preview = screen.getByTestId('markdown-unified-preview');
+    fireEvent.mouseMove(within(preview).getByText('Some text.'));
+    fireEvent.mouseDown(within(preview).getByRole('button', { name: 'Add comment on L3' }));
+    fireEvent.change(screen.getByPlaceholderText('Leave a comment...'), {
+      target: { value: 'Clarify' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+    await waitFor(() =>
+      expect(onAddComment).toHaveBeenCalledWith(3, 'Clarify', 'Some text.', 'new'),
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(0);
+  });
+
+  it('keeps file line numbers for a modified file in the stdin Diff Preview', () => {
+    const modifiedChunks: MergedChunk[] = [
+      {
+        header: '@@ -10,2 +10,2 @@',
+        oldStart: 10,
+        oldLines: 2,
+        newStart: 10,
+        newLines: 2,
+        lines: [
+          { type: 'context', content: '## Section', oldLineNumber: 10, newLineNumber: 10 },
+          { type: 'delete', content: 'Old line.', oldLineNumber: 11 },
+          { type: 'add', content: 'New line.', newLineNumber: 11 },
+        ],
+        originalIndices: [0],
+        hiddenLinesBefore: 9,
+        hiddenLinesAfter: 0,
+      },
+    ];
+
+    renderViewer({
+      mergedChunks: modifiedChunks,
+      baseCommitish: 'stdin',
+      targetCommitish: 'stdin',
+      markdownPreviewMode: 'diff-preview',
+    });
+
+    const preview = screen.getByTestId('markdown-unified-preview');
+    const lineStartOf = (text: string) =>
+      within(preview)
+        .getByText(text)
+        .closest('[data-md-line-start]')
+        ?.getAttribute('data-md-line-start');
+    expect(lineStartOf('Section')).toBe('10');
+    expect(lineStartOf('Old line.')).toBe('11');
+    expect(lineStartOf('New line.')).toBe('11');
+  });
+
+  it('refetches the blobs when the diff is reloaded', async () => {
+    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => 'Before reload' });
+    const { rerender } = renderViewer({ diffVersion: 1 });
+    await screen.findAllByText('Before reload');
+
+    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => 'After reload' });
+    rerender(
+      <WordHighlightProvider>
+        <MarkdownDiffViewer {...createProps({ diffVersion: 2 })} />
+      </WordHighlightProvider>,
+    );
+
+    expect(await screen.findAllByText('After reload')).toHaveLength(2);
   });
 });
 
@@ -609,10 +718,10 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
 
     goToDiffPreview();
 
-    expect(await screen.findAllByText('title')).toHaveLength(1); // modified → single Before/After row
+    expect(await screen.findAllByText('title')).toHaveLength(2); // modified → a before and an after table
     expect(screen.getByText('Old')).toBeInTheDocument();
     expect(screen.getByText('New')).toBeInTheDocument();
-    expect(screen.getAllByText('published')).toHaveLength(1);
+    expect(screen.getAllByText('published')).toHaveLength(2);
     expect(screen.getByText('false')).toBeInTheDocument();
     expect(screen.getByText('true')).toBeInTheDocument();
   });
@@ -636,10 +745,10 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
 
     goToDiffPreview();
 
-    // Frontmatter change is shown in the structured table…
+    // Frontmatter change is shown in the structured tables…
     expect(await screen.findByText('Old')).toBeInTheDocument();
     expect(screen.getByText('New')).toBeInTheDocument();
-    expect(screen.getByText('title')).toBeInTheDocument();
+    expect(screen.getAllByText('title')).toHaveLength(2);
 
     // …and the raw frontmatter delimiters are stripped from the preview blocks,
     // so no stray <hr> is rendered from the `---` lines.
@@ -676,7 +785,7 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
     expect(screen.getByText('New body text.')).toBeInTheDocument();
   });
 
-  it('keeps a body horizontal rule at the start of a mid-file chunk', async () => {
+  it('keeps a body horizontal rule below unchanged frontmatter', async () => {
     (global.fetch as any)
       .mockResolvedValueOnce({
         ok: true,
@@ -689,7 +798,7 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
           '---\ntitle: Same\n---\n\nIntro.\n\n---\nSome closing text.\nChanged ending line.\n',
       });
 
-    const { container } = renderViewer({ mergedChunks: midFileHrChunks });
+    const { container } = renderViewer();
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -697,16 +806,13 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
 
     goToDiffPreview();
 
-    // The chunk starts mid-file, so its leading `---` is a horizontal rule,
-    // not the frontmatter delimiter; it must survive as an <hr>.
-    expect(await screen.findByText('Some closing text.')).toBeInTheDocument();
-    expect(container.querySelector('hr')).not.toBeNull();
-    expect(screen.getByText('Original ending line.')).toBeInTheDocument();
-    expect(screen.getByText('Changed ending line.')).toBeInTheDocument();
-    expect(screen.queryByText('Key')).not.toBeInTheDocument();
+    expect(await screen.findByText(/Original ending line\./)).toBeInTheDocument();
+    expect(screen.getByText(/Changed ending line\./)).toBeInTheDocument();
+    expect(container.querySelectorAll('hr')).toHaveLength(1);
+    expect(container.querySelector('td.bg-diff-addition-bg, td.bg-diff-deletion-bg')).toBeNull();
   });
 
-  it('strips unchanged frontmatter context without rendering a table', async () => {
+  it('shows unchanged frontmatter as context, not as raw lines or a diff', async () => {
     (global.fetch as any)
       .mockResolvedValueOnce({
         ok: true,
@@ -717,7 +823,7 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
         text: async () => '---\ntitle: Same\n---\n\nNew body text.\n',
       });
 
-    const { container } = renderViewer({ mergedChunks: unchangedFrontmatterTopChunks });
+    const { container } = renderViewer();
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -725,13 +831,11 @@ describe('MarkdownDiffPreview frontmatter diff', () => {
 
     goToDiffPreview();
 
-    // No table for an unchanged frontmatter, and the raw frontmatter context
-    // lines are stripped instead of rendering as an <hr> plus stray text.
     expect(await screen.findByText('Old body text.')).toBeInTheDocument();
     expect(screen.getByText('New body text.')).toBeInTheDocument();
-    expect(screen.queryByText('Key')).not.toBeInTheDocument();
     expect(screen.queryByText('title: Same')).not.toBeInTheDocument();
     expect(container.querySelector('hr')).toBeNull();
+    expect(container.querySelector('td.bg-diff-addition-bg, td.bg-diff-deletion-bg')).toBeNull();
   });
 
   it('renders no frontmatter table when neither side has frontmatter', async () => {

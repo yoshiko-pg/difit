@@ -82,7 +82,9 @@
     "react-markdown": "^10.1.0",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
-    "simple-git": "^3.28.0"
+    "remark-parse": "^11.0.0",
+    "simple-git": "^3.28.0",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
@@ -92,6 +94,7 @@
     "@tsconfig/strictest": "^2.0.5",
     "@types/express": "^5.0.3",
     "@types/js-yaml": "^4.0.9",
+    "@types/mdast": "^4.0.4",
     "@types/node": "^24.0.8",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

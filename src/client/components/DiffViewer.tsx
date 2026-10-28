@@ -75,6 +75,8 @@ interface DiffViewerProps {
   } | null;
   onCommentTriggerHandled?: () => void;
   diffVersion?: number;
+  markdownPreviewMode?: DiffViewerBodyProps['markdownPreviewMode'];
+  onMarkdownPreviewModeChange?: DiffViewerBodyProps['onMarkdownPreviewModeChange'];
 }
 
 type LineRange = { start: number; end: number };
@@ -208,6 +210,8 @@ export const DiffViewer = memo(function DiffViewer({
   prefetchFileContent,
   isExpandLoading,
   diffVersion,
+  markdownPreviewMode,
+  onMarkdownPreviewModeChange,
 }: DiffViewerProps) {
   const isCollapsed = collapsedFiles.has(file.path);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -342,6 +346,9 @@ export const DiffViewer = memo(function DiffViewer({
     syntaxTheme,
     baseCommitish,
     targetCommitish,
+    diffVersion,
+    markdownPreviewMode,
+    onMarkdownPreviewModeChange,
     cursor,
     fileIndex,
     mergedChunks,
