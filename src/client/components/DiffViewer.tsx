@@ -60,6 +60,8 @@ interface DiffViewerProps {
     chunkIndex: number,
     hiddenLines: number,
   ) => Promise<void>;
+  expandAllLines: (file: DiffFile) => Promise<void>;
+  collapseExpandedLines: (file: DiffFile) => void;
   prefetchFileContent: (file: DiffFile) => Promise<void>;
   isExpandLoading: boolean;
   onLineClick?: (
@@ -205,6 +207,8 @@ export const DiffViewer = memo(function DiffViewer({
   mergedChunks,
   expandLines,
   expandAllBetweenChunks,
+  expandAllLines,
+  collapseExpandedLines,
   prefetchFileContent,
   isExpandLoading,
   diffVersion,
@@ -216,6 +220,20 @@ export const DiffViewer = memo(function DiffViewer({
   const viewer = getViewerForFile(file);
   const hasBlobContent = baseCommitish !== 'stdin' && targetCommitish !== 'stdin';
   const canExpandHiddenLines = hasBlobContent && (viewer.canExpandHiddenLines?.(file) ?? false);
+  // -1 after the last hunk means the file length isn't known yet, so lines may still be hidden.
+  const hasHiddenLines = mergedChunks.some(
+    (chunk) => chunk.hiddenLinesBefore > 0 || chunk.hiddenLinesAfter !== 0,
+  );
+  const hasExpandedLines = mergedChunks.some((chunk) =>
+    chunk.lines.some((line) => 'isExpanded' in line && line.isExpanded),
+  );
+  const fullFileToggle = !canExpandHiddenLines
+    ? undefined
+    : hasHiddenLines
+      ? { expanded: false, onToggle: () => void expandAllLines(file) }
+      : hasExpandedLines
+        ? { expanded: true, onToggle: () => collapseExpandedLines(file) }
+        : undefined;
   // Tokenize the whole file so embedded blocks (e.g. <script>/<style>) are
   // highlighted by their own language instead of line-by-line, which can't see
   // the surrounding context.
@@ -368,6 +386,7 @@ export const DiffViewer = memo(function DiffViewer({
     >
       <DiffViewerHeader
         file={file}
+        fullFileToggle={fullFileToggle}
         isCollapsed={isCollapsed}
         isFocused={isFocused}
         isReviewed={reviewedFiles.has(file.path)}
