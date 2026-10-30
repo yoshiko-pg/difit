@@ -7,15 +7,23 @@ import {
   FilePen,
   FilePlus,
   FileX,
+  FoldVertical,
   Square,
+  UnfoldVertical,
 } from 'lucide-react';
 import { useState } from 'react';
 
 import type { DiffFile } from '../../types/diff';
 import { copyTextToClipboard } from '../utils/clipboard';
 
+interface FullFileToggle {
+  expanded: boolean;
+  onToggle: () => void;
+}
+
 interface DiffViewerHeaderProps {
   file: DiffFile;
+  fullFileToggle?: FullFileToggle;
   isCollapsed: boolean;
   isFocused?: boolean;
   isReviewed: boolean;
@@ -40,6 +48,7 @@ const getFileIcon = (status: DiffFile['status']) => {
 
 export const DiffViewerHeader = ({
   file,
+  fullFileToggle,
   isCollapsed,
   isFocused = false,
   isReviewed,
@@ -116,6 +125,17 @@ export const DiffViewerHeader = ({
           >
             Updated
           </span>
+        )}
+        {fullFileToggle && (
+          <button
+            type="button"
+            className="bg-transparent border-none cursor-pointer px-1.5 py-1 rounded text-sm transition-all hover:bg-github-bg-tertiary text-github-text-secondary hover:text-github-text-primary"
+            onClick={fullFileToggle.onToggle}
+            title={fullFileToggle.expanded ? 'Collapse expanded lines' : 'Expand all lines'}
+            aria-label={fullFileToggle.expanded ? 'Collapse expanded lines' : 'Expand all lines'}
+          >
+            {fullFileToggle.expanded ? <FoldVertical size={14} /> : <UnfoldVertical size={14} />}
+          </button>
         )}
         <div className="flex items-center gap-2 text-xs">
           <span className="font-medium px-1 py-0.5 rounded text-github-accent bg-green-100/10">

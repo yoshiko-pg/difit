@@ -456,6 +456,8 @@ function App() {
     isLoading: isExpandLoading,
     expandLines,
     expandAllBetweenChunks,
+    expandAllLines,
+    collapseExpandedLines,
     prefetchFileContent,
     getMergedChunks,
     lastUpdatedAt,
@@ -1531,6 +1533,8 @@ function App() {
                       mergedChunks={mergedChunks}
                       expandLines={expandLines}
                       expandAllBetweenChunks={expandAllBetweenChunks}
+                      expandAllLines={expandAllLines}
+                      collapseExpandedLines={collapseExpandedLines}
                       prefetchFileContent={prefetchFileContent}
                       isExpandLoading={isExpandLoading}
                       diffVersion={diffDataVersion}

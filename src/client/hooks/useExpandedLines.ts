@@ -10,6 +10,8 @@ import {
 
 const DEFAULT_EXPAND_COUNT = 20;
 
+type ExpandedRange = FileExpandedState['expandedRanges'][number];
+
 interface UseExpandedLinesOptions {
   baseCommitish?: string;
   targetCommitish?: string;
@@ -38,6 +40,8 @@ interface UseExpandedLinesResult {
     chunkIndex: number,
     hiddenLines: number,
   ) => Promise<void>;
+  expandAllLines: (file: DiffFile) => Promise<void>;
+  collapseExpandedLines: (file: DiffFile) => void;
   prefetchFileContent: (file: DiffFile) => Promise<void>;
   getMergedChunks: (file: DiffFile) => MergedChunk[];
   getHiddenLinesBefore: (file: DiffFile, chunk: DiffChunk, chunkIndex: number) => number;
@@ -339,6 +343,71 @@ export function useExpandedLines({
     [ensureFileContent, markFileUpdated],
   );
 
+  const expandAllLines = useCallback(
+    async (file: DiffFile) => {
+      if (file.status === 'added' || file.status === 'deleted' || file.chunks.length === 0) {
+        return;
+      }
+      const revisionGeneration = revisionGenerationRef.current;
+      setIsLoading(true);
+      try {
+        const fileState = await ensureFileContent(file);
+        if (!fileState || revisionGenerationRef.current !== revisionGeneration) {
+          return;
+        }
+
+        // Ranges count old-side lines, like getHiddenLinesBefore/After.
+        const ranges: ExpandedRange[] = file.chunks.map((chunk, index) => {
+          const prevChunk = file.chunks[index - 1];
+          const gapStart = prevChunk ? prevChunk.oldStart + prevChunk.oldLines : 1;
+          return {
+            chunkIndex: index,
+            direction: 'up',
+            count: Math.max(0, chunk.oldStart - gapStart),
+          };
+        });
+        const lastIndex = file.chunks.length - 1;
+        const lastChunk = file.chunks[lastIndex];
+        const totalLines = fileState.oldTotalLines || fileState.newTotalLines || 0;
+        if (lastChunk) {
+          const lastChunkEnd = lastChunk.oldStart + lastChunk.oldLines - 1;
+          ranges.push({
+            chunkIndex: lastIndex,
+            direction: 'down',
+            count: Math.max(0, totalLines - lastChunkEnd),
+          });
+        }
+
+        setExpandedState((prev) => ({
+          ...prev,
+          [file.path]: {
+            oldContent: prev[file.path]?.oldContent ?? fileState.oldContent,
+            newContent: prev[file.path]?.newContent ?? fileState.newContent,
+            oldTotalLines: prev[file.path]?.oldTotalLines ?? fileState.oldTotalLines,
+            newTotalLines: prev[file.path]?.newTotalLines ?? fileState.newTotalLines,
+            expandedRanges: ranges.filter((range) => range.count > 0),
+          },
+        }));
+        markFileUpdated(file.path);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [ensureFileContent, markFileUpdated],
+  );
+
+  const collapseExpandedLines = useCallback(
+    (file: DiffFile) => {
+      setExpandedState((prev) => {
+        const current = prev[file.path];
+        if (!current || current.expandedRanges.length === 0) return prev;
+        return { ...prev, [file.path]: { ...current, expandedRanges: [] } };
+      });
+      markFileUpdated(file.path);
+    },
+    [markFileUpdated],
+  );
+
   // Pre-fetch only line counts (lightweight) to show bottom expand button
   const prefetchFileContent = useCallback(
     async (file: DiffFile) => {
@@ -637,6 +706,8 @@ export function useExpandedLines({
     lastUpdatedAt,
     expandLines,
     expandAllBetweenChunks,
+    expandAllLines,
+    collapseExpandedLines,
     prefetchFileContent,
     getMergedChunks,
     getHiddenLinesBefore,

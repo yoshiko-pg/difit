@@ -195,4 +195,53 @@ describe('useExpandedLines', () => {
     expect(global.fetch).not.toHaveBeenCalled();
     expect(result.current.expandedState).toEqual({});
   });
+
+  it('expands every hidden line of a file and collapses them again', async () => {
+    const fileLines = ['line 1', 'line 2', 'line 3', 'line 4', 'line 5', 'line 6', 'line 7'];
+    vi.mocked(global.fetch).mockImplementation(
+      async () => ({ ok: true, text: async () => `${fileLines.join('\n')}\n` }) as Response,
+    );
+    const changed = (line: number) => ({
+      header: `@@ -${line} +${line} @@`,
+      oldStart: line,
+      oldLines: 1,
+      newStart: line,
+      newLines: 1,
+      lines: [
+        { type: 'delete' as const, content: `old ${line}`, oldLineNumber: line },
+        { type: 'add' as const, content: `line ${line}`, newLineNumber: line },
+      ],
+    });
+    const file: DiffFile = {
+      path: 'src/app.ts',
+      status: 'modified',
+      additions: 2,
+      deletions: 2,
+      chunks: [changed(3), changed(5)],
+    };
+    const { result } = renderHook(() =>
+      useExpandedLines({ baseCommitish: 'base', targetCommitish: 'target' }),
+    );
+
+    await act(async () => {
+      await result.current.expandAllLines(file);
+    });
+
+    const merged = result.current.getMergedChunks(file);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.hiddenLinesBefore).toBe(0);
+    expect(merged[0]?.hiddenLinesAfter).toBe(0);
+    expect(merged[0]?.lines.map((line) => line.newLineNumber ?? line.oldLineNumber)).toEqual([
+      1, 2, 3, 3, 4, 5, 5, 6, 7,
+    ]);
+
+    act(() => {
+      result.current.collapseExpandedLines(file);
+    });
+
+    const collapsed = result.current.getMergedChunks(file);
+    expect(collapsed).toHaveLength(2);
+    expect(collapsed[0]?.hiddenLinesBefore).toBe(2);
+    expect(collapsed[1]?.hiddenLinesAfter).toBe(2);
+  });
 });
