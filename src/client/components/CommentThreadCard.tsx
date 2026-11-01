@@ -42,6 +42,8 @@ function ThreadMessageItem({
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const showAuthorHeader = showAuthorBadge && Boolean(message.author);
   const isUserAuthoredMessage = message.author?.trim() === 'User';
+  const canResolveOrDelete = isRootMessage || isUserAuthoredMessage;
+  const [isCopied, setIsCopied] = useState(false);
 
   useClickOutside(confirmContainerRef, () => setIsConfirming(false), isConfirming);
 
@@ -67,6 +69,17 @@ function ThreadMessageItem({
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditing(true);
+  };
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await copyTextToClipboard(message.body);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -101,53 +114,64 @@ function ThreadMessageItem({
               syntaxTheme={syntaxTheme}
             />
           </div>
-          {(isRootMessage || isUserAuthoredMessage) &&
-            (isConfirming ? (
-              <div
-                ref={confirmContainerRef}
-                className="flex shrink-0 items-center gap-1.5 pt-0.5"
-                onClick={(e) => e.stopPropagation()}
+          {isConfirming ? (
+            <div
+              ref={confirmContainerRef}
+              className="flex shrink-0 items-center gap-1.5 pt-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="whitespace-nowrap text-xs text-github-text-secondary">
+                {confirmPrompt}
+              </span>
+              <button
+                ref={confirmButtonRef}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsConfirming(false);
+                  onResolveOrDelete();
+                }}
+                className={`whitespace-nowrap rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs font-medium transition-all hover:bg-github-bg-primary ${
+                  isRootMessage ? 'text-green-700 hover:text-green-800' : 'text-github-danger'
+                }`}
               >
-                <span className="whitespace-nowrap text-xs text-github-text-secondary">
-                  {confirmPrompt}
-                </span>
+                {isRootMessage ? 'Resolve' : 'Delete'}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsConfirming(false);
+                }}
+                className="whitespace-nowrap rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs text-github-text-primary transition-all hover:bg-github-bg-primary"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex shrink-0 items-start gap-2 pt-0.5">
+              {!isRootMessage && (
                 <button
-                  ref={confirmButtonRef}
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsConfirming(false);
-                    onResolveOrDelete();
-                  }}
-                  className={`whitespace-nowrap rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs font-medium transition-all hover:bg-github-bg-primary ${
-                    isRootMessage ? 'text-green-700 hover:text-green-800' : 'text-github-danger'
-                  }`}
+                  onClick={handleCopy}
+                  className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
+                  title={isCopied ? 'Copied!' : 'Copy message'}
+                  aria-label={isCopied ? 'Copied!' : 'Copy message'}
                 >
-                  {isRootMessage ? 'Resolve' : 'Delete'}
+                  {isCopied ? <Check size={12} /> : <Copy size={12} />}
                 </button>
+              )}
+              {isUserAuthoredMessage && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsConfirming(false);
-                  }}
-                  className="whitespace-nowrap rounded border border-github-border bg-github-bg-tertiary px-2 py-1 text-xs text-github-text-primary transition-all hover:bg-github-bg-primary"
+                  onClick={handleStartEdit}
+                  className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
+                  title="Edit message"
                 >
-                  Cancel
+                  <Edit2 size={12} />
                 </button>
-              </div>
-            ) : (
-              <div className="flex shrink-0 items-start gap-2 pt-0.5">
-                {isUserAuthoredMessage && (
-                  <button
-                    type="button"
-                    onClick={handleStartEdit}
-                    className="rounded border border-github-border bg-github-bg-tertiary p-1.5 text-github-text-primary transition-all hover:bg-github-bg-primary"
-                    title="Edit message"
-                  >
-                    <Edit2 size={12} />
-                  </button>
-                )}
+              )}
+              {canResolveOrDelete && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -166,8 +190,9 @@ function ThreadMessageItem({
                 >
                   {isRootMessage ? <Check size={12} /> : <Trash2 size={12} />}
                 </button>
-              </div>
-            ))}
+              )}
+            </div>
+          )}
         </>
       ) : (
         <CommentForm
